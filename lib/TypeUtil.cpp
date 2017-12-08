@@ -12,6 +12,18 @@ using namespace llvm;
 
 namespace util {
 	namespace type {
+		
+		Type *getVoidPtrType(LLVMContext &c){
+			return PointerType::get(Type::getVoidTy(c), 0);
+		}
+		
+		Type *getInt32Type(LLVMContext &c){
+			return Type::getInt32Ty(c);
+		}
+
+		Type *getInt64Type(LLVMContext &c){
+			return Type::getInt64Ty(c);
+		}
 
 		/**
 		 * Code was imported from jplehr/llvm-memprofiler project

@@ -5,10 +5,15 @@ namespace llvm {
 	class DataLayout;
 	class Type;
 	class AllocaInst;
+	class LLVMContext;
 }
 
 namespace util {
 	namespace type {
+
+		llvm::Type *getVoidPtrType(llvm::LLVMContext &c);
+		llvm::Type *getInt32Type(llvm::LLVMContext &c);
+		llvm::Type *getInt64Type(llvm::LLVMContext &c);
 
 int getTypeSizeInBytes(llvm::Type *t, const llvm::DataLayout &dl);
 
