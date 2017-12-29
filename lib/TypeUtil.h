@@ -6,7 +6,7 @@ class DataLayout;
 class Type;
 class AllocaInst;
 class LLVMContext;
-}
+}  // namespace llvm
 
 namespace util {
 namespace type {
@@ -27,7 +27,7 @@ unsigned getPointerSizeInBytes(llvm::Type* ptrT, const llvm::DataLayout& dl);
 
 unsigned getTypeSizeForArrayAlloc(llvm::AllocaInst* ai, const llvm::DataLayout& dl);
 
-}  // type
-}  // util
+}  // namespace type
+}  // namespace util
 
 #endif
