@@ -1,11 +1,13 @@
-#ifndef LIB_MUST_SUPPORT_PASS_H
-#define LIB_MUST_SUPPORT_PASS_H
+#ifndef _LIB_MUSTSUPPORTPASS_H
+#define _LIB_MUSTSUPPORTPASS_H
 
 #include "llvm/Pass.h"
 
+#include <set>
+
 namespace llvm {
 class Constant;
-}
+}  // namespace llvm
 
 namespace must {
 namespace pass {
@@ -15,7 +17,8 @@ class MustSupportPass : public llvm::BasicBlockPass {
   static char ID;  // used to identify pass
 
   /* Call base class ctor with ID */
-  MustSupportPass() : llvm::BasicBlockPass(ID) {}
+  MustSupportPass() : llvm::BasicBlockPass(ID) {
+  }
   /* Run once per module */
   bool doInitialization(llvm::Module& m) override;
   /* Run once per function */
@@ -26,7 +29,9 @@ class MustSupportPass : public llvm::BasicBlockPass {
   bool doFinalization(llvm::Module& m) override;
 
  private:
-  bool isAllocateFunction(std::string identifier) { return allocFunctions.find(identifier) != allocFunctions.end(); }
+  bool isAllocateFunction(std::string identifier) {
+    return allocFunctions.find(identifier) != allocFunctions.end();
+  }
 
   bool isDeallocateFunction(std::string identifier) {
     return deallocFunctions.find(identifier) != deallocFunctions.end();
@@ -50,7 +55,7 @@ class MustSupportPass : public llvm::BasicBlockPass {
   const std::set<std::string> deallocFunctions{"free"};
 };
 
-}  // pass
-}  // must
+}  // namespace pass
+}  // namespace must
 
 #endif

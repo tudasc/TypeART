@@ -12,17 +12,23 @@ using namespace llvm;
 namespace util {
 namespace type {
 
-Type* getVoidPtrType(LLVMContext& c) { return PointerType::get(Type::getVoidTy(c), 0); }
+Type* getVoidPtrType(LLVMContext& c) {
+  return PointerType::get(Type::getVoidTy(c), 0);
+}
 
-Type* getInt32Type(LLVMContext& c) { return Type::getInt32Ty(c); }
+Type* getInt32Type(LLVMContext& c) {
+  return Type::getInt32Ty(c);
+}
 
-Type* getInt64Type(LLVMContext& c) { return Type::getInt64Ty(c); }
+Type* getInt64Type(LLVMContext& c) {
+  return Type::getInt64Ty(c);
+}
 
 /**
  * Code was imported from jplehr/llvm-memprofiler project
  */
-int getTypeSizeInBytes(llvm::Type* t, const llvm::DataLayout& dl) {
-  int bytes = getScalarSizeInBytes(t);
+unsigned getTypeSizeInBytes(llvm::Type* t, const llvm::DataLayout& dl) {
+  unsigned bytes = getScalarSizeInBytes(t);
 
   if (t->isArrayTy()) {
     bytes = getArraySizeInBytes(t, dl);
@@ -35,30 +41,34 @@ int getTypeSizeInBytes(llvm::Type* t, const llvm::DataLayout& dl) {
   return bytes;
 }
 
-int getScalarSizeInBytes(llvm::Type* t) { return t->getScalarSizeInBits() / 8; }
+unsigned getScalarSizeInBytes(llvm::Type* t) {
+  return t->getScalarSizeInBits() / 8;
+}
 
-int getArraySizeInBytes(llvm::Type* arrT, const llvm::DataLayout& dl) {
+unsigned getArraySizeInBytes(llvm::Type* arrT, const llvm::DataLayout& dl) {
   auto st = dyn_cast<ArrayType>(arrT);
   Type* underlyingType = st->getElementType();
-  int bytes = getScalarSizeInBytes(underlyingType);
+  unsigned bytes = getScalarSizeInBytes(underlyingType);
   bytes *= st->getNumElements();
   std::cout << "Determined number of bytes to allocate: " << bytes << std::endl;
 
   return bytes;
 }
 
-int getStructSizeInBytes(llvm::Type* structT, const llvm::DataLayout& dl) {
-  int bytes = 0;
+unsigned getStructSizeInBytes(llvm::Type* structT, const llvm::DataLayout& dl) {
+  unsigned bytes{0u};
   for (auto it = structT->subtype_begin(); it != structT->subtype_end(); ++it) {
     bytes += getTypeSizeInBytes(*it, dl);
   }
   return bytes;
 }
 
-int getPointerSizeInBytes(llvm::Type* ptrT, const llvm::DataLayout& dl) { return dl.getPointerSizeInBits() / 8; }
+unsigned getPointerSizeInBytes(llvm::Type* ptrT, const llvm::DataLayout& dl) {
+  return dl.getPointerSizeInBits() / 8;
+}
 
-int getTypeSizeForArrayAlloc(llvm::AllocaInst* ai, const llvm::DataLayout& dl) {
-  int bytes = ai->getAllocatedType()->getScalarSizeInBits() / 8;
+unsigned getTypeSizeForArrayAlloc(llvm::AllocaInst* ai, const llvm::DataLayout& dl) {
+  unsigned bytes = ai->getAllocatedType()->getScalarSizeInBits() / 8;
   if (ai->isArrayAllocation()) {
     if (auto ci = dyn_cast<ConstantInt>(ai->getArraySize())) {
       bytes *= ci->getLimitedValue();
@@ -77,5 +87,5 @@ int getTypeSizeForArrayAlloc(llvm::AllocaInst* ai, const llvm::DataLayout& dl) {
   return bytes;
 }
 
-}  // type
-}  // util
+}  // namespace type
+}  // namespace util

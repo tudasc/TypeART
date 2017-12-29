@@ -7,7 +7,7 @@ using namespace llvm;
 
 namespace {
 static llvm::RegisterPass<must::pass::MustSupportPass> msp("must", "MUST type information", false, false);
-}
+}  // namespace
 
 namespace tu = util::type;
 
@@ -83,5 +83,5 @@ void MustSupportPass::propagateTypeInformation(Module& m) {
    */
 }
 
-}  // pass
-}  // must
+}  // namespace pass
+}  // namespace must

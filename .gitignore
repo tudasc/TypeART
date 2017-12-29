@@ -1,0 +1,41 @@
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Build folder
+build*/
+
+# Compilation Database and others
+compile_commands.json
+CMakeLists.txt.user
+
+# bin folder
+bin/
+
+# Misc folder
+.settings/
+
+# Eclipse files
+.cproject
+.project

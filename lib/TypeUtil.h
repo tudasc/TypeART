@@ -15,17 +15,17 @@ llvm::Type* getVoidPtrType(llvm::LLVMContext& c);
 llvm::Type* getInt32Type(llvm::LLVMContext& c);
 llvm::Type* getInt64Type(llvm::LLVMContext& c);
 
-int getTypeSizeInBytes(llvm::Type* t, const llvm::DataLayout& dl);
+unsigned getTypeSizeInBytes(llvm::Type* t, const llvm::DataLayout& dl);
 
-int getScalarSizeInBytes(llvm::Type* t);
+unsigned getScalarSizeInBytes(llvm::Type* t);
 
-int getArraySizeInBytes(llvm::Type* arrT, const llvm::DataLayout& dl);
+unsigned getArraySizeInBytes(llvm::Type* arrT, const llvm::DataLayout& dl);
 
-int getStructSizeInBytes(llvm::Type* structT, const llvm::DataLayout& dl);
+unsigned getStructSizeInBytes(llvm::Type* structT, const llvm::DataLayout& dl);
 
-int getPointerSizeInBytes(llvm::Type* ptrT, const llvm::DataLayout& dl);
+unsigned getPointerSizeInBytes(llvm::Type* ptrT, const llvm::DataLayout& dl);
 
-int getTypeSizeForArrayAlloc(llvm::AllocaInst* ai, const llvm::DataLayout& dl);
+unsigned getTypeSizeForArrayAlloc(llvm::AllocaInst* ai, const llvm::DataLayout& dl);
 
 }  // type
 }  // util
