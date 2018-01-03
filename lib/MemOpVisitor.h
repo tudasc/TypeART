@@ -22,7 +22,6 @@ struct MemOpVisitor : public llvm::InstVisitor<MemOpVisitor> {
   void visitFreeLike(llvm::CallInst& ci);
   virtual ~MemOpVisitor();
 
-
   struct MallocData {
     llvm::CallInst* call;
     llvm::SmallVector<llvm::BitCastInst*, 4> bitcasts;

@@ -1,9 +1,10 @@
 #include "MUSTSupportPass.h"
-#include "TypeUtil.h"
+#include "Logger.h"
 #include "MemOpVisitor.h"
+#include "TypeUtil.h"
 
-#include "llvm/IR/Module.h"
 #include "llvm/ADT/Statistic.h"
+#include "llvm/IR/Module.h"
 
 using namespace llvm;
 
@@ -14,8 +15,8 @@ static llvm::RegisterPass<must::pass::MustSupportPass> msp("must", "MUST type in
 }  // namespace
 
 // FIXME 1) include bitcasts? 2) disabled by default in LLVM builds (use LLVM_ENABLE_STATS when building)
-//STATISTIC(NumInstrumentedMallocs, "Number of instrumented mallocs");
-//STATISTIC(NumInstrumentedFrees, "Number of instrumented frees");
+// STATISTIC(NumInstrumentedMallocs, "Number of instrumented mallocs");
+// STATISTIC(NumInstrumentedFrees, "Number of instrumented frees");
 STATISTIC(NumFoundMallocs, "Number of detected mallocs");
 STATISTIC(NumFoundFrees, "Number of detected frees");
 
@@ -57,10 +58,10 @@ bool MustSupportPass::runOnBasicBlock(BasicBlock& bb) {
   MemOpVisitor mOpsCollector;
   mOpsCollector.visit(bb);
   // instrument collected calls of bb:
-  for(auto& malloc : mOpsCollector.listMalloc) {
+  for (auto& malloc : mOpsCollector.listMalloc) {
     ++NumFoundMallocs;
   }
-  for(auto& free : mOpsCollector.listFree) {
+  for (auto& free : mOpsCollector.listFree) {
     ++NumFoundFrees;
   }
   return false;
@@ -70,6 +71,7 @@ bool MustSupportPass::doFinalization(Module& m) {
   /*
    * Persist the accumulated type definition information for this module.
    */
+  LOG_INFO("MustSupportPass finished. Found (malloc/free): (" << NumFoundMallocs << "/" << NumFoundFrees << ")")
   return false;
 }
 
