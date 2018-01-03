@@ -5,6 +5,7 @@ include(AddLLVM)
 set(PASS_SOURCES
  	MUSTSupportPass.cpp
 	TypeUtil.cpp
+	MemOpVisitor.cpp
 )
 
 add_llvm_loadable_module(MustSupportPass

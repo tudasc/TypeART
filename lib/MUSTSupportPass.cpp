@@ -1,5 +1,6 @@
 #include "MUSTSupportPass.h"
 #include "TypeUtil.h"
+#include "MemOpVisitor.h"
 
 #include "llvm/IR/Module.h"
 
@@ -44,6 +45,12 @@ bool MustSupportPass::runOnBasicBlock(BasicBlock& bb) {
    * + Find free frunctions
    * + Generate calls to instrumentation functions
    */
+  MemOpVisitor mOpsCollector;
+  mOpsCollector.visit(bb);
+  /*
+  for(auto& instruction : bb) {
+  }
+  */
   return false;
 }
 
