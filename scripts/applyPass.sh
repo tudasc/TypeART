@@ -6,9 +6,16 @@ pluginCommand=${3:-must}
 pathToPlugin=${4:-build/lib}
 tmpDir=/tmp
 tmpfile="$tmpDir"/"${target##*/}"
+extension="${target##*.}"
 
 echo -e Running on "$target" using plugin: "$plugin"
 
-clang -S -emit-llvm "$target" -o "$tmpfile".ll
+if [ $extension == "c" ]; then
+  compiler=clang
+else
+  compiler=clang++
+fi
 
-opt -load "$pathToPlugin"/"$plugin".so -$pluginCommand < "$tmpfile".ll > /dev/null
+$compiler -S -emit-llvm "$target" -o "$tmpfile".ll
+
+opt -print-after-all -load "$pathToPlugin"/"$plugin".so -$pluginCommand < "$tmpfile".ll > /dev/null

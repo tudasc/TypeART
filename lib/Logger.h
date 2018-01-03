@@ -21,7 +21,7 @@
 // clang-format off
 #define OO_LOG_LEVEL_MSG(LEVEL_NUM, LEVEL, MSG) \
   if ((LEVEL_NUM) <= LOG_LEVEL) { \
-    llvm::errs() << (LEVEL) << " " << __FILE__ << ":" << __func__ << ":" << __LINE__ << ": " << (MSG) << "\n"; \
+    llvm::errs() << (LEVEL) << " " << __FILE__ << ":" << __func__ << ":" << __LINE__ << ": " << MSG << "\n"; \
   }
 
 #define LOG_DEBUG(MSG) OO_LOG_LEVEL_MSG(3, "[Debug]", MSG)

@@ -12,8 +12,6 @@ add_llvm_loadable_module(MustSupportPass
 	${PASS_SOURCES}
 )
 
-
-
 add_tidy_target(tidy-run-on-pass
   "Clang-tidy run on MUST support pass translation units"
   SOURCES ${PASS_SOURCES}

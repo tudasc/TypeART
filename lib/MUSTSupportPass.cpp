@@ -3,12 +3,21 @@
 #include "MemOpVisitor.h"
 
 #include "llvm/IR/Module.h"
+#include "llvm/ADT/Statistic.h"
 
 using namespace llvm;
+
+#define DEBUG_TYPE "must"
 
 namespace {
 static llvm::RegisterPass<must::pass::MustSupportPass> msp("must", "MUST type information", false, false);
 }  // namespace
+
+// FIXME 1) include bitcasts? 2) disabled by default in LLVM builds (use LLVM_ENABLE_STATS when building)
+//STATISTIC(NumInstrumentedMallocs, "Number of instrumented mallocs");
+//STATISTIC(NumInstrumentedFrees, "Number of instrumented frees");
+STATISTIC(NumFoundMallocs, "Number of detected mallocs");
+STATISTIC(NumFoundFrees, "Number of detected frees");
 
 namespace tu = util::type;
 
@@ -47,10 +56,13 @@ bool MustSupportPass::runOnBasicBlock(BasicBlock& bb) {
    */
   MemOpVisitor mOpsCollector;
   mOpsCollector.visit(bb);
-  /*
-  for(auto& instruction : bb) {
+  // instrument collected calls of bb:
+  for(auto& malloc : mOpsCollector.listMalloc) {
+    ++NumFoundMallocs;
   }
-  */
+  for(auto& free : mOpsCollector.listFree) {
+    ++NumFoundFrees;
+  }
   return false;
 }
 

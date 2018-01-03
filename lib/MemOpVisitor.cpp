@@ -8,6 +8,8 @@
 #include "MemOpVisitor.h"
 #include "Logger.h"
 
+#include <algorithm>
+
 namespace must {
 namespace pass {
 
@@ -17,8 +19,13 @@ MemOpVisitor::MemOpVisitor() = default;
 
 void MemOpVisitor::visitCallInst(llvm::CallInst& ci) {
   const auto isInSet = [&ci](const auto& funcSet) {
-    const auto name = ci.getCalledFunction()->getName().str();
-    return std::find(std::begin(funcSet), std::end(funcSet), name) != std::end(funcSet);
+    const auto* f = ci.getCalledFunction();
+    if(!f) {
+      // TODO handle calls through, e.g., function pointers? - seems infeasible
+      LOG_INFO("Encountered indirect call, skipping.");
+      return false;
+    }
+    return std::find(std::begin(funcSet), std::end(funcSet), f->getName().str()) != std::end(funcSet);
   };
 
   if (isInSet(allocFunctions)) {
@@ -30,10 +37,23 @@ void MemOpVisitor::visitCallInst(llvm::CallInst& ci) {
 
 void MemOpVisitor::visitMallocLike(llvm::CallInst& ci) {
   LOG_DEBUG(ci.getCalledFunction()->getName());
+
+  SmallVector<BitCastInst*, 4> bcasts;
+  for(auto user : ci.users()) {
+    if(auto inst = dyn_cast<BitCastInst>(user)) {
+      bcasts.push_back(inst);
+    }
+  }
+
+  LOG_DEBUG(">> number of bitcasts found: "<< bcasts.size());
+
+  listMalloc.push_back(MallocData{&ci, bcasts});
 }
 
 void MemOpVisitor::visitFreeLike(llvm::CallInst& ci) {
   LOG_DEBUG(ci.getCalledFunction()->getName());
+
+  listFree.push_back(&ci);
 }
 
 MemOpVisitor::~MemOpVisitor() = default;
