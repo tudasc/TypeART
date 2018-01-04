@@ -1,10 +1,13 @@
 #include "MUSTSupportPass.h"
-#include "Logger.h"
 #include "MemOpVisitor.h"
-#include "TypeUtil.h"
+#include "support/Logger.h"
+#include "support/TypeUtil.h"
 
 #include "llvm/ADT/Statistic.h"
 #include "llvm/IR/Module.h"
+#include "llvm/Support/Format.h"
+
+#include <string>
 
 using namespace llvm;
 
@@ -14,11 +17,15 @@ namespace {
 static llvm::RegisterPass<must::pass::MustSupportPass> msp("must", "MUST type information", false, false);
 }  // namespace
 
+static cl::opt<bool> ClMustStats("must-stats", cl::desc("Show statistics for MUST type pass."), cl::Hidden,
+                                 cl::init(false));
+
 // FIXME 1) include bitcasts? 2) disabled by default in LLVM builds (use LLVM_ENABLE_STATS when building)
 // STATISTIC(NumInstrumentedMallocs, "Number of instrumented mallocs");
 // STATISTIC(NumInstrumentedFrees, "Number of instrumented frees");
 STATISTIC(NumFoundMallocs, "Number of detected mallocs");
 STATISTIC(NumFoundFrees, "Number of detected frees");
+STATISTIC(NumFoundAlloca, "Number of detected (stack) allocas");
 
 namespace tu = util::type;
 
@@ -64,6 +71,9 @@ bool MustSupportPass::runOnBasicBlock(BasicBlock& bb) {
   for (auto& free : mOpsCollector.listFree) {
     ++NumFoundFrees;
   }
+  for (auto& alloca : mOpsCollector.listAlloca) {
+    ++NumFoundAlloca;
+  }
   return false;
 }
 
@@ -71,7 +81,9 @@ bool MustSupportPass::doFinalization(Module& m) {
   /*
    * Persist the accumulated type definition information for this module.
    */
-  LOG_INFO("MustSupportPass finished. Found (malloc/free): (" << NumFoundMallocs << "/" << NumFoundFrees << ")")
+  if (ClMustStats) {
+    printStats(llvm::errs());
+  }
   return false;
 }
 
@@ -102,6 +114,30 @@ void MustSupportPass::propagateTypeInformation(Module& m) {
    *  + Extent
    *  + Our id
    */
+}
+
+void MustSupportPass::printStats(llvm::raw_ostream& out) {
+  unsigned max_string{12u};
+  unsigned max_val{5u};
+  std::string line(22, '-');
+  line += "\n";
+  const auto make_format = [&](const char* desc, const auto val) {
+    return format("%-*s: %*u\n", max_string, desc, max_val, val);
+  };
+
+  out << line;
+  out << "   MustSupportPass\n";
+  out << line;
+  out << "Heap Memory\n";
+  out << line;
+  out << make_format("Malloc", NumFoundMallocs.getValue());
+  out << make_format("Free", NumFoundFrees.getValue());
+  out << line;
+  out << "Stack Memory\n";
+  out << line;
+  out << make_format("Alloca", NumFoundAlloca.getValue());
+  out << line;
+  out.flush();
 }
 
 }  // namespace pass

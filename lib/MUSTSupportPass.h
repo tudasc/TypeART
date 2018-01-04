@@ -7,6 +7,7 @@
 
 namespace llvm {
 class Constant;
+class raw_ostream;
 }  // namespace llvm
 
 namespace must {
@@ -37,6 +38,8 @@ class MustSupportPass : public llvm::BasicBlockPass {
   */
   void declareInstrumentationFunctions(llvm::Module& m);
   void propagateTypeInformation(llvm::Module& m);
+
+  void printStats(llvm::raw_ostream&);
 
   /** Data members */
   std::string allocInstrumentation{"__must_support_alloc"};

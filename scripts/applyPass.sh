@@ -18,4 +18,4 @@ fi
 
 $compiler -S -emit-llvm "$target" -o "$tmpfile".ll
 
-opt -print-after-all -load "$pathToPlugin"/"$plugin".so -$pluginCommand < "$tmpfile".ll > /dev/null
+opt -print-after-all -load "$pathToPlugin"/"$plugin".so -$pluginCommand -must-stats < "$tmpfile".ll > /dev/null

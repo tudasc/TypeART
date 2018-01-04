@@ -6,7 +6,7 @@
  */
 
 #include "MemOpVisitor.h"
-#include "Logger.h"
+#include "support/Logger.h"
 
 #include <algorithm>
 
@@ -54,6 +54,13 @@ void MemOpVisitor::visitFreeLike(llvm::CallInst& ci) {
   LOG_DEBUG(ci.getCalledFunction()->getName());
 
   listFree.push_back(&ci);
+}
+
+void MemOpVisitor::visitAllocaInst(llvm::AllocaInst& ai) {
+  LOG_DEBUG("Found alloca");
+
+  // TODO filter based on indirect pointers (void *p = other_ptr)
+  listAlloca.push_back(&ai);
 }
 
 MemOpVisitor::~MemOpVisitor() = default;

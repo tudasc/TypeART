@@ -20,6 +20,7 @@ struct MemOpVisitor : public llvm::InstVisitor<MemOpVisitor> {
   void visitCallInst(llvm::CallInst& ci);
   void visitMallocLike(llvm::CallInst& ci);
   void visitFreeLike(llvm::CallInst& ci);
+  void visitAllocaInst(llvm::AllocaInst& ai);
   virtual ~MemOpVisitor();
 
   struct MallocData {
@@ -29,6 +30,7 @@ struct MemOpVisitor : public llvm::InstVisitor<MemOpVisitor> {
 
   llvm::SmallVector<MallocData, 8> listMalloc;
   llvm::SmallVector<llvm::CallInst*, 8> listFree;
+  llvm::SmallVector<llvm::AllocaInst*, 8> listAlloca;
 
  private:
   /** Look up sets for keyword strings */
