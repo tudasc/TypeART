@@ -23,12 +23,3 @@ add_tidy_fix_target(tidy-fix-on-pass
   SOURCES ${PASS_SOURCES}
   OTHER --header-filter=${CMAKE_CURRENT_SOURCE_DIR} -checks=-*,modernize-*,llvm-namespace-comment,google-explicit-constructor
 )
-
-set(MUSTPASS_TEST_DEPS MustSupportPass)
-add_lit_testsuite(lit-pass-test
-  "Running the MUST support pass tests"
-  ${PROJECT_SOURCE_DIR}/test
-  PARAMS ${MUSTPASS_TEST_PARAMS}
-  DEPENDS ${MUSTPASS_TEST_DEPS}
-  ARGS ${MUSTPASS_TEST_EXTRA_ARGS}
-)

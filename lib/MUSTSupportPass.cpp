@@ -117,8 +117,8 @@ void MustSupportPass::propagateTypeInformation(Module& m) {
 }
 
 void MustSupportPass::printStats(llvm::raw_ostream& out) {
-  unsigned max_string{12u};
-  unsigned max_val{5u};
+  const unsigned max_string{12u};
+  const unsigned max_val{5u};
   std::string line(22, '-');
   line += "\n";
   const auto make_format = [&](const char* desc, const auto val) {

@@ -22,9 +22,15 @@ find_package(LLVM REQUIRED CONFIG)
 include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 
+add_format_target(format-sources
+  "Formats project source files"
+  TARGETS lib/*.cpp 
+          lib/*.h
+          runtime/*.cpp
+          runtime/*.h
+)
+
 add_subdirectory(lib)
 add_subdirectory(runtime)
-
-add_format_target(format-all
-  "Formats project source files"
-)
+enable_testing()
+add_subdirectory(test)

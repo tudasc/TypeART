@@ -8,13 +8,11 @@ function(add_format_target target comment)
     endforeach()
   endmacro()
 
-  cmake_parse_arguments(ARG "" "" "EXCLUDES;OTHER" ${ARGN})
+  cmake_parse_arguments(ARG "" "" "TARGETS;EXCLUDES;OTHER" ${ARGN})
+
   file(GLOB_RECURSE
     ALL_CXX_FILES
-    lib/*.cpp
-    lib/*.h
-    runtime/*.cpp
-    runtime/*.h
+    ${ARG_TARGETS}
   )
 
   foreach(exclude ${ARG_EXCLUDES})
