@@ -1,15 +1,22 @@
-list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
-
-include(AddLLVM)
-
 set(PASS_SOURCES
- 	MUSTSupportPass.cpp
-	support/TypeUtil.cpp
-	MemOpVisitor.cpp
+  MUSTSupportPass.cpp
+  support/TypeUtil.cpp
+  MemOpVisitor.cpp
 )
 
 add_llvm_loadable_module(MustSupportPass
-	${PASS_SOURCES}
+  ${PASS_SOURCES}
+)
+
+target_include_directories(MustSupportPass 
+  SYSTEM 
+  PUBLIC 
+  ${LLVM_INCLUDE_DIRS}
+)
+
+target_compile_definitions(MustSupportPass
+  PRIVATE
+  ${LLVM_DEFINITIONS}
 )
 
 add_tidy_target(tidy-run-on-pass
