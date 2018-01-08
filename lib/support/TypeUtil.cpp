@@ -68,7 +68,7 @@ unsigned getPointerSizeInBytes(llvm::Type* ptrT, const llvm::DataLayout& dl) {
 }
 
 unsigned getTypeSizeForArrayAlloc(llvm::AllocaInst* ai, const llvm::DataLayout& dl) {
-  unsigned bytes = ai->getAllocatedType()->getScalarSizeInBits() / 8;
+  unsigned bytes = getScalarSizeInBytes(ai->getAllocatedType());
   if (ai->isArrayAllocation()) {
     if (auto ci = dyn_cast<ConstantInt>(ai->getArraySize())) {
       bytes *= ci->getLimitedValue();
