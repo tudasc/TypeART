@@ -1,6 +1,8 @@
 #include "MUSTSupportPass.h"
 #include "TypeUtil.h"
+#include <llvm/IR/Constants.h>
 
+#include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
 
 using namespace llvm;
@@ -44,6 +46,64 @@ bool MustSupportPass::runOnBasicBlock(BasicBlock& bb) {
    * + Find free frunctions
    * + Generate calls to instrumentation functions
    */
+
+  auto& c = bb.getContext();
+  DataLayout dl(bb.getModule());
+
+  for (Instruction& inst : bb.getInstList()) {
+    switch (inst.getOpcode()) {
+      case Instruction::BitCast: {
+        auto bitcastInst = dyn_cast<BitCastInst>(&inst);
+        auto srcValue = bitcastInst->getOperand(0);
+        if (auto callInst = dyn_cast<CallInst>(&inst)) {
+          auto callee = callInst->getCalledFunction();
+          auto calleeName = callee->getName();
+          if (isAllocateFunction(calleeName)) {
+            // Instrument allocation
+            // 1. Find out size
+            // 2. Find out type
+            auto mallocArg = callee->getOperand(0);  // Number of bytes
+            // if (auto constIntArg = dyn_cast<ConstantInt>(mallocArg)) {
+            // constIntArg->
+            //}
+
+            auto dstPtrType = bitcastInst->getDestTy()->getPointerElementType();
+            auto typeSize = tu::getTypeSizeInBytes(dstPtrType, dl);
+
+            // TODO: Type IDs for structs etc.
+            auto typeId = dstPtrType->getTypeID();
+
+            auto mustAllocFn = bb.getModule()->getFunction(allocInstrumentation);
+            // TODO: Ensure function exists
+
+            auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), (unsigned)typeId);
+            auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
+
+            // count = numBytes / typeSize
+            auto elementCount = BinaryOperator::CreateUDiv(mallocArg, typeSizeConst, "", bitcastInst->getNextNode());
+
+            std::vector<Value*> mustAllocArgs{callee, typeIdConst, elementCount, typeSizeConst};
+            CallInst::Create(mustAllocFn, mustAllocArgs, "", elementCount->getNextNode());
+          }
+        }
+        break;
+      }
+      case Instruction::Call: {
+        auto callInst = dyn_cast<CallInst>(&inst);
+        auto callee = callInst->getCalledFunction();
+        auto calleeName = callee->getName();
+        if (isAllocateFunction(calleeName)) {
+          // Instrument allocation
+
+        } else if (isDeallocateFunction(calleeName)) {
+          // Instrument deallocation
+        }
+        break;
+      }
+      default:
+        break;
+    }
+  }
   return false;
 }
 
@@ -66,9 +126,11 @@ void MustSupportPass::declareInstrumentationFunctions(Module& m) {
   auto allocFunc = m.getOrInsertFunction(allocInstrumentation, tu::getVoidPtrType(c), tu::getInt32Type(c),
                                          tu::getInt64Type(c), tu::getInt64Type(c), nullptr);
   setFunctionLinkageExternal(allocFunc);
+  this->mustSupportAllocFn = allocFunc;
 
   auto freeFunc = m.getOrInsertFunction(freeInstrumentation, tu::getVoidPtrType(c), nullptr);
   setFunctionLinkageExternal(freeFunc);
+  this->mustSupportFreeFn = freeFunc;
 }
 
 void MustSupportPass::propagateTypeInformation(Module& m) {

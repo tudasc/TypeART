@@ -7,6 +7,7 @@
 
 namespace llvm {
 class Constant;
+// class Function;
 }  // namespace llvm
 
 namespace must {
@@ -49,6 +50,9 @@ class MustSupportPass : public llvm::BasicBlockPass {
   /** Data members */
   std::string allocInstrumentation{"__must_support_alloc"};
   std::string freeInstrumentation{"__must_support_free"};
+
+  llvm::Constant* mustSupportAllocFn;
+  llvm::Constant* mustSupportFreeFn;
 
   /** Look up sets for keyword strings */
   const std::set<std::string> allocFunctions{"malloc"};
