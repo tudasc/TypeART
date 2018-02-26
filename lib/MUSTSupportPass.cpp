@@ -1,15 +1,32 @@
 #include "MUSTSupportPass.h"
-#include "TypeUtil.h"
-#include <llvm/IR/Constants.h>
+#include "MemOpVisitor.h"
+#include "support/Logger.h"
+#include "support/TypeUtil.h"
 
+#include "llvm/ADT/Statistic.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
+#include "llvm/Support/Format.h"
+
+#include <string>
 
 using namespace llvm;
+
+#define DEBUG_TYPE "must"
 
 namespace {
 static llvm::RegisterPass<must::pass::MustSupportPass> msp("must", "MUST type information", false, false);
 }  // namespace
+
+static cl::opt<bool> ClMustStats("must-stats", cl::desc("Show statistics for MUST type pass."), cl::Hidden,
+                                 cl::init(false));
+
+// FIXME 1) include bitcasts? 2) disabled by default in LLVM builds (use LLVM_ENABLE_STATS when building)
+// STATISTIC(NumInstrumentedMallocs, "Number of instrumented mallocs");
+// STATISTIC(NumInstrumentedFrees, "Number of instrumented frees");
+STATISTIC(NumFoundMallocs, "Number of detected mallocs");
+STATISTIC(NumFoundFrees, "Number of detected frees");
+STATISTIC(NumFoundAlloca, "Number of detected (stack) allocas");
 
 namespace tu = util::type;
 
@@ -50,60 +67,49 @@ bool MustSupportPass::runOnBasicBlock(BasicBlock& bb) {
   auto& c = bb.getContext();
   DataLayout dl(bb.getModule());
 
-  for (Instruction& inst : bb.getInstList()) {
-    switch (inst.getOpcode()) {
-      case Instruction::BitCast: {
-        auto bitcastInst = dyn_cast<BitCastInst>(&inst);
-        auto srcValue = bitcastInst->getOperand(0);
-        if (auto callInst = dyn_cast<CallInst>(&inst)) {
-          auto callee = callInst->getCalledFunction();
-          auto calleeName = callee->getName();
-          if (isAllocateFunction(calleeName)) {
-            // Instrument allocation
-            // 1. Find out size
-            // 2. Find out type
-            auto mallocArg = callee->getOperand(0);  // Number of bytes
-            // if (auto constIntArg = dyn_cast<ConstantInt>(mallocArg)) {
-            // constIntArg->
-            //}
+  MemOpVisitor mOpsCollector;
+  mOpsCollector.visit(bb);
 
-            auto dstPtrType = bitcastInst->getDestTy()->getPointerElementType();
-            auto typeSize = tu::getTypeSizeInBytes(dstPtrType, dl);
+  auto mustAllocFn = bb.getModule()->getFunction(allocInstrumentation);
+  assert(mustAllocFn && "alloc instrumentation function not found");
 
-            // TODO: Type IDs for structs etc.
-            auto typeId = dstPtrType->getTypeID();
+  // instrument collected calls of bb:
+  for (auto& malloc : mOpsCollector.listMalloc) {
+    ++NumFoundMallocs;
 
-            auto mustAllocFn = bb.getModule()->getFunction(allocInstrumentation);
-            // TODO: Ensure function exists
+    // TODO: Maybe move to separate class
 
-            auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), (unsigned)typeId);
-            auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
+    auto mallocInst = malloc.call;
 
-            // count = numBytes / typeSize
-            auto elementCount = BinaryOperator::CreateUDiv(mallocArg, typeSizeConst, "", bitcastInst->getNextNode());
+    for (auto bitcastInst : malloc.bitcasts) {
+      // TODO: How to correctly handle multiple bitcasts?
 
-            std::vector<Value*> mustAllocArgs{callee, typeIdConst, elementCount, typeSizeConst};
-            CallInst::Create(mustAllocFn, mustAllocArgs, "", elementCount->getNextNode());
-          }
-        }
-        break;
-      }
-      case Instruction::Call: {
-        auto callInst = dyn_cast<CallInst>(&inst);
-        auto callee = callInst->getCalledFunction();
-        auto calleeName = callee->getName();
-        if (isAllocateFunction(calleeName)) {
-          // Instrument allocation
+      auto mallocArg = mallocInst->getOperand(0);  // Number of bytes
 
-        } else if (isDeallocateFunction(calleeName)) {
-          // Instrument deallocation
-        }
-        break;
-      }
-      default:
-        break;
+      auto dstPtrType = bitcastInst->getDestTy()->getPointerElementType();
+      auto typeSize = tu::getTypeSizeInBytes(dstPtrType, dl);
+
+      // TODO: Type IDs for structs etc.
+      auto typeId = dstPtrType->getTypeID();
+
+      auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), (unsigned)typeId);
+      auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
+
+      // count = numBytes / typeSize
+      auto elementCount = BinaryOperator::CreateUDiv(mallocArg, typeSizeConst, "", bitcastInst->getNextNode());
+
+      std::vector<Value*> mustAllocArgs{bitcastInst, typeIdConst, elementCount, typeSizeConst};
+      CallInst::Create(mustAllocFn, mustAllocArgs, "", elementCount->getNextNode());
     }
   }
+
+  for (auto& free : mOpsCollector.listFree) {
+    ++NumFoundFrees;
+  }
+  for (auto& alloca : mOpsCollector.listAlloca) {
+    ++NumFoundAlloca;
+  }
+
   return false;
 }
 
@@ -111,6 +117,9 @@ bool MustSupportPass::doFinalization(Module& m) {
   /*
    * Persist the accumulated type definition information for this module.
    */
+  if (ClMustStats) {
+    printStats(llvm::errs());
+  }
   return false;
 }
 
@@ -126,11 +135,9 @@ void MustSupportPass::declareInstrumentationFunctions(Module& m) {
   auto allocFunc = m.getOrInsertFunction(allocInstrumentation, tu::getVoidPtrType(c), tu::getInt32Type(c),
                                          tu::getInt64Type(c), tu::getInt64Type(c), nullptr);
   setFunctionLinkageExternal(allocFunc);
-  this->mustSupportAllocFn = allocFunc;
 
   auto freeFunc = m.getOrInsertFunction(freeInstrumentation, tu::getVoidPtrType(c), nullptr);
   setFunctionLinkageExternal(freeFunc);
-  this->mustSupportFreeFn = freeFunc;
 }
 
 void MustSupportPass::propagateTypeInformation(Module& m) {
@@ -143,6 +150,30 @@ void MustSupportPass::propagateTypeInformation(Module& m) {
    *  + Extent
    *  + Our id
    */
+}
+
+void MustSupportPass::printStats(llvm::raw_ostream& out) {
+  const unsigned max_string{12u};
+  const unsigned max_val{5u};
+  std::string line(22, '-');
+  line += "\n";
+  const auto make_format = [&](const char* desc, const auto val) {
+    return format("%-*s: %*u\n", max_string, desc, max_val, val);
+  };
+
+  out << line;
+  out << "   MustSupportPass\n";
+  out << line;
+  out << "Heap Memory\n";
+  out << line;
+  out << make_format("Malloc", NumFoundMallocs.getValue());
+  out << make_format("Free", NumFoundFrees.getValue());
+  out << line;
+  out << "Stack Memory\n";
+  out << line;
+  out << make_format("Alloca", NumFoundAlloca.getValue());
+  out << line;
+  out.flush();
 }
 
 }  // namespace pass

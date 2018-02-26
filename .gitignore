@@ -39,3 +39,6 @@ bin/
 # Eclipse files
 .cproject
 .project
+
+# llvm-lit related
+test/*/Output/

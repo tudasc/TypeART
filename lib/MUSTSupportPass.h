@@ -7,7 +7,7 @@
 
 namespace llvm {
 class Constant;
-// class Function;
+class raw_ostream;
 }  // namespace llvm
 
 namespace must {
@@ -30,14 +30,6 @@ class MustSupportPass : public llvm::BasicBlockPass {
   bool doFinalization(llvm::Module& m) override;
 
  private:
-  bool isAllocateFunction(std::string identifier) {
-    return allocFunctions.find(identifier) != allocFunctions.end();
-  }
-
-  bool isDeallocateFunction(std::string identifier) {
-    return deallocFunctions.find(identifier) != deallocFunctions.end();
-  }
-
   void setFunctionLinkageExternal(llvm::Constant* c);
   /*
    * Declares the external functions in the module.
@@ -47,16 +39,11 @@ class MustSupportPass : public llvm::BasicBlockPass {
   void declareInstrumentationFunctions(llvm::Module& m);
   void propagateTypeInformation(llvm::Module& m);
 
+  void printStats(llvm::raw_ostream&);
+
   /** Data members */
   std::string allocInstrumentation{"__must_support_alloc"};
   std::string freeInstrumentation{"__must_support_free"};
-
-  llvm::Constant* mustSupportAllocFn;
-  llvm::Constant* mustSupportFreeFn;
-
-  /** Look up sets for keyword strings */
-  const std::set<std::string> allocFunctions{"malloc"};
-  const std::set<std::string> deallocFunctions{"free"};
 };
 
 }  // namespace pass

@@ -1,17 +1,23 @@
-list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
-
-include(AddLLVM)
-
 set(PASS_SOURCES
- 	MUSTSupportPass.cpp
-	TypeUtil.cpp
+  MUSTSupportPass.cpp
+  support/TypeUtil.cpp
+  MemOpVisitor.cpp
 )
 
 add_llvm_loadable_module(MustSupportPass
-	${PASS_SOURCES}
+  ${PASS_SOURCES}
 )
 
+target_include_directories(MustSupportPass 
+  SYSTEM 
+  PUBLIC 
+  ${LLVM_INCLUDE_DIRS}
+)
 
+target_compile_definitions(MustSupportPass
+  PRIVATE
+  ${LLVM_DEFINITIONS}
+)
 
 add_tidy_target(tidy-run-on-pass
   "Clang-tidy run on MUST support pass translation units"
@@ -20,7 +26,7 @@ add_tidy_target(tidy-run-on-pass
 )
 
 add_tidy_fix_target(tidy-fix-on-pass
-  "Clang-tidy run with fixes on  MUST support pass translation units"
+  "Clang-tidy run with fixes on MUST support pass translation units"
   SOURCES ${PASS_SOURCES}
   OTHER --header-filter=${CMAKE_CURRENT_SOURCE_DIR} -checks=-*,modernize-*,llvm-namespace-comment,google-explicit-constructor
 )

@@ -6,7 +6,7 @@ typedef struct ms {
 } mystruct;
 
 void test() {
-  mystruct* m = (mystruct*)malloc(sizeof(mystruct));
+  void* m = malloc(sizeof(mystruct));
   free(m);
 }
 
