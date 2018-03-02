@@ -112,7 +112,7 @@ bool MustSupportPass::runOnBasicBlock(BasicBlock& bb) {
         // Casts to void* can be ignored
         if (!tu::isVoidPtr(bitcastInst->getDestTy())) {
           // Second non-void* bitcast detected - semantics unclear
-          llvm::outs() << "[WARNING] Encountered ambiguous pointer type\n";  // TODO: Better warnings
+          LOG_WARNING("Encountered ambiguous pointer type"); // TODO: Better warning message
         }
       }
     }

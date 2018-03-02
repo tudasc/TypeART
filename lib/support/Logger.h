@@ -26,6 +26,7 @@
 
 #define LOG_DEBUG(MSG) OO_LOG_LEVEL_MSG(3, "[Debug]", MSG)
 #define LOG_INFO(MSG) OO_LOG_LEVEL_MSG(2, "[Info]", MSG)
+#define LOG_WARNING(MSG) OO_LOG_LEVEL_MSG(1, "[Warning]", MSG)
 #define LOG_ERROR(MSG) OO_LOG_LEVEL_MSG(1, "[Error]", MSG)
 #define LOG_FATAL(MSG) OO_LOG_LEVEL_MSG(0, "[Fatal]", MSG)
 #define LOG_MSG(MSG) llvm::outs() << MSG << "\n"; /* NOLINT */
