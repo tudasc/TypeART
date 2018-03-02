@@ -98,7 +98,14 @@ bool MustSupportPass::runOnBasicBlock(BasicBlock& bb) {
       // count = numBytes / typeSize
       auto elementCount = BinaryOperator::CreateUDiv(mallocArg, typeSizeConst, "", bitcastInst->getNextNode());
 
-      std::vector<Value*> mustAllocArgs{bitcastInst, typeIdConst, elementCount, typeSizeConst};
+      std::vector<Value*> mustAllocArgs{mallocInst, typeIdConst, elementCount, typeSizeConst};
+
+      // TODO: For debugging purposes, remove later
+      //mustAllocFn->dump();
+      //for (auto& arg : mustAllocArgs) {
+      //  arg->dump();
+      //}
+
       CallInst::Create(mustAllocFn, mustAllocArgs, "", elementCount->getNextNode());
     }
   }
@@ -132,11 +139,11 @@ void MustSupportPass::setFunctionLinkageExternal(llvm::Constant* c) {
 
 void MustSupportPass::declareInstrumentationFunctions(Module& m) {
   auto& c = m.getContext();
-  auto allocFunc = m.getOrInsertFunction(allocInstrumentation, tu::getVoidPtrType(c), tu::getInt32Type(c),
+  auto allocFunc = m.getOrInsertFunction(allocInstrumentation, tu::getVoidType(c), tu::getVoidPtrType(c), tu::getInt32Type(c),
                                          tu::getInt64Type(c), tu::getInt64Type(c), nullptr);
   setFunctionLinkageExternal(allocFunc);
 
-  auto freeFunc = m.getOrInsertFunction(freeInstrumentation, tu::getVoidPtrType(c), nullptr);
+  auto freeFunc = m.getOrInsertFunction(freeInstrumentation, tu::getVoidType(c),tu::getVoidPtrType(c), nullptr);
   setFunctionLinkageExternal(freeFunc);
 }
 
