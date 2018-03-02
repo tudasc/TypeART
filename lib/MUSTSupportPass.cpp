@@ -101,8 +101,8 @@ bool MustSupportPass::runOnBasicBlock(BasicBlock& bb) {
       std::vector<Value*> mustAllocArgs{mallocInst, typeIdConst, elementCount, typeSizeConst};
 
       // TODO: For debugging purposes, remove later
-      //mustAllocFn->dump();
-      //for (auto& arg : mustAllocArgs) {
+      // mustAllocFn->dump();
+      // for (auto& arg : mustAllocArgs) {
       //  arg->dump();
       //}
 
@@ -139,11 +139,11 @@ void MustSupportPass::setFunctionLinkageExternal(llvm::Constant* c) {
 
 void MustSupportPass::declareInstrumentationFunctions(Module& m) {
   auto& c = m.getContext();
-  auto allocFunc = m.getOrInsertFunction(allocInstrumentation, tu::getVoidType(c), tu::getVoidPtrType(c), tu::getInt32Type(c),
-                                         tu::getInt64Type(c), tu::getInt64Type(c), nullptr);
+  auto allocFunc = m.getOrInsertFunction(allocInstrumentation, tu::getVoidType(c), tu::getVoidPtrType(c),
+                                         tu::getInt32Type(c), tu::getInt64Type(c), tu::getInt64Type(c), nullptr);
   setFunctionLinkageExternal(allocFunc);
 
-  auto freeFunc = m.getOrInsertFunction(freeInstrumentation, tu::getVoidType(c),tu::getVoidPtrType(c), nullptr);
+  auto freeFunc = m.getOrInsertFunction(freeInstrumentation, tu::getVoidType(c), tu::getVoidPtrType(c), nullptr);
   setFunctionLinkageExternal(freeFunc);
 }
 
