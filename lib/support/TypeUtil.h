@@ -11,6 +11,7 @@ class LLVMContext;
 namespace util {
 namespace type {
 
+llvm::Type* getVoidType(llvm::LLVMContext& c);
 llvm::Type* getVoidPtrType(llvm::LLVMContext& c);
 llvm::Type* getInt32Type(llvm::LLVMContext& c);
 llvm::Type* getInt64Type(llvm::LLVMContext& c);

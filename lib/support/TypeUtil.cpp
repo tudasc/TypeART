@@ -12,8 +12,13 @@ using namespace llvm;
 namespace util {
 namespace type {
 
+Type* getVoidType(LLVMContext& c) {
+  return Type::getVoidTy(c);
+}
+
 Type* getVoidPtrType(LLVMContext& c) {
-  return PointerType::get(Type::getVoidTy(c), 0);
+  // NOTE: LLVM does not support an explicit void pointer
+  return Type::getInt8PtrTy(c);
 }
 
 Type* getInt32Type(LLVMContext& c) {
