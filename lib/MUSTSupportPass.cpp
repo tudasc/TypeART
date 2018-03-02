@@ -84,7 +84,8 @@ bool MustSupportPass::runOnBasicBlock(BasicBlock& bb) {
     for (auto bitcastInst : malloc.bitcasts) {
       // TODO: How to correctly handle multiple bitcasts?
 
-      auto mallocArg = mallocInst->getOperand(0);  // Number of bytes
+      // Number of bytes allocated
+      auto mallocArg = mallocInst->getOperand(0);
 
       auto dstPtrType = bitcastInst->getDestTy()->getPointerElementType();
       auto typeSize = tu::getTypeSizeInBytes(dstPtrType, dl);
@@ -95,7 +96,7 @@ bool MustSupportPass::runOnBasicBlock(BasicBlock& bb) {
       auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), (unsigned)typeId);
       auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
 
-      // count = numBytes / typeSize
+      // Compute element count: count = numBytes / typeSize
       auto elementCount = BinaryOperator::CreateUDiv(mallocArg, typeSizeConst, "", bitcastInst->getNextNode());
 
       std::vector<Value*> mustAllocArgs{mallocInst, typeIdConst, elementCount, typeSizeConst};
