@@ -28,6 +28,7 @@ set(MUSTPASS_TEST_DEPENDS MustSupportPass)
 add_lit_testsuite(lit-pass-test 
   "Running the MUST support pass tests"
   ${CMAKE_CURRENT_SOURCE_DIR}
+  ARGS -v
   PARAMS mustpass_site_config=${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg
   DEPENDS ${MUSTPASS_TEST_DEPENDS}
 )
