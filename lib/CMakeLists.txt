@@ -2,6 +2,7 @@ set(PASS_SOURCES
   MUSTSupportPass.cpp
   support/TypeUtil.cpp
   MemOpVisitor.cpp
+  TypeMapping.cpp
 )
 
 add_llvm_loadable_module(MustSupportPass

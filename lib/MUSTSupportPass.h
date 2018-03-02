@@ -1,6 +1,7 @@
 #ifndef _LIB_MUSTSUPPORTPASS_H
 #define _LIB_MUSTSUPPORTPASS_H
 
+#include "TypeMapping.h"
 #include "llvm/Pass.h"
 
 #include <set>
@@ -44,6 +45,8 @@ class MustSupportPass : public llvm::BasicBlockPass {
   /** Data members */
   std::string allocInstrumentation{"__must_support_alloc"};
   std::string freeInstrumentation{"__must_support_free"};
+
+  static std::unique_ptr<TypeMapping> typeMapping;
 };
 
 }  // namespace pass

@@ -36,6 +36,8 @@ namespace pass {
 // Used by LLVM pass manager to identify passes in memory
 char MustSupportPass::ID = 0;
 
+std::unique_ptr<TypeMapping> MustSupportPass::typeMapping = std::make_unique<SimpleTypeMapping>();
+
 bool MustSupportPass::doInitialization(Module& m) {
   /**
    * Introduce the necessary instrumentation functions in the LLVM module.
@@ -95,14 +97,14 @@ bool MustSupportPass::runOnBasicBlock(BasicBlock& bb) {
     auto mallocArg = mallocInst->getOperand(0);
     // Number of bytes per element, 1 for void*
     unsigned typeSize = 1;
-    unsigned typeId = 0;  // FIXME: use void type id as default
+    int typeId = typeMapping->getTypeId(tu::getVoidType(c));  // FIXME: use void type id as default
     auto insertBefore = mallocInst->getNextNode();
 
     if (primaryBitcast) {
       auto dstPtrType = primaryBitcast->getDestTy()->getPointerElementType();
       typeSize = tu::getTypeSizeInBytes(dstPtrType, dl);
       // TODO: Implement sensible type mapping
-      typeId = (unsigned)dstPtrType->getTypeID();
+      typeId = typeMapping->getTypeId(dstPtrType);  //(unsigned)dstPtrType->getTypeID();
       insertBefore = primaryBitcast->getNextNode();
 
       // Handle additional bitcasts that occur after the first one
@@ -112,7 +114,7 @@ bool MustSupportPass::runOnBasicBlock(BasicBlock& bb) {
         // Casts to void* can be ignored
         if (!tu::isVoidPtr(bitcastInst->getDestTy())) {
           // Second non-void* bitcast detected - semantics unclear
-          LOG_WARNING("Encountered ambiguous pointer type"); // TODO: Better warning message
+          LOG_WARNING("Encountered ambiguous pointer type");  // TODO: Better warning message
         }
       }
     }
