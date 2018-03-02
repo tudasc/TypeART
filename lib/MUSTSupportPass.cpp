@@ -77,38 +77,54 @@ bool MustSupportPass::runOnBasicBlock(BasicBlock& bb) {
   for (auto& malloc : mOpsCollector.listMalloc) {
     ++NumFoundMallocs;
 
-    // TODO: Maybe move to separate class
-
     auto mallocInst = malloc.call;
 
-    for (auto bitcastInst : malloc.bitcasts) {
-      // TODO: How to correctly handle multiple bitcasts?
-
-      // Number of bytes allocated
-      auto mallocArg = mallocInst->getOperand(0);
-
-      auto dstPtrType = bitcastInst->getDestTy()->getPointerElementType();
-      auto typeSize = tu::getTypeSizeInBytes(dstPtrType, dl);
-
-      // TODO: Type IDs for structs etc.
-      auto typeId = dstPtrType->getTypeID();
-
-      auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), (unsigned)typeId);
-      auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
-
-      // Compute element count: count = numBytes / typeSize
-      auto elementCount = BinaryOperator::CreateUDiv(mallocArg, typeSizeConst, "", bitcastInst->getNextNode());
-
-      std::vector<Value*> mustAllocArgs{mallocInst, typeIdConst, elementCount, typeSizeConst};
-
-      // TODO: For debugging purposes, remove later
-      // mustAllocFn->dump();
-      // for (auto& arg : mustAllocArgs) {
-      //  arg->dump();
-      //}
-
-      CallInst::Create(mustAllocFn, mustAllocArgs, "", elementCount->getNextNode());
+    BitCastInst* primaryBitcast = nullptr;
+    auto bitcastIt = malloc.bitcasts.begin();
+    for (; bitcastIt != malloc.bitcasts.end(); bitcastIt++) {
+      auto bitcastInst = *bitcastIt;
+      // auto dstPtrType = bitcastInst->getDestTy()->getPointerElementType();
+      if (!tu::isVoidPtr(bitcastInst->getDestTy())) {  // TODO: Any other types that should be ignored?
+        // First non-void bitcast determines the type
+        primaryBitcast = bitcastInst;
+        break;
+      }
     }
+
+    // Number of bytes allocated
+    auto mallocArg = mallocInst->getOperand(0);
+    // Number of bytes per element, 1 for void*
+    unsigned typeSize = 1;
+    unsigned typeId = 0;  // FIXME: use void type id as default
+    auto insertBefore = mallocInst->getNextNode();
+
+    if (primaryBitcast) {
+      auto dstPtrType = primaryBitcast->getDestTy()->getPointerElementType();
+      typeSize = tu::getTypeSizeInBytes(dstPtrType, dl);
+      // TODO: Implement sensible type mapping
+      typeId = (unsigned)dstPtrType->getTypeID();
+      insertBefore = primaryBitcast->getNextNode();
+
+      // Handle additional bitcasts that occur after the first one
+      bitcastIt++;
+      for (; bitcastIt != malloc.bitcasts.end(); bitcastIt++) {
+        auto bitcastInst = *bitcastIt;
+        // Casts to void* can be ignored
+        if (!tu::isVoidPtr(bitcastInst->getDestTy())) {
+          // Second non-void* bitcast detected - semantics unclear
+          llvm::outs() << "[WARNING] Encountered ambiguous pointer type\n";  // TODO: Better warnings
+        }
+      }
+    }
+
+    auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), typeId);
+    auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
+    // Compute element count: count = numBytes / typeSize
+    auto elementCount = BinaryOperator::CreateUDiv(mallocArg, typeSizeConst, "", insertBefore);
+
+    // Call runtime lib
+    std::vector<Value*> mustAllocArgs{mallocInst, typeIdConst, elementCount, typeSizeConst};
+    CallInst::Create(mustAllocFn, mustAllocArgs, "", elementCount->getNextNode());
   }
 
   for (auto& free : mOpsCollector.listFree) {

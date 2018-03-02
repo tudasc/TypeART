@@ -16,6 +16,8 @@ llvm::Type* getVoidPtrType(llvm::LLVMContext& c);
 llvm::Type* getInt32Type(llvm::LLVMContext& c);
 llvm::Type* getInt64Type(llvm::LLVMContext& c);
 
+bool isVoidPtr(llvm::Type* type);
+
 unsigned getTypeSizeInBytes(llvm::Type* t, const llvm::DataLayout& dl);
 
 unsigned getScalarSizeInBytes(llvm::Type* t);

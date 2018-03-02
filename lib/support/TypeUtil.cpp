@@ -29,6 +29,11 @@ Type* getInt64Type(LLVMContext& c) {
   return Type::getInt64Ty(c);
 }
 
+bool isVoidPtr(llvm::Type* type) {
+  return type->isPointerTy() &&
+         type->getPointerElementType()->isIntegerTy(8);  // TODO: char* and void* identical in LLVM IR?
+}
+
 /**
  * Code was imported from jplehr/llvm-memprofiler project
  */
