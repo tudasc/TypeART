@@ -74,12 +74,16 @@ bool MustSupportPass::runOnBasicBlock(BasicBlock& bb) {
 
   auto mustAllocFn = bb.getModule()->getFunction(allocInstrumentation);
   assert(mustAllocFn && "alloc instrumentation function not found");
+  auto mustDeallocFn = bb.getModule()->getFunction(freeInstrumentation);
+  assert(mustDeallocFn && "free instrumentation function not found");
 
   // instrument collected calls of bb:
   for (auto& malloc : mOpsCollector.listMalloc) {
     ++NumFoundMallocs;
 
     auto mallocInst = malloc.call;
+
+    // FIXME: Problem when the result of malloc is not casted immediately (see 10_malloc_multiple_casts.c).
 
     BitCastInst* primaryBitcast = nullptr;
     auto bitcastIt = malloc.bitcasts.begin();
