@@ -1,0 +1,1 @@
+set -o pipefail;{ clang -S -emit-llvm /home/sebastian/git/llvm-must-support/test/pass/malloc_free/02_simple_malloc_free_int.c -o - | opt -load /home/sebastian/git/llvm-must-support/build/lib/MustSupportPass.so -must -must-stats -S 2>&1 | FileCheck /home/sebastian/git/llvm-must-support/test/pass/malloc_free/02_simple_malloc_free_int.c; }

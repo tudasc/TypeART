@@ -1,5 +1,7 @@
 #include "runtime.h"
 
+#include <iostream>
+
 void __must_support_alloc(void* addr, int typeId, long count, long typeSize) {
   must::MustSupportRT::get().onAlloc(addr, typeId, count, typeSize);
 }
@@ -15,6 +17,10 @@ int mustCheckType(void* addr, int typeId) {
 namespace must {
 
 MustSupportRT::MustSupportRT() {
+  std::cout << "MUST Support Runtime Trace" << std::endl;
+  std::cout << "**************************" << std::endl;
+  std::cout << "Operation       Address       Type       Size      Count" << std::endl;
+  std::cout << "--------------------------------------------------------" << std::endl;
 }
 
 const TypeInfo* MustSupportRT::getTypeInfo(void* ptr) const {
@@ -56,6 +62,7 @@ bool MustSupportRT::checkType(void* ptr, int typeId) const {
 void MustSupportRT::onAlloc(void* addr, int typeId, long count, long typeSize) {
   // TODO: Check if entry already exists
   typeMap[addr] = {addr, typeId, count, typeSize};
+  std::cout << "Allocation\t" << addr << "\t" << typeId << "\t" << typeSize << "\t" << count << std::endl;
 }
 
 void MustSupportRT::onDealloc(void* addr) {

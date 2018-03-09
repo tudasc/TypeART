@@ -22,7 +22,7 @@ struct TypeInfo {
 
 class MustSupportRT {
  public:
-  static MustSupportRT get() {
+  static MustSupportRT& get() {
     static MustSupportRT instance;
     return instance;
   }
