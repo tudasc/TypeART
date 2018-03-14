@@ -69,6 +69,7 @@ void MustSupportRT::onDealloc(void* addr) {
   auto it = typeMap.find(addr);
   if (it != typeMap.end()) {
     typeMap.erase(it);
+    std::cout << "Deallocation\t" << addr << std::endl;
   }
   // TODO: What to do when not found?
 }
