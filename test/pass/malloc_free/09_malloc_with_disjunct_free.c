@@ -9,8 +9,8 @@ void test() {
 }
 
 void foo(double* ptr) {
-	free(ptr);
-	ptr = NULL;
+  free(ptr);
+  ptr = NULL;
 }
 
 // CHECK: Malloc{{[ ]*}}:{{[ ]*}}1

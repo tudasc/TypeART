@@ -3,9 +3,9 @@
 #include <stdlib.h>
 
 int main(int argc, char** argv) {
-    int* p = (int*)malloc(42 * sizeof(int));
-    free(p);
-    return 0;
+  int* p = (int*)malloc(42 * sizeof(int));
+  free(p);
+  return 0;
 }
 
 // CHECK: MUST Support Runtime Trace

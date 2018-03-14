@@ -39,9 +39,24 @@ void MemOpVisitor::visitMallocLike(llvm::CallInst& ci) {
   LOG_DEBUG(ci.getCalledFunction()->getName());
 
   SmallVector<BitCastInst*, 4> bcasts;
+
   for (auto user : ci.users()) {
+    // Simple case: Pointer is immediately casted
     if (auto inst = dyn_cast<BitCastInst>(user)) {
       bcasts.push_back(inst);
+    }
+    // Pointer is first stored, then loaded and subsequently casted
+    if (auto storeInst = dyn_cast<StoreInst>(user)) {
+      auto storeAddr = storeInst->getPointerOperand();
+      for (auto storeUser : storeAddr->users()) {  // TODO: Ensure that load occurs ofter store?
+        if (auto loadInst = dyn_cast<LoadInst>(storeUser)) {
+          for (auto loadUser : loadInst->users()) {
+            if (auto bcastInst = dyn_cast<BitCastInst>(loadUser)) {
+              bcasts.push_back(bcastInst);
+            }
+          }
+        }
+      }
     }
   }
 
