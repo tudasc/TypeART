@@ -5,6 +5,7 @@
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Type.h"
 
+#include "Logger.h"
 #include <iostream>
 
 using namespace llvm;
@@ -78,7 +79,13 @@ unsigned getPointerSizeInBytes(llvm::Type* ptrT, const llvm::DataLayout& dl) {
 }
 
 unsigned getTypeSizeForArrayAlloc(llvm::AllocaInst* ai, const llvm::DataLayout& dl) {
-  unsigned bytes = getScalarSizeInBytes(ai->getAllocatedType());
+  auto type = ai->getAllocatedType();
+  unsigned bytes;
+  if (type->isArrayTy()) {
+    bytes = getScalarSizeInBytes(type->getArrayElementType());
+  } else {
+    bytes = getScalarSizeInBytes(type);
+  }
   if (ai->isArrayAllocation()) {
     if (auto ci = dyn_cast<ConstantInt>(ai->getArraySize())) {
       bytes *= ci->getLimitedValue();

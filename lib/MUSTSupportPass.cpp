@@ -84,8 +84,6 @@ bool MustSupportPass::runOnBasicBlock(BasicBlock& bb) {
 
     auto mallocInst = malloc.call;
 
-    // FIXME: Problem when the result of malloc is not casted immediately (see 10_malloc_multiple_casts.c).
-
     BitCastInst* primaryBitcast = nullptr;
     auto bitcastIt = malloc.bitcasts.begin();
     for (; bitcastIt != malloc.bitcasts.end(); bitcastIt++) {
@@ -102,13 +100,12 @@ bool MustSupportPass::runOnBasicBlock(BasicBlock& bb) {
     auto mallocArg = mallocInst->getOperand(0);
     // Number of bytes per element, 1 for void*
     unsigned typeSize = 1;
-    int typeId = typeMapping->getTypeId(tu::getVoidType(c));  // FIXME: use void type id as default
+    int typeId = typeMapping->getTypeId(tu::getVoidType(c));
     auto insertBefore = mallocInst->getNextNode();
 
     if (primaryBitcast) {
       auto dstPtrType = primaryBitcast->getDestTy()->getPointerElementType();
       typeSize = tu::getTypeSizeInBytes(dstPtrType, dl);
-      // TODO: Implement sensible type mapping
       typeId = typeMapping->getTypeId(dstPtrType);  //(unsigned)dstPtrType->getTypeID();
       insertBefore = primaryBitcast->getNextNode();
 
@@ -143,6 +140,7 @@ bool MustSupportPass::runOnBasicBlock(BasicBlock& bb) {
     std::vector<Value*> mustFreeArgs{freeArg};
     CallInst::Create(mustDeallocFn, mustFreeArgs, "", insertBefore);
   }
+
   for (auto& alloca : mOpsCollector.listAlloca) {
     // isArrayAllocation() somehow does not work
     if (alloca->getAllocatedType()->isArrayTy()) {
@@ -151,19 +149,18 @@ bool MustSupportPass::runOnBasicBlock(BasicBlock& bb) {
       auto insertBefore = alloca->getNextNode();
 
       int typeId = typeMapping->getTypeId(alloca->getAllocatedType());
+      auto arraySize = alloca->getAllocatedType()->getArrayNumElements();
 
       auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), typeId);
       auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
+      auto numElementsConst = ConstantInt::get(tu::getInt64Type(c), arraySize);
 
       // Cast array to void*
       auto arrayPtr = CastInst::CreateBitOrPointerCast(alloca, tu::getVoidPtrType(c), "", insertBefore);
-      // Sign-extend array size to i64
-      auto numElements =
-          CastInst::CreateIntegerCast(alloca->getArraySize(), tu::getInt64Type(c), true, "", arrayPtr->getNextNode());
 
       // Call runtime lib
-      std::vector<Value*> mustAllocaArgs{arrayPtr, typeIdConst, numElements, typeSizeConst};
-      CallInst::Create(mustAllocFn, mustAllocaArgs, "", numElements->getNextNode());
+      std::vector<Value*> mustAllocaArgs{arrayPtr, typeIdConst, numElementsConst, typeSizeConst};
+      CallInst::Create(mustAllocFn, mustAllocaArgs, "", arrayPtr->getNextNode());
     }
   }
 
