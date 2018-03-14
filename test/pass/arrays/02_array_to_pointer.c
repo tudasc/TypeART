@@ -6,4 +6,4 @@ void test() {
 
 // CHECK: Malloc{{[ ]*}}:{{[ ]*}}0
 // CHECK: Free{{[ ]*}}:{{[ ]*}}0
-// Nedds to be (TBD) Alloca{{[ ]*}}:{{[ ]*}}1
+// CHECK: Alloca{{[ ]*}}:{{[ ]*}}1

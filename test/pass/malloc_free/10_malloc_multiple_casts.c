@@ -8,4 +8,4 @@ void test() {
 
 // CHECK: [Warning]
 // CHECK: Malloc{{[ ]*}}:{{[ ]*}}1
-// Also required (TBD): Alloca{{[ ]*}}:{{[ ]*}}0
+// CHECK: Alloca{{[ ]*}}:{{[ ]*}}0

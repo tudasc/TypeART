@@ -8,6 +8,7 @@
 #include "llvm/IR/Module.h"
 #include "llvm/Support/Format.h"
 
+#include <iostream>
 #include <string>
 
 using namespace llvm;
@@ -135,9 +136,35 @@ bool MustSupportPass::runOnBasicBlock(BasicBlock& bb) {
 
   for (auto& free : mOpsCollector.listFree) {
     ++NumFoundFrees;
+    // Pointer address
+    auto freeArg = free->getOperand(0);
+    auto insertBefore = free->getNextNode();
+    // Call runtime lib
+    std::vector<Value*> mustFreeArgs{freeArg};
+    CallInst::Create(mustDeallocFn, mustFreeArgs, "", insertBefore);
   }
   for (auto& alloca : mOpsCollector.listAlloca) {
-    ++NumFoundAlloca;
+    // isArrayAllocation() somehow does not work
+    if (alloca->getAllocatedType()->isArrayTy()) {
+      ++NumFoundAlloca;
+      unsigned typeSize = tu::getTypeSizeForArrayAlloc(alloca, dl);
+      auto insertBefore = alloca->getNextNode();
+
+      int typeId = typeMapping->getTypeId(alloca->getAllocatedType());
+
+      auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), typeId);
+      auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
+
+      // Cast array to void*
+      auto arrayPtr = CastInst::CreateBitOrPointerCast(alloca, tu::getVoidPtrType(c), "", insertBefore);
+      // Sign-extend array size to i64
+      auto numElements =
+          CastInst::CreateIntegerCast(alloca->getArraySize(), tu::getInt64Type(c), true, "", arrayPtr->getNextNode());
+
+      // Call runtime lib
+      std::vector<Value*> mustAllocaArgs{arrayPtr, typeIdConst, numElements, typeSizeConst};
+      CallInst::Create(mustAllocFn, mustAllocaArgs, "", numElements->getNextNode());
+    }
   }
 
   return false;

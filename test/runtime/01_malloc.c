@@ -10,4 +10,4 @@ int main(int argc, char** argv) {
 
 // CHECK: MUST Support Runtime Trace
 // CHECK: Allocation    0x{{.*}}    {{[0-9]+}}    4   42
-// CHECK: Deallocation 0x{.*}}
+// CHECK: Deallocation 0x{{.*}}

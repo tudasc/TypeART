@@ -12,4 +12,4 @@ void test() {
 
 // CHECK: Malloc{{[ ]*}}:{{[ ]*}}1
 // CHECK: Free{{[ ]*}}:{{[ ]*}}1
-// Also required (TBD): Alloca{{[ ]*}}:{{[ ]*}}0
+// CHECK: Alloca{{[ ]*}}:{{[ ]*}}0
