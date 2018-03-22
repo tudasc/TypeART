@@ -3,6 +3,7 @@
 
 #include "TypeMapping.h"
 #include "llvm/Pass.h"
+#include "TypeConfig.h"
 
 #include <set>
 
@@ -47,6 +48,9 @@ class MustSupportPass : public llvm::BasicBlockPass {
   std::string freeInstrumentation{"__must_support_free"};
 
   static std::unique_ptr<TypeMapping> typeMapping;
+
+  TypeConfig typeConfig;
+  std::string configFile;
 };
 
 }  // namespace pass

@@ -20,6 +20,9 @@ target_compile_definitions(MustSupportPass
   ${LLVM_DEFINITIONS}
 )
 
+target_link_libraries(MustSupportPass mustconfigio)
+target_include_directories(MustSupportPass PUBLIC "${CMAKE_SOURCE_DIR}/configio")
+
 add_tidy_target(tidy-run-on-pass
   "Clang-tidy run on MUST support pass translation units"
   SOURCES ${PASS_SOURCES}
