@@ -32,7 +32,7 @@ Type* getInt64Type(LLVMContext& c) {
 
 bool isVoidPtr(llvm::Type* type) {
   return type->isPointerTy() &&
-         type->getPointerElementType()->isIntegerTy(8);  // TODO: char* and void* identical in LLVM IR?
+         type->getPointerElementType()->isIntegerTy(8);
 }
 
 /**
@@ -82,9 +82,9 @@ unsigned getTypeSizeForArrayAlloc(llvm::AllocaInst* ai, const llvm::DataLayout& 
   auto type = ai->getAllocatedType();
   unsigned bytes;
   if (type->isArrayTy()) {
-    bytes = getScalarSizeInBytes(type->getArrayElementType());
+    bytes = getTypeSizeInBytes(type->getArrayElementType(), dl);
   } else {
-    bytes = getScalarSizeInBytes(type);
+    bytes = getTypeSizeInBytes(type, dl);
   }
   if (ai->isArrayAllocation()) {
     if (auto ci = dyn_cast<ConstantInt>(ai->getArraySize())) {
