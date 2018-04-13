@@ -122,7 +122,6 @@ bool MustSupportPass::runOnBasicBlock(BasicBlock& bb) {
         }
       }
     }
-
     auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), typeId);
     auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
     // Compute element count: count = numBytes / typeSize
@@ -144,7 +143,6 @@ bool MustSupportPass::runOnBasicBlock(BasicBlock& bb) {
   }
 
   for (auto& alloca : mOpsCollector.listAlloca) {
-    // isArrayAllocation() somehow does not work
     if (alloca->getAllocatedType()->isArrayTy()) {
       ++NumFoundAlloca;
       unsigned typeSize = tu::getTypeSizeForArrayAlloc(alloca, dl);

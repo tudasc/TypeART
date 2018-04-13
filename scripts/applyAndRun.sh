@@ -19,6 +19,8 @@ else
   compiler=clang++
 fi
 
+rm /tmp/musttypes
+
 $compiler -S -emit-llvm "$target" -o "$tmpfile".ll
 opt -load "$pathToPlugin"/"$plugin" $pluginArgs < "$tmpfile".ll -o "$tmpfile".ll > /dev/null
 llc "$tmpfile".ll -o "$tmpfile".s
