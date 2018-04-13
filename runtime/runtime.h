@@ -10,6 +10,7 @@ void __must_support_free(void* addr);
 
 // C interface
 int mustCheckType(void* addr, int typeId);
+int mustCheckTypeName(void* addr, const char* typeName);
 }
 
 namespace must {
@@ -29,6 +30,7 @@ class MustSupportRT {
   }
 
   bool checkType(void* ptr, int typeId) const;
+  bool checkType(void* ptr, std::string typeName) const;
 
   const TypeInfo* getTypeInfo(void* ptr) const;
 

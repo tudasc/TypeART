@@ -15,6 +15,10 @@ int mustCheckType(void* addr, int typeId) {
   return must::MustSupportRT::get().checkType(addr, typeId);
 }
 
+int mustCheckTypeName(void* addr, const char* typeName) {
+    return must::MustSupportRT::get().checkType(addr, typeName);
+}
+
 namespace must {
 
 MustSupportRT::MustSupportRT() {
@@ -69,6 +73,12 @@ bool MustSupportRT::checkType(void* ptr, int typeId) const {
     return info->typeId == typeId;
   }
   return false;
+}
+
+bool MustSupportRT::checkType(void *ptr, std::string typeName) const
+{
+    int id = typeConfig.getTypeID(typeName);
+    return checkType(ptr, id);
 }
 
 void MustSupportRT::onAlloc(void* addr, int typeId, long count, long typeSize) {
