@@ -8,7 +8,9 @@
 #include "llvm/IR/Module.h"
 #include "llvm/Support/Format.h"
 
+#include <ConfigIO.h>
 #include <iostream>
+#include <sstream>
 #include <string>
 
 using namespace llvm;
@@ -100,13 +102,13 @@ bool MustSupportPass::runOnBasicBlock(BasicBlock& bb) {
     auto mallocArg = mallocInst->getOperand(0);
     // Number of bytes per element, 1 for void*
     unsigned typeSize = 1;
-    int typeId = typeMapping->getTypeId(tu::getVoidType(c));
+    int typeId = retrieveTypeID(tu::getVoidType(c));
     auto insertBefore = mallocInst->getNextNode();
 
     if (primaryBitcast) {
       auto dstPtrType = primaryBitcast->getDestTy()->getPointerElementType();
       typeSize = tu::getTypeSizeInBytes(dstPtrType, dl);
-      typeId = typeMapping->getTypeId(dstPtrType);  //(unsigned)dstPtrType->getTypeID();
+      typeId = retrieveTypeID(dstPtrType);  //(unsigned)dstPtrType->getTypeID();
       insertBefore = primaryBitcast->getNextNode();
 
       // Handle additional bitcasts that occur after the first one
@@ -148,7 +150,9 @@ bool MustSupportPass::runOnBasicBlock(BasicBlock& bb) {
       unsigned typeSize = tu::getTypeSizeForArrayAlloc(alloca, dl);
       auto insertBefore = alloca->getNextNode();
 
-      int typeId = typeMapping->getTypeId(alloca->getAllocatedType());
+      auto elementType = alloca->getAllocatedType()->getArrayElementType();
+
+      int typeId = retrieveTypeID(elementType);
       auto arraySize = alloca->getAllocatedType()->getArrayNumElements();
 
       auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), typeId);
@@ -171,6 +175,9 @@ bool MustSupportPass::doFinalization(Module& m) {
   /*
    * Persist the accumulated type definition information for this module.
    */
+  ConfigIO cio(&typeConfig);
+  cio.store("/tmp/musttypes");
+  std::cout << "Writing configs out..." << std::endl;
   if (ClMustStats) {
     printStats(llvm::errs());
   }
@@ -194,6 +201,34 @@ void MustSupportPass::declareInstrumentationFunctions(Module& m) {
   setFunctionLinkageExternal(freeFunc);
 }
 
+std::string MustSupportPass::type2String(llvm::Type* type) {
+  // TODO: Check for additional cases and move this code
+  std::stringstream typeString;
+  if (type->isIntegerTy()) {
+    typeString << "int" << type->getPrimitiveSizeInBits();
+  } else if (type->isFloatingPointTy()) {
+    typeString << "float" << type->getPrimitiveSizeInBits();
+  } else if (type->isStructTy()) {
+    typeString << type->getStructName().str();
+  } else if (type->isVoidTy()) {
+    typeString << "void";
+  } else {
+    LOG_ERROR("Encountered unknown type: ");
+    type->dump();
+    typeString << "unknown_type";  // TODO
+  }
+  return typeString.str();
+}
+
+int MustSupportPass::retrieveTypeID(llvm::Type* type) {
+  std::string typeString = type2String(type);
+  if (!typeConfig.hasTypeID(typeString)) {
+    int typeID = typeMapping->getTypeId(type);
+    typeConfig.registerType(typeString, typeID);
+  }
+  return typeConfig.getTypeID(typeString);
+}
+
 void MustSupportPass::propagateTypeInformation(Module& m) {
   /* Read already acquired information from temporary storage */
   /*
@@ -204,7 +239,8 @@ void MustSupportPass::propagateTypeInformation(Module& m) {
    *  + Extent
    *  + Our id
    */
-
+  ConfigIO cio(&typeConfig);
+  cio.load("/tmp/musttypes");
 }
 
 void MustSupportPass::printStats(llvm::raw_ostream& out) {

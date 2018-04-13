@@ -8,27 +8,30 @@
 #include <map>
 #include <vector>
 
-namespace must
-{
+namespace must {
 
-class TypeConfig
-{
-public:
-    TypeConfig();
+class TypeConfig {
+ public:
+  TypeConfig();
 
-    void clear();
-    void registerType(std::string typeName, int id);
-    int getTypeID(std::string typeName) const;
-    std::vector<std::string> getTypeList() const;
+  void clear();
 
-    static const int UNDEFINED = -1;
+  void registerType(std::string typeName, int id);
 
-private:
-    std::map<std::string, int> typeMap;
+  int getTypeID(std::string typeName) const;
 
+  bool hasTypeID(std::string typeName) const;
+
+  std::string getTypeName(int id) const;
+
+  std::vector<std::string> getTypeList() const;
+
+  static const int UNDEFINED = -1;
+
+ private:
+  std::map<std::string, int> typeMap;
+  std::map<int, std::string> reverseTypeMap;
 };
-
 }
 
-
-#endif //LLVM_MUST_SUPPORT_TYPECONFIG_H
+#endif  // LLVM_MUST_SUPPORT_TYPECONFIG_H

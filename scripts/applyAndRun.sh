@@ -20,7 +20,8 @@ else
 fi
 
 $compiler -S -emit-llvm "$target" -o "$tmpfile".ll
-opt -load "$pathToPlugin"/"$plugin" $pluginArgs < "$tmpfile".ll -o "$tmpfile".ll &> /dev/null
+opt -load "$pathToPlugin"/"$plugin" $pluginArgs < "$tmpfile".ll -o "$tmpfile".ll > /dev/null
 llc "$tmpfile".ll -o "$tmpfile".s
 clang "$tmpfile".s -L"$pathToRT" -lmustsupport -o "$tmpfile".o
+echo -e Executing with runtime lib
 LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$rtDir "$tmpfile".o

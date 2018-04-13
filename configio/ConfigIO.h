@@ -9,22 +9,18 @@
 
 #include "TypeConfig.h"
 
-namespace must
-{
+namespace must {
 
+class ConfigIO {
+ public:
+  explicit ConfigIO(TypeConfig* config);
 
-class ConfigIO
-{
-public:
-    explicit ConfigIO(TypeConfig* config);
+  bool load(std::string file);
+  bool store(std::string file) const;
 
-    bool load(std::string file);
-    bool store(std::string file) const;
-
-private:
-    TypeConfig* config;
+ private:
+  TypeConfig* config;
 };
-
 }
 
-#endif //LLVM_MUST_SUPPORT_CONFIGIO_H
+#endif  // LLVM_MUST_SUPPORT_CONFIGIO_H

@@ -1,6 +1,7 @@
 #ifndef RUNTIME_RUNTIME_H_
 #define RUNTIME_RUNTIME_H_
 
+#include "../configio/TypeConfig.h"
 #include <map>
 
 extern "C" {
@@ -32,11 +33,14 @@ class MustSupportRT {
   const TypeInfo* getTypeInfo(void* ptr) const;
 
   void onAlloc(void* addr, int typeId, long count, long typeSize);
-  void onDealloc(void* addr);
+  void onFree(void* addr);
 
  private:
   MustSupportRT();
 
+  void printTraceStart();
+
+  TypeConfig typeConfig;
   std::map<void*, TypeInfo> typeMap;
 };
 }

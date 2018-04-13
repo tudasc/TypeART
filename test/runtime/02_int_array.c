@@ -10,4 +10,4 @@ int main(int argc, char** argv) {
 }
 
 // CHECK: MUST Support Runtime Trace
-// CHECK: Allocation    0x{{.*}}    {{[0-9]+}}    4   64
+// CHECK: Alloc    0x{{.*}}    int32    4   64

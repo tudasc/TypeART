@@ -1,4 +1,5 @@
 #include "runtime.h"
+#include "../configio/ConfigIO.h"
 
 #include <iostream>
 
@@ -7,7 +8,7 @@ void __must_support_alloc(void* addr, int typeId, long count, long typeSize) {
 }
 
 void __must_support_free(void* addr) {
-  must::MustSupportRT::get().onDealloc(addr);
+  must::MustSupportRT::get().onFree(addr);
 }
 
 int mustCheckType(void* addr, int typeId) {
@@ -17,9 +18,20 @@ int mustCheckType(void* addr, int typeId) {
 namespace must {
 
 MustSupportRT::MustSupportRT() {
+  ConfigIO cio(&typeConfig);
+  cio.load("/tmp/musttypes");
+  std::cout << "Recorded types: ";
+  for (auto name : typeConfig.getTypeList()) {
+    std::cout << name << ", ";
+  }
+  std::cout << std::endl;
+  printTraceStart();
+}
+
+void MustSupportRT::printTraceStart() {
   std::cout << "MUST Support Runtime Trace" << std::endl;
   std::cout << "**************************" << std::endl;
-  std::cout << "Operation       Address       Type       Size      Count" << std::endl;
+  std::cout << "Operation  Address   Type   Size   Count" << std::endl;
   std::cout << "--------------------------------------------------------" << std::endl;
 }
 
@@ -62,14 +74,15 @@ bool MustSupportRT::checkType(void* ptr, int typeId) const {
 void MustSupportRT::onAlloc(void* addr, int typeId, long count, long typeSize) {
   // TODO: Check if entry already exists
   typeMap[addr] = {addr, typeId, count, typeSize};
-  std::cout << "Allocation\t" << addr << "\t" << typeId << "\t" << typeSize << "\t" << count << std::endl;
+  auto typeString = typeConfig.getTypeName(typeId);
+  std::cout << "Alloc    " << addr << "   " << typeString << "   " << typeSize << "     " << count << std::endl;
 }
 
-void MustSupportRT::onDealloc(void* addr) {
+void MustSupportRT::onFree(void* addr) {
   auto it = typeMap.find(addr);
   if (it != typeMap.end()) {
     typeMap.erase(it);
-    std::cout << "Deallocation\t" << addr << std::endl;
+    std::cout << "Free     " << addr << std::endl;
   }
   // TODO: What to do when not found?
 }
