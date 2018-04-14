@@ -34,8 +34,8 @@ struct MemOpVisitor : public llvm::InstVisitor<MemOpVisitor> {
 
  private:
   /** Look up sets for keyword strings */
-  const std::set<std::string> allocFunctions{"malloc"};
-  const std::set<std::string> deallocFunctions{"free"};
+  const std::set<std::string> allocFunctions{"malloc", "_Znwm" /*new*/, "_Znam" /*new[]*/};
+  const std::set<std::string> deallocFunctions{"free", "_ZdlPv" /*delete*/, "_ZdaPv" /*delete[]*/};
 };
 
 } /* namespace pass */

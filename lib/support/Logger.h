@@ -15,7 +15,7 @@
  * Usually set at compile time: -DLOG_LEVEL=<N>, N in [0, 3] for output
  * 3 being most verbose
  */
-#define LOG_LEVEL 3
+#define LOG_LEVEL 0
 #endif
 
 // clang-format off

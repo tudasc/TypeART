@@ -100,11 +100,12 @@ bool MustSupportPass::runOnBasicBlock(BasicBlock& bb) {
 
     // Number of bytes allocated
     auto mallocArg = mallocInst->getOperand(0);
+    int typeId = retrieveTypeID(mallocInst->getType());//retrieveTypeID(tu::getVoidType(c));
     // Number of bytes per element, 1 for void*
-    unsigned typeSize = 1;
-    int typeId = retrieveTypeID(tu::getVoidType(c));
+    unsigned typeSize = tu::getTypeSizeInBytes(mallocInst->getType(), dl);
     auto insertBefore = mallocInst->getNextNode();
 
+    // Use the first cast as the determining type (if there is any)
     if (primaryBitcast) {
       auto dstPtrType = primaryBitcast->getDestTy()->getPointerElementType();
       typeSize = tu::getTypeSizeInBytes(dstPtrType, dl);
@@ -122,6 +123,7 @@ bool MustSupportPass::runOnBasicBlock(BasicBlock& bb) {
         }
       }
     }
+
     auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), typeId);
     auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
     // Compute element count: count = numBytes / typeSize
@@ -142,6 +144,7 @@ bool MustSupportPass::runOnBasicBlock(BasicBlock& bb) {
     CallInst::Create(mustDeallocFn, mustFreeArgs, "", insertBefore);
   }
 
+/*
   for (auto& alloca : mOpsCollector.listAlloca) {
     if (alloca->getAllocatedType()->isArrayTy()) {
       ++NumFoundAlloca;
@@ -165,6 +168,7 @@ bool MustSupportPass::runOnBasicBlock(BasicBlock& bb) {
       CallInst::Create(mustAllocFn, mustAllocaArgs, "", arrayPtr->getNextNode());
     }
   }
+  */
 
   return false;
 }
