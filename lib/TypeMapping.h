@@ -31,6 +31,9 @@ class SimpleTypeMapping : public TypeMapping {
   static const int FLOAT_BITS = 1;
   static const int STRUCT_BITS = 2;
   static const int OTHER_BITS = 3;
+
+  static const int PTR_ID = 0;
+  static const int OTHER_ID = 1;
 };
 
 }  // namespace must

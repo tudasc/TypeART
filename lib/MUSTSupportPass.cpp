@@ -100,13 +100,15 @@ bool MustSupportPass::runOnBasicBlock(BasicBlock& bb) {
 
     // Number of bytes allocated
     auto mallocArg = mallocInst->getOperand(0);
-    int typeId = retrieveTypeID(mallocInst->getType());//retrieveTypeID(tu::getVoidType(c));
+    int typeId = retrieveTypeID(mallocInst->getType()->getPointerElementType());  // retrieveTypeID(tu::getVoidType(c));
     // Number of bytes per element, 1 for void*
-    unsigned typeSize = tu::getTypeSizeInBytes(mallocInst->getType(), dl);
+    unsigned typeSize = tu::getTypeSizeInBytes(mallocInst->getType()->getPointerElementType(), dl);
     auto insertBefore = mallocInst->getNextNode();
 
     // Use the first cast as the determining type (if there is any)
     if (primaryBitcast) {
+      // primaryBitcast->dump();
+
       auto dstPtrType = primaryBitcast->getDestTy()->getPointerElementType();
       typeSize = tu::getTypeSizeInBytes(dstPtrType, dl);
       typeId = retrieveTypeID(dstPtrType);  //(unsigned)dstPtrType->getTypeID();
@@ -123,6 +125,8 @@ bool MustSupportPass::runOnBasicBlock(BasicBlock& bb) {
         }
       }
     }
+
+    // mallocInst->dump();
 
     auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), typeId);
     auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
@@ -144,31 +148,31 @@ bool MustSupportPass::runOnBasicBlock(BasicBlock& bb) {
     CallInst::Create(mustDeallocFn, mustFreeArgs, "", insertBefore);
   }
 
-/*
-  for (auto& alloca : mOpsCollector.listAlloca) {
-    if (alloca->getAllocatedType()->isArrayTy()) {
-      ++NumFoundAlloca;
-      unsigned typeSize = tu::getTypeSizeForArrayAlloc(alloca, dl);
-      auto insertBefore = alloca->getNextNode();
+  /*
+    for (auto& alloca : mOpsCollector.listAlloca) {
+      if (alloca->getAllocatedType()->isArrayTy()) {
+        ++NumFoundAlloca;
+        unsigned typeSize = tu::getTypeSizeForArrayAlloc(alloca, dl);
+        auto insertBefore = alloca->getNextNode();
 
-      auto elementType = alloca->getAllocatedType()->getArrayElementType();
+        auto elementType = alloca->getAllocatedType()->getArrayElementType();
 
-      int typeId = retrieveTypeID(elementType);
-      auto arraySize = alloca->getAllocatedType()->getArrayNumElements();
+        int typeId = retrieveTypeID(elementType);
+        auto arraySize = alloca->getAllocatedType()->getArrayNumElements();
 
-      auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), typeId);
-      auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
-      auto numElementsConst = ConstantInt::get(tu::getInt64Type(c), arraySize);
+        auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), typeId);
+        auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
+        auto numElementsConst = ConstantInt::get(tu::getInt64Type(c), arraySize);
 
-      // Cast array to void*
-      auto arrayPtr = CastInst::CreateBitOrPointerCast(alloca, tu::getVoidPtrType(c), "", insertBefore);
+        // Cast array to void*
+        auto arrayPtr = CastInst::CreateBitOrPointerCast(alloca, tu::getVoidPtrType(c), "", insertBefore);
 
-      // Call runtime lib
-      std::vector<Value*> mustAllocaArgs{arrayPtr, typeIdConst, numElementsConst, typeSizeConst};
-      CallInst::Create(mustAllocFn, mustAllocaArgs, "", arrayPtr->getNextNode());
+        // Call runtime lib
+        std::vector<Value*> mustAllocaArgs{arrayPtr, typeIdConst, numElementsConst, typeSizeConst};
+        CallInst::Create(mustAllocFn, mustAllocaArgs, "", arrayPtr->getNextNode());
+      }
     }
-  }
-  */
+    */
 
   return false;
 }
@@ -214,6 +218,8 @@ std::string MustSupportPass::type2String(llvm::Type* type) {
     typeString << type->getStructName().str();
   } else if (type->isVoidTy()) {
     typeString << "void";
+  } else if (type->isPointerTy()) {
+    typeString << "PtrType";
   } else {
     LOG_ERROR("Encountered unknown type: ");
     type->dump();

@@ -31,8 +31,7 @@ Type* getInt64Type(LLVMContext& c) {
 }
 
 bool isVoidPtr(llvm::Type* type) {
-  return type->isPointerTy() &&
-         type->getPointerElementType()->isIntegerTy(8);
+  return type->isPointerTy() && type->getPointerElementType()->isIntegerTy(8);
 }
 
 /**

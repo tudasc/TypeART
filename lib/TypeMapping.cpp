@@ -21,7 +21,10 @@ int SimpleTypeMapping::getTypeId(llvm::Type* type) {
   if (type->isStructTy()) {
     return getIdForStruct(type);
   }
-  return createId(OTHER_BITS, 0);  // TODO: What about pointers etc.?
+  if (type->isPointerTy()) {
+    return createId(OTHER_BITS, PTR_ID);
+  }
+  return createId(OTHER_BITS, OTHER_ID);  // TODO: Okay to lump all pointers together?
 }
 
 int SimpleTypeMapping::getIdForStruct(llvm::Type* structTy) {
