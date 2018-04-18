@@ -19,7 +19,8 @@ else
   compiler=clang++
 fi
 
-$compiler -S -emit-llvm "$target" -o "$tmpfile".ll $flags
+$compiler -S -emit-llvm "$flags" "$target" -O3 -o "$tmpfile".ll
 
 opt -load "$pathToPlugin"/"$plugin".so -$pluginCommand -must-stats -o "$tmpfile".ll < "$tmpfile".ll > /dev/null
-llc "$tmpfile".ll -o "$outfile"
+opt -o "$tmpfile".ll -O3 < "$tmpfile".ll > /dev/null
+llc -o "$outfile" "$tmpfile".ll  -O3 --stats

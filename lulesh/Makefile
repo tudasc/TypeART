@@ -8,7 +8,7 @@ LULESH_EXEC = lulesh2.0
 MPI_INC = /opt/local/include/openmpi
 MPI_LIB = /opt/local/lib
 
-SERCXX = g++ -DUSE_MPI=0
+SERCXX = clang++ -DUSE_MPI=0
 MPICXX = mpig++ -DUSE_MPI=1
 CXX = $(SERCXX)
 
@@ -54,7 +54,7 @@ all: $(LULESH_EXEC)
 
 lulesh2.0: $(OBJECTS2.0)
 	@echo "Linking"
-	clang++ $(OBJECTS2.0) $(LDFLAGS) -lm -L$(RTPATH) -lmustsupport -o $@
+	$(CXX) $(OBJECTS2.0) $(LDFLAGS) -lm -L$(RTPATH) -lmustsupport -o $@
 	#$(CXX) $(OBJECTS2.0) $(LDFLAGS) -lm -o $@
 
 clean:
