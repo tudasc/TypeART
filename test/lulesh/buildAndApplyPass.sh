@@ -21,6 +21,6 @@ fi
 
 $compiler -S -emit-llvm "$flags" "$target" -O3 -o "$tmpfile".ll
 
-opt -load "$pathToPlugin"/"$plugin".so -$pluginCommand -must-stats -o "$tmpfile".ll < "$tmpfile".ll > /dev/null
-opt -o "$tmpfile".ll -O3 < "$tmpfile".ll > /dev/null
-llc -o "$outfile" "$tmpfile".ll  -O3 --stats
+opt -load "$pathToPlugin"/"$plugin".so -$pluginCommand -must-stats -o "${tmpfile}".ll < "$tmpfile".ll > /dev/null
+opt -o "${tmpfile}_opt".ll -O3 < "${tmpfile}".ll > /dev/null
+llc -o "$outfile" "${tmpfile}_opt".ll  -O3

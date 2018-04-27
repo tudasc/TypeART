@@ -15,7 +15,7 @@ int mustCheckTypeName(void* addr, const char* typeName);
 
 namespace must {
 
-struct TypeInfo {
+struct RTTypeInfo {
   void* addr;
   int typeId;
   long count;
@@ -32,7 +32,7 @@ class MustSupportRT {
   bool checkType(void* ptr, int typeId) const;
   bool checkType(void* ptr, std::string typeName) const;
 
-  const TypeInfo* getTypeInfo(void* ptr) const;
+  const RTTypeInfo* getTypeInfo(void* ptr) const;
 
   void onAlloc(void* addr, int typeId, long count, long typeSize);
   void onFree(void* addr);
@@ -43,7 +43,7 @@ class MustSupportRT {
   void printTraceStart();
 
   TypeConfig typeConfig;
-  std::map<void*, TypeInfo> typeMap;
+  std::map<void*, RTTypeInfo> typeMap;
 };
 }
 

@@ -29,6 +29,7 @@ void fill(mat m, double val) {
 int multiply(mat a, mat b, mat result) {
   int rows = a.dim[0];
   int cols = b.dim[1];
+
   int n = a.dim[1];
 
   if (n != b.dim[0] || result.dim[0] != rows || result.dim[1] != cols)

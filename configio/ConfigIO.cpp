@@ -20,9 +20,9 @@ bool ConfigIO::load(std::string file) {
   }
   std::string name;
   int id;
-  while (is >> name >> id) {
+  /*while (is >> name >> id) {
     config->registerType(name, id);
-  }
+  }*/ // TODO
   is.close();
   return true;
 }
@@ -33,11 +33,25 @@ bool ConfigIO::store(std::string file) const {
   if (!os.is_open()) {
     return false;
   }
-  for (const auto& typeName : config->getTypeList()) {
-    int id = config->getTypeID(typeName);
-    os << typeName << " " << id << std::endl;
+  for (const auto& structInfo: config->getStructList()) {
+    os << serialize(structInfo) << std::endl;
+    //os << typeName << " " << id << std::endl;
   }
   os.close();
   return true;
 }
+
+std::string ConfigIO::serialize(StructTypeInfo structInfo) const
+{
+  // TODO
+  return "";
+}
+
+StructTypeInfo ConfigIO::deserialize(std::string infoString) const
+{
+  // TODO
+  return StructTypeInfo();
+}
+
+
 }

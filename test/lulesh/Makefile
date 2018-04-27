@@ -12,7 +12,7 @@ SERCXX = clang++ -DUSE_MPI=0
 MPICXX = mpig++ -DUSE_MPI=1
 CXX = $(SERCXX)
 
-APPLYPASS = ./applyPass.sh
+COMPILE_SCRIPT = ./buildAndApplyPass.sh
 RTPATH = /home/sebastian/git/llvm-must-support/build/runtime
 
 SOURCES2.0 = \
@@ -47,7 +47,7 @@ LDFLAGS = -g -O3
 
 .cc.s: lulesh.h
 	@echo "Building $<"
-	$(APPLYPASS) $< $@ $(CXXFLAGS)
+	$(COMPILE_SCRIPT) $< $@ $(CXXFLAGS)
 	#$(CXX) -c $(CXXFLAGS) -o $@  $<
 
 all: $(LULESH_EXEC)
