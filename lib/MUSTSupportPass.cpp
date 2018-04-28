@@ -119,9 +119,15 @@ bool MustSupportPass::runOnBasicBlock(BasicBlock& bb) {
       for (; bitcastIt != malloc.bitcasts.end(); bitcastIt++) {
         auto bitcastInst = *bitcastIt;
         // Casts to void* can be ignored
-        if (!tu::isVoidPtr(bitcastInst->getDestTy())) {
+        if (!tu::isVoidPtr(bitcastInst->getDestTy()) &&
+            primaryBitcast->getDestTy() != bitcastInst->getDestTy()) {
           // Second non-void* bitcast detected - semantics unclear
-          LOG_WARNING("Encountered ambiguous pointer type");  // TODO: Better warning message
+          LOG_WARNING("Encountered ambiguous pointer type in allocation:");  // TODO: Better warning message
+          mallocInst->dump();
+          LOG_WARNING("Primary cast:");
+          primaryBitcast->dump();
+          LOG_WARNING("Secondary cast:");
+          bitcastInst->dump();
         }
       }
     }

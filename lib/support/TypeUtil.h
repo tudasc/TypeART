@@ -30,6 +30,8 @@ unsigned getPointerSizeInBytes(llvm::Type* ptrT, const llvm::DataLayout& dl);
 
 unsigned getTypeSizeForArrayAlloc(llvm::AllocaInst* ai, const llvm::DataLayout& dl);
 
+// bool compareTypes(llvm::Type* t1, llvm::Type* t2);
+
 }  // namespace type
 }  // namespace util
 

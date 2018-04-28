@@ -103,5 +103,35 @@ unsigned getTypeSizeForArrayAlloc(llvm::AllocaInst* ai, const llvm::DataLayout& 
   return bytes;
 }
 
+// bool compareTypes(llvm::Type* t1, llvm::Type* t2) {
+//    if (t1->isPointerTy()) {
+//        if (t2->isPointerTy()) {
+//            return compareTypes(t1->getPointerElementType(), t2->getPointerElementType());
+//        }
+//        return false;
+//    }
+//    if (t1->isArrayTy()) {
+//        if (t2->isArrayTy()) {
+//            return compareTypes(t1->getArrayElementType(), t2->getArrayElementType());
+//        }
+//        return false;
+//    }
+//    if (t1->isIntegerTy()) {
+//        return t2->isIntegerTy() && t1->getPrimitiveSizeInBits() == t2->getPrimitiveSizeInBits();
+//    }
+//    if (t1->isFloatingPointTy()) {
+//        return t2->isFloatingPointTy() && t1->getPrimitiveSizeInBits() == t2->getPrimitiveSizeInBits();
+//  }
+//  if (t1->isVoidTy()) {
+//    return t2->isVoidTy();
+//  }
+//  if (t1->isStructTy()) {
+//    return t2->isStructTy() && t1->getStructName() == t2->getStructName();
+//  }
+//  // TODO: Is there a better way to do this? If not, add missing types comparisons and write tests
+//  return false;
+//
+//}
+
 }  // namespace type
 }  // namespace util
