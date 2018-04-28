@@ -9,5 +9,5 @@ int main(int argc, char** argv) {
 }
 
 // CHECK: MUST Support Runtime Trace
-// CHECK: Alloc    0x{{.*}}    int32    4   42
+// CHECK: Alloc    0x{{.*}}    int    4   42
 // CHECK: Free 0x{{.*}}

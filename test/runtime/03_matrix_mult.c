@@ -29,6 +29,7 @@ void fill(mat m, double val) {
 int multiply(mat a, mat b, mat result) {
   int rows = a.dim[0];
   int cols = b.dim[1];
+
   int n = a.dim[1];
 
   if (n != b.dim[0] || result.dim[0] != rows || result.dim[1] != cols)
@@ -84,17 +85,17 @@ int main(int argc, char** argv) {
 // CHECK: Alloc    0x{{.*}}   struct.mat_t   16     4
 
 // Alloc matrix values
-// CHECK: Alloc    0x{{.*}}   float64         8    64
-// CHECK: Alloc    0x{{.*}}   float64         8    64
-// CHECK: Alloc    0x{{.*}}   float64         8    64
-// CHECK: Alloc    0x{{.*}}   float64         8    64
+// CHECK: Alloc    0x{{.*}}   double         8    64
+// CHECK: Alloc    0x{{.*}}   double         8    64
+// CHECK: Alloc    0x{{.*}}   double         8    64
+// CHECK: Alloc    0x{{.*}}   double         8    64
 
 // Alloc and free temp buffer
-// CHECK: Alloc    0x{{.*}}   float64         8    64
+// CHECK: Alloc    0x{{.*}}   double         8    64
 // CHECK: Free     0x{{.*}}
-// CHECK: Alloc    0x{{.*}}   float64         8    64
+// CHECK: Alloc    0x{{.*}}   double         8    64
 // CHECK: Free     0x{{.*}}
-// CHECK: Alloc    0x{{.*}}   float64         8    64
+// CHECK: Alloc    0x{{.*}}   double         8    64
 // CHECK: Free     0x{{.*}}
 
 // Free matrix values

@@ -25,8 +25,8 @@ MustSupportRT::MustSupportRT() {
   ConfigIO cio(&typeConfig);
   cio.load("/tmp/musttypes");
   std::cout << "Recorded types: ";
-  for (auto name : typeConfig.getTypeList()) {
-    std::cout << name << ", ";
+  for (auto structInfo : typeConfig.getStructList()) {
+    std::cout << structInfo.name << ", ";
   }
   std::cout << std::endl;
   printTraceStart();
@@ -39,7 +39,7 @@ void MustSupportRT::printTraceStart() {
   std::cout << "--------------------------------------------------------" << std::endl;
 }
 
-const TypeInfo* MustSupportRT::getTypeInfo(void* ptr) const {
+const PointerInfo* MustSupportRT::getPtrInfo(void *ptr) const {
   auto it = typeMap.find(ptr);
   if (it != typeMap.end()) {
     return &it->second;
@@ -47,7 +47,7 @@ const TypeInfo* MustSupportRT::getTypeInfo(void* ptr) const {
 
   // TODO: More efficient lookup?
   // Find possible base pointer
-  const TypeInfo* basePtrInfo = nullptr;
+  const PointerInfo* basePtrInfo = nullptr;
   void* basePtr = 0;
   for (it = typeMap.begin(); it != typeMap.end(); it++) {
     if (it->first < ptr && it->first > basePtr) {
@@ -68,7 +68,7 @@ const TypeInfo* MustSupportRT::getTypeInfo(void* ptr) const {
 }
 
 bool MustSupportRT::checkType(void* ptr, int typeId) const {
-  auto info = getTypeInfo(ptr);
+  auto info = getPtrInfo(ptr);
   if (info) {
     return info->typeId == typeId;
   }
@@ -76,8 +76,10 @@ bool MustSupportRT::checkType(void* ptr, int typeId) const {
 }
 
 bool MustSupportRT::checkType(void* ptr, std::string typeName) const {
-  int id = typeConfig.getTypeID(typeName);
-  return checkType(ptr, id);
+  // int id = typeConfig.getTypeID(typeName);
+  // return checkType(ptr, id);
+  // TODO
+  return false;
 }
 
 void MustSupportRT::onAlloc(void* addr, int typeId, long count, long typeSize) {

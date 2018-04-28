@@ -2,7 +2,7 @@
 #define _LIB_MUSTSUPPORTPASS_H
 
 #include "TypeConfig.h"
-#include "TypeMapping.h"
+#include "TypeManager.h"
 #include "llvm/Pass.h"
 
 #include <set>
@@ -41,8 +41,8 @@ class MustSupportPass : public llvm::BasicBlockPass {
   void declareInstrumentationFunctions(llvm::Module& m);
   void propagateTypeInformation(llvm::Module& m);
 
-  std::string type2String(llvm::Type* type);
-  int retrieveTypeID(llvm::Type* type);
+  // std::string type2String(llvm::Type* type);
+  // int retrieveTypeID(llvm::Type* type);
 
   void printStats(llvm::raw_ostream&);
 
@@ -50,9 +50,10 @@ class MustSupportPass : public llvm::BasicBlockPass {
   std::string allocInstrumentation{"__must_support_alloc"};
   std::string freeInstrumentation{"__must_support_free"};
 
-  static std::unique_ptr<TypeMapping> typeMapping;
+  // static std::unique_ptr<TypeMapping> typeMapping;
 
-  TypeConfig typeConfig;
+  TypeManager typeManager;
+
   // std::string configFile;
 };
 

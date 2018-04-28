@@ -19,6 +19,11 @@ class ConfigIO {
   bool store(std::string file) const;
 
  private:
+  std::string serialize(StructTypeInfo structInfo) const;
+  StructTypeInfo deserialize(std::string infoString) const;
+
+  bool isComment(std::string line) const;
+
   TypeConfig* config;
 };
 }

@@ -4,7 +4,9 @@
 
 #include "ConfigIO.h"
 
+#include <algorithm>
 #include <fstream>
+#include <sstream>
 
 namespace must {
 
@@ -20,8 +22,18 @@ bool ConfigIO::load(std::string file) {
   }
   std::string name;
   int id;
-  while (is >> name >> id) {
+  /*while (is >> name >> id) {
     config->registerType(name, id);
+  }*/  // TODO
+
+  std::string line;
+  while (std::getline(is, line)) {
+    // TODO: Error handling
+    if (isComment(line)) {
+      continue;
+    }
+    StructTypeInfo structInfo = deserialize(line);
+    config->registerStruct(structInfo);
   }
   is.close();
   return true;
@@ -33,11 +45,78 @@ bool ConfigIO::store(std::string file) const {
   if (!os.is_open()) {
     return false;
   }
-  for (const auto& typeName : config->getTypeList()) {
-    int id = config->getTypeID(typeName);
-    os << typeName << " " << id << std::endl;
+  os << "# MUST Type Support Mapping" << std::endl;
+  os << "#" << std::endl;
+  os << "# ID"
+     << "\t"
+     << "Name"
+     << "\t"
+     << "NumBytes"
+     << "\t"
+     << "NumMembers"
+     << "\t"
+     << "(Offset, TypeKind, TypeID, ArraySize)*" << std::endl;
+  os << "# --------" << std::endl;
+  for (const auto& structInfo : config->getStructList()) {
+    os << serialize(structInfo) << std::endl;
+    // os << typeName << " " << id << std::endl;
   }
   os.close();
   return true;
+}
+
+std::string ConfigIO::serialize(StructTypeInfo structInfo) const {
+  // TODO
+  std::stringstream ss;
+  ss << structInfo.id << "\t" << structInfo.name << "\t" << structInfo.numBytes << "\t" << structInfo.numMembers
+     << "\t";
+  for (int i = 0; i < structInfo.numMembers; i++) {
+    ss << structInfo.offsets[i] << "," << structInfo.memberTypes[i].kind << "," << structInfo.memberTypes[i].id << ","
+       << structInfo.arraySizes[i] << "\t";
+  }
+  return ss.str();
+}
+
+StructTypeInfo ConfigIO::deserialize(std::string infoString) const {
+  auto split = [](const char* str, char c = ' ') -> std::vector<std::string> {
+    std::vector<std::string> result;
+    do {
+      const char* begin = str;
+      while (*str != c && *str)
+        str++;
+      result.push_back(std::string(begin, str));
+    } while (0 != *str++);
+    return result;
+  };
+
+  std::istringstream iss(infoString);
+  int id = INVALID;
+  std::string name;
+  int numBytes = 0;
+  int numMembers = 0;
+  std::vector<int> offsets;
+  std::vector<TypeInfo> memberTypes;
+  std::vector<int> arraySizes;
+
+  iss >> id >> name >> numBytes >> numMembers;
+
+  std::string memberInfoString;
+  for (int i = 0; i < numMembers; i++) {
+    iss >> memberInfoString;
+    auto memberInfoTokens = split(memberInfoString.c_str(), ',');
+    if (memberInfoString.size() == 4) {
+      offsets.push_back(std::stoi(memberInfoTokens[0]));
+      memberTypes.push_back({TypeKind(std::stoi(memberInfoTokens[1])), std::stoi({memberInfoTokens[2]})});
+      arraySizes.push_back(std::stoi(memberInfoTokens[1]));
+    } else {
+      // TODO: Handle error
+    }
+  }
+  return StructTypeInfo{id, name, numBytes, numMembers, offsets, memberTypes, arraySizes};
+}
+
+bool ConfigIO::isComment(std::string line) const {
+  line.erase(line.begin(), std::find_if(line.begin(), line.end(), [](int ch) { return !std::isspace(ch); }));
+  return line.empty() || line.front() == '#';
 }
 }

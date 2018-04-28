@@ -39,7 +39,7 @@ namespace pass {
 // Used by LLVM pass manager to identify passes in memory
 char MustSupportPass::ID = 0;
 
-std::unique_ptr<TypeMapping> MustSupportPass::typeMapping = std::make_unique<SimpleTypeMapping>();
+// std::unique_ptr<TypeMapping> MustSupportPass::typeMapping = std::make_unique<SimpleTypeMapping>();
 
 bool MustSupportPass::doInitialization(Module& m) {
   /**
@@ -100,7 +100,8 @@ bool MustSupportPass::runOnBasicBlock(BasicBlock& bb) {
 
     // Number of bytes allocated
     auto mallocArg = mallocInst->getOperand(0);
-    int typeId = retrieveTypeID(mallocInst->getType()->getPointerElementType());  // retrieveTypeID(tu::getVoidType(c));
+    int typeId = typeManager.getOrRegisterType(mallocInst->getType()->getPointerElementType(),
+                                               dl);  // retrieveTypeID(tu::getVoidType(c));
     // Number of bytes per element, 1 for void*
     unsigned typeSize = tu::getTypeSizeInBytes(mallocInst->getType()->getPointerElementType(), dl);
     auto insertBefore = mallocInst->getNextNode();
@@ -111,7 +112,7 @@ bool MustSupportPass::runOnBasicBlock(BasicBlock& bb) {
 
       auto dstPtrType = primaryBitcast->getDestTy()->getPointerElementType();
       typeSize = tu::getTypeSizeInBytes(dstPtrType, dl);
-      typeId = retrieveTypeID(dstPtrType);  //(unsigned)dstPtrType->getTypeID();
+      typeId = typeManager.getOrRegisterType(dstPtrType, dl);  //(unsigned)dstPtrType->getTypeID();
       insertBefore = primaryBitcast->getNextNode();
 
       // Handle additional bitcasts that occur after the first one
@@ -119,8 +120,7 @@ bool MustSupportPass::runOnBasicBlock(BasicBlock& bb) {
       for (; bitcastIt != malloc.bitcasts.end(); bitcastIt++) {
         auto bitcastInst = *bitcastIt;
         // Casts to void* can be ignored
-        if (!tu::isVoidPtr(bitcastInst->getDestTy()) &&
-            primaryBitcast->getDestTy() != bitcastInst->getDestTy()) {
+        if (!tu::isVoidPtr(bitcastInst->getDestTy()) && primaryBitcast->getDestTy() != bitcastInst->getDestTy()) {
           // Second non-void* bitcast detected - semantics unclear
           LOG_WARNING("Encountered ambiguous pointer type in allocation:");  // TODO: Better warning message
           mallocInst->dump();
@@ -154,31 +154,32 @@ bool MustSupportPass::runOnBasicBlock(BasicBlock& bb) {
     CallInst::Create(mustDeallocFn, mustFreeArgs, "", insertBefore);
   }
 
-  /*
-    for (auto& alloca : mOpsCollector.listAlloca) {
-      if (alloca->getAllocatedType()->isArrayTy()) {
-        ++NumFoundAlloca;
-        unsigned typeSize = tu::getTypeSizeForArrayAlloc(alloca, dl);
-        auto insertBefore = alloca->getNextNode();
+#define INSTRUMENT_STACK_ALLOCS 0
+#if INSTRUMENT_STACK_ALLOCS
+  for (auto& alloca : mOpsCollector.listAlloca) {
+    if (alloca->getAllocatedType()->isArrayTy()) {
+      ++NumFoundAlloca;
+      unsigned typeSize = tu::getTypeSizeForArrayAlloc(alloca, dl);
+      auto insertBefore = alloca->getNextNode();
 
-        auto elementType = alloca->getAllocatedType()->getArrayElementType();
+      auto elementType = alloca->getAllocatedType()->getArrayElementType();
 
-        int typeId = retrieveTypeID(elementType);
-        auto arraySize = alloca->getAllocatedType()->getArrayNumElements();
+      int typeId = typeManager.getOrRegisterType(elementType, dl);
+      auto arraySize = alloca->getAllocatedType()->getArrayNumElements();
 
-        auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), typeId);
-        auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
-        auto numElementsConst = ConstantInt::get(tu::getInt64Type(c), arraySize);
+      auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), typeId);
+      auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
+      auto numElementsConst = ConstantInt::get(tu::getInt64Type(c), arraySize);
 
-        // Cast array to void*
-        auto arrayPtr = CastInst::CreateBitOrPointerCast(alloca, tu::getVoidPtrType(c), "", insertBefore);
+      // Cast array to void*
+      auto arrayPtr = CastInst::CreateBitOrPointerCast(alloca, tu::getVoidPtrType(c), "", insertBefore);
 
-        // Call runtime lib
-        std::vector<Value*> mustAllocaArgs{arrayPtr, typeIdConst, numElementsConst, typeSizeConst};
-        CallInst::Create(mustAllocFn, mustAllocaArgs, "", arrayPtr->getNextNode());
-      }
+      // Call runtime lib
+      std::vector<Value*> mustAllocaArgs{arrayPtr, typeIdConst, numElementsConst, typeSizeConst};
+      CallInst::Create(mustAllocFn, mustAllocaArgs, "", arrayPtr->getNextNode());
     }
-    */
+  }
+#endif
 
   return false;
 }
@@ -187,9 +188,15 @@ bool MustSupportPass::doFinalization(Module& m) {
   /*
    * Persist the accumulated type definition information for this module.
    */
-  ConfigIO cio(&typeConfig);
-  cio.store("/tmp/musttypes");
-  std::cout << "Writing configs out..." << std::endl;
+
+  LOG_DEBUG("Writing type config file...");
+  auto file = "/tmp/musttypes";
+  if (typeManager.store(file)) {
+    LOG_DEBUG("Success!");
+  } else {
+    LOG_ERROR("Failed writing type config to " << file);
+  }
+
   if (ClMustStats) {
     printStats(llvm::errs());
   }
@@ -213,36 +220,6 @@ void MustSupportPass::declareInstrumentationFunctions(Module& m) {
   setFunctionLinkageExternal(freeFunc);
 }
 
-std::string MustSupportPass::type2String(llvm::Type* type) {
-  // TODO: Check for additional cases and move this code
-  std::stringstream typeString;
-  if (type->isIntegerTy()) {
-    typeString << "int" << type->getPrimitiveSizeInBits();
-  } else if (type->isFloatingPointTy()) {
-    typeString << "float" << type->getPrimitiveSizeInBits();
-  } else if (type->isStructTy()) {
-    typeString << type->getStructName().str();
-  } else if (type->isVoidTy()) {
-    typeString << "void";
-  } else if (type->isPointerTy()) {
-    typeString << "PtrType";
-  } else {
-    LOG_ERROR("Encountered unknown type: ");
-    type->dump();
-    typeString << "unknown_type";  // TODO
-  }
-  return typeString.str();
-}
-
-int MustSupportPass::retrieveTypeID(llvm::Type* type) {
-  std::string typeString = type2String(type);
-  if (!typeConfig.hasTypeID(typeString)) {
-    int typeID = typeMapping->getTypeId(type);
-    typeConfig.registerType(typeString, typeID);
-  }
-  return typeConfig.getTypeID(typeString);
-}
-
 void MustSupportPass::propagateTypeInformation(Module& m) {
   /* Read already acquired information from temporary storage */
   /*
@@ -253,8 +230,11 @@ void MustSupportPass::propagateTypeInformation(Module& m) {
    *  + Extent
    *  + Our id
    */
-  ConfigIO cio(&typeConfig);
-  cio.load("/tmp/musttypes");
+  if (typeManager.load("/tmp/musttypes")) {
+    LOG_DEBUG("Existing type configuration successfully loaded");
+  } else {
+    LOG_DEBUG("No previous type configuration found");
+  }
 }
 
 void MustSupportPass::printStats(llvm::raw_ostream& out) {
