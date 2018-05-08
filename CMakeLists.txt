@@ -17,12 +17,12 @@ add_format_target(format-sources
           lib/*.h
           runtime/*.cpp
           runtime/*.h
-          configio/*.cpp
-          configio/*.h
+        typelib/*.cpp
+        typelib/*.h
 )
 
 add_subdirectory(lib)
-add_subdirectory(configio)
+add_subdirectory(typelib)
 add_subdirectory(runtime)
 enable_testing()
 add_subdirectory(test)

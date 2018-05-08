@@ -1,8 +1,8 @@
 #ifndef RUNTIME_RUNTIME_H_
 #define RUNTIME_RUNTIME_H_
 
-#include "../configio/TypeConfig.h"
 #include "RuntimeInterface.h"
+#include <TypeConfig.h>
 #include <map>
 
 extern "C" {
@@ -36,7 +36,7 @@ class MustSupportRT {
   LookupResult getTypeInfo(const void* addr, must::TypeInfo* type, int* count) const;
 
   LookupResult getBuiltinInfo(const void* addr, must::BuiltinType* type) const;
-  LookupResult resolveType(int id, int* len, must::TypeInfo* types[], int* count[], size_t* offsets[], size_t* extent);
+  LookupResult resolveType(int id, int* len, must::TypeInfo* types[], int* count[], int* offsets[], int* extent);
   std::string getTypeName(int id) const;
 
   void onAlloc(void* addr, int typeID, long count, long typeSize);

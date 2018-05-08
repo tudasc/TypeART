@@ -1,8 +1,8 @@
-#include "runtime.h"
+#include "Runtime.h"
 #include "RuntimeInterface.h"
 
-#include "../configio/ConfigIO.h"
-
+#include <ConfigIO.h>
+//#include <TypeConfig.h>
 #include <iostream>
 
 void __must_support_alloc(void* addr, int typeId, long count, long typeSize) {
@@ -21,8 +21,8 @@ lookup_result must_support_get_type(const void* addr, must::TypeInfo* type, int*
   return must::MustSupportRT::get().getTypeInfo(addr, type, count);
 }
 
-lookup_result must_support_resolve_type(int id, int* len, must::TypeInfo* types[], int* count[], size_t* offsets[],
-                                        size_t* extent) {
+lookup_result must_support_resolve_type(int id, int* len, must::TypeInfo* types[], int* count[], int* offsets[],
+                                        int* extent) {
   return must::MustSupportRT::get().resolveType(id, len, types, count, offsets, extent);
 }
 
@@ -146,8 +146,8 @@ lookup_result MustSupportRT::getBuiltinInfo(const void* addr, must::BuiltinType*
   return result;
 }
 
-lookup_result MustSupportRT::resolveType(int id, int* len, must::TypeInfo* types[], int* count[], size_t* offsets[],
-                                         size_t* extent) {
+lookup_result MustSupportRT::resolveType(int id, int* len, must::TypeInfo* types[], int* count[], int* offsets[],
+                                         int* extent) {
   TypeInfo typeInfo = typeConfig.getTypeInfo(id);
   // Requested ID must correspond to a struct
   if (typeInfo.kind != STRUCT) {

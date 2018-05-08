@@ -1,13 +1,9 @@
 // RUN: %scriptpath/applyAndRun.sh %s %pluginname -must %pluginpath %rtpath | FileCheck %s
 
+#include "../../runtime/RuntimeInterface.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "../../runtime/RuntimeInterface.h"
-//#include "../../runtime/CRuntime.h"
-
-//int mustCheckType(void* addr, int typeId);
-//int mustCheckTypeName(void* addr, const char* typeName);
 
 typedef struct vector_t {
   double* vals;
