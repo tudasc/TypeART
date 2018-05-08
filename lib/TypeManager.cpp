@@ -11,8 +11,7 @@ namespace must {
 namespace tu = util::type;
 using namespace llvm;
 
-TypeManager::TypeManager()
-{
+TypeManager::TypeManager() {
 }
 
 bool TypeManager::load(std::string file) {

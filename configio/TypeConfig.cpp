@@ -10,6 +10,8 @@ namespace must {
 
 std::string TypeConfig::builtinNames[] = {"int", "uint", "char", "uchar", "long", "ulong", "float", "double"};
 
+TypeInfo TypeConfig::InvalidType = TypeInfo{BUILTIN, INVALID};
+
 TypeConfig::TypeConfig() {
 }
 
@@ -74,6 +76,7 @@ TypeInfo TypeConfig::getTypeInfo(int id) const {
   if (isStructType(id)) {
     return TypeInfo{STRUCT, id};
   }
+  return InvalidType;
 }
 
 std::vector<StructTypeInfo> TypeConfig::getStructList() const {

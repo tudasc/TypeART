@@ -8,6 +8,10 @@ tmpDir=/tmp
 tmpfile="$tmpDir"/"${target##*/}"
 extension="${target##*.}"
 
+if [ -e "/tmp/musttypes" ]; then
+    rm "/tmp/musttypes"
+fi
+
 echo -e Running on "$target" using plugin: "$plugin"
 
 if [ $extension == "c" ]; then

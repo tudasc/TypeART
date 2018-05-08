@@ -3,10 +3,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "../../runtime/RuntimeInterface.h"
 //#include "../../runtime/CRuntime.h"
 
-int mustCheckType(void* addr, int typeId);
-int mustCheckTypeName(void* addr, const char* typeName);
+//int mustCheckType(void* addr, int typeId);
+//int mustCheckTypeName(void* addr, const char* typeName);
 
 typedef struct vector_t {
   double* vals;
@@ -25,7 +26,9 @@ void free_vector(vector v) {
 }
 
 int fill_vector(void* values, int count, vector* v) {
-  if (mustCheckTypeName(values, "double")) {
+  must_builtin_type type;
+  lookup_result result = must_support_get_builtin_type(values, &type);
+  if (result == SUCCESS && type == C_DOUBLE) {
     memcpy(v->vals, values, count);
     v->size = count;
     printf("Success\n");

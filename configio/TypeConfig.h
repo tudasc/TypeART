@@ -5,19 +5,15 @@
 #ifndef LLVM_MUST_SUPPORT_TYPECONFIG_H
 #define LLVM_MUST_SUPPORT_TYPECONFIG_H
 
+#include "TypeInterface.h"
 #include <map>
 #include <vector>
 
 namespace must {
 
-enum BuiltinType { C_INT, C_UINT, C_CHAR, C_UCHAR, C_LONG, C_ULONG, C_FLOAT, C_DOUBLE, INVALID, N_BUILTIN_TYPES };
-
-enum TypeKind { BUILTIN, STRUCT, POINTER };
-
-struct TypeInfo {
-  TypeKind kind;
-  int id;
-};
+using TypeInfo = must_type_info;
+using BuiltinType = must_builtin_type;
+using TypeKind = must_type_kind;
 
 struct StructTypeInfo {
   int id;
@@ -56,6 +52,8 @@ class TypeConfig {
   std::vector<StructTypeInfo> getStructList() const;
 
   static std::string builtinNames[];
+
+  static TypeInfo InvalidType;
 
  private:
   std::map<int, StructTypeInfo> structMap;

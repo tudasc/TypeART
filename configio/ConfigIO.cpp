@@ -20,8 +20,8 @@ bool ConfigIO::load(std::string file) {
   if (!is.is_open()) {
     return false;
   }
-  std::string name;
-  int id;
+  // std::string name;
+  // int id;
   /*while (is >> name >> id) {
     config->registerType(name, id);
   }*/  // TODO
