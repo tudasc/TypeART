@@ -6,15 +6,15 @@ extern "C" {
 #endif
 
 typedef enum must_builtin_type_t {
-  C_INT,
-  C_UINT,
-  C_CHAR,
-  C_UCHAR,
-  C_LONG,
-  C_ULONG,
-  C_FLOAT,
-  C_DOUBLE,
-  INVALID,
+  C_INT = 0,
+  C_UINT = 1,
+  C_CHAR = 2,
+  C_UCHAR = 3,
+  C_LONG = 4,
+  C_ULONG = 5,
+  C_FLOAT = 6,
+  C_DOUBLE = 7,
+  INVALID = 8,
   N_BUILTIN_TYPES
 } must_builtin_type;
 

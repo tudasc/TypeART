@@ -5,13 +5,14 @@
 #include "TypeManager.h"
 #include "support/TypeUtil.h"
 #include <ConfigIO.h>
+#include <iostream>
 
 namespace must {
 
 namespace tu = util::type;
 using namespace llvm;
 
-TypeManager::TypeManager() {
+TypeManager::TypeManager() : structCount(0) {
 }
 
 bool TypeManager::load(std::string file) {
@@ -33,9 +34,20 @@ bool TypeManager::store(std::string file) {
 }
 
 int TypeManager::getOrRegisterType(llvm::Type* type, const llvm::DataLayout& dl) {
+  auto& c = type->getContext();
   switch (type->getTypeID()) {
     case llvm::Type::IntegerTyID:
-      return C_INT;  // TODO: Differentiate between integer types
+
+      if (type == Type::getInt8Ty(c)) {
+        return C_CHAR;
+      } else if (type == Type::getInt32Ty(c)) {
+        return C_INT;
+      } else if (type == Type::getInt64Ty(c)) {
+        return C_LONG;
+      } else {
+        return INVALID;
+      }
+    // TODO: Unsigned types are not explicitly represented in LLVM. How to handle?
     case llvm::Type::FloatTyID:
       return C_FLOAT;
     case llvm::Type::DoubleTyID:
@@ -50,12 +62,21 @@ int TypeManager::getOrRegisterType(llvm::Type* type, const llvm::DataLayout& dl)
 
 int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLayout& dl) {
   auto name = type->getStructName();
+  // std::cerr << "Looking up struct " << name.str() << std::endl;
   auto it = structMap.find(name);
   if (it != structMap.end()) {
+    // std::cerr << "Found!" << std::endl;
     return it->second;
   }
+
+  // std::cerr << "Registered structs: " << std::endl;
+  // for (auto info : typeConfig.getStructList()) {
+  //  std::cerr << info.name <<", " << info.id << std::endl;
+  //}
+
   // Get next ID and register struct
   int id = N_BUILTIN_TYPES + structCount;
+  structCount++;
 
   int n = type->getStructNumElements();
 
@@ -91,11 +112,13 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
       kind = POINTER;
       memberSize = tu::getPointerSizeInBytes(memberType, dl);
       // TODO: Do we need a type ID for pointers?
-    } else {
-      // TODO: Check for other types
+    } else if (memberType->isSingleValueType()) {
       kind = BUILTIN;
       memberSize = tu::getScalarSizeInBytes(memberType);
       memberID = getOrRegisterType(memberType, dl);
+    } else {
+      // TODO: Check for other types
+      std::cerr << "Unknown type" << std::endl;
     }
 
     // TODO: Correctly compute alignments
@@ -111,7 +134,6 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
   typeConfig.registerStruct(structInfo);
 
   structMap.insert({name, id});
-  structCount++;
   return id;
 }
 }

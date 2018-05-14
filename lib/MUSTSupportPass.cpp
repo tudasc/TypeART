@@ -154,7 +154,7 @@ bool MustSupportPass::runOnBasicBlock(BasicBlock& bb) {
     CallInst::Create(mustDeallocFn, mustFreeArgs, "", insertBefore);
   }
 
-#define INSTRUMENT_STACK_ALLOCS 1
+#define INSTRUMENT_STACK_ALLOCS 0
 #if INSTRUMENT_STACK_ALLOCS
   for (auto& alloca : mOpsCollector.listAlloca) {
     if (alloca->getAllocatedType()->isArrayTy()) {

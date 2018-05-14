@@ -38,6 +38,11 @@ bool TypeConfig::hasTypeID(int id) const {
 void TypeConfig::registerStruct(StructTypeInfo structType) {
   if (hasTypeID(structType.id)) {
     std::cerr << "Invalid type ID for struct " << structType.name << std::endl;
+    if (isBuiltinType(structType.id)) {
+      std::cerr << "Type ID is reserved for builtin types" << std::endl;
+    } else {
+      std::cerr << "Conflicting struct is " << getStructInfo(structType.id).name << std::endl;
+    }
     // TODO: Error handling
     return;
   }

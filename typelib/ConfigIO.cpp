@@ -5,7 +5,9 @@
 #include "ConfigIO.h"
 
 #include <algorithm>
+#include <assert.h>
 #include <fstream>
+#include <iostream>
 #include <sstream>
 
 namespace must {
@@ -33,6 +35,7 @@ bool ConfigIO::load(std::string file) {
       continue;
     }
     StructTypeInfo structInfo = deserialize(line);
+    // std::cout << "Struct: " << structInfo.name << ", " << structInfo.id << std::endl;
     config->registerStruct(structInfo);
   }
   is.close();
@@ -70,6 +73,8 @@ std::string ConfigIO::serialize(StructTypeInfo structInfo) const {
   std::stringstream ss;
   ss << structInfo.id << "\t" << structInfo.name << "\t" << structInfo.numBytes << "\t" << structInfo.numMembers
      << "\t";
+  assert(structInfo.numMembers == structInfo.offsets.size() && structInfo.numMembers == structInfo.memberTypes.size() &&
+         structInfo.numMembers == structInfo.arraySizes.size() && "Invalid vector sizes in struct info");
   for (int i = 0; i < structInfo.numMembers; i++) {
     ss << structInfo.offsets[i] << "," << structInfo.memberTypes[i].kind << "," << structInfo.memberTypes[i].id << ","
        << structInfo.arraySizes[i] << "\t";
@@ -89,7 +94,8 @@ StructTypeInfo ConfigIO::deserialize(std::string infoString) const {
     return result;
   };
 
-  std::istringstream iss(infoString);
+  // std::istringstream iss(infoString);
+
   int id = INVALID;
   std::string name;
   int numBytes = 0;
@@ -98,20 +104,35 @@ StructTypeInfo ConfigIO::deserialize(std::string infoString) const {
   std::vector<TypeInfo> memberTypes;
   std::vector<int> arraySizes;
 
-  iss >> id >> name >> numBytes >> numMembers;
+  auto entries = split(infoString.c_str(), '\t');
+  id = std::stoi(entries[0]);
+  name = entries[1];
+  numBytes = std::stoi(entries[2]);
+  numMembers = std::stoi(entries[3]);
+
+  // iss >> id >> name >> numBytes >> numMembers;
+
+  // std::cerr << "Struct deserialized: " << id << ", " << name << ", " << numBytes << ", " << numMembers << std::endl;
+
+  const int memberStartIndex = 4;
 
   std::string memberInfoString;
   for (int i = 0; i < numMembers; i++) {
-    iss >> memberInfoString;
+    memberInfoString = entries[memberStartIndex + i];
     auto memberInfoTokens = split(memberInfoString.c_str(), ',');
-    if (memberInfoString.size() == 4) {
+    if (memberInfoTokens.size() == 4) {
       offsets.push_back(std::stoi(memberInfoTokens[0]));
       memberTypes.push_back({TypeKind(std::stoi(memberInfoTokens[1])), std::stoi({memberInfoTokens[2]})});
-      arraySizes.push_back(std::stoi(memberInfoTokens[1]));
+      arraySizes.push_back(std::stoi(memberInfoTokens[3]));
     } else {
       // TODO: Handle error
+      std::cerr << "Invalid struct member description string: " << memberInfoString << std::endl;
     }
   }
+
+  assert(numMembers == offsets.size() && numMembers == memberTypes.size() && numMembers == arraySizes.size() &&
+         "Invalid vector sizes in struct info");
+
   return StructTypeInfo{id, name, numBytes, numMembers, offsets, memberTypes, arraySizes};
 }
 
