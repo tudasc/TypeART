@@ -4,6 +4,7 @@
 #include <ConfigIO.h>
 //#include <TypeConfig.h>
 #include <iostream>
+#include <assert.h>
 
 void __must_support_alloc(void* addr, int typeId, long count, long typeSize) {
   must::MustSupportRT::get().onAlloc(addr, typeId, count, typeSize);
@@ -18,6 +19,7 @@ lookup_result must_support_get_builtin_type(const void* addr, must::BuiltinType*
 }
 
 lookup_result must_support_get_type(const void* addr, must::TypeInfo* type, int* count) {
+  std::cout << "Looking up type at address " << addr << std::endl;
   return must::MustSupportRT::get().getTypeInfo(addr, type, count);
 }
 
@@ -78,58 +80,116 @@ void MustSupportRT::printTraceStart() {
 //  return nullptr;
 //}
 
-lookup_result MustSupportRT::getTypeInfo(const void* addr, must::TypeInfo* type, int* count) const {
-  const PointerInfo* basePtrInfo = nullptr;
-  int arrayCount = 0;
+lookup_result MustSupportRT::getTypeInfoInternal(const void *baseAddr, int offset, const StructTypeInfo &containerInfo,
+                                                 must::TypeInfo *type) const
+{
+  std::cerr << "Type is " << containerInfo.name << std::endl;
 
-  lookup_result result = UNKNOWN_ADDRESS;
+  // Find contained sub type
+  int i = 0;
+  int baseOffset = 0;
+  for (; i < containerInfo.numMembers; i++){
+    baseOffset = containerInfo.offsets[i];
+    if (baseOffset >= offset) {
+      break;
+    }
+  }
+
+
+
+  assert(baseOffset >= offset && "Something went wrong with the base address computation");
+
+
+  if (baseOffset > offset) {
+    // Offset corresponds to location inside the member
+    i--;
+    baseOffset = containerInfo.offsets[i]; // Get last matching offset
+
+    std::cerr << "Offset=" << offset << ", detected base offset=" << baseOffset << std::endl;
+
+    auto memberInfo = containerInfo.memberTypes[i];
+    if (memberInfo.kind == STRUCT) {
+      auto memberStructInfo = typeConfig.getStructInfo(memberInfo.id);
+      return getTypeInfoInternal(baseAddr + baseOffset, offset - baseOffset, memberStructInfo, type);
+    } else {
+
+      int dif = offset - baseOffset;
+      int typeSize = typeConfig.getBuiltinTypeSize(memberInfo.id);
+      // TODO: Pointers
+      if (dif % typeSize == 0) {
+        *type = memberInfo;
+        return SUCCESS;
+      }
+      std::cerr << "Internal alignment wrong: type size is " << typeSize << std::endl;
+      return BAD_ALIGNMENT;
+    }
+  }
+
+  // Offset corresponds directly to a member
+  *type = containerInfo.memberTypes[i];
+  return SUCCESS;
+}
+
+lookup_result MustSupportRT::getTypeInfo(const void* addr, must::TypeInfo* type, int* count) const {
 
   auto it = typeMap.find(addr);
   if (it != typeMap.end()) {
-    basePtrInfo = &it->second;
-    arrayCount = basePtrInfo->count;
-    result = SUCCESS;
-  } else {
+    auto ptrInfo = &it->second;
+
+    auto typeInfo = typeConfig.getTypeInfo(ptrInfo->typeId);
+
+    *type = typeInfo;
+    *count = ptrInfo->count;
+    return SUCCESS;
+
+  }
+
     // The given pointer does not correspond to the start of an array -> find possible base pointer
 
-    // TODO: More efficient lookup?
-    const void* basePtr = 0;
-    for (auto it = typeMap.begin(); it != typeMap.end(); it++) {
-      if (it->first < addr && it->first > basePtr) {
-        basePtr = it->first;
-        basePtrInfo = &it->second;
-      }
-    }
 
-    if (basePtr) {
-      const void* blockEnd = basePtr + basePtrInfo->count * basePtrInfo->typeSize;
-      // Ensure that the given address is in bounds and points to the start of an element
-      if (addr >= blockEnd) {
-        result = UNKNOWN_ADDRESS;
-      } else {
-        long addrDif = (long)addr - (long)basePtr;
-        if (addrDif % basePtrInfo->typeSize != 0) {  // TODO: Ensure that this works correctly with alignment
-          result = BAD_ALIGNMENT;
-        } else {
-          // Compute the element count from the given address
-          arrayCount = basePtrInfo->count - addrDif / basePtrInfo->typeSize;
-          result = SUCCESS;
-        }
-      }
+  // TODO: More efficient lookup?
+  const void* basePtr = 0;
+  const PointerInfo* basePtrInfo = nullptr;
+  for (auto it = typeMap.begin(); it != typeMap.end(); it++) {
+    if (it->first < addr && it->first > basePtr) {
+      basePtr = it->first;
+      basePtrInfo = &it->second;
     }
   }
 
-  if (result == SUCCESS) {
-    // Valid pointer detected
-    auto typeInfo = typeConfig.getTypeInfo(basePtrInfo->typeId);
-    *type = typeInfo;
-    *count = arrayCount;
-  } else {
-    // No type info found or bad alignment
-    *type = TypeConfig::InvalidType;
-    *count = 0;
+  if (basePtr) {
+    const void* blockEnd = basePtr + basePtrInfo->count * basePtrInfo->typeSize;
+    // Ensure that the given address is in bounds and points to the start of an element
+    if (addr >= blockEnd) {
+      return UNKNOWN_ADDRESS;
+    }
+    long addrDif = (long)addr - (long)basePtr;
+    int internalOffset = addrDif % basePtrInfo->typeSize; // Offset of the pointer w.r.t. the start of the containing type
+    if (internalOffset != 0) {  // TODO: Ensure that this works correctly with alignment
+      if (typeConfig.isBuiltinType(basePtrInfo->typeId)) {
+        std::cerr << "Primitive alignment wrong" << std::endl;
+        return BAD_ALIGNMENT; // Address points to the middle of a builtin type
+      } else  {
+        const void* structAddr = basePtr + addrDif - internalOffset;
+        auto structInfo = typeConfig.getStructInfo(basePtrInfo->typeId);
+
+        auto result = getTypeInfoInternal(structAddr, internalOffset, structInfo, type);
+        *count = 1;
+        return result;
+        // TODO: How to handle count?
+
+      }
+      // TODO: pointers
+    } else {
+      // Compute the element count from the given address
+      *count = basePtrInfo->count - addrDif / basePtrInfo->typeSize;
+      *type = typeConfig.getTypeInfo(basePtrInfo->typeId);
+      return SUCCESS;
+
+    }
   }
-  return result;
+
+  return UNKNOWN_ADDRESS;
 }
 
 lookup_result MustSupportRT::getBuiltinInfo(const void* addr, must::BuiltinType* type) const {

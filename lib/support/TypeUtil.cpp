@@ -66,11 +66,9 @@ unsigned getArraySizeInBytes(llvm::Type* arrT, const llvm::DataLayout& dl) {
 }
 
 unsigned getStructSizeInBytes(llvm::Type* structT, const llvm::DataLayout& dl) {
-  unsigned bytes{0u};
-  for (auto it = structT->subtype_begin(); it != structT->subtype_end(); ++it) {
-    bytes += getTypeSizeInBytes(*it, dl);
-  }
-  return bytes;
+  auto st = dyn_cast<llvm::StructType>(structT);
+  const StructLayout* layout = dl.getStructLayout(st);
+  return layout->getSizeInBytes();
 }
 
 unsigned getPointerSizeInBytes(llvm::Type* ptrT, const llvm::DataLayout& dl) {

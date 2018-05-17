@@ -49,6 +49,8 @@ class TypeConfig {
 
   TypeInfo getTypeInfo(int id) const;
 
+  int getBuiltinTypeSize(int id) const;
+
   std::vector<StructTypeInfo> getStructList() const;
 
   static std::string builtinNames[];

@@ -70,6 +70,25 @@ std::string TypeConfig::getTypeName(int id) const {
 //  return typeIDs;
 //}
 
+int TypeConfig::getBuiltinTypeSize(int id) const
+{
+  switch(id) {
+    case C_CHAR:
+    case C_UCHAR:
+      return 1;
+    case C_INT:
+    case C_FLOAT:
+    case C_UINT:
+      return 4;
+    case C_LONG:
+    case C_DOUBLE:
+    case C_ULONG:
+      return 8;
+    default:
+      return -1;
+  }
+}
+
 StructTypeInfo TypeConfig::getStructInfo(int id) const {
   return structMap.find(id)->second;
 }
