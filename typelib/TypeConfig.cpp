@@ -8,7 +8,7 @@
 
 namespace must {
 
-std::string TypeConfig::builtinNames[] = {"int", "uint", "char", "uchar", "long", "ulong", "float", "double"};
+std::string TypeConfig::builtinNames[] = {"char", "uchar", "short", "ushort", "int", "uint", "long", "ulong", "float", "double", "invalid"};
 
 TypeInfo TypeConfig::InvalidType = TypeInfo{BUILTIN, INVALID};
 
@@ -16,7 +16,8 @@ TypeConfig::TypeConfig() {
 }
 
 void TypeConfig::clear() {
-  structMap.clear();
+  structInfoList.clear();
+  id2Idx.clear();
   // reverseTypeMap.clear();
 }
 
@@ -24,15 +25,17 @@ bool TypeConfig::isBuiltinType(int id) const {
   return id < N_BUILTIN_TYPES;
 }
 
+
+
 bool TypeConfig::isStructType(int id) const {
-  return structMap.find(id) != structMap.end();
+  return id2Idx.find(id) != id2Idx.end();
 }
 
 bool TypeConfig::hasTypeID(int id) const {
   if (isBuiltinType(id)) {
     return true;
   }
-  return structMap.find(id) != structMap.end();
+  return id2Idx.find(id) != id2Idx.end();
 }
 
 void TypeConfig::registerStruct(StructTypeInfo structType) {
@@ -41,12 +44,13 @@ void TypeConfig::registerStruct(StructTypeInfo structType) {
     if (isBuiltinType(structType.id)) {
       std::cerr << "Type ID is reserved for builtin types" << std::endl;
     } else {
-      std::cerr << "Conflicting struct is " << getStructInfo(structType.id).name << std::endl;
+      std::cerr << "Conflicting struct is " << getStructInfo(structType.id)->name << std::endl;
     }
     // TODO: Error handling
     return;
   }
-  structMap.insert({structType.id, structType});
+  structInfoList.push_back(structType);
+  id2Idx.insert({structType.id, structInfoList.size() - 1});
   // reverseTypeMap.insert({id, typeName});
 }
 
@@ -55,8 +59,10 @@ std::string TypeConfig::getTypeName(int id) const {
     return builtinNames[id];
   }
   if (isStructType(id)) {
-    auto structInfo = getStructInfo(id);
-    return structInfo.name;
+    const auto* structInfo = getStructInfo(id);
+    if (structInfo) {
+      return structInfo->name;
+    }
   }
   return "UnknownStruct";
 }
@@ -70,12 +76,14 @@ std::string TypeConfig::getTypeName(int id) const {
 //  return typeIDs;
 //}
 
-int TypeConfig::getBuiltinTypeSize(int id) const
-{
-  switch(id) {
+int TypeConfig::getBuiltinTypeSize(int id) const {
+  switch (id) {
     case C_CHAR:
     case C_UCHAR:
       return 1;
+    case C_SHORT:
+    case C_USHORT:
+      return 2;
     case C_INT:
     case C_FLOAT:
     case C_UINT:
@@ -89,8 +97,12 @@ int TypeConfig::getBuiltinTypeSize(int id) const
   }
 }
 
-StructTypeInfo TypeConfig::getStructInfo(int id) const {
-  return structMap.find(id)->second;
+const StructTypeInfo* TypeConfig::getStructInfo(int id) const {
+  auto it = id2Idx.find(id);
+  if (it != id2Idx.end()) {
+    return &structInfoList[it->second];
+  }
+  return nullptr;
 }
 
 TypeInfo TypeConfig::getTypeInfo(int id) const {
@@ -103,12 +115,7 @@ TypeInfo TypeConfig::getTypeInfo(int id) const {
   return InvalidType;
 }
 
-std::vector<StructTypeInfo> TypeConfig::getStructList() const {
-  std::vector<StructTypeInfo> structTypes;
-  structTypes.reserve(structMap.size());
-  for (const auto& entry : structMap) {
-    structTypes.push_back(entry.second);
-  }
-  return structTypes;
+const std::vector<StructTypeInfo>& TypeConfig::getStructList() const {
+  return structInfoList;
 }
 }

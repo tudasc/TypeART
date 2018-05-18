@@ -71,8 +71,7 @@ bool ConfigIO::store(std::string file) const {
 std::string ConfigIO::serialize(StructTypeInfo structInfo) const {
   // TODO
   std::stringstream ss;
-  ss << structInfo.id << "\t" << structInfo.name << "\t" << structInfo.numBytes << "\t" << structInfo.numMembers
-     << "\t";
+  ss << structInfo.id << "\t" << structInfo.name << "\t" << structInfo.extent << "\t" << structInfo.numMembers << "\t";
   assert(structInfo.numMembers == structInfo.offsets.size() && structInfo.numMembers == structInfo.memberTypes.size() &&
          structInfo.numMembers == structInfo.arraySizes.size() && "Invalid vector sizes in struct info");
   for (int i = 0; i < structInfo.numMembers; i++) {
@@ -130,6 +129,7 @@ StructTypeInfo ConfigIO::deserialize(std::string infoString) const {
     }
   }
 
+  // TODO: This should not be an assertion
   assert(numMembers == offsets.size() && numMembers == memberTypes.size() && numMembers == arraySizes.size() &&
          "Invalid vector sizes in struct info");
 

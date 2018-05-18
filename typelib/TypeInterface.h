@@ -5,16 +5,19 @@
 extern "C" {
 #endif
 
+// TODO: Support for more types (e.g. long double)
 typedef enum must_builtin_type_t {
-  C_INT = 0,
-  C_UINT = 1,
-  C_CHAR = 2,
-  C_UCHAR = 3,
-  C_LONG = 4,
-  C_ULONG = 5,
-  C_FLOAT = 6,
-  C_DOUBLE = 7,
-  INVALID = 8,
+  C_CHAR = 0,
+  C_UCHAR = 1,
+  C_SHORT = 2,
+  C_USHORT = 3,
+  C_INT = 4,
+  C_UINT = 5,
+  C_LONG = 6,
+  C_ULONG = 7,
+  C_FLOAT = 8,
+  C_DOUBLE = 9,
+  INVALID = 10,
   N_BUILTIN_TYPES
 } must_builtin_type;
 

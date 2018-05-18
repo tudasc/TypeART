@@ -3,6 +3,35 @@
 
 #include <RuntimeInterface.h>
 
+
+
+int isCompatible(MPI_Datatype mpi_type, must_builtin_type recorded_type)
+{
+  // TODO: Is there a more elegant way to do this?
+  if (mpi_type == MPI_CHAR || mpi_type == MPI_BYTE) {
+    return recorded_type == C_CHAR;
+  } else if (mpi_type == MPI_UNSIGNED_CHAR) {
+    return recorded_type == C_UCHAR;
+  } else if (mpi_type == MPI_SHORT) {
+    return recorded_type = C_SHORT;
+  } else if (mpi_type == MPI_UNSIGNED_SHORT) {
+    return recorded_type == C_USHORT;
+  } else if (mpi_type == MPI_INT) {
+    return recorded_type == C_INT;
+  } else if (mpi_type == MPI_UNSIGNED) {
+    return recorded_type == C_UINT;
+  } else if (mpi_type == MPI_LONG) {
+    return recorded_type == C_LONG;
+  } else if (mpi_type == MPI_UNSIGNED_LONG) {
+    return recorded_type == C_ULONG;
+  } else if (mpi_type == MPI_FLOAT) {
+    return recorded_type == C_FLOAT;
+  } else if (mpi_type == MPI_DOUBLE) {
+    return recorded_type == C_DOUBLE;
+  }
+  return 0;
+}
+
 void analyseBuffer(const void *buf, int count, MPI_Datatype type)
 {
   int num_integers, num_addresses, num_datatypes, combiner;
@@ -15,7 +44,12 @@ void analyseBuffer(const void *buf, int count, MPI_Datatype type)
   {
     int size;
     MPI_Type_size(type, &size);
-    printf("Basetype(t, addr=%p, size=%i , count=%i)\n", buf, size, count);
+
+    char type_name[MPI_MAX_OBJECT_NAME];
+    int name_len;
+    MPI_Type_get_name(type, type_name, &name_len);
+
+    printf("Basetype(%s, addr=%p, size=%i , count=%i)\n", type_name, buf, size, count);
     //TODO: check for matching c-type
 
     must_type_info type_info;
@@ -23,14 +57,37 @@ void analyseBuffer(const void *buf, int count, MPI_Datatype type)
     lookup_result status = must_support_get_type(buf, &type_info, &count_check);
     if (status == SUCCESS) {
       
-      printf("Lookup was successful!\n");
-      printf("Type name: %s\n", must_support_get_type_name(type_info.id));
+      //printf("Lookup was successful!\n");
+
+      // If the address corresponds to a struct, fetch the type of the first member
+      while (type_info.kind == STRUCT) {
+        int len;
+        const must_type_info* types;
+        const int* count;
+        const int* offsets;
+        int extent;
+        must_support_resolve_type(type_info.id, &len, &types, &count, &offsets, &extent);
+        type_info = types[0];
+      }
+
+      //fprintf(stderr, "Type id=%d, name=%s\n", type_info.id, must_support_get_type_name(type_info.id));
+
+      if (isCompatible(type, type_info.id)) {
+        //printf("Types are compatible\n");
+      } else {
+        const char* recorded_name = must_support_get_type_name(type_info.id);
+        if (type_info.kind == POINTER) {
+          recorded_name = "Pointer";
+        }
+        fprintf(stdout, "Error: Incompatible buffer of type %d (%s) - expected %s instead\n", type_info.id, recorded_name, type_name);
+      }
+
     } else {
-      printf("Lookup failed: ");
+      fprintf(stdout, "Error: ");
       if (status == BAD_ALIGNMENT) {
-        printf("Bad alignment\n");
+        fprintf(stdout, "Buffer address does not align with the underlying type at %p\n", buf);
       } else if (status == UNKNOWN_ADDRESS) {
-        printf("Unknown address\n");
+        fprintf(stdout, "No buffer allocated at address %p\n", buf);
       }
     }
 

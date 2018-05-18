@@ -2,6 +2,21 @@
 
 // Note: This test assumes standard alignment on a 64bit system. Non-standard alignment may lead to failure.
 
+//typedef enum must_builtin_type_t {
+//    C_CHAR = 0,
+//    C_UCHAR = 1,
+//    C_SHORT = 2,
+//    C_USHORT = 3,
+//    C_INT = 4,
+//    C_UINT = 5,
+//    C_LONG = 6,
+//    C_ULONG = 7,
+//    C_FLOAT = 8,
+//    C_DOUBLE = 9,
+//    INVALID = 10,
+//    N_BUILTIN_TYPES
+//} must_builtin_type;
+
 #include <stdlib.h>
 
 typedef struct s_t
@@ -47,7 +62,8 @@ int main(int argc, char** argv)
     return 0;
 }
 
-// CHECK: {{[0-9]*}}    struct.s_t  4   1   0,0,0,1
-// CHECK: {{[0-9]*}}    struct.s2_t 16  3   0,0,0,1 4,0,2,1 8,0,4,1
-// CHECK: {{[0-9]*}}    struct.s3_t 64  6   0,0,0,3 16,0,4,2    32,0,2,1    36,0,0,3    48,0,2,5    56,0,4,1
-// CHECK: {{[0-9]*}}    struct.s4_t 64  4   0,0,0,1 8,0,7,3 32,0,7,3    56,2,8,1
+// CHECK: {{[0-9]*}}    struct.s_t  4   1   0,0,4,1
+// CHECK: {{[0-9]*}}    struct.s2_t 16  3   0,0,4,1 4,0,0,1 8,0,6,1
+// TODO: This fails because unsigned types are not recognized yet
+// CHECK: {{[0-9]*}}    struct.s3_t 64  6   0,0,4,3 16,0,6,2    32,0,0,1    36,0,5,3    48,0,0,5    56,0,7,1
+// CHECK: {{[0-9]*}}    struct.s4_t 64  4   0,0,4,1 8,0,9,3 32,0,9,3    56,2,10,1

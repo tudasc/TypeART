@@ -18,7 +18,7 @@ using TypeKind = must_type_kind;
 struct StructTypeInfo {
   int id;
   std::string name;
-  int numBytes;
+  int extent;
   int numMembers;
   std::vector<int> offsets;
   std::vector<TypeInfo> memberTypes;
@@ -45,20 +45,21 @@ class TypeConfig {
 
   std::string getTypeName(int id) const;
 
-  StructTypeInfo getStructInfo(int id) const;
+  const StructTypeInfo* getStructInfo(int id) const;
 
   TypeInfo getTypeInfo(int id) const;
 
   int getBuiltinTypeSize(int id) const;
 
-  std::vector<StructTypeInfo> getStructList() const;
+  const std::vector<StructTypeInfo>& getStructList() const;
 
   static std::string builtinNames[];
 
   static TypeInfo InvalidType;
 
  private:
-  std::map<int, StructTypeInfo> structMap;
+  std::vector<StructTypeInfo> structInfoList;
+  std::map<int, int> id2Idx;
 };
 }
 

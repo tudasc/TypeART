@@ -36,7 +36,8 @@ class MustSupportRT {
   LookupResult getTypeInfo(const void* addr, must::TypeInfo* type, int* count) const;
 
   LookupResult getBuiltinInfo(const void* addr, must::BuiltinType* type) const;
-  LookupResult resolveType(int id, int* len, must::TypeInfo* types[], int* count[], int* offsets[], int* extent);
+  LookupResult getStructInfo(int id, const StructTypeInfo** structInfo) const;
+  // LookupResult resolveType(int id, int* len, must::TypeInfo* types[], int* count[], int* offsets[], int* extent);
   std::string getTypeName(int id) const;
 
   void onAlloc(void* addr, int typeID, long count, long typeSize);
@@ -45,7 +46,8 @@ class MustSupportRT {
  private:
   MustSupportRT();
 
-  LookupResult getTypeInfoInternal(const void* baseAddr, int offset, const StructTypeInfo& containingType, must::TypeInfo* type) const;
+  LookupResult getTypeInfoInternal(const void* baseAddr, int offset, const StructTypeInfo& containingType,
+                                   must::TypeInfo* type) const;
 
   void printTraceStart();
 
