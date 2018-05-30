@@ -8,7 +8,7 @@
 #include "llvm/IR/Module.h"
 #include "llvm/Support/Format.h"
 
-#include <ConfigIO.h>
+#include <TypeIO.h>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -23,6 +23,8 @@ static llvm::RegisterPass<must::pass::MustSupportPass> msp("must", "MUST type in
 
 static cl::opt<bool> ClMustStats("must-stats", cl::desc("Show statistics for MUST type pass."), cl::Hidden,
                                  cl::init(false));
+
+static cl::opt<std::string> ClConfigDir("config-dir", cl::desc("Location of the type typeDB directory"), cl::Hidden);
 
 // FIXME 1) include bitcasts? 2) disabled by default in LLVM builds (use LLVM_ENABLE_STATS when building)
 // STATISTIC(NumInstrumentedMallocs, "Number of instrumented mallocs");
@@ -40,6 +42,15 @@ namespace pass {
 char MustSupportPass::ID = 0;
 
 // std::unique_ptr<TypeMapping> MustSupportPass::typeMapping = std::make_unique<SimpleTypeMapping>();
+
+MustSupportPass::MustSupportPass() : llvm::BasicBlockPass(ID) {
+  if (ClConfigDir.empty()) {
+    configFile = std::string("./") + configFileName;
+  } else {
+    configFile = ClConfigDir + "/" + configFileName;
+  }
+
+}
 
 bool MustSupportPass::doInitialization(Module& m) {
   /**
@@ -122,7 +133,7 @@ bool MustSupportPass::runOnBasicBlock(BasicBlock& bb) {
         // Casts to void* can be ignored
         if (!tu::isVoidPtr(bitcastInst->getDestTy()) && primaryBitcast->getDestTy() != bitcastInst->getDestTy()) {
           // Second non-void* bitcast detected - semantics unclear
-          LOG_WARNING("Encountered ambiguous pointer type in allocation:");  // TODO: Better warning message
+          LOG_WARNING("Encountered ambiguous pointer type in allocation:");
           mallocInst->dump();
           LOG_WARNING("Primary cast:");
           primaryBitcast->dump();
@@ -190,11 +201,11 @@ bool MustSupportPass::doFinalization(Module& m) {
    */
 
   LOG_DEBUG("Writing type config file...");
-  auto file = "/tmp/musttypes";
-  if (typeManager.store(file)) {
+
+  if (typeManager.store(configFile)) {
     LOG_DEBUG("Success!");
   } else {
-    LOG_ERROR("Failed writing type config to " << file);
+    LOG_ERROR("Failed writing type config to " << configFile);
   }
 
   if (ClMustStats) {
@@ -230,7 +241,7 @@ void MustSupportPass::propagateTypeInformation(Module& m) {
    *  + Extent
    *  + Our id
    */
-  if (typeManager.load("/tmp/musttypes")) {
+  if (typeManager.load(configFile)) {
     LOG_DEBUG("Existing type configuration successfully loaded");
   } else {
     LOG_DEBUG("No previous type configuration found");

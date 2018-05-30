@@ -26,4 +26,4 @@ opt -load "$pathToPlugin"/"$plugin" $pluginArgs < "$tmpfile".ll -o "$tmpfile".ll
 llc "$tmpfile".ll -o "$tmpfile".s
 clang "$tmpfile".s -L"$pathToRT" -lmustsupport -o "$tmpfile".o
 echo -e Executing with runtime lib
-LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$rtDir "$tmpfile".o
+LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$rtDir" "$tmpfile".o

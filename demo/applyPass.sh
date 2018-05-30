@@ -35,8 +35,8 @@ else
   compiler_wrapper=$cxx_compiler_wrapper
 fi
 
-if [ -e /tmp/musttypes ]; then
-  rm /tmp/musttypes
+if [ -e musttypes ]; then
+  rm musttypes
 fi
 
 OMPI_CC=$c_compiler OMPI_CXX=$cxx_compiler $compiler_wrapper -S -emit-llvm "$target" -o "$tmpfile".ll

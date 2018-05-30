@@ -2,7 +2,7 @@
 #define RUNTIME_RUNTIME_H_
 
 #include "RuntimeInterface.h"
-#include <TypeConfig.h>
+#include <TypeDB.h>
 #include <map>
 
 extern "C" {
@@ -51,8 +51,15 @@ class MustSupportRT {
 
   void printTraceStart();
 
-  TypeConfig typeConfig;
+  bool loadTypes(const std::string& file);
+
+  const void* findBaseAddress(const void* addr) const;
+
+  TypeDB typeConfig;
   std::map<const void*, PointerInfo> typeMap;
+  std::vector<const void*> addressListSorted;
+
+  std::string configFileName{"musttypes"};
 };
 }
 

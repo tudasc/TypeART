@@ -7,13 +7,13 @@
 
 #include <string>
 
-#include "TypeConfig.h"
+#include "TypeDB.h"
 
 namespace must {
 
-class ConfigIO {
+class TypeIO {
  public:
-  explicit ConfigIO(TypeConfig* config);
+  explicit TypeIO(TypeDB* config);
 
   bool load(std::string file);
   bool store(std::string file) const;
@@ -24,7 +24,7 @@ class ConfigIO {
 
   bool isComment(std::string line) const;
 
-  TypeConfig* config;
+  TypeDB* typeDB;
 };
 }
 

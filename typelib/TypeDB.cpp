@@ -2,44 +2,43 @@
 // Created by sebastian on 22.03.18.
 //
 
-#include "TypeConfig.h"
+#include "TypeDB.h"
 #include <form.h>
 #include <iostream>
 
 namespace must {
 
-std::string TypeConfig::builtinNames[] = {"char", "uchar", "short", "ushort", "int", "uint", "long", "ulong", "float", "double", "invalid"};
+std::string TypeDB::builtinNames[] = {"char", "uchar", "short", "ushort", "int",    "uint",
+                                          "long", "ulong", "float", "double", "invalid"};
 
-TypeInfo TypeConfig::InvalidType = TypeInfo{BUILTIN, INVALID};
+TypeInfo TypeDB::InvalidType = TypeInfo{BUILTIN, INVALID};
 
-TypeConfig::TypeConfig() {
+TypeDB::TypeDB() {
 }
 
-void TypeConfig::clear() {
+void TypeDB::clear() {
   structInfoList.clear();
   id2Idx.clear();
   // reverseTypeMap.clear();
 }
 
-bool TypeConfig::isBuiltinType(int id) const {
+bool TypeDB::isBuiltinType(int id) const {
   return id < N_BUILTIN_TYPES;
 }
 
-
-
-bool TypeConfig::isStructType(int id) const {
+bool TypeDB::isStructType(int id) const {
   return id2Idx.find(id) != id2Idx.end();
 }
 
-bool TypeConfig::hasTypeID(int id) const {
+bool TypeDB::isValid(int id) const {
   if (isBuiltinType(id)) {
     return true;
   }
   return id2Idx.find(id) != id2Idx.end();
 }
 
-void TypeConfig::registerStruct(StructTypeInfo structType) {
-  if (hasTypeID(structType.id)) {
+void TypeDB::registerStruct(StructTypeInfo structType) {
+  if (isValid(structType.id)) {
     std::cerr << "Invalid type ID for struct " << structType.name << std::endl;
     if (isBuiltinType(structType.id)) {
       std::cerr << "Type ID is reserved for builtin types" << std::endl;
@@ -54,7 +53,7 @@ void TypeConfig::registerStruct(StructTypeInfo structType) {
   // reverseTypeMap.insert({id, typeName});
 }
 
-std::string TypeConfig::getTypeName(int id) const {
+std::string TypeDB::getTypeName(int id) const {
   if (isBuiltinType(id)) {
     return builtinNames[id];
   }
@@ -67,7 +66,7 @@ std::string TypeConfig::getTypeName(int id) const {
   return "UnknownStruct";
 }
 
-// std::vector<std::string> TypeConfig::getTypeList() const {
+// std::vector<std::string> TypeDB::getTypeList() const {
 //  std::vector<std::string> typeIDs;
 //  typeIDs.reserve(typeMap.size());
 //  for (const auto& entry : typeMap) {
@@ -76,7 +75,7 @@ std::string TypeConfig::getTypeName(int id) const {
 //  return typeIDs;
 //}
 
-int TypeConfig::getBuiltinTypeSize(int id) const {
+int TypeDB::getBuiltinTypeSize(int id) const {
   switch (id) {
     case C_CHAR:
     case C_UCHAR:
@@ -97,7 +96,7 @@ int TypeConfig::getBuiltinTypeSize(int id) const {
   }
 }
 
-const StructTypeInfo* TypeConfig::getStructInfo(int id) const {
+const StructTypeInfo* TypeDB::getStructInfo(int id) const {
   auto it = id2Idx.find(id);
   if (it != id2Idx.end()) {
     return &structInfoList[it->second];
@@ -105,7 +104,7 @@ const StructTypeInfo* TypeConfig::getStructInfo(int id) const {
   return nullptr;
 }
 
-TypeInfo TypeConfig::getTypeInfo(int id) const {
+TypeInfo TypeDB::getTypeInfo(int id) const {
   if (isBuiltinType(id)) {
     return TypeInfo{BUILTIN, id};
   }
@@ -115,7 +114,7 @@ TypeInfo TypeConfig::getTypeInfo(int id) const {
   return InvalidType;
 }
 
-const std::vector<StructTypeInfo>& TypeConfig::getStructList() const {
+const std::vector<StructTypeInfo>& TypeDB::getStructList() const {
   return structInfoList;
 }
 }

@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-// TODO: Support for more types (e.g. long double)
+// TODO: Support for missing types (e.g. long double)
 typedef enum must_builtin_type_t {
   C_CHAR = 0,
   C_UCHAR = 1,

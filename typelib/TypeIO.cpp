@@ -2,7 +2,7 @@
 // Created by sebastian on 22.03.18.
 //
 
-#include "ConfigIO.h"
+#include "TypeIO.h"
 
 #include <algorithm>
 #include <assert.h>
@@ -12,11 +12,11 @@
 
 namespace must {
 
-ConfigIO::ConfigIO(TypeConfig* config) : config(config) {
+TypeIO::TypeIO(TypeDB* typeDB) : typeDB(typeDB) {
 }
 
-bool ConfigIO::load(std::string file) {
-  config->clear();
+bool TypeIO::load(std::string file) {
+  typeDB->clear();
   std::ifstream is;
   is.open(file);
   if (!is.is_open()) {
@@ -25,7 +25,7 @@ bool ConfigIO::load(std::string file) {
   // std::string name;
   // int id;
   /*while (is >> name >> id) {
-    config->registerType(name, id);
+    typeDB->registerType(name, id);
   }*/  // TODO
 
   std::string line;
@@ -36,13 +36,13 @@ bool ConfigIO::load(std::string file) {
     }
     StructTypeInfo structInfo = deserialize(line);
     // std::cout << "Struct: " << structInfo.name << ", " << structInfo.id << std::endl;
-    config->registerStruct(structInfo);
+    typeDB->registerStruct(structInfo);
   }
   is.close();
   return true;
 }
 
-bool ConfigIO::store(std::string file) const {
+bool TypeIO::store(std::string file) const {
   std::ofstream os;
   os.open(file);
   if (!os.is_open()) {
@@ -60,7 +60,7 @@ bool ConfigIO::store(std::string file) const {
      << "\t"
      << "(Offset, TypeKind, TypeID, ArraySize)*" << std::endl;
   os << "# --------" << std::endl;
-  for (const auto& structInfo : config->getStructList()) {
+  for (const auto& structInfo : typeDB->getStructList()) {
     os << serialize(structInfo) << std::endl;
     // os << typeName << " " << id << std::endl;
   }
@@ -68,7 +68,7 @@ bool ConfigIO::store(std::string file) const {
   return true;
 }
 
-std::string ConfigIO::serialize(StructTypeInfo structInfo) const {
+std::string TypeIO::serialize(StructTypeInfo structInfo) const {
   // TODO
   std::stringstream ss;
   ss << structInfo.id << "\t" << structInfo.name << "\t" << structInfo.extent << "\t" << structInfo.numMembers << "\t";
@@ -81,7 +81,7 @@ std::string ConfigIO::serialize(StructTypeInfo structInfo) const {
   return ss.str();
 }
 
-StructTypeInfo ConfigIO::deserialize(std::string infoString) const {
+StructTypeInfo TypeIO::deserialize(std::string infoString) const {
   auto split = [](const char* str, char c = ' ') -> std::vector<std::string> {
     std::vector<std::string> result;
     do {
@@ -136,7 +136,7 @@ StructTypeInfo ConfigIO::deserialize(std::string infoString) const {
   return StructTypeInfo{id, name, numBytes, numMembers, offsets, memberTypes, arraySizes};
 }
 
-bool ConfigIO::isComment(std::string line) const {
+bool TypeIO::isComment(std::string line) const {
   line.erase(line.begin(), std::find_if(line.begin(), line.end(), [](int ch) { return !std::isspace(ch); }));
   return line.empty() || line.front() == '#';
 }

@@ -17,4 +17,4 @@ run: all
 	env LD_PRELOAD=./libtool.so LD_LIBRARY_PATH=$LD_LIBRARY_PATH:../build/runtime $(MPIRUN) -np 1 02_ex
 
 clean:
-	rm *~ libtool.so 01_ex 02_ex
+	rm *~ libtool.so 01_ex 02_ex musttypes

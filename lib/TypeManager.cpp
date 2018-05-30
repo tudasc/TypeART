@@ -4,7 +4,7 @@
 
 #include "TypeManager.h"
 #include "support/TypeUtil.h"
-#include <ConfigIO.h>
+#include <TypeIO.h>
 #include <iostream>
 
 namespace must {
@@ -16,10 +16,10 @@ TypeManager::TypeManager() : structCount(0) {
 }
 
 bool TypeManager::load(std::string file) {
-  ConfigIO cio(&typeConfig);
+  TypeIO cio(&typeDB);
   if (cio.load(file)) {
     structMap.clear();
-    for (auto& structInfo : typeConfig.getStructList()) {
+    for (auto& structInfo : typeDB.getStructList()) {
       structMap.insert({structInfo.name, structInfo.id});
     }
     structCount = structMap.size();
@@ -29,7 +29,7 @@ bool TypeManager::load(std::string file) {
 }
 
 bool TypeManager::store(std::string file) {
-  ConfigIO cio(&typeConfig);
+  TypeIO cio(&typeDB);
   return cio.store(file);
 }
 
@@ -70,7 +70,7 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
   }
 
   // std::cerr << "Registered structs: " << std::endl;
-  // for (auto info : typeConfig.getStructList()) {
+  // for (auto info : typeDB.getStructList()) {
   //  std::cerr << info.name <<", " << info.id << std::endl;
   //}
 
@@ -92,16 +92,13 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
     TypeKind kind;
 
     int arraySize = 1;
-    int memberSize = 0;
 
     if (memberType->isArrayTy()) {
       arraySize = memberType->getArrayNumElements();
-      memberType = memberType->getArrayElementType();
     }
 
     if (memberType->isStructTy()) {
       kind = STRUCT;
-      memberSize = tu::getStructSizeInBytes(memberType, dl);
       if (memberType->getStructName() == name) {
         memberID = id;
       } else {
@@ -110,18 +107,15 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
       }
     } else if (memberType->isPointerTy()) {
       kind = POINTER;
-      memberSize = tu::getPointerSizeInBytes(memberType, dl);
       // TODO: Do we need a type ID for pointers?
     } else if (memberType->isSingleValueType()) {
       kind = BUILTIN;
-      memberSize = tu::getScalarSizeInBytes(memberType);
       memberID = getOrRegisterType(memberType, dl);
     } else {
-      // TODO: Check for other types
+      // TODO: Any other types?
       std::cerr << "Unknown type" << std::endl;
     }
 
-    // TODO: Correctly compute alignments
     int offset = layout->getElementOffset(i);
     offsets.push_back(offset);
     arraySizes.push_back(arraySize);
@@ -131,7 +125,7 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
   int numBytes = layout->getSizeInBytes();
 
   StructTypeInfo structInfo{id, name, numBytes, n, offsets, memberTypeInfo, arraySizes};
-  typeConfig.registerStruct(structInfo);
+  typeDB.registerStruct(structInfo);
 
   structMap.insert({name, id});
   return id;

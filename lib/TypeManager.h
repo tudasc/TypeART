@@ -3,7 +3,7 @@
 
 #include <llvm/IR/Type.h>
 
-#include <TypeConfig.h>
+#include <TypeDB.h>
 #include <llvm/IR/DataLayout.h>
 
 namespace must {
@@ -23,7 +23,7 @@ class TypeManager {
 
   // TypeInfo getTypeInfo(llvm::Type* type);
 
-  TypeConfig typeConfig;
+  TypeDB typeDB;
 
   std::map<std::string, int> structMap;
   int structCount;

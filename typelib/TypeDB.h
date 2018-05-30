@@ -25,23 +25,19 @@ struct StructTypeInfo {
   std::vector<int> arraySizes;
 };
 
-class TypeConfig {
+class TypeDB {
  public:
-  TypeConfig();
+  TypeDB();
 
   void clear();
 
   void registerStruct(StructTypeInfo structInfo);
 
-  bool hasTypeID(int id) const;
+  bool isValid(int id) const;
 
   bool isBuiltinType(int id) const;
 
   bool isStructType(int id) const;
-
-  // int getTypeID(std::string typeName) const;
-
-  // bool hasTypeID(std::string typeName) const;
 
   std::string getTypeName(int id) const;
 

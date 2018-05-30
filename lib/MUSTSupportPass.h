@@ -1,7 +1,7 @@
 #ifndef _LIB_MUSTSUPPORTPASS_H
 #define _LIB_MUSTSUPPORTPASS_H
 
-#include "TypeConfig.h"
+#include "TypeDB.h"
 #include "TypeManager.h"
 #include "llvm/Pass.h"
 
@@ -20,8 +20,8 @@ class MustSupportPass : public llvm::BasicBlockPass {
   static char ID;  // used to identify pass
 
   /* Call base class ctor with ID */
-  MustSupportPass() : llvm::BasicBlockPass(ID) {
-  }
+  MustSupportPass();
+
   /* Run once per module */
   bool doInitialization(llvm::Module& m) override;
   /* Run once per function */
@@ -50,11 +50,13 @@ class MustSupportPass : public llvm::BasicBlockPass {
   std::string allocInstrumentation{"__must_support_alloc"};
   std::string freeInstrumentation{"__must_support_free"};
 
+  std::string configFileName{"musttypes"};
+
   // static std::unique_ptr<TypeMapping> typeMapping;
 
   TypeManager typeManager;
 
-  // std::string configFile;
+  std::string configFile;
 };
 
 }  // namespace pass
