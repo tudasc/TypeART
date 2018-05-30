@@ -95,6 +95,7 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
 
     if (memberType->isArrayTy()) {
       arraySize = memberType->getArrayNumElements();
+      memberType = memberType->getArrayElementType();
     }
 
     if (memberType->isStructTy()) {
@@ -113,7 +114,8 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
       memberID = getOrRegisterType(memberType, dl);
     } else {
       // TODO: Any other types?
-      std::cerr << "Unknown type" << std::endl;
+      memberType->dump();
+      assert(false && "Encountered unhandled type");
     }
 
     int offset = layout->getElementOffset(i);

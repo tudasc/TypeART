@@ -38,7 +38,7 @@ class MustSupportRT {
   LookupResult getBuiltinInfo(const void* addr, must::BuiltinType* type) const;
   LookupResult getStructInfo(int id, const StructTypeInfo** structInfo) const;
   // LookupResult resolveType(int id, int* len, must::TypeInfo* types[], int* count[], int* offsets[], int* extent);
-  std::string getTypeName(int id) const;
+  const std::string& getTypeName(int id) const;
 
   void onAlloc(void* addr, int typeID, long count, long typeSize);
   void onFree(void* addr);
@@ -57,7 +57,6 @@ class MustSupportRT {
 
   TypeDB typeConfig;
   std::map<const void*, PointerInfo> typeMap;
-  std::vector<const void*> addressListSorted;
 
   std::string configFileName{"musttypes"};
 };

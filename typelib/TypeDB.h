@@ -39,7 +39,7 @@ class TypeDB {
 
   bool isStructType(int id) const;
 
-  std::string getTypeName(int id) const;
+  const std::string& getTypeName(int id) const;
 
   const StructTypeInfo* getStructInfo(int id) const;
 

@@ -86,30 +86,6 @@ void MustSupportRT::printTraceStart() {
 
 const void* MustSupportRT::findBaseAddress(const void* addr) const {
 
-//  // Check for exact match
-//  auto it = typeMap.find(addr);
-//  if (it != typeMap.end()) {
-//    return addr;
-//  }
-//
-//  if (addressListSorted.empty() || addr < addressListSorted[0]) {
-//    // No valid base address
-//    return nullptr;
-//  }
-  // FIXME: Does not terminate, which is probably not good
-  // Perform binary search
-//  int l = 0;
-//  int r = addressListSorted.size();
-//  while(l + 1 < r) {
-//    int i = (r+l) / 2;
-//    if (addr < addressListSorted[i]) {
-//      r = i;
-//    } else {
-//      l = i;
-//    }
-//  }
-//
-//  const void* baseAddr = addressListSorted[l];
   if (addr < typeMap.begin()->first) {
     return nullptr;
   }
@@ -132,7 +108,7 @@ lookup_result MustSupportRT::getTypeInfoInternal(const void* baseAddr, int offse
   // std::cerr << "Type is " << containerInfo.name << std::endl;
 
   assert(offset < containerInfo.extent && "Something went wrong with the base address computation");
-
+  //std::cout << "internal: base=" << baseAddr << ", offset=" << offset << ", container=" << containerInfo.name << std::endl;
   int i = 0;
   // This should always be 0, but safety doesn't hurt
   int baseOffset = containerInfo.offsets.front();
@@ -149,8 +125,6 @@ lookup_result MustSupportRT::getTypeInfoInternal(const void* baseAddr, int offse
 
   auto memberInfo = containerInfo.memberTypes[i];
 
-  // printf("%d, %d, %d\n", containerInfo.numMembers, baseOffset, offset);
-
   // Offset corresponds directly to a member
   if (baseOffset == offset) {
     *type = memberInfo;
@@ -158,7 +132,6 @@ lookup_result MustSupportRT::getTypeInfoInternal(const void* baseAddr, int offse
   }
 
   // Offset corresponds to location inside the member
-  // std::cout << "i=" << i << ", offset=" << offset << ", detected base offset=" << baseOffset << std::endl;
   assert((offset > containerInfo.offsets[i] &&
           (i == containerInfo.numMembers - 1 || baseOffset < containerInfo.offsets[i + 1])) &&
          "Tell Sebastian he's an idiot");
@@ -187,7 +160,6 @@ lookup_result MustSupportRT::getTypeInfoInternal(const void* baseAddr, int offse
       *type = memberInfo;
       return SUCCESS;
     }
-    // std::cerr << "Internal alignment wrong: type size is " << typeSize << std::endl;
     return BAD_ALIGNMENT;
   }
 }
@@ -195,7 +167,6 @@ lookup_result MustSupportRT::getTypeInfoInternal(const void* baseAddr, int offse
 lookup_result MustSupportRT::getTypeInfo(const void* addr, must::TypeInfo* type, int* count) const {
 
   const void* basePtr = findBaseAddress(addr);
-  std::cerr << "base ptr of " << addr << " is " << basePtr << std::endl;
 
   if (basePtr) {
 
@@ -219,7 +190,6 @@ lookup_result MustSupportRT::getTypeInfo(const void* addr, must::TypeInfo* type,
         addrDif % basePtrInfo.typeSize;  // Offset of the pointer w.r.t. the start of the containing type
     if (internalOffset != 0) {
       if (typeConfig.isBuiltinType(basePtrInfo.typeId)) {
-        //std::cerr << "Primitive alignment wrong" << std::endl;
         return BAD_ALIGNMENT;  // Address points to the middle of a builtin type
       } else {
         const void* structAddr = basePtr + addrDif - internalOffset;
@@ -266,17 +236,13 @@ lookup_result MustSupportRT::getStructInfo(int id, const StructTypeInfo** struct
   return SUCCESS;
 }
 
-
-std::string MustSupportRT::getTypeName(int id) const {
+const std::string& MustSupportRT::getTypeName(int id) const {
   return typeConfig.getTypeName(id);
 }
 
 void MustSupportRT::onAlloc(void* addr, int typeId, long count, long typeSize) {
   // TODO: Check if entry already exists
   typeMap[addr] = {addr, typeId, count, typeSize};
-  addressListSorted.push_back(addr);
-  // TODO: Sorting every time is probably inefficient - try directly inserting to the correct position
-  std::sort(addressListSorted.begin(), addressListSorted.end());
   auto typeString = typeConfig.getTypeName(typeId);
   std::cout << "Alloc    " << addr << "   " << typeString << "   " << typeSize << "     " << count << std::endl;
 }
@@ -285,10 +251,6 @@ void MustSupportRT::onFree(void* addr) {
   auto it = typeMap.find(addr);
   if (it != typeMap.end()) {
     typeMap.erase(it);
-    auto listIt = std::find(addressListSorted.begin(), addressListSorted.end(), addr);
-    if (listIt != addressListSorted.end()) {
-      addressListSorted.erase(listIt);
-    }
     std::cout << "Free     " << addr << std::endl;
   }
   // TODO: What to do when not found?

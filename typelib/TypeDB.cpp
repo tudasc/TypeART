@@ -53,7 +53,7 @@ void TypeDB::registerStruct(StructTypeInfo structType) {
   // reverseTypeMap.insert({id, typeName});
 }
 
-std::string TypeDB::getTypeName(int id) const {
+const std::string& TypeDB::getTypeName(int id) const {
   if (isBuiltinType(id)) {
     return builtinNames[id];
   }
