@@ -5,7 +5,7 @@ plugin=${2:-MustSupportPass.so}
 pluginArgs=${3:--must}
 pathToPlugin=${4:-build/lib}
 pathToRT=${5:-build/runtime}
-tmpDir=/tmp
+tmpDir="./"
 tmpfile="$tmpDir"/"${target##*/}"
 extension="${target##*.}"
 
@@ -19,7 +19,7 @@ else
   compiler=clang++
 fi
 
-rm /tmp/musttypes
+rm "${tmpDir}/musttypes"
 
 $compiler -S -emit-llvm "$target" -o "$tmpfile".ll
 opt -load "$pathToPlugin"/"$plugin" $pluginArgs < "$tmpfile".ll -o "$tmpfile".ll > /dev/null

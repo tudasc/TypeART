@@ -1,4 +1,4 @@
-// RUN: rm /tmp/musttypes | clang -S -emit-llvm %s -o - | opt -load %pluginpath/%pluginname %pluginargs -S 2>&1; cat /tmp/musttypes | FileCheck %s
+// RUN: rm musttypes | clang -S -emit-llvm %s -o - | opt -load %pluginpath/%pluginname %pluginargs -S 2>&1; cat musttypes | FileCheck %s
 
 // Note: This test assumes standard alignment on a 64bit system. Non-standard alignment may lead to failure.
 
@@ -64,6 +64,6 @@ int main(int argc, char** argv)
 
 // CHECK: {{[0-9]*}}    struct.s_t  4   1   0,0,4,1
 // CHECK: {{[0-9]*}}    struct.s2_t 16  3   0,0,4,1 4,0,0,1 8,0,6,1
-// TODO: This fails because unsigned types are not recognized yet
-// CHECK: {{[0-9]*}}    struct.s3_t 64  6   0,0,4,3 16,0,6,2    32,0,0,1    36,0,5,3    48,0,0,5    56,0,7,1
+// TODO: Replace the following line as soon as unsigned types are supported with "{{[0-9]*}}    struct.s3_t 64  6   0,0,4,3 16,0,6,2    32,0,0,1    36,0,5,3    48,0,0,5    56,0,7,1"
+// CHECK: {{[0-9]*}}    struct.s3_t 64  6   0,0,4,3 16,0,6,2    32,0,0,1    36,0,4,3    48,0,0,5    56,0,6,1
 // CHECK: {{[0-9]*}}    struct.s4_t 64  4   0,0,4,1 8,0,9,3 32,0,9,3    56,2,10,1

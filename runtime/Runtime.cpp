@@ -132,9 +132,10 @@ lookup_result MustSupportRT::getTypeInfoInternal(const void* baseAddr, int offse
   }
 
   // Offset corresponds to location inside the member
+
   assert((offset > containerInfo.offsets[i] &&
           (i == containerInfo.numMembers - 1 || baseOffset < containerInfo.offsets[i + 1])) &&
-         "Tell Sebastian he's an idiot");
+         "Bug in offset computation code");
 
   if (memberInfo.kind == STRUCT) {
     // Address points inside of a sub-struct -> we have to go deeper
@@ -241,10 +242,14 @@ const std::string& MustSupportRT::getTypeName(int id) const {
 }
 
 void MustSupportRT::onAlloc(void* addr, int typeId, long count, long typeSize) {
-  // TODO: Check if entry already exists
-  typeMap[addr] = {addr, typeId, count, typeSize};
-  auto typeString = typeConfig.getTypeName(typeId);
-  std::cout << "Alloc    " << addr << "   " << typeString << "   " << typeSize << "     " << count << std::endl;
+  auto it = typeMap.find(addr);
+  if (it != typeMap.end()) {
+    // TODO: What should the behaviour be here?
+  } else {
+    typeMap[addr] = {addr, typeId, count, typeSize};
+    auto typeString = typeConfig.getTypeName(typeId);
+    std::cout << "Alloc    " << addr << "   " << typeString << "   " << typeSize << "     " << count << std::endl;
+  }
 }
 
 void MustSupportRT::onFree(void* addr) {
@@ -252,7 +257,8 @@ void MustSupportRT::onFree(void* addr) {
   if (it != typeMap.end()) {
     typeMap.erase(it);
     std::cout << "Free     " << addr << std::endl;
+  } else {
+    // TODO: What to do when not found?
   }
-  // TODO: What to do when not found?
 }
 }

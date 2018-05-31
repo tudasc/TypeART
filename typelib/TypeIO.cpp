@@ -22,11 +22,6 @@ bool TypeIO::load(std::string file) {
   if (!is.is_open()) {
     return false;
   }
-  // std::string name;
-  // int id;
-  /*while (is >> name >> id) {
-    typeDB->registerType(name, id);
-  }*/  // TODO
 
   std::string line;
   while (std::getline(is, line)) {
@@ -69,7 +64,6 @@ bool TypeIO::store(std::string file) const {
 }
 
 std::string TypeIO::serialize(StructTypeInfo structInfo) const {
-  // TODO
   std::stringstream ss;
   ss << structInfo.id << "\t" << structInfo.name << "\t" << structInfo.extent << "\t" << structInfo.numMembers << "\t";
   assert(structInfo.numMembers == structInfo.offsets.size() && structInfo.numMembers == structInfo.memberTypes.size() &&
@@ -92,8 +86,6 @@ StructTypeInfo TypeIO::deserialize(std::string infoString) const {
     } while (0 != *str++);
     return result;
   };
-
-  // std::istringstream iss(infoString);
 
   int id = INVALID;
   std::string name;
