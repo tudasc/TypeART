@@ -17,8 +17,8 @@ add_format_target(format-sources
           lib/*.h
           runtime/*.cpp
           runtime/*.h
-        typelib/*.cpp
-        typelib/*.h
+          typelib/*.cpp
+          typelib/*.h
 )
 
 add_subdirectory(lib)

@@ -5,32 +5,11 @@ set(PASS_SOURCES
   TypeManager.cpp
 )
 
-add_llvm_loadable_module(MustSupportPass
-  ${PASS_SOURCES}
-)
-
-target_include_directories(MustSupportPass 
-  SYSTEM 
-  PUBLIC 
-  ${LLVM_INCLUDE_DIRS}
-)
-
-target_compile_definitions(MustSupportPass
-  PRIVATE
-  ${LLVM_DEFINITIONS}
-)
-
-target_link_libraries(MustSupportPass musttypelib)
-target_include_directories(MustSupportPass PUBLIC "${CMAKE_SOURCE_DIR}/typelib")
-
-add_tidy_target(tidy-run-on-pass
-  "Clang-tidy run on MUST support pass translation units"
-  SOURCES ${PASS_SOURCES}
-  OTHER --header-filter=${CMAKE_CURRENT_SOURCE_DIR}
-)
-
-add_tidy_fix_target(tidy-fix-on-pass
-  "Clang-tidy run with fixes on MUST support pass translation units"
-  SOURCES ${PASS_SOURCES}
-  OTHER --header-filter=${CMAKE_CURRENT_SOURCE_DIR} -checks=-*,modernize-*,llvm-namespace-comment,google-explicit-constructor
+make_llvm_module(MustSupportPass
+  "${PASS_SOURCES}"
+  LINK_LIBS
+    musttypelib
+  INCLUDE_DIRS
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/typelib
 )

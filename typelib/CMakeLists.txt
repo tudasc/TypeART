@@ -1,2 +1,12 @@
-add_library(musttypelib STATIC TypeDB.cpp TypeIO.cpp)
-set_property(TARGET musttypelib PROPERTY POSITION_INDEPENDENT_CODE ON)
+set(TYPE_LIB_SOURCES
+  TypeDB.cpp 
+  TypeIO.cpp
+)
+
+add_library(musttypelib STATIC 
+  ${TYPE_LIB_SOURCES}
+)
+
+set_target_properties(musttypelib 
+  PROPERTIES POSITION_INDEPENDENT_CODE ON
+)

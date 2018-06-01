@@ -1,10 +1,13 @@
 find_package(LLVM REQUIRED CONFIG)
+message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}") 
 
 list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
 
 include(AddLLVM)
 include(clang-tidy)
 include(clang-format)
+include(llvm-util)
+include(log-util)
 
 if(NOT CMAKE_BUILD_TYPE)
 # set default build type

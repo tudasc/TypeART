@@ -18,10 +18,14 @@
 #define LOG_LEVEL 2
 #endif
 
+#ifndef LOG_BASENAME_FILE
+#define LOG_BASENAME_FILE __FILE__
+#endif
+
 // clang-format off
 #define OO_LOG_LEVEL_MSG(LEVEL_NUM, LEVEL, MSG) \
   if ((LEVEL_NUM) <= LOG_LEVEL) { \
-    llvm::errs() << (LEVEL) << " " << __FILE__ << ":" << __func__ << ":" << __LINE__ << ": " << MSG << "\n"; /* NOLINT */ \
+    llvm::errs() << (LEVEL) << " " << LOG_BASENAME_FILE << ":" << __func__ << ":" << __LINE__ << ": " << MSG << "\n"; /* NOLINT */ \
   }
 
 #define LOG_DEBUG(MSG) OO_LOG_LEVEL_MSG(3, "[Debug]", MSG)

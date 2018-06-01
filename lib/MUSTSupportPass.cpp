@@ -2,8 +2,10 @@
 #include "MemOpVisitor.h"
 #include "support/Logger.h"
 #include "support/TypeUtil.h"
+#include "support/Util.h"
 
 #include "llvm/ADT/Statistic.h"
+#include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
 #include "llvm/Support/Format.h"
@@ -49,7 +51,6 @@ MustSupportPass::MustSupportPass() : llvm::BasicBlockPass(ID) {
   } else {
     configFile = ClConfigDir + "/" + configFileName;
   }
-
 }
 
 bool MustSupportPass::doInitialization(Module& m) {
@@ -68,17 +69,13 @@ bool MustSupportPass::doInitialization(Module& m) {
   return true;
 }
 
-bool MustSupportPass::doInitialization(Function& f) {
-  // TODO Do we actually need a per-function initialization?
-  return false;
-}
-
 bool MustSupportPass::runOnBasicBlock(BasicBlock& bb) {
   /*
    * + Find malloc functions
    * + Find free frunctions
    * + Generate calls to instrumentation functions
    */
+  namespace util = typeart::util;
 
   auto& c = bb.getContext();
   DataLayout dl(bb.getModule());
@@ -86,22 +83,15 @@ bool MustSupportPass::runOnBasicBlock(BasicBlock& bb) {
   MemOpVisitor mOpsCollector;
   mOpsCollector.visit(bb);
 
-  auto mustAllocFn = bb.getModule()->getFunction(allocInstrumentation);
-  assert(mustAllocFn && "alloc instrumentation function not found");
-  auto mustDeallocFn = bb.getModule()->getFunction(freeInstrumentation);
-  assert(mustDeallocFn && "free instrumentation function not found");
-
   // instrument collected calls of bb:
   for (auto& malloc : mOpsCollector.listMalloc) {
     ++NumFoundMallocs;
 
     auto mallocInst = malloc.call;
+    const auto& bitcasts = malloc.bitcasts;
 
     BitCastInst* primaryBitcast = nullptr;
-    auto bitcastIt = malloc.bitcasts.begin();
-    for (; bitcastIt != malloc.bitcasts.end(); bitcastIt++) {
-      auto bitcastInst = *bitcastIt;
-      // auto dstPtrType = bitcastInst->getDestTy()->getPointerElementType();
+    for (auto bitcastInst : bitcasts) {
       if (!tu::isVoidPtr(bitcastInst->getDestTy())) {  // TODO: Any other types that should be ignored?
         // First non-void bitcast determines the type
         primaryBitcast = bitcastInst;
@@ -127,42 +117,30 @@ bool MustSupportPass::runOnBasicBlock(BasicBlock& bb) {
       insertBefore = primaryBitcast->getNextNode();
 
       // Handle additional bitcasts that occur after the first one
-      bitcastIt++;
-      for (; bitcastIt != malloc.bitcasts.end(); bitcastIt++) {
-        auto bitcastInst = *bitcastIt;
-        // Casts to void* can be ignored
+      std::for_each(std::next(bitcasts.begin()), bitcasts.end(), [&](auto bitcastInst) {
         if (!tu::isVoidPtr(bitcastInst->getDestTy()) && primaryBitcast->getDestTy() != bitcastInst->getDestTy()) {
           // Second non-void* bitcast detected - semantics unclear
-          LOG_WARNING("Encountered ambiguous pointer type in allocation:");
-          mallocInst->dump();
-          LOG_WARNING("Primary cast:");
-          primaryBitcast->dump();
-          LOG_WARNING("Secondary cast:");
-          bitcastInst->dump();
+          LOG_WARNING("Encountered ambiguous pointer type in allocation: " << util::dump(*mallocInst));
+          LOG_WARNING("  Primary cast: " << util::dump(*primaryBitcast));
+          LOG_WARNING("  Secondary cast: " << util::dump(*bitcastInst));
         }
-      }
+      });
     }
 
-    // mallocInst->dump();
-
+    IRBuilder<> IRB(insertBefore);
     auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), typeId);
     auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
     // Compute element count: count = numBytes / typeSize
-    auto elementCount = BinaryOperator::CreateUDiv(mallocArg, typeSizeConst, "", insertBefore);
-
-    // Call runtime lib
-    std::vector<Value*> mustAllocArgs{mallocInst, typeIdConst, elementCount, typeSizeConst};
-    CallInst::Create(mustAllocFn, mustAllocArgs, "", elementCount->getNextNode());
+    auto elementCount = IRB.CreateUDiv(mallocArg, typeSizeConst);
+    IRB.CreateCall(typeart_alloc.f, ArrayRef<Value*>{mallocInst, typeIdConst, elementCount, typeSizeConst});
   }
 
   for (auto& free : mOpsCollector.listFree) {
     ++NumFoundFrees;
-    // Pointer address
+    // Pointer address:
     auto freeArg = free->getOperand(0);
-    auto insertBefore = free->getNextNode();
-    // Call runtime lib
-    std::vector<Value*> mustFreeArgs{freeArg};
-    CallInst::Create(mustDeallocFn, mustFreeArgs, "", insertBefore);
+    IRBuilder<> IRB(free->getNextNode());
+    IRB.CreateCall(typeart_free.f, ArrayRef<Value*>{freeArg});
   }
 
 #define INSTRUMENT_STACK_ALLOCS 0
@@ -199,7 +177,6 @@ bool MustSupportPass::doFinalization(Module& m) {
   /*
    * Persist the accumulated type definition information for this module.
    */
-
   LOG_DEBUG("Writing type config file...");
 
   if (typeManager.store(configFile)) {
@@ -207,28 +184,26 @@ bool MustSupportPass::doFinalization(Module& m) {
   } else {
     LOG_ERROR("Failed writing type config to " << configFile);
   }
-
   if (ClMustStats) {
     printStats(llvm::errs());
   }
   return false;
 }
 
-void MustSupportPass::setFunctionLinkageExternal(llvm::Constant* c) {
-  if (auto f = dyn_cast<Function>(c)) {
-    assert(f != nullptr && "The function pointer is not null");
-    f->setLinkage(GlobalValue::ExternalLinkage);
-  }
-}
-
 void MustSupportPass::declareInstrumentationFunctions(Module& m) {
-  auto& c = m.getContext();
-  auto allocFunc = m.getOrInsertFunction(allocInstrumentation, tu::getVoidType(c), tu::getVoidPtrType(c),
-                                         tu::getInt32Type(c), tu::getInt64Type(c), tu::getInt64Type(c), nullptr);
-  setFunctionLinkageExternal(allocFunc);
+  const auto make_function = [&m](auto& f_struct, auto f_type) {
+    f_struct.f = m.getOrInsertFunction(f_struct.name, f_type);
+    if (auto f = dyn_cast<Function>(f_struct.f)) {
+      f->setLinkage(GlobalValue::ExternalLinkage);
+    }
+  };
 
-  auto freeFunc = m.getOrInsertFunction(freeInstrumentation, tu::getVoidType(c), tu::getVoidPtrType(c), nullptr);
-  setFunctionLinkageExternal(freeFunc);
+  auto& c = m.getContext();
+  Type* alloc_arg_types[] = {tu::getVoidPtrType(c), tu::getInt32Type(c), tu::getInt64Type(c), tu::getInt64Type(c)};
+  Type* free_arg_types[] = {tu::getVoidPtrType(c)};
+
+  make_function(typeart_alloc, FunctionType::get(Type::getVoidTy(c), alloc_arg_types, false));
+  make_function(typeart_free, FunctionType::get(Type::getVoidTy(c), free_arg_types, false));
 }
 
 void MustSupportPass::propagateTypeInformation(Module& m) {

@@ -27,6 +27,17 @@ configure_must_lit_site_cfg(
 )
 
 set(MUSTPASS_TEST_DEPENDS MustSupportPass)
+
+find_program(LLVM_LIT_PATH
+  NAME llvm-lit
+  HINTS ${LLVM_TOOLS_BINARY_DIR} 
+  PATHS ${LLVM_ROOT_DIR}/bin /usr/bin /usr/local/bin /opt/local/bin
+  DOC "llvm-lit executable. (Workaround for AddLLVM.cmake path not being set)"
+)
+if(LLVM_LIT_PATH)
+  set(LLVM_EXTERNAL_LIT ${LLVM_LIT_PATH})
+endif()
+
 add_lit_testsuite(lit-pass-test 
   "Running the MUST support pass tests"
   ${CMAKE_CURRENT_SOURCE_DIR}
