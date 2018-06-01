@@ -25,6 +25,7 @@ static llvm::RegisterPass<must::pass::MustSupportPass> msp("must", "MUST type in
 
 static cl::opt<bool> ClMustStats("must-stats", cl::desc("Show statistics for MUST type pass."), cl::Hidden,
                                  cl::init(false));
+static cl::opt<bool> ClMustAlloca("must-alloca", cl::desc("Track alloca instructions."), cl::Hidden, cl::init(false));
 
 static cl::opt<std::string> ClConfigDir("config-dir", cl::desc("Location of the type typeDB directory"), cl::Hidden);
 
@@ -83,21 +84,19 @@ bool MustSupportPass::runOnBasicBlock(BasicBlock& bb) {
   MemOpVisitor mOpsCollector;
   mOpsCollector.visit(bb);
 
+  bool mod{false};
+
   // instrument collected calls of bb:
   for (auto& malloc : mOpsCollector.listMalloc) {
     ++NumFoundMallocs;
 
-    auto mallocInst = malloc.call;
+    const auto mallocInst = malloc.call;
     const auto& bitcasts = malloc.bitcasts;
 
-    BitCastInst* primaryBitcast = nullptr;
-    for (auto bitcastInst : bitcasts) {
-      if (!tu::isVoidPtr(bitcastInst->getDestTy())) {  // TODO: Any other types that should be ignored?
-        // First non-void bitcast determines the type
-        primaryBitcast = bitcastInst;
-        break;
-      }
-    }
+    const auto bitcast_iter =
+        std::find_if(bitcasts.begin(), bitcasts.end(), [](auto bcast) { return !tu::isVoidPtr(bcast->getDestTy()); });
+
+    BitCastInst* primaryBitcast = bitcast_iter != bitcasts.end() ? *bitcast_iter : nullptr;
 
     // Number of bytes allocated
     auto mallocArg = mallocInst->getOperand(0);
@@ -117,7 +116,7 @@ bool MustSupportPass::runOnBasicBlock(BasicBlock& bb) {
       insertBefore = primaryBitcast->getNextNode();
 
       // Handle additional bitcasts that occur after the first one
-      std::for_each(std::next(bitcasts.begin()), bitcasts.end(), [&](auto bitcastInst) {
+      std::for_each(std::next(bitcast_iter), bitcasts.end(), [&](auto bitcastInst) {
         if (!tu::isVoidPtr(bitcastInst->getDestTy()) && primaryBitcast->getDestTy() != bitcastInst->getDestTy()) {
           // Second non-void* bitcast detected - semantics unclear
           LOG_WARNING("Encountered ambiguous pointer type in allocation: " << util::dump(*mallocInst));
@@ -133,6 +132,7 @@ bool MustSupportPass::runOnBasicBlock(BasicBlock& bb) {
     // Compute element count: count = numBytes / typeSize
     auto elementCount = IRB.CreateUDiv(mallocArg, typeSizeConst);
     IRB.CreateCall(typeart_alloc.f, ArrayRef<Value*>{mallocInst, typeIdConst, elementCount, typeSizeConst});
+    mod = true;
   }
 
   for (auto& free : mOpsCollector.listFree) {
@@ -141,36 +141,41 @@ bool MustSupportPass::runOnBasicBlock(BasicBlock& bb) {
     auto freeArg = free->getOperand(0);
     IRBuilder<> IRB(free->getNextNode());
     IRB.CreateCall(typeart_free.f, ArrayRef<Value*>{freeArg});
+    mod = true;
   }
 
-#define INSTRUMENT_STACK_ALLOCS 0
-#if INSTRUMENT_STACK_ALLOCS
-  for (auto& alloca : mOpsCollector.listAlloca) {
-    if (alloca->getAllocatedType()->isArrayTy()) {
-      ++NumFoundAlloca;
-      unsigned typeSize = tu::getTypeSizeForArrayAlloc(alloca, dl);
-      auto insertBefore = alloca->getNextNode();
+  if (ClMustAlloca) {
+    for (auto& alloca : mOpsCollector.listAlloca) {
+      if (alloca->getAllocatedType()->isArrayTy()) {
+        ++NumFoundAlloca;
+        unsigned typeSize = tu::getTypeSizeForArrayAlloc(alloca, dl);
+        auto insertBefore = alloca->getNextNode();
 
-      auto elementType = alloca->getAllocatedType()->getArrayElementType();
+        auto elementType = alloca->getAllocatedType()->getArrayElementType();
 
-      int typeId = typeManager.getOrRegisterType(elementType, dl);
-      auto arraySize = alloca->getAllocatedType()->getArrayNumElements();
+        int typeId = typeManager.getOrRegisterType(elementType, dl);
+        auto arraySize = alloca->getAllocatedType()->getArrayNumElements();
 
-      auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), typeId);
-      auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
-      auto numElementsConst = ConstantInt::get(tu::getInt64Type(c), arraySize);
+        auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), typeId);
+        auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
+        auto numElementsConst = ConstantInt::get(tu::getInt64Type(c), arraySize);
 
-      // Cast array to void*
-      auto arrayPtr = CastInst::CreateBitOrPointerCast(alloca, tu::getVoidPtrType(c), "", insertBefore);
-
-      // Call runtime lib
-      std::vector<Value*> mustAllocaArgs{arrayPtr, typeIdConst, numElementsConst, typeSizeConst};
-      CallInst::Create(mustAllocFn, mustAllocaArgs, "", arrayPtr->getNextNode());
+        IRBuilder<> IRB(insertBefore);
+        auto arrayPtr = IRB.CreateBitOrPointerCast(alloca, tu::getVoidPtrType(c));
+        IRB.CreateCall(typeart_alloc.f, ArrayRef<Value*>{arrayPtr, typeIdConst, numElementsConst, typeSizeConst});
+        mod = true;
+      }
+    }
+  } else {
+    // FIXME just for counting (and make tests pass)
+    for (auto& alloca : mOpsCollector.listAlloca) {
+      if (alloca->getAllocatedType()->isArrayTy()) {
+        ++NumFoundAlloca;
+      }
     }
   }
-#endif
 
-  return false;
+  return mod;
 }
 
 bool MustSupportPass::doFinalization(Module& m) {
