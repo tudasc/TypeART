@@ -36,11 +36,15 @@ class MustSupportRT {
   LookupResult getTypeInfo(const void* addr, must::TypeInfo* type, int* count) const;
 
   LookupResult getBuiltinInfo(const void* addr, must::BuiltinType* type) const;
+
   LookupResult getStructInfo(int id, const StructTypeInfo** structInfo) const;
+
   // LookupResult resolveType(int id, int* len, must::TypeInfo* types[], int* count[], int* offsets[], int* extent);
+
   const std::string& getTypeName(int id) const;
 
   void onAlloc(void* addr, int typeID, long count, long typeSize);
+
   void onFree(void* addr);
 
  private:
@@ -60,6 +64,7 @@ class MustSupportRT {
 
   std::string configFileName{"musttypes"};
 };
-}
+
+}  // namespace must
 
 #endif

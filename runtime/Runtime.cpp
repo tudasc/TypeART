@@ -9,42 +9,6 @@
 #include <cstring>
 #include <iostream>
 
-void __must_support_alloc(void* addr, int typeId, long count, long typeSize) {
-  must::MustSupportRT::get().onAlloc(addr, typeId, count, typeSize);
-}
-
-void __must_support_free(void* addr) {
-  must::MustSupportRT::get().onFree(addr);
-}
-
-lookup_result must_support_get_builtin_type(const void* addr, must::BuiltinType* type) {
-  return must::MustSupportRT::get().getBuiltinInfo(addr, type);
-}
-
-lookup_result must_support_get_type(const void* addr, must::TypeInfo* type, int* count) {
-  return must::MustSupportRT::get().getTypeInfo(addr, type, count);
-}
-
-lookup_result must_support_resolve_type(int id, int* len, const must::TypeInfo* types[], const int* count[],
-                                        const int* offsets[], int* extent) {
-  const must::StructTypeInfo* structInfo;
-  lookup_result status = must::MustSupportRT::get().getStructInfo(id, &structInfo);
-  if (status == SUCCESS) {
-    int n = structInfo->numMembers;
-    *len = n;
-    *types = &structInfo->memberTypes[0];
-    *count = &structInfo->arraySizes[0];
-    *offsets = &structInfo->offsets[0];
-    *extent = structInfo->extent;
-    return SUCCESS;
-  }
-  return status;
-}
-
-const char* must_support_get_type_name(int id) {
-  return must::MustSupportRT::get().getTypeName(id).c_str();
-}
-
 namespace must {
 
 MustSupportRT::MustSupportRT() {
@@ -259,4 +223,41 @@ void MustSupportRT::onFree(void* addr) {
     // TODO: What to do when not found?
   }
 }
+
 }  // namespace must
+
+void __must_support_alloc(void* addr, int typeId, long count, long typeSize) {
+  must::MustSupportRT::get().onAlloc(addr, typeId, count, typeSize);
+}
+
+void __must_support_free(void* addr) {
+  must::MustSupportRT::get().onFree(addr);
+}
+
+lookup_result must_support_get_builtin_type(const void* addr, must::BuiltinType* type) {
+  return must::MustSupportRT::get().getBuiltinInfo(addr, type);
+}
+
+lookup_result must_support_get_type(const void* addr, must::TypeInfo* type, int* count) {
+  return must::MustSupportRT::get().getTypeInfo(addr, type, count);
+}
+
+lookup_result must_support_resolve_type(int id, int* len, const must::TypeInfo* types[], const int* count[],
+                                        const int* offsets[], int* extent) {
+  const must::StructTypeInfo* structInfo;
+  lookup_result status = must::MustSupportRT::get().getStructInfo(id, &structInfo);
+  if (status == SUCCESS) {
+    int n = structInfo->numMembers;
+    *len = n;
+    *types = &structInfo->memberTypes[0];
+    *count = &structInfo->arraySizes[0];
+    *offsets = &structInfo->offsets[0];
+    *extent = structInfo->extent;
+    return SUCCESS;
+  }
+  return status;
+}
+
+const char* must_support_get_type_name(int id) {
+  return must::MustSupportRT::get().getTypeName(id).c_str();
+}

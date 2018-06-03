@@ -15,7 +15,7 @@ class raw_ostream;
 namespace must {
 namespace pass {
 
-class MustSupportPass : public llvm::BasicBlockPass {
+class MustSupportPass : public llvm::FunctionPass {
  private:
   struct TypeArtFunc {
     const std::string name{""};
@@ -39,11 +39,12 @@ class MustSupportPass : public llvm::BasicBlockPass {
   MustSupportPass();
 
   /* Run once per module */
-  bool doInitialization(llvm::Module& m) override;
+  bool doInitialization(llvm::Module&) override;
   /* Runs on every basic block */
-  bool runOnBasicBlock(llvm::BasicBlock& BB) override;
+  bool runOnFunction(llvm::Function&) override;
   /* Run once per module */
-  bool doFinalization(llvm::Module& m) override;
+  bool doFinalization(llvm::Module&) override;
+  void getAnalysisUsage(llvm::AnalysisUsage&) const override;
 
  private:
   /*

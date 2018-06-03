@@ -12,25 +12,26 @@
 
 #include <set>
 
-namespace must {
-namespace pass {
+namespace typeart {
+
+struct MallocData {
+  llvm::CallInst* call{nullptr};
+  llvm::BitCastInst* primary{nullptr};  // Non-null if non (void*) cast exists
+  llvm::SmallPtrSet<llvm::BitCastInst*, 4> bitcasts;
+};
 
 struct MemOpVisitor : public llvm::InstVisitor<MemOpVisitor> {
   MemOpVisitor();
+  void clear();
   void visitCallInst(llvm::CallInst& ci);
   void visitMallocLike(llvm::CallInst& ci);
   void visitFreeLike(llvm::CallInst& ci);
   void visitAllocaInst(llvm::AllocaInst& ai);
   virtual ~MemOpVisitor();
 
-  struct MallocData {
-    llvm::CallInst* call;
-    llvm::SmallVector<llvm::BitCastInst*, 4> bitcasts;
-  };
-
   llvm::SmallVector<MallocData, 8> listMalloc;
-  llvm::SmallVector<llvm::CallInst*, 8> listFree;
-  llvm::SmallVector<llvm::AllocaInst*, 8> listAlloca;
+  llvm::SmallPtrSet<llvm::CallInst*, 8> listFree;
+  llvm::SmallPtrSet<llvm::AllocaInst*, 8> listAlloca;
 
  private:
   /** Look up sets for keyword strings */
@@ -38,7 +39,6 @@ struct MemOpVisitor : public llvm::InstVisitor<MemOpVisitor> {
   const std::set<std::string> deallocFunctions{"free", "_ZdlPv" /*delete*/, "_ZdaPv" /*delete[]*/};
 };
 
-} /* namespace pass */
-} /* namespace must */
+}  // namespace typeart
 
 #endif /* LIB_MEMOPVISITOR_H_ */

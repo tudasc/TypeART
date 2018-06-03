@@ -7,11 +7,11 @@
 
 #include "MemOpVisitor.h"
 #include "support/Logger.h"
+#include "support/TypeUtil.h"
 
 #include <algorithm>
 
-namespace must {
-namespace pass {
+namespace typeart {
 
 using namespace llvm;
 
@@ -38,12 +38,12 @@ void MemOpVisitor::visitCallInst(llvm::CallInst& ci) {
 void MemOpVisitor::visitMallocLike(llvm::CallInst& ci) {
   LOG_DEBUG(ci.getCalledFunction()->getName());
 
-  SmallVector<BitCastInst*, 4> bcasts;
+  SmallPtrSet<BitCastInst*, 4> bcasts;
 
   for (auto user : ci.users()) {
     // Simple case: Pointer is immediately casted
     if (auto inst = dyn_cast<BitCastInst>(user)) {
-      bcasts.push_back(inst);
+      bcasts.insert(inst);
     }
     // Pointer is first stored, then loaded and subsequently casted
     if (auto storeInst = dyn_cast<StoreInst>(user)) {
@@ -52,7 +52,7 @@ void MemOpVisitor::visitMallocLike(llvm::CallInst& ci) {
         if (auto loadInst = dyn_cast<LoadInst>(storeUser)) {
           for (auto loadUser : loadInst->users()) {
             if (auto bcastInst = dyn_cast<BitCastInst>(loadUser)) {
-              bcasts.push_back(bcastInst);
+              bcasts.insert(bcastInst);
             }
           }
         }
@@ -60,25 +60,35 @@ void MemOpVisitor::visitMallocLike(llvm::CallInst& ci) {
     }
   }
 
+  const auto bitcast_iter =
+      std::find_if(bcasts.begin(), bcasts.end(), [](auto bcast) { return !util::type::isVoidPtr(bcast->getDestTy()); });
+
+  BitCastInst* primaryBitcast = bitcast_iter != bcasts.end() ? *bitcast_iter : nullptr;
+
   LOG_DEBUG(">> number of bitcasts found: " << bcasts.size());
 
-  listMalloc.push_back(MallocData{&ci, bcasts});
+  listMalloc.push_back(MallocData{&ci, primaryBitcast, bcasts});
 }
 
 void MemOpVisitor::visitFreeLike(llvm::CallInst& ci) {
   LOG_DEBUG(ci.getCalledFunction()->getName());
 
-  listFree.push_back(&ci);
+  listFree.insert(&ci);
 }
 
 void MemOpVisitor::visitAllocaInst(llvm::AllocaInst& ai) {
   LOG_DEBUG("Found alloca");
 
   // TODO filter based on indirect pointers (void *p = other_ptr)
-  listAlloca.push_back(&ai);
+  listAlloca.insert(&ai);
+}
+
+void MemOpVisitor::clear() {
+  listAlloca.clear();
+  listMalloc.clear();
+  listFree.clear();
 }
 
 MemOpVisitor::~MemOpVisitor() = default;
 
-} /* namespace pass */
-} /* namespace must */
+}  // namespace typeart

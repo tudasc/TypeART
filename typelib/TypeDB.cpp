@@ -9,7 +9,7 @@
 namespace must {
 
 std::string TypeDB::builtinNames[] = {"char", "uchar", "short", "ushort", "int",    "uint",
-                                          "long", "ulong", "float", "double", "invalid"};
+                                      "long", "ulong", "float", "double", "invalid"};
 
 TypeInfo TypeDB::InvalidType = TypeInfo{BUILTIN, INVALID};
 
@@ -53,7 +53,7 @@ void TypeDB::registerStruct(StructTypeInfo structType) {
   // reverseTypeMap.insert({id, typeName});
 }
 
-const std::string& TypeDB::getTypeName(int id) const {
+std::string TypeDB::getTypeName(int id) const {
   if (isBuiltinType(id)) {
     return builtinNames[id];
   }
@@ -117,4 +117,5 @@ TypeInfo TypeDB::getTypeInfo(int id) const {
 const std::vector<StructTypeInfo>& TypeDB::getStructList() const {
   return structInfoList;
 }
-}
+
+}  // namespace must
