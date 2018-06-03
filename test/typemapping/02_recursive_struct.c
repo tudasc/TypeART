@@ -1,4 +1,4 @@
-// RUN: rm musttypes | clang -S -emit-llvm %s -o - | opt -load %pluginpath/%pluginname %pluginargs -S 2>&1; cat musttypes | FileCheck %s
+// RUN: rm musttypes | clang -S -emit-llvm %s -o - | opt -load %pluginpath/analysis/MemInstFinderPass.so -load %pluginpath/%pluginname %pluginargs -S 2>&1; cat musttypes | FileCheck %s
 
 // Note: This test assumes standard alignment on a 64bit system. Non-standard alignment may lead to failure.
 

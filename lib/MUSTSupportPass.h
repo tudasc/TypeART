@@ -5,11 +5,13 @@
 #include "TypeManager.h"
 #include "llvm/Pass.h"
 
-#include <set>
+#include "string"
 
 namespace llvm {
 class Constant;
-class raw_ostream;
+class Module;
+class Function;
+class AnalysisUsage;
 }  // namespace llvm
 
 namespace must {
@@ -44,6 +46,7 @@ class MustSupportPass : public llvm::FunctionPass {
   bool runOnFunction(llvm::Function&) override;
   /* Run once per module */
   bool doFinalization(llvm::Module&) override;
+
   void getAnalysisUsage(llvm::AnalysisUsage&) const override;
 
  private:
@@ -52,12 +55,8 @@ class MustSupportPass : public llvm::FunctionPass {
    * void __must_support_alloc(void *ptr_base, int type_id, long int count, long int elem_size)
    * void __must_support_free(void *ptr)
    */
-  void declareInstrumentationFunctions(llvm::Module& m);
-  void propagateTypeInformation(llvm::Module& m);
-
-  // std::string type2String(llvm::Type* type);
-  // int retrieveTypeID(llvm::Type* type);
-
+  void declareInstrumentationFunctions(llvm::Module&);
+  void propagateTypeInformation(llvm::Module&);
   void printStats(llvm::raw_ostream&);
 };
 
