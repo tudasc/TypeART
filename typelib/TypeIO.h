@@ -5,27 +5,22 @@
 #ifndef LLVM_MUST_SUPPORT_CONFIGIO_H
 #define LLVM_MUST_SUPPORT_CONFIGIO_H
 
+#include <memory>
 #include <string>
-
-#include "TypeDB.h"
 
 namespace must {
 
-class TypeIO {
- public:
-  explicit TypeIO(TypeDB* config);
+class TypeDB;
 
+class TypeIO {
+ private:
+  TypeDB& typeDB;
+
+ public:
+  explicit TypeIO(TypeDB& config);
   bool load(std::string file);
   bool store(std::string file) const;
-
- private:
-  std::string serialize(StructTypeInfo structInfo) const;
-  StructTypeInfo deserialize(std::string infoString) const;
-
-  bool isComment(std::string line) const;
-
-  TypeDB* typeDB;
 };
-}
+}  // namespace must
 
 #endif  // LLVM_MUST_SUPPORT_CONFIGIO_H

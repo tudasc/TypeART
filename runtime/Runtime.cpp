@@ -3,11 +3,11 @@
 
 #include <TypeIO.h>
 //#include <TypeDB.h>
-#include <cassert>
-#include <cstring>
-#include <cstdlib>
-#include <iostream>
 #include <algorithm>
+#include <cassert>
+#include <cstdlib>
+#include <cstring>
+#include <iostream>
 
 void __must_support_alloc(void* addr, int typeId, long count, long typeSize) {
   must::MustSupportRT::get().onAlloc(addr, typeId, count, typeSize);
@@ -51,11 +51,13 @@ MustSupportRT::MustSupportRT() {
   std::string typeFile = std::string("./") + configFileName;
   if (!loadTypes(typeFile)) {
     // Check env
-    const char* dir = std::getenv("TYPE_PATH"); // TODO: Name
+    const char* dir = std::getenv("TYPE_PATH");  // TODO: Name
     if (dir) {
-        typeFile = std::string(dir) + "/" + configFileName;
+      typeFile = std::string(dir) + "/" + configFileName;
     } else {
-      std::cerr << "No type file in current directory. To specify a different path, edit the TYPE_PATH environment variable." << std::endl;
+      std::cerr
+          << "No type file in current directory. To specify a different path, edit the TYPE_PATH environment variable."
+          << std::endl;
     }
     if (!loadTypes(typeFile)) {
       std::cerr << "Failed to load recorded types from " << typeFile << std::endl;
@@ -71,9 +73,8 @@ MustSupportRT::MustSupportRT() {
   printTraceStart();
 }
 
-bool MustSupportRT::loadTypes(const std::string& file)
-{
-  TypeIO cio(&typeConfig);
+bool MustSupportRT::loadTypes(const std::string& file) {
+  TypeIO cio(typeConfig);
   return cio.load(file);
 }
 
@@ -85,7 +86,6 @@ void MustSupportRT::printTraceStart() {
 }
 
 const void* MustSupportRT::findBaseAddress(const void* addr) const {
-
   if (addr < typeMap.begin()->first) {
     return nullptr;
   }
@@ -100,7 +100,6 @@ const void* MustSupportRT::findBaseAddress(const void* addr) const {
   }
   // Base address
   return (std::prev(it))->first;
-
 }
 
 lookup_result MustSupportRT::getTypeInfoInternal(const void* baseAddr, int offset, const StructTypeInfo& containerInfo,
@@ -108,7 +107,8 @@ lookup_result MustSupportRT::getTypeInfoInternal(const void* baseAddr, int offse
   // std::cerr << "Type is " << containerInfo.name << std::endl;
 
   assert(offset < containerInfo.extent && "Something went wrong with the base address computation");
-  //std::cout << "internal: base=" << baseAddr << ", offset=" << offset << ", container=" << containerInfo.name << std::endl;
+  // std::cout << "internal: base=" << baseAddr << ", offset=" << offset << ", container=" << containerInfo.name <<
+  // std::endl;
   int i = 0;
   // This should always be 0, but safety doesn't hurt
   int baseOffset = containerInfo.offsets.front();
@@ -166,11 +166,9 @@ lookup_result MustSupportRT::getTypeInfoInternal(const void* baseAddr, int offse
 }
 
 lookup_result MustSupportRT::getTypeInfo(const void* addr, must::TypeInfo* type, int* count) const {
-
   const void* basePtr = findBaseAddress(addr);
 
   if (basePtr) {
-
     auto basePtrInfo = typeMap.find(basePtr)->second;
 
     // Check for exact match
@@ -197,7 +195,7 @@ lookup_result MustSupportRT::getTypeInfo(const void* addr, must::TypeInfo* type,
         auto structInfo = typeConfig.getStructInfo(basePtrInfo.typeId);
 
         auto result = getTypeInfoInternal(structAddr, internalOffset, *structInfo, type);
-        *count = basePtrInfo.count - addrDif / basePtrInfo.typeSize; // TODO: Correct behavior?
+        *count = basePtrInfo.count - addrDif / basePtrInfo.typeSize;  // TODO: Correct behavior?
         return result;
       }
     } else {
@@ -261,4 +259,4 @@ void MustSupportRT::onFree(void* addr) {
     // TODO: What to do when not found?
   }
 }
-}
+}  // namespace must

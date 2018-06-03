@@ -4,132 +4,105 @@
 
 #include "TypeIO.h"
 
+#include "TypeDB.h"
+#include "TypeInterface.h"
+
 #include <algorithm>
 #include <assert.h>
-#include <fstream>
-#include <iostream>
-#include <sstream>
+
+#include "llvm/Support/ErrorOr.h"
+#include "llvm/Support/MemoryBuffer.h"
+#include <llvm/Support/FileSystem.h>
+#include <llvm/Support/YAMLParser.h>
+#include <llvm/Support/YAMLTraits.h>
+#include <llvm/Support/raw_ostream.h>
+
+using namespace llvm::yaml;
+
+template <>
+struct llvm::yaml::ScalarEnumerationTraits<must_type_kind_t> {
+  static void enumeration(IO& io, must_type_kind_t& value) {
+    io.enumCase(value, "builtin", BUILTIN);
+    io.enumCase(value, "struct", STRUCT);
+    io.enumCase(value, "pointer", POINTER);
+  }
+};
+
+template <>
+struct llvm::yaml::MappingTraits<must_type_info_t> {
+  static void mapping(IO& io, must_type_info_t& info) {
+    io.mapRequired("id", info.id);
+    io.mapRequired("kind", info.kind);
+  }
+};
+
+LLVM_YAML_IS_SEQUENCE_VECTOR(must_type_info_t)
+
+template <>
+struct llvm::yaml::MappingTraits<must::StructTypeInfo> {
+  static void mapping(IO& io, must::StructTypeInfo& info) {
+    io.mapRequired("id", info.id);
+    io.mapRequired("name", info.name);
+    io.mapRequired("extent", info.extent);
+    io.mapRequired("member_count", info.numMembers);
+    io.mapRequired("offsets", info.offsets);
+    io.mapRequired("types", info.memberTypes);
+    io.mapRequired("sizes", info.arraySizes);
+  }
+};
+
+LLVM_YAML_IS_SEQUENCE_VECTOR(must::StructTypeInfo)
 
 namespace must {
 
-TypeIO::TypeIO(TypeDB* typeDB) : typeDB(typeDB) {
+TypeIO::TypeIO(TypeDB& typeDB) : typeDB(typeDB) {
 }
 
 bool TypeIO::load(std::string file) {
-  typeDB->clear();
-  std::ifstream is;
-  is.open(file);
-  if (!is.is_open()) {
+  using namespace llvm;
+  auto memBuffer = MemoryBuffer::getFile(file);
+
+  if (std::error_code ec = memBuffer.getError()) {
+    // TODO meaninful error handling/message
     return false;
   }
 
-  std::string line;
-  while (std::getline(is, line)) {
-    // TODO: Error handling
-    if (isComment(line)) {
-      continue;
-    }
-    StructTypeInfo structInfo = deserialize(line);
-    // std::cout << "Struct: " << structInfo.name << ", " << structInfo.id << std::endl;
-    typeDB->registerStruct(structInfo);
+  typeDB.clear();
+
+  yaml::Input in(memBuffer.get()->getMemBufferRef());
+  std::vector<StructTypeInfo> structures;
+  in >> structures;
+
+  for (auto& typeInfo : structures) {
+    typeDB.registerStruct(typeInfo);
   }
-  is.close();
+
+  if (in.error()) {
+    // FIXME we really need meaningful errors for IO
+    return false;
+  }
+
   return true;
 }
 
 bool TypeIO::store(std::string file) const {
-  std::ofstream os;
-  os.open(file);
-  if (!os.is_open()) {
+  using namespace llvm;
+
+  std::error_code ec;
+  raw_fd_ostream oss(StringRef(file), ec, sys::fs::OpenFlags::F_Text);
+
+  if (oss.has_error()) {
+    llvm::errs() << "Error\n";
     return false;
   }
-  os << "# MUST Type Support Mapping" << std::endl;
-  os << "#" << std::endl;
-  os << "# ID"
-     << "\t"
-     << "Name"
-     << "\t"
-     << "NumBytes"
-     << "\t"
-     << "NumMembers"
-     << "\t"
-     << "(Offset, TypeKind, TypeID, ArraySize)*" << std::endl;
-  os << "# --------" << std::endl;
-  for (const auto& structInfo : typeDB->getStructList()) {
-    os << serialize(structInfo) << std::endl;
-    // os << typeName << " " << id << std::endl;
-  }
-  os.close();
+
+  yaml::Output out(oss);
+
+  // FIXME why does yaml not cope with const types (only when explicitly registered)
+  auto types = typeDB.getStructList();
+  out << types;
+
   return true;
 }
 
-std::string TypeIO::serialize(StructTypeInfo structInfo) const {
-  std::stringstream ss;
-  ss << structInfo.id << "\t" << structInfo.name << "\t" << structInfo.extent << "\t" << structInfo.numMembers << "\t";
-  assert(structInfo.numMembers == structInfo.offsets.size() && structInfo.numMembers == structInfo.memberTypes.size() &&
-         structInfo.numMembers == structInfo.arraySizes.size() && "Invalid vector sizes in struct info");
-  for (int i = 0; i < structInfo.numMembers; i++) {
-    ss << structInfo.offsets[i] << "," << structInfo.memberTypes[i].kind << "," << structInfo.memberTypes[i].id << ","
-       << structInfo.arraySizes[i] << "\t";
-  }
-  return ss.str();
-}
-
-StructTypeInfo TypeIO::deserialize(std::string infoString) const {
-  auto split = [](const char* str, char c = ' ') -> std::vector<std::string> {
-    std::vector<std::string> result;
-    do {
-      const char* begin = str;
-      while (*str != c && *str)
-        str++;
-      result.push_back(std::string(begin, str));
-    } while (0 != *str++);
-    return result;
-  };
-
-  int id = INVALID;
-  std::string name;
-  int numBytes = 0;
-  int numMembers = 0;
-  std::vector<int> offsets;
-  std::vector<TypeInfo> memberTypes;
-  std::vector<int> arraySizes;
-
-  auto entries = split(infoString.c_str(), '\t');
-  id = std::stoi(entries[0]);
-  name = entries[1];
-  numBytes = std::stoi(entries[2]);
-  numMembers = std::stoi(entries[3]);
-
-  // iss >> id >> name >> numBytes >> numMembers;
-
-  // std::cerr << "Struct deserialized: " << id << ", " << name << ", " << numBytes << ", " << numMembers << std::endl;
-
-  const int memberStartIndex = 4;
-
-  std::string memberInfoString;
-  for (int i = 0; i < numMembers; i++) {
-    memberInfoString = entries[memberStartIndex + i];
-    auto memberInfoTokens = split(memberInfoString.c_str(), ',');
-    if (memberInfoTokens.size() == 4) {
-      offsets.push_back(std::stoi(memberInfoTokens[0]));
-      memberTypes.push_back({TypeKind(std::stoi(memberInfoTokens[1])), std::stoi({memberInfoTokens[2]})});
-      arraySizes.push_back(std::stoi(memberInfoTokens[3]));
-    } else {
-      // TODO: Handle error
-      std::cerr << "Invalid struct member description string: " << memberInfoString << std::endl;
-    }
-  }
-
-  // TODO: This should not be an assertion
-  assert(numMembers == offsets.size() && numMembers == memberTypes.size() && numMembers == arraySizes.size() &&
-         "Invalid vector sizes in struct info");
-
-  return StructTypeInfo{id, name, numBytes, numMembers, offsets, memberTypes, arraySizes};
-}
-
-bool TypeIO::isComment(std::string line) const {
-  line.erase(line.begin(), std::find_if(line.begin(), line.end(), [](int ch) { return !std::isspace(ch); }));
-  return line.empty() || line.front() == '#';
-}
-}
+}  // namespace must

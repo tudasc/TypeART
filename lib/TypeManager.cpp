@@ -16,7 +16,7 @@ TypeManager::TypeManager() : structCount(0) {
 }
 
 bool TypeManager::load(std::string file) {
-  TypeIO cio(&typeDB);
+  TypeIO cio(typeDB);
   if (cio.load(file)) {
     structMap.clear();
     for (auto& structInfo : typeDB.getStructList()) {
@@ -29,7 +29,7 @@ bool TypeManager::load(std::string file) {
 }
 
 bool TypeManager::store(std::string file) {
-  TypeIO cio(&typeDB);
+  TypeIO cio(typeDB);
   return cio.store(file);
 }
 
@@ -132,4 +132,4 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
   structMap.insert({name, id});
   return id;
 }
-}
+}  // namespace must

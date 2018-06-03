@@ -221,6 +221,7 @@ void MustSupportPass::propagateTypeInformation(Module& m) {
    *  + Extent
    *  + Our id
    */
+  LOG_DEBUG("Propagating type infos");
   if (typeManager.load(configFile)) {
     LOG_DEBUG("Existing type configuration successfully loaded");
   } else {

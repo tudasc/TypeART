@@ -28,6 +28,6 @@ class TypeManager {
   std::map<std::string, int> structMap;
   int structCount;
 };
-}
+}  // namespace must
 
 #endif  // LLVM_MUST_SUPPORT_TYPEMANAGER_H
