@@ -13,8 +13,7 @@ std::string TypeDB::builtinNames[] = {"char", "uchar", "short", "ushort", "int",
 
 TypeInfo TypeDB::InvalidType = TypeInfo{BUILTIN, INVALID};
 
-TypeDB::TypeDB() {
-}
+TypeDB::TypeDB() = default;
 
 void TypeDB::clear() {
   structInfoList.clear();

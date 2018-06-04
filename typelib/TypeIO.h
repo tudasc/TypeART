@@ -18,8 +18,8 @@ class TypeIO {
 
  public:
   explicit TypeIO(TypeDB& config);
-  bool load(std::string file);
-  bool store(std::string file) const;
+  bool load(const std::string& file);
+  bool store(const std::string& file) const;
 };
 }  // namespace must
 

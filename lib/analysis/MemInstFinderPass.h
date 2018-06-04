@@ -13,7 +13,7 @@
 
 namespace llvm {
 class Function;
-}
+}  // namespace llvm
 
 namespace typeart {
 

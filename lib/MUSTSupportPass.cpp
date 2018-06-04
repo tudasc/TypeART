@@ -74,7 +74,6 @@ bool MustSupportPass::doInitialization(Module& m) {
 }
 
 bool MustSupportPass::runOnFunction(Function& f) {
-  namespace util = typeart::util;
   using namespace typeart;
 
   bool mod{false};
@@ -174,7 +173,7 @@ bool MustSupportPass::runOnFunction(Function& f) {
   return mod;
 }
 
-bool MustSupportPass::doFinalization(Module& m) {
+bool MustSupportPass::doFinalization(Module&) {
   /*
    * Persist the accumulated type definition information for this module.
    */
@@ -207,7 +206,7 @@ void MustSupportPass::declareInstrumentationFunctions(Module& m) {
   make_function(typeart_free, FunctionType::get(Type::getVoidTy(c), free_arg_types, false));
 }
 
-void MustSupportPass::propagateTypeInformation(Module& m) {
+void MustSupportPass::propagateTypeInformation(Module&) {
   /* Read already acquired information from temporary storage */
   /*
    * Scan module for type definitions and add to the type information map

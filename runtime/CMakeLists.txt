@@ -11,3 +11,12 @@ target_link_libraries(mustsupport musttypelib)
 target_include_directories(mustsupport PUBLIC 
   ${CMAKE_SOURCE_DIR}/typelib
 )
+
+target_link_libraries(mustsupport
+  LLVMCore
+  LLVMSupport
+)
+
+make_tidy_check(mustsupport
+  "${RUNTIME_LIB_SOURCES}"
+)

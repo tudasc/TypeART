@@ -8,7 +8,7 @@
 #include "TypeInterface.h"
 
 #include <algorithm>
-#include <assert.h>
+//#include <cassert>
 
 #include "llvm/Support/ErrorOr.h"
 #include "llvm/Support/MemoryBuffer.h"
@@ -58,7 +58,7 @@ namespace must {
 TypeIO::TypeIO(TypeDB& typeDB) : typeDB(typeDB) {
 }
 
-bool TypeIO::load(std::string file) {
+bool TypeIO::load(const std::string& file) {
   using namespace llvm;
   auto memBuffer = MemoryBuffer::getFile(file);
 
@@ -85,7 +85,7 @@ bool TypeIO::load(std::string file) {
   return true;
 }
 
-bool TypeIO::store(std::string file) const {
+bool TypeIO::store(const std::string& file) const {
   using namespace llvm;
 
   std::error_code ec;

@@ -27,15 +27,7 @@ function(make_llvm_module name sources)
     ${LLVM_DEFINITIONS}
   )
 
-  add_tidy_target(tidy-run-on-${name}
-    "Clang-tidy run on ${name} translation units"
-    SOURCES ${sources}
-    OTHER --header-filter=${CMAKE_CURRENT_SOURCE_DIR}
-  )
-
-  add_tidy_fix_target(tidy-fix-on-${name}
-    "Clang-tidy run with fixes on ${name} translation units"
-    SOURCES ${sources}
-    OTHER --header-filter=${CMAKE_CURRENT_SOURCE_DIR} -checks=-*,modernize-*,llvm-namespace-comment,google-explicit-constructor
+  make_tidy_check(${name}
+    ${sources}
   )
 endfunction()

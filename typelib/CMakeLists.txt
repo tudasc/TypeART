@@ -18,6 +18,11 @@ set_target_properties(musttypelib
 
 target_include_directories(musttypelib
   SYSTEM 
-  PUBLIC 
+  PRIVATE 
   ${LLVM_INCLUDE_DIRS}
 )
+
+make_tidy_check(musttypelib
+  "${TYPE_LIB_SOURCES}"
+)
+  

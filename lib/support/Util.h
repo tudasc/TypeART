@@ -21,7 +21,7 @@ namespace detail {
 // http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4502.pdf :
 template <class>
 struct type_sink {
-  typedef void type;
+  using type = void;
 };
 template <class T>
 using type_sink_t = typename type_sink<T>::type;
@@ -83,7 +83,7 @@ inline String demangle(String s) {
   return String(llvm::itaniumDemangle(s.data(), nullptr, nullptr, nullptr));
 }
 
-inline bool regex_matches(std::string regex, const std::string& in, bool case_sensitive = false) {
+inline bool regex_matches(const std::string& regex, const std::string& in, bool case_sensitive = false) {
   using namespace llvm;
   Regex r(regex, !case_sensitive ? Regex::IgnoreCase : Regex::NoFlags);
   return r.match(in);
