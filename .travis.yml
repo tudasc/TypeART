@@ -1,5 +1,6 @@
-language: c++
+language: cpp
 os: linux
+dist: trusty
 sudo: false
 
 # This only exists because of a bug: https://github.com/travis-ci/travis-ci/issues/4681
@@ -10,23 +11,23 @@ env:
 addons:
   apt:
     packages: &default_dep
-      - clang-4.0
-      - libclang-4.0-dev
-      - llvm-4.0
-      - llvm-4.0-dev
+      - clang-6.0
+      - libclang-6.0-dev
+      - clang-tools-6.0
+      - llvm-6.0
+      - llvm-6.0-dev
       - zlib1g-dev
       - libxml2-dev
       - libedit-dev
     sources: &sources
       - ubuntu-toolchain-r-test
-      - llvm-toolchain-precise-4.0
-      - llvm-toolchain-precise
+      - llvm-toolchain-trusty-6.0
 
 matrix:
   exclude:
     - env: EMPTY_JOB_IN_TRAVIS_CI=1
   include:
-    - env: CLANG_VERSION=4.0 BUILD_TYPE=Release UNIT_TEST=0
+    - env: CLANG_VERSION=6.0 BUILD_TYPE=Release UNIT_TEST=0
 
 before_install:
   - export DEPENDENCY_DIR="${TRAVIS_BUILD_DIR}/dependency" 
@@ -35,7 +36,7 @@ before_install:
 
 install:
   - |
-    CMAKE_URL="https://cmake.org/files/v3.7/cmake-3.7.2-Linux-x86_64.tar.gz"
+    CMAKE_URL="https://cmake.org/files/v3.5/cmake-3.5.2-Linux-x86_64.tar.gz"
     mkdir -p cmake
     travis_retry wget --no-check-certificate --quiet -O - "${CMAKE_URL}" | tar --strip-components=1 -xz -C cmake
     export PATH=${DEPENDENCY_DIR}/cmake/bin:${PATH}
