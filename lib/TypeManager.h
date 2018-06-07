@@ -26,7 +26,7 @@ class TypeManager {
   TypeDB typeDB;
 
   std::map<std::string, int> structMap;
-  int structCount;
+  size_t structCount;
 };
 }  // namespace must
 

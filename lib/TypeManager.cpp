@@ -4,6 +4,8 @@
 
 #include "TypeManager.h"
 #include "support/TypeUtil.h"
+#include "support/Util.h"
+#include "support/Logger.h"
 #include <TypeIO.h>
 #include <iostream>
 
@@ -78,20 +80,20 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
   int id = N_BUILTIN_TYPES + structCount;
   structCount++;
 
-  int n = type->getStructNumElements();
+  size_t n = type->getStructNumElements();
 
-  std::vector<int> offsets;
-  std::vector<int> arraySizes;
+  std::vector<size_t> offsets;
+  std::vector<size_t> arraySizes;
   std::vector<TypeInfo> memberTypeInfo;
 
   const StructLayout* layout = dl.getStructLayout(type);
 
-  for (int i = 0; i < n; i++) {
+  for (uint32_t i = 0; i < n; i++) {
     auto memberType = type->getStructElementType(i);
     int memberID = INVALID;
     TypeKind kind;
 
-    int arraySize = 1;
+    size_t arraySize = 1;
 
     if (memberType->isArrayTy()) {
       arraySize = memberType->getArrayNumElements();
@@ -114,17 +116,17 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
       memberID = getOrRegisterType(memberType, dl);
     } else {
       // TODO: Any other types?
-      memberType->dump();
+      LOG_WARNING("Encountered unhandled type: " << typeart::util::dump(*memberType));
       assert(false && "Encountered unhandled type");
     }
 
-    int offset = layout->getElementOffset(i);
+    size_t offset = layout->getElementOffset(i);
     offsets.push_back(offset);
     arraySizes.push_back(arraySize);
     memberTypeInfo.push_back({kind, memberID});
   }
 
-  int numBytes = layout->getSizeInBytes();
+  size_t numBytes = layout->getSizeInBytes();
 
   StructTypeInfo structInfo{id, name, numBytes, n, offsets, memberTypeInfo, arraySizes};
   typeDB.registerStruct(structInfo);

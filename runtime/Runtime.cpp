@@ -12,12 +12,12 @@
 namespace must {
 
 MustSupportRT::MustSupportRT() {
-  std::string typeFile = std::string("./") + configFileName;
+  std::string typeFile = std::string("./") + typeFileName;
   if (!loadTypes(typeFile)) {
     // Check env
     const char* dir = std::getenv("TYPE_PATH");  // TODO: Name
     if (dir) {
-      typeFile = std::string(dir) + "/" + configFileName;
+      typeFile = std::string(dir) + "/" + typeFileName;
     } else {
       std::cerr
           << "No type file in current directory. To specify a different path, edit the TYPE_PATH environment variable."
@@ -29,7 +29,7 @@ MustSupportRT::MustSupportRT() {
   }
 
   std::cout << "Recorded types: ";
-  for (auto structInfo : typeConfig.getStructList()) {
+  for (auto structInfo : typeDB.getStructList()) {
     std::cout << structInfo.name << ", ";
   }
   std::cout << std::endl;
@@ -38,7 +38,7 @@ MustSupportRT::MustSupportRT() {
 }
 
 bool MustSupportRT::loadTypes(const std::string& file) {
-  TypeIO cio(typeConfig);
+  TypeIO cio(typeDB);
   return cio.load(file);
 }
 
@@ -66,16 +66,16 @@ const void* MustSupportRT::findBaseAddress(const void* addr) const {
   return (std::prev(it))->first;
 }
 
-lookup_result MustSupportRT::getTypeInfoInternal(const void* baseAddr, int offset, const StructTypeInfo& containerInfo,
+lookup_result MustSupportRT::getTypeInfoInternal(const void* baseAddr, size_t offset, const StructTypeInfo& containerInfo,
                                                  must::TypeInfo* type) const {
   // std::cerr << "Type is " << containerInfo.name << std::endl;
 
   assert(offset < containerInfo.extent && "Something went wrong with the base address computation");
   // std::cout << "internal: base=" << baseAddr << ", offset=" << offset << ", container=" << containerInfo.name <<
   // std::endl;
-  int i = 0;
+  size_t i = 0;
   // This should always be 0, but safety doesn't hurt
-  int baseOffset = containerInfo.offsets.front();
+  size_t baseOffset = containerInfo.offsets.front();
 
   if (offset > containerInfo.offsets.back()) {
     i = containerInfo.numMembers - 1;
@@ -103,8 +103,10 @@ lookup_result MustSupportRT::getTypeInfoInternal(const void* baseAddr, int offse
 
   if (memberInfo.kind == STRUCT) {
     // Address points inside of a sub-struct -> we have to go deeper
-    auto memberStructInfo = typeConfig.getStructInfo(memberInfo.id);
-    return getTypeInfoInternal(baseAddr + baseOffset, offset - baseOffset, *memberStructInfo, type);
+    auto memberStructInfo = typeDB.getStructInfo(memberInfo.id);
+    const void* newBaseAddr = static_cast<const void*>(static_cast<const uint8_t*>(baseAddr) + baseOffset);
+    size_t newOffset = offset - baseOffset;
+    return getTypeInfoInternal(newBaseAddr, newOffset, *memberStructInfo, type);
   } else {
     assert((memberInfo.kind == BUILTIN || memberInfo.kind == POINTER) &&
            "Type kind must be either STRUCT, BUILTIN or POINTER");
@@ -112,10 +114,10 @@ lookup_result MustSupportRT::getTypeInfoInternal(const void* baseAddr, int offse
     int typeSize = sizeof(void*);
     if (memberInfo.kind == BUILTIN) {
       // Fetch actual size
-      typeSize = typeConfig.getBuiltinTypeSize(memberInfo.id);
+      typeSize = typeDB.getBuiltinTypeSize(memberInfo.id);
     }
 
-    int dif = offset - baseOffset;
+    size_t dif = offset - baseOffset;
     // Type is atomic - offset must match up with type size
     if (dif % typeSize == 0) {
       if (dif / typeSize >= containerInfo.arraySizes[i]) {
@@ -129,7 +131,7 @@ lookup_result MustSupportRT::getTypeInfoInternal(const void* baseAddr, int offse
   }
 }
 
-lookup_result MustSupportRT::getTypeInfo(const void* addr, must::TypeInfo* type, int* count) const {
+lookup_result MustSupportRT::getTypeInfo(const void* addr, must::TypeInfo* type, size_t* count) const {
   const void* basePtr = findBaseAddress(addr);
 
   if (basePtr) {
@@ -137,26 +139,26 @@ lookup_result MustSupportRT::getTypeInfo(const void* addr, must::TypeInfo* type,
 
     // Check for exact match
     if (basePtr == addr) {
-      *type = typeConfig.getTypeInfo(basePtrInfo.typeId);
+      *type = typeDB.getTypeInfo(basePtrInfo.typeId);
       *count = basePtrInfo.count;
       return SUCCESS;
     }
 
     // The address points inside a known array
-    const void* blockEnd = basePtr + basePtrInfo.count * basePtrInfo.typeSize;
+    const void* blockEnd = static_cast<const void*>(static_cast<const uint8_t*>(basePtr) + basePtrInfo.count * basePtrInfo.typeSize);
     // Ensure that the given address is in bounds and points to the start of an element
     if (addr >= blockEnd) {
       return UNKNOWN_ADDRESS;
     }
-    long addrDif = (long)addr - (long)basePtr;
-    int internalOffset =
+    size_t addrDif = reinterpret_cast<size_t>(addr) - reinterpret_cast<size_t>(basePtr);
+    size_t internalOffset =
         addrDif % basePtrInfo.typeSize;  // Offset of the pointer w.r.t. the start of the containing type
     if (internalOffset != 0) {
-      if (typeConfig.isBuiltinType(basePtrInfo.typeId)) {
+      if (typeDB.isBuiltinType(basePtrInfo.typeId)) {
         return BAD_ALIGNMENT;  // Address points to the middle of a builtin type
       } else {
-        const void* structAddr = basePtr + addrDif - internalOffset;
-        auto structInfo = typeConfig.getStructInfo(basePtrInfo.typeId);
+        const void* structAddr = static_cast<const void*>(static_cast<const uint8_t*>(basePtr) + addrDif - internalOffset);
+        auto structInfo = typeDB.getStructInfo(basePtrInfo.typeId);
 
         auto result = getTypeInfoInternal(structAddr, internalOffset, *structInfo, type);
         *count = basePtrInfo.count - addrDif / basePtrInfo.typeSize;  // TODO: Correct behavior?
@@ -165,7 +167,7 @@ lookup_result MustSupportRT::getTypeInfo(const void* addr, must::TypeInfo* type,
     } else {
       // Compute the element count from the given address
       *count = basePtrInfo.count - addrDif / basePtrInfo.typeSize;
-      *type = typeConfig.getTypeInfo(basePtrInfo.typeId);
+      *type = typeDB.getTypeInfo(basePtrInfo.typeId);
       return SUCCESS;
     }
   }
@@ -175,7 +177,7 @@ lookup_result MustSupportRT::getTypeInfo(const void* addr, must::TypeInfo* type,
 
 lookup_result MustSupportRT::getBuiltinInfo(const void* addr, must::BuiltinType* type) const {
   TypeInfo info;
-  int count;
+  size_t count;
   lookup_result result = getTypeInfo(addr, &info, &count);
   if (result == SUCCESS) {
     if (info.kind == BUILTIN) {
@@ -188,28 +190,28 @@ lookup_result MustSupportRT::getBuiltinInfo(const void* addr, must::BuiltinType*
 }
 
 lookup_result MustSupportRT::getStructInfo(int id, const StructTypeInfo** structInfo) const {
-  TypeInfo typeInfo = typeConfig.getTypeInfo(id);
+  TypeInfo typeInfo = typeDB.getTypeInfo(id);
   // Requested ID must correspond to a struct
   if (typeInfo.kind != STRUCT) {
     return WRONG_KIND;
   }
 
-  *structInfo = typeConfig.getStructInfo(id);
+  *structInfo = typeDB.getStructInfo(id);
 
   return SUCCESS;
 }
 
 const std::string& MustSupportRT::getTypeName(int id) const {
-  return typeConfig.getTypeName(id);
+  return typeDB.getTypeName(id);
 }
 
-void MustSupportRT::onAlloc(void* addr, int typeId, long count, long typeSize) {
+void MustSupportRT::onAlloc(void* addr, int typeId, size_t count, size_t typeSize) {
   auto it = typeMap.find(addr);
   if (it != typeMap.end()) {
     // TODO: What should the behaviour be here?
   } else {
     typeMap[addr] = {addr, typeId, count, typeSize};
-    auto typeString = typeConfig.getTypeName(typeId);
+    auto typeString = typeDB.getTypeName(typeId);
     std::cout << "Alloc    " << addr << "   " << typeString << "   " << typeSize << "     " << count << std::endl;
   }
 }
@@ -226,7 +228,7 @@ void MustSupportRT::onFree(void* addr) {
 
 }  // namespace must
 
-void __must_support_alloc(void* addr, int typeId, long count, long typeSize) {
+void __must_support_alloc(void* addr, int typeId, size_t count, size_t typeSize) {
   must::MustSupportRT::get().onAlloc(addr, typeId, count, typeSize);
 }
 
@@ -238,16 +240,16 @@ lookup_result must_support_get_builtin_type(const void* addr, must::BuiltinType*
   return must::MustSupportRT::get().getBuiltinInfo(addr, type);
 }
 
-lookup_result must_support_get_type(const void* addr, must::TypeInfo* type, int* count) {
+lookup_result must_support_get_type(const void* addr, must::TypeInfo* type, size_t* count) {
   return must::MustSupportRT::get().getTypeInfo(addr, type, count);
 }
 
-lookup_result must_support_resolve_type(int id, int* len, const must::TypeInfo* types[], const int* count[],
-                                        const int* offsets[], int* extent) {
+lookup_result must_support_resolve_type(int id, size_t* len, const must::TypeInfo* types[], const size_t* count[],
+                                        const size_t* offsets[], size_t* extent) {
   const must::StructTypeInfo* structInfo;
   lookup_result status = must::MustSupportRT::get().getStructInfo(id, &structInfo);
   if (status == SUCCESS) {
-    int n = structInfo->numMembers;
+    size_t n = structInfo->numMembers;
     *len = n;
     *types = &structInfo->memberTypes[0];
     *count = &structInfo->arraySizes[0];

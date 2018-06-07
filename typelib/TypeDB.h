@@ -18,11 +18,11 @@ using TypeKind = must_type_kind;
 struct StructTypeInfo {
   int id;
   std::string name;
-  int extent;
-  int numMembers;
-  std::vector<int> offsets;
+  size_t extent;
+  size_t numMembers;
+  std::vector<size_t> offsets;
   std::vector<TypeInfo> memberTypes;
-  std::vector<int> arraySizes;
+  std::vector<size_t> arraySizes;
 };
 
 class TypeDB {
@@ -39,23 +39,26 @@ class TypeDB {
 
   bool isStructType(int id) const;
 
-  std::string getTypeName(int id) const;
+  const std::string& getTypeName(int id) const;
 
   const StructTypeInfo* getStructInfo(int id) const;
 
   TypeInfo getTypeInfo(int id) const;
 
-  int getBuiltinTypeSize(int id) const;
+  size_t getBuiltinTypeSize(int id) const;
 
   const std::vector<StructTypeInfo>& getStructList() const;
 
   static std::string builtinNames[];
 
   static TypeInfo InvalidType;
+  static std::string UnknownStructName;
 
  private:
   std::vector<StructTypeInfo> structInfoList;
   std::map<int, int> id2Idx;
+
+
 };
 }  // namespace must
 

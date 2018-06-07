@@ -13,10 +13,10 @@ void __must_support_free(void* addr);
 namespace must {
 
 struct PointerInfo {
-  void* addr;
+  const void* addr;
   int typeId;
-  long count;
-  long typeSize;
+  size_t count;
+  size_t typeSize;
 };
 
 class MustSupportRT {
@@ -33,7 +33,7 @@ class MustSupportRT {
 
   // const PointerInfo* getPtrInfo(void *ptr) const;
 
-  LookupResult getTypeInfo(const void* addr, must::TypeInfo* type, int* count) const;
+  LookupResult getTypeInfo(const void* addr, must::TypeInfo* type, size_t* count) const;
 
   LookupResult getBuiltinInfo(const void* addr, must::BuiltinType* type) const;
 
@@ -43,14 +43,14 @@ class MustSupportRT {
 
   const std::string& getTypeName(int id) const;
 
-  void onAlloc(void* addr, int typeID, long count, long typeSize);
+  void onAlloc(void* addr, int typeID, size_t count, size_t typeSize);
 
   void onFree(void* addr);
 
  private:
   MustSupportRT();
 
-  LookupResult getTypeInfoInternal(const void* baseAddr, int offset, const StructTypeInfo& containingType,
+  LookupResult getTypeInfoInternal(const void* baseAddr, size_t offset, const StructTypeInfo& containingType,
                                    must::TypeInfo* type) const;
 
   void printTraceStart();
@@ -59,10 +59,10 @@ class MustSupportRT {
 
   const void* findBaseAddress(const void* addr) const;
 
-  TypeDB typeConfig;
+  TypeDB typeDB;
   std::map<const void*, PointerInfo> typeMap;
 
-  std::string configFileName{"musttypes"};
+  std::string typeFileName{"musttypes"};
 };
 
 }  // namespace must

@@ -13,6 +13,8 @@ std::string TypeDB::builtinNames[] = {"char", "uchar", "short", "ushort", "int",
 
 TypeInfo TypeDB::InvalidType = TypeInfo{BUILTIN, INVALID};
 
+std::string TypeDB::UnknownStructName{"UnknownStruct"};
+
 TypeDB::TypeDB() = default;
 
 void TypeDB::clear() {
@@ -52,7 +54,7 @@ void TypeDB::registerStruct(StructTypeInfo structType) {
   // reverseTypeMap.insert({id, typeName});
 }
 
-std::string TypeDB::getTypeName(int id) const {
+const std::string& TypeDB::getTypeName(int id) const {
   if (isBuiltinType(id)) {
     return builtinNames[id];
   }
@@ -62,7 +64,7 @@ std::string TypeDB::getTypeName(int id) const {
       return structInfo->name;
     }
   }
-  return "UnknownStruct";
+  return UnknownStructName;
 }
 
 // std::vector<std::string> TypeDB::getTypeList() const {
@@ -74,7 +76,7 @@ std::string TypeDB::getTypeName(int id) const {
 //  return typeIDs;
 //}
 
-int TypeDB::getBuiltinTypeSize(int id) const {
+size_t TypeDB::getBuiltinTypeSize(int id) const {
   switch (id) {
     case C_CHAR:
     case C_UCHAR:
@@ -91,7 +93,7 @@ int TypeDB::getBuiltinTypeSize(int id) const {
     case C_ULONG:
       return 8;
     default:
-      return -1;
+      return 0;
   }
 }
 
