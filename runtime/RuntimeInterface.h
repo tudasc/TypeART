@@ -2,13 +2,13 @@
 #define LLVM_MUST_SUPPORT_RUNTIMEINTERFACE_H
 
 #include "../typelib/TypeInterface.h"
-#include <cstddef>
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef enum lookup_result_t { SUCCESS, UNKNOWN_ADDRESS, BAD_ALIGNMENT, WRONG_KIND, BUFFER_TO_SMALL } lookup_result;
+typedef enum lookup_result_t { SUCCESS, UNKNOWN_ADDRESS, BAD_ALIGNMENT, WRONG_KIND } lookup_result;
 
 lookup_result must_support_get_builtin_type(const void* addr, must_builtin_type* type);
 lookup_result must_support_get_type(const void* addr, must_type_info* type, size_t* count);

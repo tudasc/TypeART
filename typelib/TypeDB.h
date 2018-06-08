@@ -57,8 +57,6 @@ class TypeDB {
  private:
   std::vector<StructTypeInfo> structInfoList;
   std::map<int, int> id2Idx;
-
-
 };
 }  // namespace must
 

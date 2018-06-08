@@ -3,9 +3,9 @@
 //
 
 #include "TypeManager.h"
+#include "support/Logger.h"
 #include "support/TypeUtil.h"
 #include "support/Util.h"
-#include "support/Logger.h"
 #include <TypeIO.h>
 #include <iostream>
 

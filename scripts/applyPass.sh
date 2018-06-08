@@ -1,9 +1,7 @@
 #!/bin/bash
 
 target=$1
-plugin=${2:-MustSupportPass}
-pluginCommand=${3:-must}
-pathToPlugin=${4:-build/lib}
+pathToPlugin=${2:-build/lib}
 tmpDir=/tmp
 tmpfile="$tmpDir"/"${target##*/}"
 extension="${target##*.}"
@@ -22,4 +20,4 @@ fi
 
 $compiler -S -emit-llvm "$target" -o "$tmpfile".ll
 
-opt -print-after-all -load "$pathToPlugin"/"$plugin".so -$pluginCommand -must-stats < "$tmpfile".ll > /dev/null
+opt -print-after-all -load ${pathToPlugin}/analysis/MemInstFinderPass.so -load ${pathToPlugin}/MustSupportPass.so -must -must-stats < "$tmpfile".ll > /dev/null

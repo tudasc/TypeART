@@ -53,9 +53,11 @@ const void* MustSupportRT::findBaseAddress(const void* addr) const {
   if (addr < typeMap.begin()->first) {
     return nullptr;
   }
+
   auto it = typeMap.lower_bound(addr);
   if (it == typeMap.end()) {
-    return nullptr;
+    // No element bigger than base address
+    return typeMap.rbegin()->first;
   }
 
   if (it->first == addr) {
@@ -66,8 +68,8 @@ const void* MustSupportRT::findBaseAddress(const void* addr) const {
   return (std::prev(it))->first;
 }
 
-lookup_result MustSupportRT::getTypeInfoInternal(const void* baseAddr, size_t offset, const StructTypeInfo& containerInfo,
-                                                 must::TypeInfo* type) const {
+lookup_result MustSupportRT::getTypeInfoInternal(const void* baseAddr, size_t offset,
+                                                 const StructTypeInfo& containerInfo, must::TypeInfo* type) const {
   // std::cerr << "Type is " << containerInfo.name << std::endl;
 
   assert(offset < containerInfo.extent && "Something went wrong with the base address computation");
@@ -145,7 +147,8 @@ lookup_result MustSupportRT::getTypeInfo(const void* addr, must::TypeInfo* type,
     }
 
     // The address points inside a known array
-    const void* blockEnd = static_cast<const void*>(static_cast<const uint8_t*>(basePtr) + basePtrInfo.count * basePtrInfo.typeSize);
+    const void* blockEnd =
+        static_cast<const void*>(static_cast<const uint8_t*>(basePtr) + basePtrInfo.count * basePtrInfo.typeSize);
     // Ensure that the given address is in bounds and points to the start of an element
     if (addr >= blockEnd) {
       return UNKNOWN_ADDRESS;
@@ -157,7 +160,8 @@ lookup_result MustSupportRT::getTypeInfo(const void* addr, must::TypeInfo* type,
       if (typeDB.isBuiltinType(basePtrInfo.typeId)) {
         return BAD_ALIGNMENT;  // Address points to the middle of a builtin type
       } else {
-        const void* structAddr = static_cast<const void*>(static_cast<const uint8_t*>(basePtr) + addrDif - internalOffset);
+        const void* structAddr =
+            static_cast<const void*>(static_cast<const uint8_t*>(basePtr) + addrDif - internalOffset);
         auto structInfo = typeDB.getStructInfo(basePtrInfo.typeId);
 
         auto result = getTypeInfoInternal(structAddr, internalOffset, *structInfo, type);

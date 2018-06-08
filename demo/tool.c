@@ -53,7 +53,7 @@ void analyseBuffer(const void *buf, int count, MPI_Datatype type)
     //TODO: check for matching c-type
 
     must_type_info type_info;
-    int count_check;
+    size_t count_check;
     lookup_result status = must_support_get_type(buf, &type_info, &count_check);
     if (status == SUCCESS) {
       
@@ -61,11 +61,11 @@ void analyseBuffer(const void *buf, int count, MPI_Datatype type)
 
       // If the address corresponds to a struct, fetch the type of the first member
       while (type_info.kind == STRUCT) {
-        int len;
+        size_t len;
         const must_type_info* types;
-        const int* count;
-        const int* offsets;
-        int extent;
+        const size_t* count;
+        const size_t* offsets;
+        size_t extent;
         must_support_resolve_type(type_info.id, &len, &types, &count, &offsets, &extent);
         type_info = types[0];
       }

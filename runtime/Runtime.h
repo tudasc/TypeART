@@ -6,7 +6,7 @@
 #include <map>
 
 extern "C" {
-void __must_support_alloc(void* addr, int typeId, long count, long typeSize);
+void __must_support_alloc(void* addr, int typeId, size_t count, size_t typeSize);
 void __must_support_free(void* addr);
 }
 

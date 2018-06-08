@@ -1,12 +1,10 @@
 #!/bin/bash
 
 target=$1
-plugin=${2:-MustSupportPass.so}
-pluginArgs=${3:--must}
-pathToPlugin=${4:-build/lib}
-pathToRT=${5:-build/runtime}
-mpi=${6:-1}
-outfile=${7}
+pathToPlugin=${2:-build/lib}
+pathToRT=${3:-build/runtime}
+mpi=${4:-1}
+outfile=${5}
 
 tmpDir=/tmp
 tmpfile="$tmpDir"/"${target##*/}"
@@ -40,8 +38,6 @@ if [ -e musttypes ]; then
 fi
 
 OMPI_CC=$c_compiler OMPI_CXX=$cxx_compiler $compiler_wrapper -S -emit-llvm "$target" -o "$tmpfile".ll
-opt -load "$pathToPlugin"/"$plugin" $pluginArgs < "$tmpfile".ll -o "$tmpfile".ll > /dev/null
+opt -load "${pathToPlugin}/analysis/MemInstFinderPass.so" -load "${pathToPlugin}/MustSupportPass.so" -must < "$tmpfile".ll -o "$tmpfile".ll > /dev/null
 llc "$tmpfile".ll -o "$tmpfile".s
 OMPI_CC=$c_compiler OMPI_CXX=$cxx_compiler $compiler_wrapper "$tmpfile".s -L"$pathToRT" -lmustsupport -o "$outfile"
-#echo -e Executing with runtime lib
-#LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$rtDir "$tmpfile".o
