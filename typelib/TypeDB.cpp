@@ -9,9 +9,9 @@
 namespace must {
 
 std::string TypeDB::builtinNames[] = {"char", "uchar", "short", "ushort", "int",    "uint",
-                                      "long", "ulong", "float", "double", "invalid"};
+                                      "long", "ulong", "float", "double", "unknown"};
 
-TypeInfo TypeDB::InvalidType = TypeInfo{BUILTIN, INVALID};
+TypeInfo TypeDB::InvalidType = TypeInfo{BUILTIN, UNKNOWN};
 
 std::string TypeDB::UnknownStructName{"UnknownStruct"};
 

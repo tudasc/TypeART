@@ -41,13 +41,15 @@ int TypeManager::getOrRegisterType(llvm::Type* type, const llvm::DataLayout& dl)
     case llvm::Type::IntegerTyID:
 
       if (type == Type::getInt8Ty(c)) {
-        return C_CHAR;
+          return C_CHAR;
+      } else if (type == Type::getInt16Ty(c)) {
+          return C_SHORT;
       } else if (type == Type::getInt32Ty(c)) {
         return C_INT;
       } else if (type == Type::getInt64Ty(c)) {
         return C_LONG;
       } else {
-        return INVALID;
+        return UNKNOWN;
       }
     // TODO: Unsigned types are not explicitly represented in LLVM. How to handle?
     case llvm::Type::FloatTyID:
@@ -59,7 +61,7 @@ int TypeManager::getOrRegisterType(llvm::Type* type, const llvm::DataLayout& dl)
     default:
       break;
   }
-  return INVALID;
+  return UNKNOWN;
 }
 
 int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLayout& dl) {
@@ -90,7 +92,7 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
 
   for (uint32_t i = 0; i < n; i++) {
     auto memberType = type->getStructElementType(i);
-    int memberID = INVALID;
+    int memberID = UNKNOWN;
     TypeKind kind;
 
     size_t arraySize = 1;

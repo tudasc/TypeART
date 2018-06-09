@@ -21,6 +21,8 @@
 
 #include <stdlib.h>
 
+// TODO: Use structs from struct_defs.h
+
 typedef struct s_t {
   int a;
 } s;

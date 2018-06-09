@@ -51,7 +51,7 @@ class MustSupportRT {
   MustSupportRT();
 
   LookupResult getTypeInfoInternal(const void* baseAddr, size_t offset, const StructTypeInfo& containingType,
-                                   must::TypeInfo* type) const;
+                                   must::TypeInfo* type, size_t* count) const;
 
   void printTraceStart();
 

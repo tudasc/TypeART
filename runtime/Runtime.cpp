@@ -69,7 +69,7 @@ const void* MustSupportRT::findBaseAddress(const void* addr) const {
 }
 
 lookup_result MustSupportRT::getTypeInfoInternal(const void* baseAddr, size_t offset,
-                                                 const StructTypeInfo& containerInfo, must::TypeInfo* type) const {
+                                                 const StructTypeInfo& containerInfo, must::TypeInfo* type, size_t* count) const {
   // std::cerr << "Type is " << containerInfo.name << std::endl;
 
   assert(offset < containerInfo.extent && "Something went wrong with the base address computation");
@@ -94,6 +94,7 @@ lookup_result MustSupportRT::getTypeInfoInternal(const void* baseAddr, size_t of
   // Offset corresponds directly to a member
   if (baseOffset == offset) {
     *type = memberInfo;
+    *count = containerInfo.arraySizes[i];
     return SUCCESS;
   }
 
@@ -108,7 +109,7 @@ lookup_result MustSupportRT::getTypeInfoInternal(const void* baseAddr, size_t of
     auto memberStructInfo = typeDB.getStructInfo(memberInfo.id);
     const void* newBaseAddr = static_cast<const void*>(static_cast<const uint8_t*>(baseAddr) + baseOffset);
     size_t newOffset = offset - baseOffset;
-    return getTypeInfoInternal(newBaseAddr, newOffset, *memberStructInfo, type);
+    return getTypeInfoInternal(newBaseAddr, newOffset, *memberStructInfo, type, count);
   } else {
     assert((memberInfo.kind == BUILTIN || memberInfo.kind == POINTER) &&
            "Type kind must be either STRUCT, BUILTIN or POINTER");
@@ -122,11 +123,13 @@ lookup_result MustSupportRT::getTypeInfoInternal(const void* baseAddr, size_t of
     size_t dif = offset - baseOffset;
     // Type is atomic - offset must match up with type size
     if (dif % typeSize == 0) {
-      if (dif / typeSize >= containerInfo.arraySizes[i]) {
+      size_t offsetInTypeSize = dif / typeSize;
+      if (offsetInTypeSize >= containerInfo.arraySizes[i]) {
         // Address points to padding
         return BAD_ALIGNMENT;
       }
       *type = memberInfo;
+      *count = containerInfo.arraySizes[i] - offsetInTypeSize;
       return SUCCESS;
     }
     return BAD_ALIGNMENT;
@@ -164,8 +167,8 @@ lookup_result MustSupportRT::getTypeInfo(const void* addr, must::TypeInfo* type,
             static_cast<const void*>(static_cast<const uint8_t*>(basePtr) + addrDif - internalOffset);
         auto structInfo = typeDB.getStructInfo(basePtrInfo.typeId);
 
-        auto result = getTypeInfoInternal(structAddr, internalOffset, *structInfo, type);
-        *count = basePtrInfo.count - addrDif / basePtrInfo.typeSize;  // TODO: Correct behavior?
+        auto result = getTypeInfoInternal(structAddr, internalOffset, *structInfo, type, count);
+        // *count = basePtrInfo.count - addrDif / basePtrInfo.typeSize;  // TODO: Correct behavior?
         return result;
       }
     } else {
