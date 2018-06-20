@@ -28,6 +28,12 @@
     llvm::errs() << (LEVEL) << " " << LOG_BASENAME_FILE << ":" << __func__ << ":" << __LINE__ << ": " << MSG << "\n"; /* NOLINT */ \
   }
 
+#define OO_LOG_LEVEL_MSG_BARE(LEVEL_NUM, LEVEL, MSG) \
+  if ((LEVEL_NUM) <= LOG_LEVEL) { \
+    llvm::errs() << (LEVEL) << " " << MSG << "\n"; /* NOLINT */ \
+  }
+
+#define LOG_TRACE(MSG) OO_LOG_LEVEL_MSG_BARE(3, "[Trace]", MSG)
 #define LOG_DEBUG(MSG) OO_LOG_LEVEL_MSG(3, "[Debug]", MSG)
 #define LOG_INFO(MSG) OO_LOG_LEVEL_MSG(2, "[Info]", MSG)
 #define LOG_WARNING(MSG) OO_LOG_LEVEL_MSG(1, "[Warning]", MSG)

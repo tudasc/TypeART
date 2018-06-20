@@ -7,7 +7,10 @@
 #include <cassert>
 #include <cstdlib>
 #include <cstring>
+#include <sstream>
 #include <iostream>
+// TODO: Think about putting the logger somewhere else
+#include "../lib/support/Logger.h"
 
 namespace must {
 
@@ -19,20 +22,18 @@ MustSupportRT::MustSupportRT() {
     if (dir) {
       typeFile = std::string(dir) + "/" + typeFileName;
     } else {
-      std::cerr
-          << "No type file in current directory. To specify a different path, edit the TYPE_PATH environment variable."
-          << std::endl;
+      LOG_ERROR("No type file in current directory. To specify a different path, edit the TYPE_PATH environment variable.");
     }
     if (!loadTypes(typeFile)) {
-      std::cerr << "Failed to load recorded types from " << typeFile << std::endl;
+      LOG_ERROR("Failed to load recorded types from " << typeFile);
     }
   }
 
-  std::cout << "Recorded types: ";
+  std::stringstream ss;
   for (auto structInfo : typeDB.getStructList()) {
-    std::cout << structInfo.name << ", ";
+    ss << structInfo.name << ", ";
   }
-  std::cout << std::endl;
+  LOG_INFO("Recorded types: " << ss.str());
 
   printTraceStart();
 }
@@ -43,10 +44,10 @@ bool MustSupportRT::loadTypes(const std::string& file) {
 }
 
 void MustSupportRT::printTraceStart() {
-  std::cout << "MUST Support Runtime Trace" << std::endl;
-  std::cout << "**************************" << std::endl;
-  std::cout << "Operation  Address   Type   Size   Count" << std::endl;
-  std::cout << "--------------------------------------------------------" << std::endl;
+  LOG_TRACE("TypeART Runtime Trace");
+  LOG_TRACE("**************************");
+  LOG_TRACE("Operation  Address   Type   Size   Count");
+  LOG_TRACE("--------------------------------------------------------");
 }
 
 const void* MustSupportRT::findBaseAddress(const void* addr) const {
@@ -215,11 +216,12 @@ const std::string& MustSupportRT::getTypeName(int id) const {
 void MustSupportRT::onAlloc(void* addr, int typeId, size_t count, size_t typeSize) {
   auto it = typeMap.find(addr);
   if (it != typeMap.end()) {
+    LOG_ERROR("Alloc recorded with unknown type ID: " << typeId);
     // TODO: What should the behaviour be here?
   } else {
     typeMap[addr] = {addr, typeId, count, typeSize};
     auto typeString = typeDB.getTypeName(typeId);
-    std::cout << "Alloc    " << addr << "   " << typeString << "   " << typeSize << "     " << count << std::endl;
+    LOG_TRACE("Alloc " << addr << " " << typeString << " " << typeSize << " " << count);
   }
 }
 
@@ -227,8 +229,9 @@ void MustSupportRT::onFree(void* addr) {
   auto it = typeMap.find(addr);
   if (it != typeMap.end()) {
     typeMap.erase(it);
-    std::cout << "Free     " << addr << std::endl;
+    LOG_TRACE("Free " << addr);
   } else {
+    LOG_ERROR("Free recorded on unregistered address: " << addr);
     // TODO: What to do when not found?
   }
 }

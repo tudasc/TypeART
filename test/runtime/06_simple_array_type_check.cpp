@@ -1,4 +1,4 @@
-// RUN: %scriptpath/applyAndRun.sh %s %pluginpath "-must-alloca" %rtpath | FileCheck %s
+// RUN: %scriptpath/applyAndRun.sh %s %pluginpath "-must-alloca" %rtpath 2>&1 | FileCheck %s
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -26,7 +26,7 @@ int main(int argc, char** argv) {
 
   const int n = 42;
 
-  // CHECK: Alloc    0x{{.*}}    char    1   42
+  // CHECK: [Trace] Alloc 0x{{.*}} char 1 42
   // CHECK: Error: Unknown address
   // CHECK: Ok
   // CHECK: Ok
@@ -37,10 +37,10 @@ int main(int argc, char** argv) {
   // CHECK: Ok
   // CHECK: Ok
   // CHECK: Ok
-  // CHECK: Free 0x{{.*}}
+  // CHECK: [Trace] Free 0x{{.*}}
   performTypeChecks<char>(n, C_CHAR);
 
-  // CHECK: Alloc    0x{{.*}}    short    2   42
+  // CHECK: [Trace] Alloc 0x{{.*}} short 2 42
   // CHECK: Error: Unknown address
   // CHECK: Ok
   // CHECK: Ok
@@ -51,10 +51,10 @@ int main(int argc, char** argv) {
   // CHECK: Ok
   // CHECK: Ok
   // CHECK: Ok
-  // CHECK: Free 0x{{.*}}
+  // CHECK: [Trace] Free 0x{{.*}}
   performTypeChecks<short>(n, C_SHORT);
 
-  // CHECK: Alloc    0x{{.*}}    int    4   42
+  // CHECK: [Trace] Alloc 0x{{.*}} int 4 42
   // CHECK: Error: Unknown address
   // CHECK: Ok
   // CHECK: Ok
@@ -65,10 +65,10 @@ int main(int argc, char** argv) {
   // CHECK: Error: Bad alignment
   // CHECK: Ok
   // CHECK: Ok
-  // CHECK: Free 0x{{.*}}
+  // CHECK: [Trace] Free 0x{{.*}}
   performTypeChecks<int>(n, C_INT);
 
-  // CHECK: Alloc    0x{{.*}}    long    8   42
+  // CHECK: [Trace] Alloc 0x{{.*}} long 8 42
   // CHECK: Error: Unknown address
   // CHECK: Ok
   // CHECK: Ok
@@ -79,10 +79,10 @@ int main(int argc, char** argv) {
   // CHECK: Error: Bad alignment
   // CHECK: Error: Bad alignment
   // CHECK: Ok
-  // CHECK: Free 0x{{.*}}
+  // CHECK: [Trace] Free 0x{{.*}}
   performTypeChecks<long>(n, C_LONG);
 
-  // CHECK: Alloc    0x{{.*}}    float    4   42
+  // CHECK: [Trace] Alloc 0x{{.*}} float 4 42
   // CHECK: Error: Unknown address
   // CHECK: Ok
   // CHECK: Ok
@@ -93,10 +93,10 @@ int main(int argc, char** argv) {
   // CHECK: Error: Bad alignment
   // CHECK: Ok
   // CHECK: Ok
-  // CHECK: Free 0x{{.*}}
+  // CHECK: [Trace] Free 0x{{.*}}
   performTypeChecks<float>(n, C_FLOAT);
 
-  // CHECK: Alloc    0x{{.*}}    double    8   42
+  // CHECK: [Trace] Alloc 0x{{.*}} double 8 42
   // CHECK: Error: Unknown address
   // CHECK: Ok
   // CHECK: Ok
@@ -107,10 +107,10 @@ int main(int argc, char** argv) {
   // CHECK: Error: Bad alignment
   // CHECK: Error: Bad alignment
   // CHECK: Ok
-  // CHECK: Free 0x{{.*}}
+  // CHECK: [Trace] Free 0x{{.*}}
   performTypeChecks<double>(n, C_DOUBLE);
 
-  // CHECK: Alloc    0x{{.*}}    unknown    8   42
+  // CHECK: [Trace] Alloc 0x{{.*}} unknown 8 42
   // CHECK: Error: Unknown address
   // CHECK: Ok
   // CHECK: Ok
@@ -121,7 +121,7 @@ int main(int argc, char** argv) {
   // CHECK: Error: Bad alignment
   // CHECK: Error: Bad alignment
   // CHECK: Ok
-  // CHECK: Free 0x{{.*}}
+  // CHECK: [Trace] Free 0x{{.*}}
   performTypeChecks<int*>(n, UNKNOWN);
 
   return 0;

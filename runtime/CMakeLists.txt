@@ -12,6 +12,8 @@ target_include_directories(mustsupport PUBLIC
   ${CMAKE_SOURCE_DIR}/typelib
 )
 
+target_define_file_basename(mustsupport)
+
 target_link_libraries(mustsupport
   LLVMCore
   LLVMSupport

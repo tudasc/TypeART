@@ -27,24 +27,24 @@ void check(void* addr, int id, int expected_count, int resolveStructs) {
 
         if (type_info.id == id) {
             if (count_check != expected_count) {
-                printf("Error: Count mismatch (%zu)\n", count_check);
+                fprintf(stderr, "Error: Count mismatch (%zu)\n", count_check);
             } else {
-                printf("Ok\n");
+                fprintf(stderr, "Ok\n");
             }
         } else {
-            printf("Error: Type mismatch\n");
+            fprintf(stderr, "Error: Type mismatch\n");
         }
 
     } else {
         switch (status) {
             case UNKNOWN_ADDRESS:
-                printf("Error: Unknown address\n");
+                fprintf(stderr, "Error: Unknown address\n");
                 break;
             case BAD_ALIGNMENT:
-                printf("Error: Bad alignment\n");
+                fprintf(stderr, "Error: Bad alignment\n");
                 break;
             default:
-                printf("Error: Unexpected status: %d\n", status);
+                fprintf(stderr, "Error: Unexpected status: %d\n", status);
                 break;
         }
     }
@@ -63,25 +63,25 @@ void check_struct(void* addr, const char* name, int expected_count) {
             size_t extent;
             must_support_resolve_type(type_info.id, &len, &types, &counts, &offsets, &extent);
             if (strcmp(must_support_get_type_name(type_info.id), name) != 0) {
-                printf("Error: Name mismatch\n");
+                fprintf(stderr, "Error: Name mismatch\n");
             } else if (expected_count != count_check) {
-                printf("Error: Count mismatch (%zu)\n", count_check);
+                fprintf(stderr, "Error: Count mismatch (%zu)\n", count_check);
             } else {
-                printf("Ok\n");
+                fprintf(stderr, "Ok\n");
             }
         } else {
-            printf("Error: Not a struct\n");
+            fprintf(stderr, "Error: Not a struct\n");
         }
     } else {
         switch (status) {
             case UNKNOWN_ADDRESS:
-                printf("Error: Unknown address\n");
+                fprintf(stderr, "Error: Unknown address\n");
                 break;
             case BAD_ALIGNMENT:
-                printf("Error: Bad alignment\n");
+                fprintf(stderr, "Error: Bad alignment\n");
                 break;
             default:
-                printf("Error: Unexpected status: %d\n", status);
+                fprintf(stderr, "Error: Unexpected status: %d\n", status);
                 break;
         }
     }
