@@ -2,23 +2,23 @@ set(RUNTIME_LIB_SOURCES
   Runtime.cpp
 )
 
-add_library(mustsupport SHARED 
+add_library(typeart SHARED
   ${RUNTIME_LIB_SOURCES}
 )
 
-target_link_libraries(mustsupport musttypelib)
+target_link_libraries(typeart typelib)
 
-target_include_directories(mustsupport PUBLIC 
+target_include_directories(typeart PUBLIC
   ${CMAKE_SOURCE_DIR}/typelib
 )
 
-target_define_file_basename(mustsupport)
+target_define_file_basename(typeart)
 
-target_link_libraries(mustsupport
+target_link_libraries(typeart
   LLVMCore
   LLVMSupport
 )
 
-make_tidy_check(mustsupport
+make_tidy_check(typeart
   "${RUNTIME_LIB_SOURCES}"
 )

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 
-project(llvm_must_support)
+project(typeart)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_VERBOSE_MAKEFILE ON)

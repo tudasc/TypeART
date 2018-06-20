@@ -1,4 +1,4 @@
-// RUN: %scriptpath/applyAndRun.sh %s %pluginpath "-must-alloca" %rtpath 2>&1 | FileCheck %s
+// RUN: %scriptpath/applyAndRun.sh %s %pluginpath "-typeart-alloca" %rtpath 2>&1 | FileCheck %s
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -6,7 +6,7 @@
 #include "../../typelib/TypeInterface.h"
 
 template<typename T>
-void performTypeChecks(int n, must_builtin_type typeId) {
+void performTypeChecks(int n, typeart_builtin_type typeId) {
   T* p = (T*) malloc(n * sizeof(T));
   check(p - 1, typeId, 1, 1);  // Unknown address
   check(p, typeId, n, 1);  // Ok

@@ -14,21 +14,21 @@ class Function;
 class AnalysisUsage;
 }  // namespace llvm
 
-namespace must {
+namespace typeart {
 namespace pass {
 
-class MustSupportPass : public llvm::FunctionPass {
+class TypeArtSupportPass : public llvm::FunctionPass {
  private:
   struct TypeArtFunc {
     const std::string name{""};
     llvm::Constant* f{nullptr};
   };
 
-  TypeArtFunc typeart_alloc{"__must_support_alloc"};
+  TypeArtFunc typeart_alloc{"__typeart_support_alloc"};
 
-  TypeArtFunc typeart_free{"__must_support_free"};
+  TypeArtFunc typeart_free{"__typeart_support_free"};
 
-  std::string configFileName{"musttypes"};
+  std::string configFileName{"types.yaml"};
 
   TypeManager typeManager;
 
@@ -38,7 +38,7 @@ class MustSupportPass : public llvm::FunctionPass {
   static char ID;  // used to identify pass
 
   /* Call base class ctor with ID */
-  MustSupportPass();
+  TypeArtSupportPass();
 
   /* Run once per module */
   bool doInitialization(llvm::Module&) override;
@@ -52,8 +52,8 @@ class MustSupportPass : public llvm::FunctionPass {
  private:
   /*
    * Declares the external functions in the module.
-   * void __must_support_alloc(void *ptr_base, int type_id, long int count, long int elem_size)
-   * void __must_support_free(void *ptr)
+   * void __typeart_support_alloc(void *ptr_base, int type_id, long int count, long int elem_size)
+   * void __typeart_support_free(void *ptr)
    */
   void declareInstrumentationFunctions(llvm::Module&);
   void propagateTypeInformation(llvm::Module&);
@@ -61,6 +61,6 @@ class MustSupportPass : public llvm::FunctionPass {
 };
 
 }  // namespace pass
-}  // namespace must
+}  // namespace typeart
 
 #endif

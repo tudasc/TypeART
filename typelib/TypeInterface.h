@@ -8,7 +8,7 @@ extern "C" {
 // TODO: Support for missing types (e.g. long double)
 // Type UNKNOWN is used for pointer types, when the underlying type is not specified.
 // In conjunction with kind BUILTIN, UNKNOWN signifies an invalid type.
-typedef enum must_builtin_type_t {
+typedef enum typeart_builtin_type_t {
   C_CHAR = 0,
   C_UCHAR = 1,
   C_SHORT = 2,
@@ -21,14 +21,14 @@ typedef enum must_builtin_type_t {
   C_DOUBLE = 9,
   UNKNOWN = 10,
   N_BUILTIN_TYPES
-} must_builtin_type;
+} typeart_builtin_type;
 
-typedef enum must_type_kind_t { BUILTIN, STRUCT, POINTER } must_type_kind;
+typedef enum typeart_type_kind_t { BUILTIN, STRUCT, POINTER } typeart_type_kind;
 
-typedef struct must_type_info_t {
-  must_type_kind kind;
+typedef struct typeart_type_info_t {
+  typeart_type_kind kind;
   int id;
-} must_type_info;
+} typeart_type_info;
 
 #ifdef __cplusplus
 }

@@ -20,8 +20,8 @@
 using namespace llvm::yaml;
 
 template <>
-struct llvm::yaml::ScalarEnumerationTraits<must_type_kind_t> {
-  static void enumeration(IO& io, must_type_kind_t& value) {
+struct llvm::yaml::ScalarEnumerationTraits<typeart_type_kind_t> {
+  static void enumeration(IO& io, typeart_type_kind_t& value) {
     io.enumCase(value, "builtin", BUILTIN);
     io.enumCase(value, "struct", STRUCT);
     io.enumCase(value, "pointer", POINTER);
@@ -29,18 +29,18 @@ struct llvm::yaml::ScalarEnumerationTraits<must_type_kind_t> {
 };
 
 template <>
-struct llvm::yaml::MappingTraits<must_type_info_t> {
-  static void mapping(IO& io, must_type_info_t& info) {
+struct llvm::yaml::MappingTraits<typeart_type_info_t> {
+  static void mapping(IO& io, typeart_type_info_t& info) {
     io.mapRequired("id", info.id);
     io.mapRequired("kind", info.kind);
   }
 };
 
-LLVM_YAML_IS_SEQUENCE_VECTOR(must_type_info_t)
+LLVM_YAML_IS_SEQUENCE_VECTOR(typeart_type_info_t)
 
 template <>
-struct llvm::yaml::MappingTraits<must::StructTypeInfo> {
-  static void mapping(IO& io, must::StructTypeInfo& info) {
+struct llvm::yaml::MappingTraits<typeart::StructTypeInfo> {
+  static void mapping(IO& io, typeart::StructTypeInfo& info) {
     io.mapRequired("id", info.id);
     io.mapRequired("name", info.name);
     io.mapRequired("extent", info.extent);
@@ -51,9 +51,9 @@ struct llvm::yaml::MappingTraits<must::StructTypeInfo> {
   }
 };
 
-LLVM_YAML_IS_SEQUENCE_VECTOR(must::StructTypeInfo)
+LLVM_YAML_IS_SEQUENCE_VECTOR(typeart::StructTypeInfo)
 
-namespace must {
+namespace typeart {
 
 TypeIO::TypeIO(TypeDB& typeDB) : typeDB(typeDB) {
 }
@@ -105,4 +105,4 @@ bool TypeIO::store(const std::string& file) const {
   return true;
 }
 
-}  // namespace must
+}  // namespace typeart

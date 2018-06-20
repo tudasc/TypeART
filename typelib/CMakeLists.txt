@@ -3,7 +3,7 @@ set(TYPE_LIB_SOURCES
   TypeIO.cpp
 )
 
-add_library(musttypelib STATIC 
+add_library(typelib STATIC
   ${TYPE_LIB_SOURCES}
 )
 
@@ -12,17 +12,17 @@ add_library(musttypelib STATIC
 #  LLVMSupport
 #)
 
-set_target_properties(musttypelib 
+set_target_properties(typelib
   PROPERTIES POSITION_INDEPENDENT_CODE ON
 )
 
-target_include_directories(musttypelib
+target_include_directories(typelib
   SYSTEM 
   PRIVATE 
   ${LLVM_INCLUDE_DIRS}
 )
 
-make_tidy_check(musttypelib
+make_tidy_check(typelib
   "${TYPE_LIB_SOURCES}"
 )
   

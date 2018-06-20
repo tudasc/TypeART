@@ -6,13 +6,12 @@
 
 #include <map>
 
-
 extern "C" {
-void __must_support_alloc(void* addr, int typeId, size_t count, size_t typeSize);
-void __must_support_free(void* addr);
+void __typeart_support_alloc(void* addr, int typeId, size_t count, size_t typeSize);
+void __typeart_support_free(void* addr);
 }
 
-namespace must {
+namespace typeart {
 
 struct PointerInfo {
   const void* addr;
@@ -21,12 +20,12 @@ struct PointerInfo {
   size_t typeSize;
 };
 
-class MustSupportRT {
+class TypeArtRT {
  public:
   using LookupResult = lookup_result;
 
-  static MustSupportRT& get() {
-    static MustSupportRT instance;
+  static TypeArtRT& get() {
+    static TypeArtRT instance;
     return instance;
   }
 
@@ -35,13 +34,13 @@ class MustSupportRT {
 
   // const PointerInfo* getPtrInfo(void *ptr) const;
 
-  LookupResult getTypeInfo(const void* addr, must::TypeInfo* type, size_t* count) const;
+  LookupResult getTypeInfo(const void* addr, typeart::TypeInfo* type, size_t* count) const;
 
-  LookupResult getBuiltinInfo(const void* addr, must::BuiltinType* type) const;
+  LookupResult getBuiltinInfo(const void* addr, typeart::BuiltinType* type) const;
 
   LookupResult getStructInfo(int id, const StructTypeInfo** structInfo) const;
 
-  // LookupResult resolveType(int id, int* len, must::TypeInfo* types[], int* count[], int* offsets[], int* extent);
+  // LookupResult resolveType(int id, int* len, typeart::TypeInfo* types[], int* count[], int* offsets[], int* extent);
 
   const std::string& getTypeName(int id) const;
 
@@ -50,10 +49,10 @@ class MustSupportRT {
   void onFree(void* addr);
 
  private:
-  MustSupportRT();
+  TypeArtRT();
 
   LookupResult getTypeInfoInternal(const void* baseAddr, size_t offset, const StructTypeInfo& containingType,
-                                   must::TypeInfo* type, size_t* count) const;
+                                   typeart::TypeInfo* type, size_t* count) const;
 
   void printTraceStart();
 
@@ -64,9 +63,9 @@ class MustSupportRT {
   TypeDB typeDB;
   std::map<const void*, PointerInfo> typeMap;
 
-  std::string typeFileName{"musttypes"};
+  std::string typeFileName{"types.yaml"};
 };
 
-}  // namespace must
+}  // namespace typeart
 
 #endif

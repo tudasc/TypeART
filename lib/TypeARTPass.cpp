@@ -1,4 +1,4 @@
-#include "MUSTSupportPass.h"
+#include "TypeARTPass.h"
 #include "analysis/MemInstFinderPass.h"
 #include "support/Logger.h"
 #include "support/TypeUtil.h"
@@ -17,15 +17,16 @@
 
 using namespace llvm;
 
-#define DEBUG_TYPE "must"
+#define DEBUG_TYPE "typeart"
 
 namespace {
-static llvm::RegisterPass<must::pass::MustSupportPass> msp("must", "MUST type information", false, false);
+static llvm::RegisterPass<typeart::pass::TypeArtSupportPass> msp("typeart", "TypeArt type information", false, false);
 }  // namespace
 
-static cl::opt<bool> ClMustStats("must-stats", cl::desc("Show statistics for MUST type pass."), cl::Hidden,
-                                 cl::init(false));
-static cl::opt<bool> ClMustAlloca("must-alloca", cl::desc("Track alloca instructions."), cl::Hidden, cl::init(false));
+static cl::opt<bool> ClTypeArtStats("typeart-stats", cl::desc("Show statistics for TypeArt type pass."), cl::Hidden,
+                                    cl::init(false));
+static cl::opt<bool> ClTypeArtAlloca("typeart-alloca", cl::desc("Track alloca instructions."), cl::Hidden,
+                                     cl::init(false));
 static cl::opt<std::string> ClConfigDir("config-dir", cl::desc("Location of the type typeDB directory"), cl::Hidden);
 
 // FIXME 1) include bitcasts? 2) disabled by default in LLVM builds (use LLVM_ENABLE_STATS when building)
@@ -37,15 +38,15 @@ STATISTIC(NumFoundAlloca, "Number of detected (stack) allocas");
 
 namespace tu = util::type;
 
-namespace must {
+namespace typeart {
 namespace pass {
 
 // Used by LLVM pass manager to identify passes in memory
-char MustSupportPass::ID = 0;
+char TypeArtSupportPass::ID = 0;
 
-// std::unique_ptr<TypeMapping> MustSupportPass::typeMapping = std::make_unique<SimpleTypeMapping>();
+// std::unique_ptr<TypeMapping> TypeArtSupportPass::typeMapping = std::make_unique<SimpleTypeMapping>();
 
-MustSupportPass::MustSupportPass() : llvm::FunctionPass(ID) {
+TypeArtSupportPass::TypeArtSupportPass() : llvm::FunctionPass(ID) {
   if (ClConfigDir.empty()) {
     configFile = std::string("./") + configFileName;
   } else {
@@ -53,16 +54,16 @@ MustSupportPass::MustSupportPass() : llvm::FunctionPass(ID) {
   }
 }
 
-void MustSupportPass::getAnalysisUsage(llvm::AnalysisUsage& info) const {
+void TypeArtSupportPass::getAnalysisUsage(llvm::AnalysisUsage& info) const {
   info.addRequired<typeart::MemInstFinderPass>();
 }
 
-bool MustSupportPass::doInitialization(Module& m) {
+bool TypeArtSupportPass::doInitialization(Module& m) {
   /**
    * Introduce the necessary instrumentation functions in the LLVM module.
    * functions:
-   * void __must_support_alloc(void *ptr_base, int type_id, long int count, long int elem_size)
-   * void __must_support_free(void *ptr)
+   * void __typeart_support_alloc(void *ptr_base, int type_id, long int count, long int elem_size)
+   * void __typeart_support_free(void *ptr)
    *
    * Also scan the LLVM module for type definitions and add them to our type list.
    */
@@ -73,7 +74,7 @@ bool MustSupportPass::doInitialization(Module& m) {
   return true;
 }
 
-bool MustSupportPass::runOnFunction(Function& f) {
+bool TypeArtSupportPass::runOnFunction(Function& f) {
   using namespace typeart;
 
   bool mod{false};
@@ -154,7 +155,7 @@ bool MustSupportPass::runOnFunction(Function& f) {
     mod |= instrumentFree(free);
   }
 
-  if (ClMustAlloca) {
+  if (ClTypeArtAlloca) {
     for (auto alloca : listAlloca) {
       if (alloca->getAllocatedType()->isArrayTy()) {
         ++NumFoundAlloca;
@@ -173,7 +174,7 @@ bool MustSupportPass::runOnFunction(Function& f) {
   return mod;
 }
 
-bool MustSupportPass::doFinalization(Module&) {
+bool TypeArtSupportPass::doFinalization(Module&) {
   /*
    * Persist the accumulated type definition information for this module.
    */
@@ -184,13 +185,13 @@ bool MustSupportPass::doFinalization(Module&) {
   } else {
     LOG_ERROR("Failed writing type config to " << configFile);
   }
-  if (ClMustStats) {
+  if (ClTypeArtStats) {
     printStats(llvm::errs());
   }
   return false;
 }
 
-void MustSupportPass::declareInstrumentationFunctions(Module& m) {
+void TypeArtSupportPass::declareInstrumentationFunctions(Module& m) {
   const auto make_function = [&m](auto& f_struct, auto f_type) {
     f_struct.f = m.getOrInsertFunction(f_struct.name, f_type);
     if (auto f = dyn_cast<Function>(f_struct.f)) {
@@ -206,7 +207,7 @@ void MustSupportPass::declareInstrumentationFunctions(Module& m) {
   make_function(typeart_free, FunctionType::get(Type::getVoidTy(c), free_arg_types, false));
 }
 
-void MustSupportPass::propagateTypeInformation(Module&) {
+void TypeArtSupportPass::propagateTypeInformation(Module&) {
   /* Read already acquired information from temporary storage */
   /*
    * Scan module for type definitions and add to the type information map
@@ -224,7 +225,7 @@ void MustSupportPass::propagateTypeInformation(Module&) {
   }
 }
 
-void MustSupportPass::printStats(llvm::raw_ostream& out) {
+void TypeArtSupportPass::printStats(llvm::raw_ostream& out) {
   const unsigned max_string{12u};
   const unsigned max_val{5u};
   std::string line(22, '-');
@@ -234,7 +235,7 @@ void MustSupportPass::printStats(llvm::raw_ostream& out) {
   };
 
   out << line;
-  out << "   MustSupportPass\n";
+  out << "   TypeArtSupportPass\n";
   out << line;
   out << "Heap Memory\n";
   out << line;
@@ -249,13 +250,13 @@ void MustSupportPass::printStats(llvm::raw_ostream& out) {
 }
 
 }  // namespace pass
-}  // namespace must
+}  // namespace typeart
 
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
 
 static void registerClangPass(const llvm::PassManagerBuilder&, llvm::legacy::PassManagerBase& PM) {
-  PM.add(new must::pass::MustSupportPass());
+  PM.add(new typeart::pass::TypeArtSupportPass());
 }
 static RegisterStandardPasses RegisterClangPass(PassManagerBuilder::EP_OptimizerLast,  // EP_EarlyAsPossible,
                                                 registerClangPass);

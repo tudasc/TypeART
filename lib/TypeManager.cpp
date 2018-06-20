@@ -9,9 +9,10 @@
 #include <TypeIO.h>
 #include <iostream>
 
-namespace must {
-
 namespace tu = util::type;
+
+namespace typeart {
+
 using namespace llvm;
 
 TypeManager::TypeManager() : structCount(0) {
@@ -41,9 +42,9 @@ int TypeManager::getOrRegisterType(llvm::Type* type, const llvm::DataLayout& dl)
     case llvm::Type::IntegerTyID:
 
       if (type == Type::getInt8Ty(c)) {
-          return C_CHAR;
+        return C_CHAR;
       } else if (type == Type::getInt16Ty(c)) {
-          return C_SHORT;
+        return C_SHORT;
       } else if (type == Type::getInt32Ty(c)) {
         return C_INT;
       } else if (type == Type::getInt64Ty(c)) {
@@ -136,4 +137,4 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
   structMap.insert({name, id});
   return id;
 }
-}  // namespace must
+}  // namespace typeart

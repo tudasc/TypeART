@@ -6,7 +6,7 @@
 #include <TypeDB.h>
 #include <llvm/IR/DataLayout.h>
 
-namespace must {
+namespace typeart {
 
 class TypeManager {
  public:
@@ -28,6 +28,6 @@ class TypeManager {
   std::map<std::string, int> structMap;
   size_t structCount;
 };
-}  // namespace must
+}  // namespace typeart
 
 #endif  // LLVM_MUST_SUPPORT_TYPEMANAGER_H

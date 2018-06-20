@@ -9,11 +9,11 @@
 #include <map>
 #include <vector>
 
-namespace must {
+namespace typeart {
 
-using TypeInfo = must_type_info;
-using BuiltinType = must_builtin_type;
-using TypeKind = must_type_kind;
+using TypeInfo = typeart_type_info;
+using BuiltinType = typeart_builtin_type;
+using TypeKind = typeart_type_kind;
 
 struct StructTypeInfo {
   int id;
@@ -58,6 +58,6 @@ class TypeDB {
   std::vector<StructTypeInfo> structInfoList;
   std::map<int, int> id2Idx;
 };
-}  // namespace must
+}  // namespace typeart
 
 #endif  // LLVM_MUST_SUPPORT_TYPECONFIG_H

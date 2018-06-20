@@ -1,15 +1,15 @@
 add_subdirectory(analysis)
 
 set(PASS_SOURCES
-  MUSTSupportPass.cpp
+  TypeARTPass.cpp
   support/TypeUtil.cpp
   TypeManager.cpp
 )
 
-make_llvm_module(MustSupportPass
+make_llvm_module(TypeArtPass
   "${PASS_SOURCES}"
   LINK_LIBS
-    musttypelib
+    typelib
   DEPENDS
     MemInstFinderPass
   INCLUDE_DIRS

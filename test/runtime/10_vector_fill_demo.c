@@ -1,4 +1,4 @@
-// RUN: %scriptpath/applyAndRun.sh %s %pluginpath "-must-alloca" %rtpath 2>&1 | FileCheck %s
+// RUN: %scriptpath/applyAndRun.sh %s %pluginpath "-typeart-alloca" %rtpath 2>&1 | FileCheck %s
 
 #include "../../runtime/RuntimeInterface.h"
 #include <stdio.h>
@@ -22,8 +22,8 @@ void free_vector(vector v) {
 }
 
 int fill_vector(void* values, int count, vector* v) {
-  must_builtin_type type;
-  lookup_result result = must_support_get_builtin_type(values, &type);
+  typeart_builtin_type type;
+  lookup_result result = typeart_support_get_builtin_type(values, &type);
   if (result == SUCCESS && type == C_DOUBLE) {
     memcpy(v->vals, values, count);
     v->size = count;

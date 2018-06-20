@@ -6,7 +6,7 @@
 #include <form.h>
 #include <iostream>
 
-namespace must {
+namespace typeart {
 
 std::string TypeDB::builtinNames[] = {"char", "uchar", "short", "ushort", "int",    "uint",
                                       "long", "ulong", "float", "double", "unknown"};
@@ -67,31 +67,24 @@ const std::string& TypeDB::getTypeName(int id) const {
   return UnknownStructName;
 }
 
-// std::vector<std::string> TypeDB::getTypeList() const {
-//  std::vector<std::string> typeIDs;
-//  typeIDs.reserve(typeMap.size());
-//  for (const auto& entry : typeMap) {
-//    typeIDs.push_back(entry.first);
-//  }
-//  return typeIDs;
-//}
-
 size_t TypeDB::getBuiltinTypeSize(int id) const {
   switch (id) {
     case C_CHAR:
     case C_UCHAR:
-      return 1;
+      return sizeof(char);
     case C_SHORT:
     case C_USHORT:
-      return 2;
+      return sizeof(short);
     case C_INT:
-    case C_FLOAT:
     case C_UINT:
-      return 4;
+      return sizeof(int);
     case C_LONG:
-    case C_DOUBLE:
     case C_ULONG:
-      return 8;
+      return sizeof(long);
+    case C_FLOAT:
+      return sizeof(float);
+    case C_DOUBLE:
+      return sizeof(double);
     default:
       return 0;
   }
@@ -119,4 +112,4 @@ const std::vector<StructTypeInfo>& TypeDB::getStructList() const {
   return structInfoList;
 }
 
-}  // namespace must
+}  // namespace typeart

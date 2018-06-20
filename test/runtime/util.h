@@ -7,19 +7,19 @@
 #include "../../runtime/RuntimeInterface.h"
 
 void check(void* addr, int id, int expected_count, int resolveStructs) {
-    must_type_info type_info;
+    typeart_type_info type_info;
     size_t count_check;
-    lookup_result status = must_support_get_type(addr, &type_info, &count_check);
+    lookup_result status = typeart_support_get_type(addr, &type_info, &count_check);
     if (status == SUCCESS) {
         if (resolveStructs) {
             // If the address corresponds to a struct, fetch the type of the first member
             while (type_info.kind == STRUCT) {
                 size_t len;
-                const must_type_info *types;
+                const typeart_type_info *types;
                 const size_t *count;
                 const size_t *offsets;
                 size_t extent;
-                must_support_resolve_type(type_info.id, &len, &types, &count, &offsets, &extent);
+                typeart_support_resolve_type(type_info.id, &len, &types, &count, &offsets, &extent);
                 type_info = types[0];
                 count_check = count[0];
             }
@@ -51,18 +51,18 @@ void check(void* addr, int id, int expected_count, int resolveStructs) {
 }
 
 void check_struct(void* addr, const char* name, int expected_count) {
-    must_type_info type_info;
+    typeart_type_info type_info;
     size_t count_check;
-    lookup_result status = must_support_get_type(addr, &type_info, &count_check);
+    lookup_result status = typeart_support_get_type(addr, &type_info, &count_check);
     if (status == SUCCESS) {
         if (type_info.kind == STRUCT) {
             size_t len;
-            const must_type_info *types;
+            const typeart_type_info *types;
             const size_t *counts;
             const size_t *offsets;
             size_t extent;
-            must_support_resolve_type(type_info.id, &len, &types, &counts, &offsets, &extent);
-            if (strcmp(must_support_get_type_name(type_info.id), name) != 0) {
+            typeart_support_resolve_type(type_info.id, &len, &types, &counts, &offsets, &extent);
+            if (strcmp(typeart_support_get_type_name(type_info.id), name) != 0) {
                 fprintf(stderr, "Error: Name mismatch\n");
             } else if (expected_count != count_check) {
                 fprintf(stderr, "Error: Count mismatch (%zu)\n", count_check);

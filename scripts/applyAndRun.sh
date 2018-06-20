@@ -23,11 +23,13 @@ else
   compiler=clang++
 fi
 
-rm "${tmpDir}/musttypes"
+if [ -e "${tmpDir}/types.yaml" ]; then
+    rm "${tmpDir}/types.yaml"
+fi
 
 $compiler -S -emit-llvm "$target" -o "$tmpfile".ll
-opt -load ${pathToPlugin}/analysis/MemInstFinderPass.so -load ${pathToPlugin}/MustSupportPass.so -must "$pluginArgs"< "$tmpfile".ll -o "$tmpfile".ll > /dev/null
+opt -load ${pathToPlugin}/analysis/MemInstFinderPass.so -load ${pathToPlugin}/TypeArtPass.so -typeart "$pluginArgs"< "$tmpfile".ll -o "$tmpfile".ll > /dev/null
 llc "$tmpfile".ll -o "$tmpfile".s
-$compiler "$tmpfile".s -L"$pathToRT" -lmustsupport -o "$tmpfile".o
+$compiler "$tmpfile".s -L"$pathToRT" -ltypeart -o "$tmpfile".o
 echo -e Executing with runtime lib
 LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$rtDir" "$tmpfile".o

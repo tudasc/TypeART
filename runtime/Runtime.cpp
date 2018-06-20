@@ -7,14 +7,14 @@
 #include <cassert>
 #include <cstdlib>
 #include <cstring>
-#include <sstream>
 #include <iostream>
+#include <sstream>
 // TODO: Think about putting the logger somewhere else
 #include "../lib/support/Logger.h"
 
-namespace must {
+namespace typeart {
 
-MustSupportRT::MustSupportRT() {
+TypeArtRT::TypeArtRT() {
   std::string typeFile = std::string("./") + typeFileName;
   if (!loadTypes(typeFile)) {
     // Check env
@@ -22,7 +22,8 @@ MustSupportRT::MustSupportRT() {
     if (dir) {
       typeFile = std::string(dir) + "/" + typeFileName;
     } else {
-      LOG_ERROR("No type file in current directory. To specify a different path, edit the TYPE_PATH environment variable.");
+      LOG_ERROR(
+          "No type file in current directory. To specify a different path, edit the TYPE_PATH environment variable.");
     }
     if (!loadTypes(typeFile)) {
       LOG_ERROR("Failed to load recorded types from " << typeFile);
@@ -38,19 +39,19 @@ MustSupportRT::MustSupportRT() {
   printTraceStart();
 }
 
-bool MustSupportRT::loadTypes(const std::string& file) {
+bool TypeArtRT::loadTypes(const std::string& file) {
   TypeIO cio(typeDB);
   return cio.load(file);
 }
 
-void MustSupportRT::printTraceStart() {
+void TypeArtRT::printTraceStart() {
   LOG_TRACE("TypeART Runtime Trace");
   LOG_TRACE("**************************");
   LOG_TRACE("Operation  Address   Type   Size   Count");
   LOG_TRACE("--------------------------------------------------------");
 }
 
-const void* MustSupportRT::findBaseAddress(const void* addr) const {
+const void* TypeArtRT::findBaseAddress(const void* addr) const {
   if (addr < typeMap.begin()->first) {
     return nullptr;
   }
@@ -69,8 +70,8 @@ const void* MustSupportRT::findBaseAddress(const void* addr) const {
   return (std::prev(it))->first;
 }
 
-lookup_result MustSupportRT::getTypeInfoInternal(const void* baseAddr, size_t offset,
-                                                 const StructTypeInfo& containerInfo, must::TypeInfo* type, size_t* count) const {
+lookup_result TypeArtRT::getTypeInfoInternal(const void* baseAddr, size_t offset, const StructTypeInfo& containerInfo,
+                                             typeart::TypeInfo* type, size_t* count) const {
   // std::cerr << "Type is " << containerInfo.name << std::endl;
 
   assert(offset < containerInfo.extent && "Something went wrong with the base address computation");
@@ -113,7 +114,7 @@ lookup_result MustSupportRT::getTypeInfoInternal(const void* baseAddr, size_t of
     return getTypeInfoInternal(newBaseAddr, newOffset, *memberStructInfo, type, count);
   } else {
     assert((memberInfo.kind == BUILTIN || memberInfo.kind == POINTER) &&
-           "Type kind must be either STRUCT, BUILTIN or POINTER");
+           "Type kind typeart be either STRUCT, BUILTIN or POINTER");
     // Assume type is pointer by default
     int typeSize = sizeof(void*);
     if (memberInfo.kind == BUILTIN) {
@@ -122,7 +123,7 @@ lookup_result MustSupportRT::getTypeInfoInternal(const void* baseAddr, size_t of
     }
 
     size_t dif = offset - baseOffset;
-    // Type is atomic - offset must match up with type size
+    // Type is atomic - offset typeart match up with type size
     if (dif % typeSize == 0) {
       size_t offsetInTypeSize = dif / typeSize;
       if (offsetInTypeSize >= containerInfo.arraySizes[i]) {
@@ -137,7 +138,7 @@ lookup_result MustSupportRT::getTypeInfoInternal(const void* baseAddr, size_t of
   }
 }
 
-lookup_result MustSupportRT::getTypeInfo(const void* addr, must::TypeInfo* type, size_t* count) const {
+lookup_result TypeArtRT::getTypeInfo(const void* addr, typeart::TypeInfo* type, size_t* count) const {
   const void* basePtr = findBaseAddress(addr);
 
   if (basePtr) {
@@ -183,7 +184,7 @@ lookup_result MustSupportRT::getTypeInfo(const void* addr, must::TypeInfo* type,
   return UNKNOWN_ADDRESS;
 }
 
-lookup_result MustSupportRT::getBuiltinInfo(const void* addr, must::BuiltinType* type) const {
+lookup_result TypeArtRT::getBuiltinInfo(const void* addr, typeart::BuiltinType* type) const {
   TypeInfo info;
   size_t count;
   lookup_result result = getTypeInfo(addr, &info, &count);
@@ -197,9 +198,9 @@ lookup_result MustSupportRT::getBuiltinInfo(const void* addr, must::BuiltinType*
   return result;
 }
 
-lookup_result MustSupportRT::getStructInfo(int id, const StructTypeInfo** structInfo) const {
+lookup_result TypeArtRT::getStructInfo(int id, const StructTypeInfo** structInfo) const {
   TypeInfo typeInfo = typeDB.getTypeInfo(id);
-  // Requested ID must correspond to a struct
+  // Requested ID typeart correspond to a struct
   if (typeInfo.kind != STRUCT) {
     return WRONG_KIND;
   }
@@ -209,11 +210,11 @@ lookup_result MustSupportRT::getStructInfo(int id, const StructTypeInfo** struct
   return SUCCESS;
 }
 
-const std::string& MustSupportRT::getTypeName(int id) const {
+const std::string& TypeArtRT::getTypeName(int id) const {
   return typeDB.getTypeName(id);
 }
 
-void MustSupportRT::onAlloc(void* addr, int typeId, size_t count, size_t typeSize) {
+void TypeArtRT::onAlloc(void* addr, int typeId, size_t count, size_t typeSize) {
   auto it = typeMap.find(addr);
   if (it != typeMap.end()) {
     LOG_ERROR("Alloc recorded with unknown type ID: " << typeId);
@@ -225,7 +226,7 @@ void MustSupportRT::onAlloc(void* addr, int typeId, size_t count, size_t typeSiz
   }
 }
 
-void MustSupportRT::onFree(void* addr) {
+void TypeArtRT::onFree(void* addr) {
   auto it = typeMap.find(addr);
   if (it != typeMap.end()) {
     typeMap.erase(it);
@@ -236,28 +237,28 @@ void MustSupportRT::onFree(void* addr) {
   }
 }
 
-}  // namespace must
+}  // namespace typeart
 
-void __must_support_alloc(void* addr, int typeId, size_t count, size_t typeSize) {
-  must::MustSupportRT::get().onAlloc(addr, typeId, count, typeSize);
+void __typeart_support_alloc(void* addr, int typeId, size_t count, size_t typeSize) {
+  typeart::TypeArtRT::get().onAlloc(addr, typeId, count, typeSize);
 }
 
-void __must_support_free(void* addr) {
-  must::MustSupportRT::get().onFree(addr);
+void __typeart_support_free(void* addr) {
+  typeart::TypeArtRT::get().onFree(addr);
 }
 
-lookup_result must_support_get_builtin_type(const void* addr, must::BuiltinType* type) {
-  return must::MustSupportRT::get().getBuiltinInfo(addr, type);
+lookup_result typeart_support_get_builtin_type(const void* addr, typeart::BuiltinType* type) {
+  return typeart::TypeArtRT::get().getBuiltinInfo(addr, type);
 }
 
-lookup_result must_support_get_type(const void* addr, must::TypeInfo* type, size_t* count) {
-  return must::MustSupportRT::get().getTypeInfo(addr, type, count);
+lookup_result typeart_support_get_type(const void* addr, typeart::TypeInfo* type, size_t* count) {
+  return typeart::TypeArtRT::get().getTypeInfo(addr, type, count);
 }
 
-lookup_result must_support_resolve_type(int id, size_t* len, const must::TypeInfo* types[], const size_t* count[],
-                                        const size_t* offsets[], size_t* extent) {
-  const must::StructTypeInfo* structInfo;
-  lookup_result status = must::MustSupportRT::get().getStructInfo(id, &structInfo);
+lookup_result typeart_support_resolve_type(int id, size_t* len, const typeart::TypeInfo* types[], const size_t* count[],
+                                           const size_t* offsets[], size_t* extent) {
+  const typeart::StructTypeInfo* structInfo;
+  lookup_result status = typeart::TypeArtRT::get().getStructInfo(id, &structInfo);
   if (status == SUCCESS) {
     size_t n = structInfo->numMembers;
     *len = n;
@@ -270,6 +271,6 @@ lookup_result must_support_resolve_type(int id, size_t* len, const must::TypeInf
   return status;
 }
 
-const char* must_support_get_type_name(int id) {
-  return must::MustSupportRT::get().getTypeName(id).c_str();
+const char* typeart_support_get_type_name(int id) {
+  return typeart::TypeArtRT::get().getTypeName(id).c_str();
 }

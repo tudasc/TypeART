@@ -1,10 +1,10 @@
 // clang-format off
-// RUN: rm musttypes | clang -S -emit-llvm %s -o - | opt -load %pluginpath/analysis/MemInstFinderPass.so -load %pluginpath/%pluginname %pluginargs -S 2>&1; cat musttypes | FileCheck %s
+// RUN: rm types.yaml | clang -S -emit-llvm %s -o - | opt -load %pluginpath/analysis/MemInstFinderPass.so -load %pluginpath/%pluginname %pluginargs -S 2>&1; cat types.yaml | FileCheck %s
 // clang-format on
 
 // Note: This test assumes standard alignment on a 64bit system. Non-standard alignment may lead to failure.
 
-// typedef enum must_builtin_type_t {
+// typedef enum typeart_builtin_type_t {
 //    C_CHAR = 0,
 //    C_UCHAR = 1,
 //    C_SHORT = 2,
@@ -17,7 +17,7 @@
 //    C_DOUBLE = 9,
 //    INVALID = 10,
 //    N_BUILTIN_TYPES
-//} must_builtin_type;
+//} typeart_builtin_type;
 
 #include <stdlib.h>
 
