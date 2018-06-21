@@ -23,7 +23,7 @@ void free_vector(vector v) {
 
 int fill_vector(void* values, int count, vector* v) {
   typeart_builtin_type type;
-  lookup_result result = typeart_support_get_builtin_type(values, &type);
+  lookup_result result = typeart_get_builtin_type(values, &type);
   if (result == SUCCESS && type == C_DOUBLE) {
     memcpy(v->vals, values, count);
     v->size = count;

@@ -11,11 +11,11 @@ int main(int argc, char** argv) {
   // CHECK: Ok
   check_struct(a, "struct.s_int_t", 1);
   // CHECK: Ok
-  check(a, S_INT_ID, 1, 0);
+  check(a, get_struct_id(0), 1, 0);
   // CHECK: Ok
   check(a, C_INT, 1, 1);
   // CHECK: Error: Unknown address
-  check(a + 1, S_INT_ID, 1, 1);
+  check(a + 1, get_struct_id(0), 1, 1);
   // CHECK: [Trace] Free 0x{{.*}}
   free(a);
 
@@ -24,7 +24,7 @@ int main(int argc, char** argv) {
   // CHECK: Ok
   check_struct(b, "struct.s_builtins_t", 1);
   // CHECK: Ok
-  check(b, S_BUILTINS_ID, 1, 0);
+  check(b, get_struct_id(1), 1, 0);
   // CHECK: Ok
   check(b, C_INT, 1, 1);
   // CHECK: Error: Type mismatch
@@ -38,7 +38,7 @@ int main(int argc, char** argv) {
   // CHECK: Ok
   check(&b->c, C_LONG, 1, 1);
   // CHECK: Error: Unknown address
-  check(b + 1, S_INT_ID, 1, 0);
+  check(b + 1, get_struct_id(1), 1, 0);
   // CHECK: [Trace] Free 0x{{.*}}
   free(b);
 
@@ -47,7 +47,7 @@ int main(int argc, char** argv) {
   // CHECK: Ok
   check_struct(c, "struct.s_arrays_t", 1);
   // CHECK: Ok
-  check(c, S_ARRAYS_ID, 1, 0);
+  check(c, get_struct_id(2), 1, 0);
   // CHECK: Ok
   check(c, C_INT, 3, 1);
   // CHECK: Ok
@@ -63,7 +63,7 @@ int main(int argc, char** argv) {
   // CHECK: Ok
   check(&c->e[2], C_CHAR, 3, 1);
   // CHECK: Error: Unknown address
-  check(c + 1, S_ARRAYS_ID, 1, 0);
+  check(c + 1, get_struct_id(2), 1, 0);
   // CHECK: [Trace] Free 0x{{.*}}
   free(c);
 
@@ -72,7 +72,7 @@ int main(int argc, char** argv) {
   // CHECK: Ok
   check_struct(d, "struct.s_ptrs_t", 1);
   // CHECK: Ok
-  check(d, S_PTRS_ID, 1, 0);
+  check(d, get_struct_id(3), 1, 0);
   // CHECK: Ok
   check(d, C_CHAR, 1, 1);
   // CHECK: Ok
@@ -82,7 +82,7 @@ int main(int argc, char** argv) {
   // CHECK: Ok
   check(&d->d, UNKNOWN, 1, 1);
   // CHECK: Error: Unknown address
-  check(d + 1, S_PTRS_ID, 1, 0);
+  check(d + 1, get_struct_id(3), 1, 0);
   // CHECK: [Trace] Free 0x{{.*}}
   free(d);
 
@@ -91,7 +91,7 @@ int main(int argc, char** argv) {
   // CHECK: Ok
   check_struct(e, "struct.s_mixed_simple_t", 1);
   // CHECK: Ok
-  check(e, S_MIXED_SIMPLE_ID, 1, 0);
+  check(e, get_struct_id(4), 1, 0);
   // CHECK: Ok
   check(e, C_INT, 1, 1);
   // CHECK: Ok
@@ -99,7 +99,7 @@ int main(int argc, char** argv) {
   // CHECK: Ok
   check(&e->c, UNKNOWN, 1, 1);
   // CHECK: Error: Unknown address
-  check(e + 1, S_MIXED_SIMPLE_ID, 1, 0);
+  check(e + 1, get_struct_id(4), 1, 0);
   // CHECK: [Trace] Free 0x{{.*}}
   free(e);
 

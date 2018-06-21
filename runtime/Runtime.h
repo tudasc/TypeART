@@ -4,12 +4,14 @@
 #include "RuntimeInterface.h"
 #include <TypeDB.h>
 
+#include <deque>
 #include <map>
 
 extern "C" {
-void __typeart_alloc(void *addr, int typeId, size_t count, size_t typeSize);
-void __typeart_free(void *addr);
-
+void __typeart_alloc(void* addr, int typeId, size_t count, size_t typeSize, int isLocal);
+void __typeart_free(void* addr);
+void __typeart_enter_scope();
+void __typeart_leave_scope();
 }
 
 namespace typeart {
@@ -45,9 +47,13 @@ class TypeArtRT {
 
   const std::string& getTypeName(int id) const;
 
-  void onAlloc(void* addr, int typeID, size_t count, size_t typeSize);
+  void onAlloc(const void* addr, int typeID, size_t count, size_t typeSize, bool isLocal);
 
-  void onFree(void* addr);
+  void onFree(const void* addr);
+
+  void onEnterScope();
+
+  void onLeaveScope();
 
  private:
   TypeArtRT();
@@ -62,7 +68,10 @@ class TypeArtRT {
   const void* findBaseAddress(const void* addr) const;
 
   TypeDB typeDB;
+
   std::map<const void*, PointerInfo> typeMap;
+
+  std::deque<std::vector<const void*>> scopes;
 
   std::string typeFileName{"types.yaml"};
 };

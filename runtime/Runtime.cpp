@@ -47,7 +47,7 @@ bool TypeArtRT::loadTypes(const std::string& file) {
 void TypeArtRT::printTraceStart() {
   LOG_TRACE("TypeART Runtime Trace");
   LOG_TRACE("**************************");
-  LOG_TRACE("Operation  Address   Type   Size   Count");
+  LOG_TRACE("Operation  Address   Type   Size   Count  Stack/Heap");
   LOG_TRACE("--------------------------------------------------------");
 }
 
@@ -72,11 +72,11 @@ const void* TypeArtRT::findBaseAddress(const void* addr) const {
 
 lookup_result TypeArtRT::getTypeInfoInternal(const void* baseAddr, size_t offset, const StructTypeInfo& containerInfo,
                                              typeart::TypeInfo* type, size_t* count) const {
-  // std::cerr << "Type is " << containerInfo.name << std::endl;
-
   assert(offset < containerInfo.extent && "Something went wrong with the base address computation");
+
   // std::cout << "internal: base=" << baseAddr << ", offset=" << offset << ", container=" << containerInfo.name <<
   // std::endl;
+
   size_t i = 0;
   // This should always be 0, but safety doesn't hurt
   size_t baseOffset = containerInfo.offsets.front();
@@ -93,49 +93,39 @@ lookup_result TypeArtRT::getTypeInfoInternal(const void* baseAddr, size_t offset
 
   auto memberInfo = containerInfo.memberTypes[i];
 
-  // Offset corresponds directly to a member
-  if (baseOffset == offset) {
+  size_t offsetDif = offset - baseOffset;
+
+  assert((memberInfo.kind == STRUCT || memberInfo.kind == BUILTIN || memberInfo.kind == POINTER) &&
+         "Type kind typeart be either STRUCT, BUILTIN or POINTER");
+
+  size_t typeSize = 0;
+  if (memberInfo.kind == STRUCT) {
+    auto memberStructInfo = typeDB.getStructInfo(memberInfo.id);
+    typeSize = memberStructInfo->extent;
+    if (offsetDif % typeSize != 0) {
+      // Address points inside of a sub-struct -> we have to go deeper
+      const void* newBaseAddr = static_cast<const void*>(static_cast<const uint8_t*>(baseAddr) + baseOffset);
+      size_t newOffset = offset - baseOffset;
+      return getTypeInfoInternal(newBaseAddr, newOffset, *memberStructInfo, type, count);
+    }
+  } else if (memberInfo.kind == POINTER) {
+    typeSize = sizeof(void*);
+  } else {
+    typeSize = typeDB.getBuiltinTypeSize(memberInfo.id);
+  }
+
+  // Type is either atomic or the address corresponds to the start of a sub-struct - offset must match up with type size
+  if (offsetDif % typeSize == 0) {
+    size_t offsetInTypeSize = offsetDif / typeSize;
+    if (offsetInTypeSize >= containerInfo.arraySizes[i]) {
+      // Address points to padding
+      return BAD_ALIGNMENT;
+    }
     *type = memberInfo;
-    *count = containerInfo.arraySizes[i];
+    *count = containerInfo.arraySizes[i] - offsetInTypeSize;
     return SUCCESS;
   }
-
-  // Offset corresponds to location inside the member
-
-  assert((offset > containerInfo.offsets[i] &&
-          (i == containerInfo.numMembers - 1 || baseOffset < containerInfo.offsets[i + 1])) &&
-         "Bug in offset computation code");
-
-  if (memberInfo.kind == STRUCT) {
-    // Address points inside of a sub-struct -> we have to go deeper
-    auto memberStructInfo = typeDB.getStructInfo(memberInfo.id);
-    const void* newBaseAddr = static_cast<const void*>(static_cast<const uint8_t*>(baseAddr) + baseOffset);
-    size_t newOffset = offset - baseOffset;
-    return getTypeInfoInternal(newBaseAddr, newOffset, *memberStructInfo, type, count);
-  } else {
-    assert((memberInfo.kind == BUILTIN || memberInfo.kind == POINTER) &&
-           "Type kind typeart be either STRUCT, BUILTIN or POINTER");
-    // Assume type is pointer by default
-    int typeSize = sizeof(void*);
-    if (memberInfo.kind == BUILTIN) {
-      // Fetch actual size
-      typeSize = typeDB.getBuiltinTypeSize(memberInfo.id);
-    }
-
-    size_t dif = offset - baseOffset;
-    // Type is atomic - offset typeart match up with type size
-    if (dif % typeSize == 0) {
-      size_t offsetInTypeSize = dif / typeSize;
-      if (offsetInTypeSize >= containerInfo.arraySizes[i]) {
-        // Address points to padding
-        return BAD_ALIGNMENT;
-      }
-      *type = memberInfo;
-      *count = containerInfo.arraySizes[i] - offsetInTypeSize;
-      return SUCCESS;
-    }
-    return BAD_ALIGNMENT;
-  }
+  return BAD_ALIGNMENT;
 }
 
 lookup_result TypeArtRT::getTypeInfo(const void* addr, typeart::TypeInfo* type, size_t* count) const {
@@ -214,7 +204,7 @@ const std::string& TypeArtRT::getTypeName(int id) const {
   return typeDB.getTypeName(id);
 }
 
-void TypeArtRT::onAlloc(void* addr, int typeId, size_t count, size_t typeSize) {
+void TypeArtRT::onAlloc(const void* addr, int typeId, size_t count, size_t typeSize, bool isLocal) {
   auto it = typeMap.find(addr);
   if (it != typeMap.end()) {
     LOG_ERROR("Alloc recorded with unknown type ID: " << typeId);
@@ -222,11 +212,19 @@ void TypeArtRT::onAlloc(void* addr, int typeId, size_t count, size_t typeSize) {
   } else {
     typeMap[addr] = {addr, typeId, count, typeSize};
     auto typeString = typeDB.getTypeName(typeId);
-    LOG_TRACE("Alloc " << addr << " " << typeString << " " << typeSize << " " << count);
+    LOG_TRACE("Alloc " << addr << " " << typeString << " " << typeSize << " " << count << " " << (isLocal ? "S" : "H"));
+    if (isLocal) {
+      if (scopes.empty()) {
+        LOG_ERROR("Error while recording stack allocation: no active scope");
+        return;
+      }
+      auto& scope = scopes.back();
+      scope.push_back(addr);
+    }
   }
 }
 
-void TypeArtRT::onFree(void* addr) {
+void TypeArtRT::onFree(const void* addr) {
   auto it = typeMap.find(addr);
   if (it != typeMap.end()) {
     typeMap.erase(it);
@@ -237,26 +235,52 @@ void TypeArtRT::onFree(void* addr) {
   }
 }
 
-}  // namespace typeart
-
-void __typeart_alloc(void *addr, int typeId, size_t count, size_t typeSize) {
-  typeart::TypeArtRT::get().onAlloc(addr, typeId, count, typeSize);
+void TypeArtRT::onEnterScope() {
+  LOG_TRACE("Entering scope");
+  scopes.push_back({});
 }
 
-void __typeart_free(void *addr) {
+void TypeArtRT::onLeaveScope() {
+  if (scopes.empty()) {
+    LOG_ERROR("Error while leaving scope: no active scope");
+    return;
+  }
+  std::vector<const void*>& scope = scopes.back();
+  LOG_TRACE("Leaving scope: freeing " << scope.size() << " stack entries");
+  for (const void* addr : scope) {
+    onFree(addr);
+  }
+  scopes.pop_back();
+}
+
+}  // namespace typeart
+
+void __typeart_alloc(void* addr, int typeId, size_t count, size_t typeSize, int isLocal) {
+  typeart::TypeArtRT::get().onAlloc(addr, typeId, count, typeSize, isLocal);
+}
+
+void __typeart_free(void* addr) {
   typeart::TypeArtRT::get().onFree(addr);
 }
 
-lookup_result typeart_support_get_builtin_type(const void* addr, typeart::BuiltinType* type) {
+void __typeart_enter_scope() {
+  typeart::TypeArtRT::get().onEnterScope();
+}
+
+void __typeart_leave_scope() {
+  typeart::TypeArtRT::get().onLeaveScope();
+}
+
+lookup_result typeart_get_builtin_type(const void* addr, typeart::BuiltinType* type) {
   return typeart::TypeArtRT::get().getBuiltinInfo(addr, type);
 }
 
-lookup_result typeart_support_get_type(const void* addr, typeart::TypeInfo* type, size_t* count) {
+lookup_result typeart_get_type(const void* addr, typeart::TypeInfo* type, size_t* count) {
   return typeart::TypeArtRT::get().getTypeInfo(addr, type, count);
 }
 
-lookup_result typeart_support_resolve_type(int id, size_t* len, const typeart::TypeInfo* types[], const size_t* count[],
-                                           const size_t* offsets[], size_t* extent) {
+lookup_result typeart_resolve_type(int id, size_t* len, const typeart_type_info** types, const size_t** count,
+                                   const size_t** offsets, size_t* extent) {
   const typeart::StructTypeInfo* structInfo;
   lookup_result status = typeart::TypeArtRT::get().getStructInfo(id, &structInfo);
   if (status == SUCCESS) {
@@ -271,6 +295,6 @@ lookup_result typeart_support_resolve_type(int id, size_t* len, const typeart::T
   return status;
 }
 
-const char* typeart_support_get_type_name(int id) {
+const char* typeart_get_type_name(int id) {
   return typeart::TypeArtRT::get().getTypeName(id).c_str();
 }

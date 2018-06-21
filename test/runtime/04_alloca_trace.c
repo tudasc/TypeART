@@ -6,6 +6,8 @@ int main(int argc, char** argv) {
   const int n = 42;
   // CHECK: [Trace] TypeART Runtime Trace
 
+  // CHECK: [Trace] Entering scope
+
   // CHECK: [Trace] Alloc 0x{{.*}} char 1 42
   char a[n];
 
@@ -26,6 +28,8 @@ int main(int argc, char** argv) {
 
   // CHECK: [Trace] Alloc 0x{{.*}} unknown 8 42
   int* g[n];
+
+  // CHECK: [Trace] Leaving scope
 
   // CHECK: [Trace] Free 0x{{.*}}
   // CHECK: [Trace] Free 0x{{.*}}

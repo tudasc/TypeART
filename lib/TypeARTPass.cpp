@@ -12,6 +12,7 @@
 
 #include <TypeIO.h>
 #include <iostream>
+#include <llvm/Transforms/Utils/EscapeEnumerator.h>
 #include <sstream>
 #include <string>
 
@@ -62,7 +63,7 @@ bool TypeArtSupportPass::doInitialization(Module& m) {
   /**
    * Introduce the necessary instrumentation functions in the LLVM module.
    * functions:
-   * void __typeart_alloc(void *ptr_base, int type_id, long int count, long int elem_size)
+   * void __typeart_alloc(void *addr, int typeId, size_t count, size_t typeSize, int isLocal)
    * void __typeart_free(void *ptr)
    *
    * Also scan the LLVM module for type definitions and add them to our type list.
@@ -110,7 +111,9 @@ bool TypeArtSupportPass::runOnFunction(Function& f) {
     auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
     // Compute element count: count = numBytes / typeSize
     auto elementCount = IRB.CreateUDiv(mallocArg, typeSizeConst);
-    IRB.CreateCall(typeart_alloc.f, ArrayRef<Value*>{mallocInst, typeIdConst, elementCount, typeSizeConst});
+    auto isLocalConst = ConstantInt::get(tu::getInt32Type(c), 0);
+    IRB.CreateCall(typeart_alloc.f,
+                   ArrayRef<Value*>{mallocInst, typeIdConst, elementCount, typeSizeConst, isLocalConst});
 
     return true;
   };
@@ -136,11 +139,24 @@ bool TypeArtSupportPass::runOnFunction(Function& f) {
     auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), typeId);
     auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
     auto numElementsConst = ConstantInt::get(tu::getInt64Type(c), arraySize);
+    auto isLocalConst = ConstantInt::get(tu::getInt32Type(c), 1);
 
     IRBuilder<> IRB(insertBefore);
     auto arrayPtr = IRB.CreateBitOrPointerCast(alloca, tu::getVoidPtrType(c));
-    IRB.CreateCall(typeart_alloc.f, ArrayRef<Value*>{arrayPtr, typeIdConst, numElementsConst, typeSizeConst});
+    IRB.CreateCall(typeart_alloc.f,
+                   ArrayRef<Value*>{arrayPtr, typeIdConst, numElementsConst, typeSizeConst, isLocalConst});
 
+    return true;
+  };
+
+  const auto instrumentEnterScope = [&](auto& insertBefore) -> bool {
+    IRBuilder<> IRB(&insertBefore);
+    IRB.CreateCall(typeart_enter_scope.f);
+    return true;
+  };
+
+  const auto instrumentLeaveScope = [&](auto& builder) -> bool {
+    builder.CreateCall(typeart_leave_scope.f);
     return true;
   };
 
@@ -156,6 +172,16 @@ bool TypeArtSupportPass::runOnFunction(Function& f) {
   }
 
   if (ClTypeArtAlloca) {
+    // Create new scope
+    auto& entryPoint = *f.getEntryBlock().getFirstInsertionPt();
+    instrumentEnterScope(entryPoint);
+
+    // Find return instructions and exceptions
+    EscapeEnumerator ee(f);
+    while (IRBuilder<>* beforeEscape = ee.Next()) {
+      instrumentLeaveScope(*beforeEscape);
+    }
+
     for (auto alloca : listAlloca) {
       if (alloca->getAllocatedType()->isArrayTy()) {
         ++NumFoundAlloca;
@@ -200,11 +226,14 @@ void TypeArtSupportPass::declareInstrumentationFunctions(Module& m) {
   };
 
   auto& c = m.getContext();
-  Type* alloc_arg_types[] = {tu::getVoidPtrType(c), tu::getInt32Type(c), tu::getInt64Type(c), tu::getInt64Type(c)};
+  Type* alloc_arg_types[] = {tu::getVoidPtrType(c), tu::getInt32Type(c), tu::getInt64Type(c), tu::getInt64Type(c),
+                             tu::getInt32Type(c)};
   Type* free_arg_types[] = {tu::getVoidPtrType(c)};
 
   make_function(typeart_alloc, FunctionType::get(Type::getVoidTy(c), alloc_arg_types, false));
   make_function(typeart_free, FunctionType::get(Type::getVoidTy(c), free_arg_types, false));
+  make_function(typeart_enter_scope, FunctionType::get(Type::getVoidTy(c), false));
+  make_function(typeart_leave_scope, FunctionType::get(Type::getVoidTy(c), false));
 }
 
 void TypeArtSupportPass::propagateTypeInformation(Module&) {

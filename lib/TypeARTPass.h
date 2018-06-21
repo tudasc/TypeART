@@ -28,6 +28,10 @@ class TypeArtSupportPass : public llvm::FunctionPass {
 
   TypeArtFunc typeart_free{"__typeart_free"};
 
+  TypeArtFunc typeart_enter_scope{"__typeart_enter_scope"};
+
+  TypeArtFunc typeart_leave_scope{"__typeart_leave_scope"};
+
   std::string configFileName{"types.yaml"};
 
   TypeManager typeManager;
@@ -52,7 +56,7 @@ class TypeArtSupportPass : public llvm::FunctionPass {
  private:
   /*
    * Declares the external functions in the module.
-   * void __typeart_alloc(void *ptr_base, int type_id, long int count, long int elem_size)
+   * void __typeart_alloc(void *addr, int typeId, size_t count, size_t typeSize, int isLocal)
    * void __typeart_free(void *ptr)
    */
   void declareInstrumentationFunctions(llvm::Module&);
