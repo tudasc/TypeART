@@ -62,8 +62,8 @@ bool TypeArtSupportPass::doInitialization(Module& m) {
   /**
    * Introduce the necessary instrumentation functions in the LLVM module.
    * functions:
-   * void __typeart_support_alloc(void *ptr_base, int type_id, long int count, long int elem_size)
-   * void __typeart_support_free(void *ptr)
+   * void __typeart_alloc(void *ptr_base, int type_id, long int count, long int elem_size)
+   * void __typeart_free(void *ptr)
    *
    * Also scan the LLVM module for type definitions and add them to our type list.
    */

@@ -239,11 +239,11 @@ void TypeArtRT::onFree(void* addr) {
 
 }  // namespace typeart
 
-void __typeart_support_alloc(void* addr, int typeId, size_t count, size_t typeSize) {
+void __typeart_alloc(void *addr, int typeId, size_t count, size_t typeSize) {
   typeart::TypeArtRT::get().onAlloc(addr, typeId, count, typeSize);
 }
 
-void __typeart_support_free(void* addr) {
+void __typeart_free(void *addr) {
   typeart::TypeArtRT::get().onFree(addr);
 }
 

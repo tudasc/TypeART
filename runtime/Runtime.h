@@ -7,8 +7,9 @@
 #include <map>
 
 extern "C" {
-void __typeart_support_alloc(void* addr, int typeId, size_t count, size_t typeSize);
-void __typeart_support_free(void* addr);
+void __typeart_alloc(void *addr, int typeId, size_t count, size_t typeSize);
+void __typeart_free(void *addr);
+
 }
 
 namespace typeart {

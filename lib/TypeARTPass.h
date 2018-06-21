@@ -24,9 +24,9 @@ class TypeArtSupportPass : public llvm::FunctionPass {
     llvm::Constant* f{nullptr};
   };
 
-  TypeArtFunc typeart_alloc{"__typeart_support_alloc"};
+  TypeArtFunc typeart_alloc{"__typeart_alloc"};
 
-  TypeArtFunc typeart_free{"__typeart_support_free"};
+  TypeArtFunc typeart_free{"__typeart_free"};
 
   std::string configFileName{"types.yaml"};
 
@@ -52,8 +52,8 @@ class TypeArtSupportPass : public llvm::FunctionPass {
  private:
   /*
    * Declares the external functions in the module.
-   * void __typeart_support_alloc(void *ptr_base, int type_id, long int count, long int elem_size)
-   * void __typeart_support_free(void *ptr)
+   * void __typeart_alloc(void *ptr_base, int type_id, long int count, long int elem_size)
+   * void __typeart_free(void *ptr)
    */
   void declareInstrumentationFunctions(llvm::Module&);
   void propagateTypeInformation(llvm::Module&);
