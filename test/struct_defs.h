@@ -51,4 +51,26 @@ typedef struct s_mixed_simple_t {
     char d[5];  // 40
 } s_mixed_simple;  // 48
 
+// ID: 16
+#define S_PTR_TO_SELF_ID 16
+typedef struct s_ptr_to_self_t {
+    struct s_ptr_to_self_t* a;  // 0
+    struct s_ptr_to_self_t** b; // 8
+} s_ptr_to_self;  // 16
+
+// ID: 17
+#define S_STRUCT_MEMBER_ID 17
+typedef struct s_struct_member_t {
+    int a; // 0
+    s_ptr_to_self b;  // 4
+    struct s_struct_member_t* c; // 20
+} s_struct_member; // 32
+
+#define S_AOS_ID 18
+typedef struct s_aos_t {
+    int a; // 0
+    s_struct_member b[2]; // 8
+    s_struct_member* c[3]; // 72
+} s_aos; // 96
+
 #endif

@@ -33,11 +33,11 @@ else
   compiler_wrapper=$cxx_compiler_wrapper
 fi
 
-if [ -e musttypes ]; then
-  rm musttypes
+if [ -e "types.yaml" ]; then
+  rm "types.yaml"
 fi
 
 OMPI_CC=$c_compiler OMPI_CXX=$cxx_compiler $compiler_wrapper -S -emit-llvm "$target" -o "$tmpfile".ll
-opt -load "${pathToPlugin}/analysis/MemInstFinderPass.so" -load "${pathToPlugin}/MustSupportPass.so" -must < "$tmpfile".ll -o "$tmpfile".ll > /dev/null
+opt -load "${pathToPlugin}/analysis/MemInstFinderPass.so" -load "${pathToPlugin}/TypeArtPass.so" -typeart -typeart-alloca < "$tmpfile".ll -o "$tmpfile".ll > /dev/null
 llc "$tmpfile".ll -o "$tmpfile".s
-OMPI_CC=$c_compiler OMPI_CXX=$cxx_compiler $compiler_wrapper "$tmpfile".s -L"$pathToRT" -lmustsupport -o "$outfile"
+OMPI_CC=$c_compiler OMPI_CXX=$cxx_compiler $compiler_wrapper "$tmpfile".s -L"$pathToRT" -ltypeart -o "$outfile"

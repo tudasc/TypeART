@@ -9,6 +9,9 @@
 #define MSG_TAG 666
 #define COUNT 5
 
+// Comment out for heap allocation
+#define USE_STACK
+
 struct particle{
     int id;
     double vel[3];
