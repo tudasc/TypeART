@@ -3,19 +3,17 @@
 //
 
 #include "TypeIO.h"
-
 #include "TypeDB.h"
 #include "TypeInterface.h"
 
-#include <algorithm>
-//#include <cassert>
-
 #include "llvm/Support/ErrorOr.h"
+#include "llvm/Support/FileSystem.h"
 #include "llvm/Support/MemoryBuffer.h"
-#include <llvm/Support/FileSystem.h>
-#include <llvm/Support/YAMLParser.h>
-#include <llvm/Support/YAMLTraits.h>
-#include <llvm/Support/raw_ostream.h>
+#include "llvm/Support/YAMLParser.h"
+#include "llvm/Support/YAMLTraits.h"
+#include "llvm/Support/raw_ostream.h"
+
+#include <algorithm>
 
 using namespace llvm::yaml;
 
@@ -63,7 +61,7 @@ bool TypeIO::load(const std::string& file) {
   auto memBuffer = MemoryBuffer::getFile(file);
 
   if (std::error_code ec = memBuffer.getError()) {
-    // TODO meaninful error handling/message
+    // TODO meaningful error handling/message
     return false;
   }
 
@@ -98,7 +96,6 @@ bool TypeIO::store(const std::string& file) const {
 
   yaml::Output out(oss);
 
-  // FIXME why does yaml not cope with const types (only when explicitly registered)
   auto types = typeDB.getStructList();
   out << types;
 

@@ -3,10 +3,11 @@
 //
 
 #include "TypeManager.h"
+#include "TypeIO.h"
 #include "support/Logger.h"
 #include "support/TypeUtil.h"
 #include "support/Util.h"
-#include <TypeIO.h>
+
 #include <iostream>
 
 namespace tu = util::type;

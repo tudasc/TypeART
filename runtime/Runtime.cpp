@@ -1,16 +1,14 @@
 #include "Runtime.h"
 #include "RuntimeInterface.h"
+#include "TypeIO.h"
+#include "support/Logger.h"
 
-#include <TypeIO.h>
-//#include <TypeDB.h>
 #include <algorithm>
 #include <cassert>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
 #include <sstream>
-// TODO: Think about putting the logger somewhere else
-#include "../lib/support/Logger.h"
 
 namespace typeart {
 
