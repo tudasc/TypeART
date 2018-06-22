@@ -18,7 +18,7 @@ class AnalysisUsage;
 namespace typeart {
 namespace pass {
 
-class TypeArtSupportPass : public llvm::FunctionPass {
+class TypeArtPass : public llvm::FunctionPass {
  private:
   struct TypeArtFunc {
     const std::string name{""};
@@ -43,7 +43,7 @@ class TypeArtSupportPass : public llvm::FunctionPass {
   static char ID;  // used to identify pass
 
   /* Call base class ctor with ID */
-  TypeArtSupportPass();
+  TypeArtPass();
 
   /* Run once per module */
   bool doInitialization(llvm::Module&) override;

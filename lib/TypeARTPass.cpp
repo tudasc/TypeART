@@ -21,7 +21,7 @@ using namespace llvm;
 #define DEBUG_TYPE "typeart"
 
 namespace {
-static llvm::RegisterPass<typeart::pass::TypeArtSupportPass> msp("typeart", "TypeArt type information", false, false);
+static llvm::RegisterPass<typeart::pass::TypeArtPass> msp("typeart", "TypeArt type information", false, false);
 }  // namespace
 
 static cl::opt<bool> ClTypeArtStats("typeart-stats", cl::desc("Show statistics for TypeArt type pass."), cl::Hidden,
@@ -43,11 +43,11 @@ namespace typeart {
 namespace pass {
 
 // Used by LLVM pass manager to identify passes in memory
-char TypeArtSupportPass::ID = 0;
+char TypeArtPass::ID = 0;
 
-// std::unique_ptr<TypeMapping> TypeArtSupportPass::typeMapping = std::make_unique<SimpleTypeMapping>();
+// std::unique_ptr<TypeMapping> TypeArtPass::typeMapping = std::make_unique<SimpleTypeMapping>();
 
-TypeArtSupportPass::TypeArtSupportPass() : llvm::FunctionPass(ID) {
+TypeArtPass::TypeArtPass() : llvm::FunctionPass(ID) {
   if (ClConfigDir.empty()) {
     configFile = std::string("./") + configFileName;
   } else {
@@ -55,11 +55,11 @@ TypeArtSupportPass::TypeArtSupportPass() : llvm::FunctionPass(ID) {
   }
 }
 
-void TypeArtSupportPass::getAnalysisUsage(llvm::AnalysisUsage& info) const {
+void TypeArtPass::getAnalysisUsage(llvm::AnalysisUsage& info) const {
   info.addRequired<typeart::MemInstFinderPass>();
 }
 
-bool TypeArtSupportPass::doInitialization(Module& m) {
+bool TypeArtPass::doInitialization(Module& m) {
   /**
    * Introduce the necessary instrumentation functions in the LLVM module.
    * functions:
@@ -75,7 +75,7 @@ bool TypeArtSupportPass::doInitialization(Module& m) {
   return true;
 }
 
-bool TypeArtSupportPass::runOnFunction(Function& f) {
+bool TypeArtPass::runOnFunction(Function& f) {
   using namespace typeart;
 
   bool mod{false};
@@ -200,7 +200,7 @@ bool TypeArtSupportPass::runOnFunction(Function& f) {
   return mod;
 }
 
-bool TypeArtSupportPass::doFinalization(Module&) {
+bool TypeArtPass::doFinalization(Module&) {
   /*
    * Persist the accumulated type definition information for this module.
    */
@@ -217,7 +217,7 @@ bool TypeArtSupportPass::doFinalization(Module&) {
   return false;
 }
 
-void TypeArtSupportPass::declareInstrumentationFunctions(Module& m) {
+void TypeArtPass::declareInstrumentationFunctions(Module& m) {
   const auto make_function = [&m](auto& f_struct, auto f_type) {
     f_struct.f = m.getOrInsertFunction(f_struct.name, f_type);
     if (auto f = dyn_cast<Function>(f_struct.f)) {
@@ -236,7 +236,7 @@ void TypeArtSupportPass::declareInstrumentationFunctions(Module& m) {
   make_function(typeart_leave_scope, FunctionType::get(Type::getVoidTy(c), false));
 }
 
-void TypeArtSupportPass::propagateTypeInformation(Module&) {
+void TypeArtPass::propagateTypeInformation(Module&) {
   /* Read already acquired information from temporary storage */
   /*
    * Scan module for type definitions and add to the type information map
@@ -254,7 +254,7 @@ void TypeArtSupportPass::propagateTypeInformation(Module&) {
   }
 }
 
-void TypeArtSupportPass::printStats(llvm::raw_ostream& out) {
+void TypeArtPass::printStats(llvm::raw_ostream& out) {
   const unsigned max_string{12u};
   const unsigned max_val{5u};
   std::string line(22, '-');
@@ -264,7 +264,7 @@ void TypeArtSupportPass::printStats(llvm::raw_ostream& out) {
   };
 
   out << line;
-  out << "   TypeArtSupportPass\n";
+  out << "   TypeArtPass\n";
   out << line;
   out << "Heap Memory\n";
   out << line;
@@ -285,6 +285,6 @@ void TypeArtSupportPass::printStats(llvm::raw_ostream& out) {
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
 
 static void registerClangPass(const llvm::PassManagerBuilder&, llvm::legacy::PassManagerBase& PM) {
-  PM.add(new typeart::pass::TypeArtSupportPass());
+  PM.add(new typeart::pass::TypeArtPass());
 }
 static RegisterStandardPasses RegisterClangPass(PassManagerBuilder::EP_EarlyAsPossible, registerClangPass);
