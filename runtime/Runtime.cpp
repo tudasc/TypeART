@@ -16,21 +16,21 @@ namespace typeart {
 std::string TypeArtRT::defaultTypeFileName{"types.yaml"};
 
 TypeArtRT::TypeArtRT() {
-
   // Try to load types from specified file first.
   // Then look at default location.
   const char* typeFile = std::getenv("TYPE_FILE");
   if (typeFile) {
-      if (!loadTypes(typeFile)) {
-          LOG_ERROR("Failed to load recorded types from " << typeFile);
-          exit(0); // TODO: Error handling
-      }
+    if (!loadTypes(typeFile)) {
+      LOG_ERROR("Failed to load recorded types from " << typeFile);
+      exit(0);  // TODO: Error handling
+    }
   } else {
-      if (!loadTypes(defaultTypeFileName)) {
-          LOG_ERROR(
-                  "No type file with default name \"" << defaultTypeFileName << "\" in current directory. To specify a different file, edit the TYPE_FILE environment variable.");
-          exit(0); // TODO: Error handling
-      }
+    if (!loadTypes(defaultTypeFileName)) {
+      LOG_ERROR("No type file with default name \""
+                << defaultTypeFileName
+                << "\" in current directory. To specify a different file, edit the TYPE_FILE environment variable.");
+      exit(0);  // TODO: Error handling
+    }
   }
 
   std::stringstream ss;
@@ -85,8 +85,9 @@ size_t TypeArtRT::getMemberIndex(const StructTypeInfo& structInfo, size_t offset
   return i;
 }
 
-TypeArtRT::TypeArtStatus TypeArtRT::getTypeInfoInternal(const void* baseAddr, size_t offset, const StructTypeInfo& containerInfo,
-                                             typeart::TypeInfo* type, size_t* count) const {
+TypeArtRT::TypeArtStatus TypeArtRT::getTypeInfoInternal(const void* baseAddr, size_t offset,
+                                                        const StructTypeInfo& containerInfo, typeart::TypeInfo* type,
+                                                        size_t* count) const {
   assert(offset < containerInfo.extent && "Something went wrong with the base address computation");
 
   // std::cout << "internal: base=" << baseAddr << ", offset=" << offset << ", container=" << containerInfo.name <<
@@ -285,7 +286,7 @@ typeart_status typeart_get_type(const void* addr, typeart::TypeInfo* type, size_
 }
 
 typeart_status typeart_resolve_type(int id, size_t* len, const typeart_type_info** types, const size_t** count,
-                                   const size_t** offsets, size_t* extent) {
+                                    const size_t** offsets, size_t* extent) {
   const typeart::StructTypeInfo* structInfo;
   typeart_status status = typeart::TypeArtRT::get().getStructInfo(id, &structInfo);
   if (status == SUCCESS) {

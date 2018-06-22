@@ -28,7 +28,8 @@ static cl::opt<bool> ClTypeArtStats("typeart-stats", cl::desc("Show statistics f
                                     cl::init(false));
 static cl::opt<bool> ClTypeArtAlloca("typeart-alloca", cl::desc("Track alloca instructions."), cl::Hidden,
                                      cl::init(false));
-static cl::opt<std::string> ClConfigDir("config-dir", cl::desc("Location of the type typeDB directory"), cl::Hidden);
+static cl::opt<std::string> ClTypeFile("typeart-outfile", cl::desc("Location of the generated type file."), cl::Hidden,
+                                       cl::init("types.yaml"));
 
 // FIXME 1) include bitcasts? 2) disabled by default in LLVM builds (use LLVM_ENABLE_STATS when building)
 // STATISTIC(NumInstrumentedMallocs, "Number of instrumented mallocs");
@@ -47,12 +48,8 @@ char TypeArtPass::ID = 0;
 
 // std::unique_ptr<TypeMapping> TypeArtPass::typeMapping = std::make_unique<SimpleTypeMapping>();
 
-TypeArtPass::TypeArtPass() : llvm::FunctionPass(ID) {
-  if (ClConfigDir.empty()) {
-    configFile = std::string("./") + configFileName;
-  } else {
-    configFile = ClConfigDir + "/" + configFileName;
-  }
+TypeArtPass::TypeArtPass() : llvm::FunctionPass(ID), typeManager(ClTypeFile.getValue()) {
+  assert(!ClTypeFile.empty() && "Default type file not set");
 }
 
 void TypeArtPass::getAnalysisUsage(llvm::AnalysisUsage& info) const {
@@ -204,12 +201,12 @@ bool TypeArtPass::doFinalization(Module&) {
   /*
    * Persist the accumulated type definition information for this module.
    */
-  LOG_DEBUG("Writing type config file to " << configFile);
+  LOG_DEBUG("Writing type file to " << ClTypeFile.getValue());
 
-  if (typeManager.store(configFile)) {
+  if (typeManager.store()) {
     LOG_DEBUG("Success!");
   } else {
-    LOG_ERROR("Failed writing type config to " << configFile);
+    LOG_ERROR("Failed writing type config to " << ClTypeFile.getValue());
   }
   if (ClTypeArtStats) {
     printStats(llvm::errs());
@@ -247,10 +244,10 @@ void TypeArtPass::propagateTypeInformation(Module&) {
    *  + Our id
    */
   LOG_DEBUG("Propagating type infos.");
-  if (typeManager.load(configFile)) {
-    LOG_DEBUG("Existing type configuration successfully loaded from " << configFile);
+  if (typeManager.load()) {
+    LOG_DEBUG("Existing type configuration successfully loaded from " << ClTypeFile.getValue());
   } else {
-    LOG_DEBUG("No previous type configuration found: " << configFile);
+    LOG_DEBUG("No valid existing type configuration found: " << ClTypeFile.getValue());
   }
 }
 

@@ -74,7 +74,7 @@ class TypeArtRT {
    * If a given address points inside a known struct, this method is used to recursively resolve the exact member type.
    */
   TypeArtStatus getTypeInfoInternal(const void* baseAddr, size_t offset, const StructTypeInfo& containingType,
-                                   typeart::TypeInfo* type, size_t* count) const;
+                                    typeart::TypeInfo* type, size_t* count) const;
 
   /**
    * Finds the struct member corresponding to the given byte offset.

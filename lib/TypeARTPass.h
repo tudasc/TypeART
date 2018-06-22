@@ -33,11 +33,9 @@ class TypeArtPass : public llvm::FunctionPass {
 
   TypeArtFunc typeart_leave_scope{"__typeart_leave_scope"};
 
-  std::string configFileName{"types.yaml"};
-
   TypeManager typeManager;
 
-  std::string configFile;
+  // std::string configFile;
 
  public:
   static char ID;  // used to identify pass
