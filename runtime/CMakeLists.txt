@@ -8,8 +8,17 @@ add_library(typeart SHARED
 
 target_link_libraries(typeart typelib)
 
-target_include_directories(typeart PUBLIC
-  ${CMAKE_SOURCE_DIR}/typelib
+target_include_directories(typeart 
+  PUBLIC
+    ${CMAKE_SOURCE_DIR}/typelib
+  PRIVATE
+    ${CMAKE_SOURCE_DIR}/lib # For the logger
+)
+
+target_include_directories(typeart 
+  SYSTEM 
+  PRIVATE
+    ${LLVM_INCLUDE_DIRS}
 )
 
 target_define_file_basename(typeart)

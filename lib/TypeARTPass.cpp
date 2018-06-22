@@ -1,4 +1,5 @@
 #include "TypeARTPass.h"
+#include "TypeIO.h"
 #include "analysis/MemInstFinderPass.h"
 #include "support/Logger.h"
 #include "support/TypeUtil.h"
@@ -9,10 +10,9 @@
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
 #include "llvm/Support/Format.h"
+#include "llvm/Transforms/Utils/EscapeEnumerator.h"
 
-#include <TypeIO.h>
 #include <iostream>
-#include <llvm/Transforms/Utils/EscapeEnumerator.h>
 #include <sstream>
 #include <string>
 
@@ -204,7 +204,7 @@ bool TypeArtSupportPass::doFinalization(Module&) {
   /*
    * Persist the accumulated type definition information for this module.
    */
-  LOG_DEBUG("Writing type config file...");
+  LOG_DEBUG("Writing type config file to " << configFile);
 
   if (typeManager.store(configFile)) {
     LOG_DEBUG("Success!");
@@ -246,11 +246,11 @@ void TypeArtSupportPass::propagateTypeInformation(Module&) {
    *  + Extent
    *  + Our id
    */
-  LOG_DEBUG("Propagating type infos");
+  LOG_DEBUG("Propagating type infos.");
   if (typeManager.load(configFile)) {
-    LOG_DEBUG("Existing type configuration successfully loaded");
+    LOG_DEBUG("Existing type configuration successfully loaded from " << configFile);
   } else {
-    LOG_DEBUG("No previous type configuration found");
+    LOG_DEBUG("No previous type configuration found: " << configFile);
   }
 }
 
@@ -287,5 +287,4 @@ void TypeArtSupportPass::printStats(llvm::raw_ostream& out) {
 static void registerClangPass(const llvm::PassManagerBuilder&, llvm::legacy::PassManagerBase& PM) {
   PM.add(new typeart::pass::TypeArtSupportPass());
 }
-static RegisterStandardPasses RegisterClangPass(PassManagerBuilder::EP_OptimizerLast,  // EP_EarlyAsPossible,
-                                                registerClangPass);
+static RegisterStandardPasses RegisterClangPass(PassManagerBuilder::EP_EarlyAsPossible, registerClangPass);

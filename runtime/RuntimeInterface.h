@@ -1,7 +1,8 @@
 #ifndef LLVM_MUST_SUPPORT_RUNTIMEINTERFACE_H
 #define LLVM_MUST_SUPPORT_RUNTIMEINTERFACE_H
 
-#include "../typelib/TypeInterface.h"
+#include "TypeInterface.h"
+
 #include <stddef.h>
 
 #ifdef __cplusplus

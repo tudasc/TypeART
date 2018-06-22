@@ -19,7 +19,7 @@ set_target_properties(typelib
 target_include_directories(typelib
   SYSTEM 
   PRIVATE 
-  ${LLVM_INCLUDE_DIRS}
+    ${LLVM_INCLUDE_DIRS}
 )
 
 make_tidy_check(typelib
