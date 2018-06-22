@@ -1,5 +1,6 @@
 #include "Runtime.h"
 #include "RuntimeInterface.h"
+#include "RuntimeUtil.h"
 #include "TypeIO.h"
 #include "support/Logger.h"
 
@@ -12,20 +13,24 @@
 
 namespace typeart {
 
+std::string TypeArtRT::defaultTypeFileName{"types.yaml"};
+
 TypeArtRT::TypeArtRT() {
-  std::string typeFile = std::string("./") + typeFileName;
-  if (!loadTypes(typeFile)) {
-    // Check env
-    const char* dir = std::getenv("TYPE_PATH");  // TODO: Name
-    if (dir) {
-      typeFile = std::string(dir) + "/" + typeFileName;
-    } else {
-      LOG_ERROR(
-          "No type file in current directory. To specify a different path, edit the TYPE_PATH environment variable.");
-    }
-    if (!loadTypes(typeFile)) {
-      LOG_ERROR("Failed to load recorded types from " << typeFile);
-    }
+
+  // Try to load types from specified file first.
+  // Then look at default location.
+  const char* typeFile = std::getenv("TYPE_FILE");
+  if (typeFile) {
+      if (!loadTypes(typeFile)) {
+          LOG_ERROR("Failed to load recorded types from " << typeFile);
+          exit(0); // TODO: Error handling
+      }
+  } else {
+      if (!loadTypes(defaultTypeFileName)) {
+          LOG_ERROR(
+                  "No type file with default name \"" << defaultTypeFileName << "\" in current directory. To specify a different file, edit the TYPE_FILE environment variable.");
+          exit(0); // TODO: Error handling
+      }
   }
 
   std::stringstream ss;
@@ -50,7 +55,7 @@ void TypeArtRT::printTraceStart() {
 }
 
 const void* TypeArtRT::findBaseAddress(const void* addr) const {
-  if (addr < typeMap.begin()->first) {
+  if (typeMap.empty() || addr < typeMap.begin()->first) {
     return nullptr;
   }
 
@@ -68,8 +73,7 @@ const void* TypeArtRT::findBaseAddress(const void* addr) const {
   return (std::prev(it))->first;
 }
 
-size_t TypeArtRT::getMemberIndex(const StructTypeInfo &structInfo, size_t offset) const {
-
+size_t TypeArtRT::getMemberIndex(const StructTypeInfo& structInfo, size_t offset) const {
   if (offset > structInfo.offsets.back()) {
     return structInfo.numMembers - 1;
   }
@@ -81,7 +85,7 @@ size_t TypeArtRT::getMemberIndex(const StructTypeInfo &structInfo, size_t offset
   return i;
 }
 
-lookup_result TypeArtRT::getTypeInfoInternal(const void* baseAddr, size_t offset, const StructTypeInfo& containerInfo,
+TypeArtRT::TypeArtStatus TypeArtRT::getTypeInfoInternal(const void* baseAddr, size_t offset, const StructTypeInfo& containerInfo,
                                              typeart::TypeInfo* type, size_t* count) const {
   assert(offset < containerInfo.extent && "Something went wrong with the base address computation");
 
@@ -92,26 +96,23 @@ lookup_result TypeArtRT::getTypeInfoInternal(const void* baseAddr, size_t offset
 
   auto memberType = containerInfo.memberTypes[memberIndex];
   size_t baseOffset = containerInfo.offsets[memberIndex];
-  size_t internalOffset = offset - baseOffset;
 
   assert(offset >= baseOffset && "Invalid offset values");
+
+  size_t internalOffset = offset - baseOffset;
 
   assert((memberType.kind == STRUCT || memberType.kind == BUILTIN || memberType.kind == POINTER) &&
          "Type kind typeart be either STRUCT, BUILTIN or POINTER");
 
-  size_t typeSize = 0;
-  if (memberType.kind == STRUCT) {
+  size_t typeSize = typeDB.getTypeSize(memberType);
+  if (memberType.kind == STRUCT && internalOffset % typeSize != 0) {
+    // Address points inside of a sub-struct -> we have to go deeper
     auto memberStructInfo = typeDB.getStructInfo(memberType.id);
-    typeSize = memberStructInfo->extent;
-    if (internalOffset % typeSize != 0) {
-      // Address points inside of a sub-struct -> we have to go deeper
-      const void* newBaseAddr = static_cast<const void*>(static_cast<const uint8_t*>(baseAddr) + baseOffset);
+    if (memberStructInfo) {
+      const void* newBaseAddr = addByteOffset(baseAddr, baseOffset);
       return getTypeInfoInternal(newBaseAddr, internalOffset, *memberStructInfo, type, count);
     }
-  } else if (memberType.kind == POINTER) {
-    typeSize = sizeof(void*);
-  } else {
-    typeSize = typeDB.getBuiltinTypeSize(memberType.id);
+    return INVALID_ID;
   }
 
   // Type is either atomic or the address corresponds to the start of a sub-struct - offset must match up with type size
@@ -128,7 +129,7 @@ lookup_result TypeArtRT::getTypeInfoInternal(const void* baseAddr, size_t offset
   return BAD_ALIGNMENT;
 }
 
-lookup_result TypeArtRT::getTypeInfo(const void* addr, typeart::TypeInfo* type, size_t* count) const {
+TypeArtRT::TypeArtStatus TypeArtRT::getTypeInfo(const void* addr, typeart::TypeInfo* type, size_t* count) const {
   const void* basePtr = findBaseAddress(addr);
 
   if (basePtr) {
@@ -142,8 +143,7 @@ lookup_result TypeArtRT::getTypeInfo(const void* addr, typeart::TypeInfo* type, 
     }
 
     // The address points inside a known array
-    const void* blockEnd =
-        static_cast<const void*>(static_cast<const uint8_t*>(basePtr) + basePtrInfo.count * basePtrInfo.typeSize);
+    const void* blockEnd = addByteOffset(basePtr, basePtrInfo.count * basePtrInfo.typeSize);
     // Ensure that the given address is in bounds and points to the start of an element
     if (addr >= blockEnd) {
       return UNKNOWN_ADDRESS;
@@ -155,13 +155,14 @@ lookup_result TypeArtRT::getTypeInfo(const void* addr, typeart::TypeInfo* type, 
       if (typeDB.isBuiltinType(basePtrInfo.typeId)) {
         return BAD_ALIGNMENT;  // Address points to the middle of a builtin type
       } else {
-        const void* structAddr =
-            static_cast<const void*>(static_cast<const uint8_t*>(basePtr) + addrDif - internalOffset);
+        assert(addrDif >= internalOffset && "Error in computation of offset within struct");
+        // Compute the address of the start of the struct
+        const void* structAddr = addByteOffset(basePtr, addrDif - internalOffset);
         auto structInfo = typeDB.getStructInfo(basePtrInfo.typeId);
-
-        auto result = getTypeInfoInternal(structAddr, internalOffset, *structInfo, type, count);
-        // *count = basePtrInfo.count - addrDif / basePtrInfo.typeSize;  // TODO: Correct behavior?
-        return result;
+        if (structInfo) {
+          return getTypeInfoInternal(structAddr, internalOffset, *structInfo, type, count);
+        }
+        return INVALID_ID;
       }
     } else {
       // Compute the element count from the given address
@@ -174,10 +175,10 @@ lookup_result TypeArtRT::getTypeInfo(const void* addr, typeart::TypeInfo* type, 
   return UNKNOWN_ADDRESS;
 }
 
-lookup_result TypeArtRT::getBuiltinInfo(const void* addr, typeart::BuiltinType* type) const {
+TypeArtRT::TypeArtStatus TypeArtRT::getBuiltinInfo(const void* addr, typeart::BuiltinType* type) const {
   TypeInfo info;
   size_t count;
-  lookup_result result = getTypeInfo(addr, &info, &count);
+  TypeArtStatus result = getTypeInfo(addr, &info, &count);
   if (result == SUCCESS) {
     if (info.kind == BUILTIN) {
       *type = static_cast<BuiltinType>(info.id);
@@ -188,16 +189,20 @@ lookup_result TypeArtRT::getBuiltinInfo(const void* addr, typeart::BuiltinType* 
   return result;
 }
 
-lookup_result TypeArtRT::getStructInfo(int id, const StructTypeInfo** structInfo) const {
+TypeArtRT::TypeArtStatus TypeArtRT::getStructInfo(int id, const StructTypeInfo** structInfo) const {
   TypeInfo typeInfo = typeDB.getTypeInfo(id);
-  // Requested ID typeart correspond to a struct
+  // Requested ID must correspond to a struct
   if (typeInfo.kind != STRUCT) {
     return WRONG_KIND;
   }
 
-  *structInfo = typeDB.getStructInfo(id);
+  auto result = typeDB.getStructInfo(id);
 
-  return SUCCESS;
+  if (result) {
+    *structInfo = result;
+    return SUCCESS;
+  }
+  return INVALID_ID;
 }
 
 const std::string& TypeArtRT::getTypeName(int id) const {
@@ -271,18 +276,18 @@ void __typeart_leave_scope() {
   typeart::TypeArtRT::get().onLeaveScope();
 }
 
-lookup_result typeart_get_builtin_type(const void* addr, typeart::BuiltinType* type) {
+typeart_status typeart_get_builtin_type(const void* addr, typeart::BuiltinType* type) {
   return typeart::TypeArtRT::get().getBuiltinInfo(addr, type);
 }
 
-lookup_result typeart_get_type(const void* addr, typeart::TypeInfo* type, size_t* count) {
+typeart_status typeart_get_type(const void* addr, typeart::TypeInfo* type, size_t* count) {
   return typeart::TypeArtRT::get().getTypeInfo(addr, type, count);
 }
 
-lookup_result typeart_resolve_type(int id, size_t* len, const typeart_type_info** types, const size_t** count,
+typeart_status typeart_resolve_type(int id, size_t* len, const typeart_type_info** types, const size_t** count,
                                    const size_t** offsets, size_t* extent) {
   const typeart::StructTypeInfo* structInfo;
-  lookup_result status = typeart::TypeArtRT::get().getStructInfo(id, &structInfo);
+  typeart_status status = typeart::TypeArtRT::get().getStructInfo(id, &structInfo);
   if (status == SUCCESS) {
     size_t n = structInfo->numMembers;
     *len = n;

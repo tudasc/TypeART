@@ -54,7 +54,7 @@ void analyseBuffer(const void *buf, int count, MPI_Datatype type)
 
     typeart_type_info type_info;
     size_t count_check;
-    lookup_result status = typeart_get_type(buf, &type_info, &count_check);
+    typeart_status status = typeart_get_type(buf, &type_info, &count_check);
     if (status == SUCCESS) {
       
       //printf("Lookup was successful!\n");

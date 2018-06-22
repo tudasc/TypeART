@@ -46,11 +46,14 @@ class TypeDB {
 
   TypeInfo getTypeInfo(int id) const;
 
-  size_t getBuiltinTypeSize(int id) const;
+  // size_t getBuiltinTypeSize(int id) const;
+
+  size_t getTypeSize(const TypeInfo& typeInfo) const;
 
   const std::vector<StructTypeInfo>& getStructList() const;
 
-  static std::string builtinNames[];
+  static std::string BuiltinNames[];
+  static size_t BuiltinSizes[];
 
   static TypeInfo InvalidType;
   static std::string UnknownStructName;

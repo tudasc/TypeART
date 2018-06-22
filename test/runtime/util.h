@@ -13,7 +13,7 @@ int get_struct_id(int index) {
 void check(void* addr, int id, int expected_count, int resolveStructs) {
     typeart_type_info type_info;
     size_t count_check;
-    lookup_result status = typeart_get_type(addr, &type_info, &count_check);
+    typeart_status status = typeart_get_type(addr, &type_info, &count_check);
     if (status == SUCCESS) {
         if (resolveStructs) {
             // If the address corresponds to a struct, fetch the type of the first member
@@ -57,7 +57,7 @@ void check(void* addr, int id, int expected_count, int resolveStructs) {
 void check_struct(void* addr, const char* name, int expected_count) {
     typeart_type_info type_info;
     size_t count_check;
-    lookup_result status = typeart_get_type(addr, &type_info, &count_check);
+    typeart_status status = typeart_get_type(addr, &type_info, &count_check);
     if (status == SUCCESS) {
         if (type_info.kind == STRUCT) {
             size_t len;

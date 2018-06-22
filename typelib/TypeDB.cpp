@@ -9,8 +9,21 @@
 
 namespace typeart {
 
-std::string TypeDB::builtinNames[] = {"char", "uchar", "short", "ushort", "int",    "uint",
+std::string TypeDB::BuiltinNames[] = {"char", "uchar", "short", "ushort", "int",    "uint",
                                       "long", "ulong", "float", "double", "unknown"};
+
+// TODO: Builtin ID changes lead to wrong type sizes/names
+size_t TypeDB::BuiltinSizes[] = {sizeof(char),
+                                 sizeof(unsigned char),
+                                 sizeof(short),
+                                 sizeof(unsigned short),
+                                 sizeof(int),
+                                 sizeof(unsigned int),
+                                 sizeof(long),
+                                 sizeof(unsigned long),
+                                 sizeof(float),
+                                 sizeof(double),
+                                 0};
 
 TypeInfo TypeDB::InvalidType = TypeInfo{BUILTIN, UNKNOWN};
 
@@ -57,7 +70,7 @@ void TypeDB::registerStruct(StructTypeInfo structType) {
 
 const std::string& TypeDB::getTypeName(int id) const {
   if (isBuiltinType(id)) {
-    return builtinNames[id];
+    return BuiltinNames[id];
   }
   if (isStructType(id)) {
     const auto* structInfo = getStructInfo(id);
@@ -68,27 +81,18 @@ const std::string& TypeDB::getTypeName(int id) const {
   return UnknownStructName;
 }
 
-size_t TypeDB::getBuiltinTypeSize(int id) const {
-  switch (id) {
-    case C_CHAR:
-    case C_UCHAR:
-      return sizeof(char);
-    case C_SHORT:
-    case C_USHORT:
-      return sizeof(short);
-    case C_INT:
-    case C_UINT:
-      return sizeof(int);
-    case C_LONG:
-    case C_ULONG:
-      return sizeof(long);
-    case C_FLOAT:
-      return sizeof(float);
-    case C_DOUBLE:
-      return sizeof(double);
-    default:
-      return 0;
+size_t TypeDB::getTypeSize(const TypeInfo& typeInfo) const {
+  if (typeInfo.kind == BUILTIN) {
+    return BuiltinSizes[typeInfo.id];
   }
+  if (typeInfo.kind == POINTER) {
+    return sizeof(void*);
+  }
+  const auto* structInfo = getStructInfo(typeInfo.id);
+  if (structInfo) {
+    return structInfo->extent;
+  }
+  return 0;
 }
 
 const StructTypeInfo* TypeDB::getStructInfo(int id) const {
