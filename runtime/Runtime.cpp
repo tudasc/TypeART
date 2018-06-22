@@ -70,6 +70,19 @@ const void* TypeArtRT::findBaseAddress(const void* addr) const {
   return (std::prev(it))->first;
 }
 
+size_t TypeArtRT::getMemberIndex(const StructTypeInfo &structInfo, size_t offset) const {
+
+  if (offset > structInfo.offsets.back()) {
+    return structInfo.numMembers - 1;
+  }
+
+  size_t i = 0;
+  while (i < structInfo.numMembers - 1 && offset >= structInfo.offsets[i + 1]) {
+    i++;
+  }
+  return i;
+}
+
 lookup_result TypeArtRT::getTypeInfoInternal(const void* baseAddr, size_t offset, const StructTypeInfo& containerInfo,
                                              typeart::TypeInfo* type, size_t* count) const {
   assert(offset < containerInfo.extent && "Something went wrong with the base address computation");
@@ -77,52 +90,41 @@ lookup_result TypeArtRT::getTypeInfoInternal(const void* baseAddr, size_t offset
   // std::cout << "internal: base=" << baseAddr << ", offset=" << offset << ", container=" << containerInfo.name <<
   // std::endl;
 
-  size_t i = 0;
-  // This should always be 0, but safety doesn't hurt
-  size_t baseOffset = containerInfo.offsets.front();
+  size_t memberIndex = getMemberIndex(containerInfo, offset);
 
-  if (offset > containerInfo.offsets.back()) {
-    i = containerInfo.numMembers - 1;
-    baseOffset = containerInfo.offsets.back();
-  } else {
-    while (i < containerInfo.numMembers - 1 && offset >= containerInfo.offsets[i + 1]) {
-      i++;
-      baseOffset = containerInfo.offsets[i];
-    }
-  }
+  auto memberType = containerInfo.memberTypes[memberIndex];
+  size_t baseOffset = containerInfo.offsets[memberIndex];
+  size_t internalOffset = offset - baseOffset;
 
-  auto memberInfo = containerInfo.memberTypes[i];
+  assert(offset >= baseOffset && "Invalid offset values");
 
-  size_t offsetDif = offset - baseOffset;
-
-  assert((memberInfo.kind == STRUCT || memberInfo.kind == BUILTIN || memberInfo.kind == POINTER) &&
+  assert((memberType.kind == STRUCT || memberType.kind == BUILTIN || memberType.kind == POINTER) &&
          "Type kind typeart be either STRUCT, BUILTIN or POINTER");
 
   size_t typeSize = 0;
-  if (memberInfo.kind == STRUCT) {
-    auto memberStructInfo = typeDB.getStructInfo(memberInfo.id);
+  if (memberType.kind == STRUCT) {
+    auto memberStructInfo = typeDB.getStructInfo(memberType.id);
     typeSize = memberStructInfo->extent;
-    if (offsetDif % typeSize != 0) {
+    if (internalOffset % typeSize != 0) {
       // Address points inside of a sub-struct -> we have to go deeper
       const void* newBaseAddr = static_cast<const void*>(static_cast<const uint8_t*>(baseAddr) + baseOffset);
-      size_t newOffset = offset - baseOffset;
-      return getTypeInfoInternal(newBaseAddr, newOffset, *memberStructInfo, type, count);
+      return getTypeInfoInternal(newBaseAddr, internalOffset, *memberStructInfo, type, count);
     }
-  } else if (memberInfo.kind == POINTER) {
+  } else if (memberType.kind == POINTER) {
     typeSize = sizeof(void*);
   } else {
-    typeSize = typeDB.getBuiltinTypeSize(memberInfo.id);
+    typeSize = typeDB.getBuiltinTypeSize(memberType.id);
   }
 
   // Type is either atomic or the address corresponds to the start of a sub-struct - offset must match up with type size
-  if (offsetDif % typeSize == 0) {
-    size_t offsetInTypeSize = offsetDif / typeSize;
-    if (offsetInTypeSize >= containerInfo.arraySizes[i]) {
+  if (internalOffset % typeSize == 0) {
+    size_t offsetInTypeSize = internalOffset / typeSize;
+    if (offsetInTypeSize >= containerInfo.arraySizes[memberIndex]) {
       // Address points to padding
       return BAD_ALIGNMENT;
     }
-    *type = memberInfo;
-    *count = containerInfo.arraySizes[i] - offsetInTypeSize;
+    *type = memberType;
+    *count = containerInfo.arraySizes[memberIndex] - offsetInTypeSize;
     return SUCCESS;
   }
   return BAD_ALIGNMENT;
