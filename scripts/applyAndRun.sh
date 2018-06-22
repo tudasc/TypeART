@@ -4,7 +4,7 @@ target=$1
 pathToPlugin=${2:-build/lib}
 pluginArgs=${3:-""}
 pathToRT=${4:-build/runtime}
-
+scriptDir=$(dirname "$0")
 
 tmpDir="./"
 tmpfile="$tmpDir"/"${target##*/}"
@@ -27,7 +27,7 @@ if [ -e "${tmpDir}/types.yaml" ]; then
     rm "${tmpDir}/types.yaml"
 fi
 
-$compiler -S -emit-llvm "$target" -o "$tmpfile".ll
+$compiler -S -emit-llvm "$target" -o "$tmpfile".ll -I${scriptDir}/../typelib
 opt -load ${pathToPlugin}/analysis/MemInstFinderPass.so -load ${pathToPlugin}/TypeArtPass.so -typeart "$pluginArgs"< "$tmpfile".ll -o "$tmpfile".ll > /dev/null
 llc "$tmpfile".ll -o "$tmpfile".s
 $compiler "$tmpfile".s -L"$pathToRT" -ltypeart -o "$tmpfile".o
