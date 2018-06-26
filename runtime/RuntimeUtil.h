@@ -3,11 +3,11 @@
 
 namespace typeart {
 
-template<typename T>
+template <typename T>
 inline const void* addByteOffset(const void* addr, T offset) {
-    return static_cast<const void*>(static_cast<const uint8_t*>(addr) + offset);
+  return static_cast<const void*>(static_cast<const uint8_t*>(addr) + offset);
 }
 
-}
+}  // namespace typeart
 
-#endif //TYPEART_RUNTIMEUTIL_H
+#endif  // TYPEART_RUNTIMEUTIL_H

@@ -243,7 +243,7 @@ void TypeArtRT::onFree(const void* addr) {
 
 void TypeArtRT::onEnterScope() {
   LOG_TRACE("Entering scope");
-  scopes.push_back({});
+  scopes.emplace_back();
 }
 
 void TypeArtRT::onLeaveScope() {

@@ -10,7 +10,7 @@ namespace typeart {
 
 class TypeManager {
  public:
-  TypeManager(std::string file);
+  explicit TypeManager(std::string file);
 
   bool load();
 
