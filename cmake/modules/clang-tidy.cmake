@@ -41,3 +41,17 @@ function(add_tidy_fix_target target comment)
     OTHER ${ARG_OTHER} -fix
   )
 endfunction()
+
+function(make_tidy_check name sources)
+  add_tidy_target(tidy-run-on-${name}
+    "Clang-tidy run on ${name} translation units"
+    SOURCES ${sources}
+    OTHER --header-filter=${CMAKE_CURRENT_SOURCE_DIR}
+  )
+
+  add_tidy_fix_target(tidy-fix-on-${name}
+    "Clang-tidy run with fixes on ${name} translation units"
+    SOURCES ${sources}
+    OTHER --header-filter=${CMAKE_CURRENT_SOURCE_DIR} -checks=-*,modernize-*,llvm-namespace-comment,google-explicit-constructor
+  )
+endfunction()

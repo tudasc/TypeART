@@ -5,7 +5,7 @@
 
 
 
-int isCompatible(MPI_Datatype mpi_type, must_builtin_type recorded_type)
+int isCompatible(MPI_Datatype mpi_type, typeart_builtin_type recorded_type)
 {
   // TODO: Is there a more elegant way to do this?
   if (mpi_type == MPI_CHAR || mpi_type == MPI_BYTE) {
@@ -52,30 +52,30 @@ void analyseBuffer(const void *buf, int count, MPI_Datatype type)
     printf("Basetype(%s, addr=%p, size=%i , count=%i)\n", type_name, buf, size, count);
     //TODO: check for matching c-type
 
-    must_type_info type_info;
-    int count_check;
-    lookup_result status = must_support_get_type(buf, &type_info, &count_check);
+    typeart_type_info type_info;
+    size_t count_check;
+    typeart_status status = typeart_get_type(buf, &type_info, &count_check);
     if (status == SUCCESS) {
       
       //printf("Lookup was successful!\n");
 
       // If the address corresponds to a struct, fetch the type of the first member
       while (type_info.kind == STRUCT) {
-        int len;
-        const must_type_info* types;
-        const int* count;
-        const int* offsets;
-        int extent;
-        must_support_resolve_type(type_info.id, &len, &types, &count, &offsets, &extent);
+        size_t len;
+        const typeart_type_info* types;
+        const size_t* count;
+        const size_t* offsets;
+        size_t extent;
+        typeart_resolve_type(type_info.id, &len, &types, &count, &offsets, &extent);
         type_info = types[0];
       }
 
-      //fprintf(stderr, "Type id=%d, name=%s\n", type_info.id, must_support_get_type_name(type_info.id));
+      //fprintf(stderr, "Type id=%d, name=%s\n", type_info.id, typeart_get_type_name(type_info.id));
 
       if (isCompatible(type, type_info.id)) {
         //printf("Types are compatible\n");
       } else {
-        const char* recorded_name = must_support_get_type_name(type_info.id);
+        const char* recorded_name = typeart_get_type_name(type_info.id);
         if (type_info.kind == POINTER) {
           recorded_name = "Pointer";
         }

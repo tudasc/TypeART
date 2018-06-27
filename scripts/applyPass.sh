@@ -1,15 +1,13 @@
 #!/bin/bash
 
 target=$1
-plugin=${2:-MustSupportPass}
-pluginCommand=${3:-must}
-pathToPlugin=${4:-build/lib}
+pathToPlugin=${2:-build/lib}
 tmpDir=/tmp
 tmpfile="$tmpDir"/"${target##*/}"
 extension="${target##*.}"
 
-if [ -e "/tmp/musttypes" ]; then
-    rm "/tmp/musttypes"
+if [ -e "/tmp/types.yaml" ]; then
+    rm "/tmp/types.yaml"
 fi
 
 echo -e Running on "$target" using plugin: "$plugin"
@@ -22,4 +20,4 @@ fi
 
 $compiler -S -emit-llvm "$target" -o "$tmpfile".ll
 
-opt -print-after-all -load "$pathToPlugin"/"$plugin".so -$pluginCommand -must-stats < "$tmpfile".ll > /dev/null
+opt -print-after-all -load ${pathToPlugin}/analysis/MemInstFinderPass.so -load ${pathToPlugin}/TypeArtPass.so -typeart -typeart-stats < "$tmpfile".ll > /dev/null

@@ -1,15 +1,14 @@
 #include "TypeUtil.h"
+#include "Logger.h"
 
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Type.h"
 
-#include "Logger.h"
-#include <iostream>
-
 using namespace llvm;
 
+namespace typeart {
 namespace util {
 namespace type {
 
@@ -60,7 +59,8 @@ unsigned getArraySizeInBytes(llvm::Type* arrT, const llvm::DataLayout& dl) {
   Type* underlyingType = st->getElementType();
   unsigned bytes = getScalarSizeInBytes(underlyingType);
   bytes *= st->getNumElements();
-  std::cout << "Determined number of bytes to allocate: " << bytes << std::endl;
+
+  LOG_DEBUG("Determined number of bytes to allocate: " << bytes);
 
   return bytes;
 }
@@ -95,41 +95,12 @@ unsigned getTypeSizeForArrayAlloc(llvm::AllocaInst* ai, const llvm::DataLayout& 
       // to have a small vector to store whether we already generated
       // instructions, to possibly refer to the results for further
       // calculations.
-      std::cout << "We hit not yet determinable array size expression\n";
+      LOG_WARNING("We hit not yet determinable array size expression: " << *ai);
     }
   }
   return bytes;
 }
 
-// bool compareTypes(llvm::Type* t1, llvm::Type* t2) {
-//    if (t1->isPointerTy()) {
-//        if (t2->isPointerTy()) {
-//            return compareTypes(t1->getPointerElementType(), t2->getPointerElementType());
-//        }
-//        return false;
-//    }
-//    if (t1->isArrayTy()) {
-//        if (t2->isArrayTy()) {
-//            return compareTypes(t1->getArrayElementType(), t2->getArrayElementType());
-//        }
-//        return false;
-//    }
-//    if (t1->isIntegerTy()) {
-//        return t2->isIntegerTy() && t1->getPrimitiveSizeInBits() == t2->getPrimitiveSizeInBits();
-//    }
-//    if (t1->isFloatingPointTy()) {
-//        return t2->isFloatingPointTy() && t1->getPrimitiveSizeInBits() == t2->getPrimitiveSizeInBits();
-//  }
-//  if (t1->isVoidTy()) {
-//    return t2->isVoidTy();
-//  }
-//  if (t1->isStructTy()) {
-//    return t2->isStructTy() && t1->getStructName() == t2->getStructName();
-//  }
-//  // TODO: Is there a better way to do this? If not, add missing types comparisons and write tests
-//  return false;
-//
-//}
-
 }  // namespace type
 }  // namespace util
+}  // namespace typeart

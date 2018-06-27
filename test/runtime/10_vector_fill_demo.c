@@ -1,4 +1,4 @@
-// RUN: %scriptpath/applyAndRun.sh %s %pluginname -must %pluginpath %rtpath | FileCheck %s
+// RUN: %scriptpath/applyAndRun.sh %s %pluginpath "-typeart-alloca" %rtpath 2>&1 | FileCheck %s
 
 #include "../../runtime/RuntimeInterface.h"
 #include <stdio.h>
@@ -22,29 +22,30 @@ void free_vector(vector v) {
 }
 
 int fill_vector(void* values, int count, vector* v) {
-  must_builtin_type type;
-  lookup_result result = must_support_get_builtin_type(values, &type);
+  typeart_builtin_type type;
+  typeart_status result = typeart_get_builtin_type(values, &type);
   if (result == SUCCESS && type == C_DOUBLE) {
     memcpy(v->vals, values, count);
     v->size = count;
-    printf("Success\n");
+    fprintf(stderr, "Success\n");
     return 1;
   }
-  printf("Failure\n");
+  fprintf(stderr, "Failure\n");
   return 0;
 }
 
 int main(int argc, char** argv) {
   const int n = 3;
-  // CHECK: Alloc    0x{{.*}}   int   4     3
+  // CHECK: [Trace] TypeART Runtime Trace
+  // CHECK: [Trace] Alloc 0x{{.*}} int 4 3
   int int_vals[3] = {1, 2, 3};
-  // CHECK: Alloc    0x{{.*}}   double   8     3
+  // CHECK: [Trace] Alloc 0x{{.*}} double 8 3
   double d_vals[3] = {1, 2, 3};
-  // CHECK: Alloc    0x{{.*}}   float   4     3
+  // CHECK: [Trace] Alloc 0x{{.*}} float 4 3
   float f_vals[3] = {1, 2, 3};
-  // CHECK: Alloc    0x{{.*}}   double   8     3
+  // CHECK: [Trace] Alloc 0x{{.*}} double 8 3
   vector v = alloc_vector(n);
-  // CHECK: Alloc    0x{{.*}}   double   8     3
+  // CHECK: [Trace] Alloc 0x{{.*}} double 8 3
   vector w = alloc_vector(n);
   // CHECK: Success
   fill_vector(w.vals, n, &v);
@@ -54,9 +55,9 @@ int main(int argc, char** argv) {
   fill_vector(d_vals, n, &v);
   // CHECK: Failure
   fill_vector(f_vals, n, &v);
-  // CHECK: Free     0x{{.*}}
+  // CHECK: [Trace] Free 0x{{.*}}
   free_vector(w);
-  // CHECK: Free     0x{{.*}}
+  // CHECK: [Trace] Free 0x{{.*}}
   free_vector(v);
   return 0;
 }

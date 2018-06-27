@@ -44,7 +44,7 @@ bin/
 .idea/
 
 # llvm-lit related
-test/*/Output/
+test/**/Output/
 test/*/*.ll
 test/*/*.s
 test/*/*.o

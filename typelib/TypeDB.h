@@ -6,23 +6,24 @@
 #define LLVM_MUST_SUPPORT_TYPECONFIG_H
 
 #include "TypeInterface.h"
+
 #include <map>
 #include <vector>
 
-namespace must {
+namespace typeart {
 
-using TypeInfo = must_type_info;
-using BuiltinType = must_builtin_type;
-using TypeKind = must_type_kind;
+using TypeInfo = typeart_type_info;
+using BuiltinType = typeart_builtin_type;
+using TypeKind = typeart_type_kind;
 
 struct StructTypeInfo {
   int id;
   std::string name;
-  int extent;
-  int numMembers;
-  std::vector<int> offsets;
+  size_t extent;
+  size_t numMembers;
+  std::vector<size_t> offsets;
   std::vector<TypeInfo> memberTypes;
-  std::vector<int> arraySizes;
+  std::vector<size_t> arraySizes;
 };
 
 class TypeDB {
@@ -45,18 +46,22 @@ class TypeDB {
 
   TypeInfo getTypeInfo(int id) const;
 
-  int getBuiltinTypeSize(int id) const;
+  // size_t getBuiltinTypeSize(int id) const;
+
+  size_t getTypeSize(const TypeInfo& typeInfo) const;
 
   const std::vector<StructTypeInfo>& getStructList() const;
 
-  static std::string builtinNames[];
+  static std::string BuiltinNames[];
+  static size_t BuiltinSizes[];
 
   static TypeInfo InvalidType;
+  static std::string UnknownStructName;
 
  private:
   std::vector<StructTypeInfo> structInfoList;
   std::map<int, int> id2Idx;
 };
-}
+}  // namespace typeart
 
 #endif  // LLVM_MUST_SUPPORT_TYPECONFIG_H

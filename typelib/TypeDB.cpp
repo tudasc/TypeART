@@ -3,18 +3,33 @@
 //
 
 #include "TypeDB.h"
-#include <form.h>
+
+//#include <form.h> FIXME why needed?
 #include <iostream>
 
-namespace must {
+namespace typeart {
 
-std::string TypeDB::builtinNames[] = {"char", "uchar", "short", "ushort", "int",    "uint",
-                                          "long", "ulong", "float", "double", "invalid"};
+std::string TypeDB::BuiltinNames[] = {"char", "uchar", "short", "ushort", "int",    "uint",
+                                      "long", "ulong", "float", "double", "unknown"};
 
-TypeInfo TypeDB::InvalidType = TypeInfo{BUILTIN, INVALID};
+// TODO: Builtin ID changes lead to wrong type sizes/names
+size_t TypeDB::BuiltinSizes[] = {sizeof(char),
+                                 sizeof(unsigned char),
+                                 sizeof(short),
+                                 sizeof(unsigned short),
+                                 sizeof(int),
+                                 sizeof(unsigned int),
+                                 sizeof(long),
+                                 sizeof(unsigned long),
+                                 sizeof(float),
+                                 sizeof(double),
+                                 0};
 
-TypeDB::TypeDB() {
-}
+TypeInfo TypeDB::InvalidType = TypeInfo{BUILTIN, UNKNOWN};
+
+std::string TypeDB::UnknownStructName{"UnknownStruct"};
+
+TypeDB::TypeDB() = default;
 
 void TypeDB::clear() {
   structInfoList.clear();
@@ -55,7 +70,7 @@ void TypeDB::registerStruct(StructTypeInfo structType) {
 
 const std::string& TypeDB::getTypeName(int id) const {
   if (isBuiltinType(id)) {
-    return builtinNames[id];
+    return BuiltinNames[id];
   }
   if (isStructType(id)) {
     const auto* structInfo = getStructInfo(id);
@@ -63,37 +78,21 @@ const std::string& TypeDB::getTypeName(int id) const {
       return structInfo->name;
     }
   }
-  return "UnknownStruct";
+  return UnknownStructName;
 }
 
-// std::vector<std::string> TypeDB::getTypeList() const {
-//  std::vector<std::string> typeIDs;
-//  typeIDs.reserve(typeMap.size());
-//  for (const auto& entry : typeMap) {
-//    typeIDs.push_back(entry.first);
-//  }
-//  return typeIDs;
-//}
-
-int TypeDB::getBuiltinTypeSize(int id) const {
-  switch (id) {
-    case C_CHAR:
-    case C_UCHAR:
-      return 1;
-    case C_SHORT:
-    case C_USHORT:
-      return 2;
-    case C_INT:
-    case C_FLOAT:
-    case C_UINT:
-      return 4;
-    case C_LONG:
-    case C_DOUBLE:
-    case C_ULONG:
-      return 8;
-    default:
-      return -1;
+size_t TypeDB::getTypeSize(const TypeInfo& typeInfo) const {
+  if (typeInfo.kind == BUILTIN) {
+    return BuiltinSizes[typeInfo.id];
   }
+  if (typeInfo.kind == POINTER) {
+    return sizeof(void*);
+  }
+  const auto* structInfo = getStructInfo(typeInfo.id);
+  if (structInfo) {
+    return structInfo->extent;
+  }
+  return 0;
 }
 
 const StructTypeInfo* TypeDB::getStructInfo(int id) const {
@@ -117,4 +116,5 @@ TypeInfo TypeDB::getTypeInfo(int id) const {
 const std::vector<StructTypeInfo>& TypeDB::getStructList() const {
   return structInfoList;
 }
-}
+
+}  // namespace typeart

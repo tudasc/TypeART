@@ -1,4 +1,4 @@
-// RUN: %scriptpath/applyAndRun.sh %s %pluginname -must %pluginpath %rtpath | FileCheck %s
+// RUN: %scriptpath/applyAndRun.sh %s %pluginpath "-typeart-alloca" %rtpath 2>&1 | FileCheck %s
 
 #include <stdlib.h>
 #include <string.h>
@@ -79,31 +79,31 @@ int main(int argc, char** argv) {
   return 0;
 }
 
-// CHECK: MUST Support Runtime Trace
+// CHECK: [Trace] TypeART Runtime Trace
 
 // Alloc matrix array
-// CHECK: Alloc    0x{{.*}}   struct.mat_t   16     4
+// CHECK: [Trace] Alloc 0x{{.*}} struct.mat_t 16 4
 
 // Alloc matrix values
-// CHECK: Alloc    0x{{.*}}   double         8    64
-// CHECK: Alloc    0x{{.*}}   double         8    64
-// CHECK: Alloc    0x{{.*}}   double         8    64
-// CHECK: Alloc    0x{{.*}}   double         8    64
+// CHECK: [Trace] Alloc 0x{{.*}} double 8 64
+// CHECK: [Trace] Alloc 0x{{.*}} double 8 64
+// CHECK: [Trace] Alloc 0x{{.*}} double 8 64
+// CHECK: [Trace] Alloc 0x{{.*}} double 8 64
 
 // Alloc and free temp buffer
-// CHECK: Alloc    0x{{.*}}   double         8    64
-// CHECK: Free     0x{{.*}}
-// CHECK: Alloc    0x{{.*}}   double         8    64
-// CHECK: Free     0x{{.*}}
-// CHECK: Alloc    0x{{.*}}   double         8    64
-// CHECK: Free     0x{{.*}}
+// CHECK: [Trace] Alloc 0x{{.*}} double 8 64
+// CHECK: [Trace] Free 0x{{.*}}
+// CHECK: [Trace] Alloc 0x{{.*}} double 8 64
+// CHECK: [Trace] Free 0x{{.*}}
+// CHECK: [Trace] Alloc 0x{{.*}} double 8 64
+// CHECK: [Trace] Free 0x{{.*}}
 
 // Free matrix values
-// CHECK: Free     0x{{.*}}
-// CHECK: Free     0x{{.*}}
-// CHECK: Free     0x{{.*}}
-// CHECK: Free     0x{{.*}}
+// CHECK: [Trace] Free 0x{{.*}}
+// CHECK: [Trace] Free 0x{{.*}}
+// CHECK: [Trace] Free 0x{{.*}}
+// CHECK: [Trace] Free 0x{{.*}}
 
 // TODO: Handle stack deallocation?
 // Free matrix array
-// CHECK?: Free     0x{{.*}}
+// CHECK?: [Trace] Free 0x{{.*}}

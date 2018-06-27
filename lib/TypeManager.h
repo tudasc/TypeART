@@ -6,15 +6,15 @@
 #include <TypeDB.h>
 #include <llvm/IR/DataLayout.h>
 
-namespace must {
+namespace typeart {
 
 class TypeManager {
  public:
-  TypeManager();
+  explicit TypeManager(std::string file);
 
-  bool load(std::string file);
+  bool load();
 
-  bool store(std::string file);
+  bool store();
 
   int getOrRegisterType(llvm::Type* type, const llvm::DataLayout& dl);
 
@@ -23,11 +23,13 @@ class TypeManager {
 
   // TypeInfo getTypeInfo(llvm::Type* type);
 
-  TypeDB typeDB;
+  std::string file;
 
+  TypeDB typeDB;
   std::map<std::string, int> structMap;
-  int structCount;
+
+  size_t structCount;
 };
-}
+}  // namespace typeart
 
 #endif  // LLVM_MUST_SUPPORT_TYPEMANAGER_H

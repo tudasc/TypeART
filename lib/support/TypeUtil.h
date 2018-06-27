@@ -8,6 +8,7 @@ class AllocaInst;
 class LLVMContext;
 }  // namespace llvm
 
+namespace typeart {
 namespace util {
 namespace type {
 
@@ -34,5 +35,6 @@ unsigned getTypeSizeForArrayAlloc(llvm::AllocaInst* ai, const llvm::DataLayout& 
 
 }  // namespace type
 }  // namespace util
+}  // namespace typeart
 
 #endif
