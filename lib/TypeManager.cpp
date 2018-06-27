@@ -10,7 +10,7 @@
 
 #include <iostream>
 
-namespace tu = util::type;
+namespace tu = typeart::util::type;
 
 namespace typeart {
 

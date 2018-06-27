@@ -41,7 +41,7 @@ bool MemInstFinderPass::runOnFunction(llvm::Function& f) {
     if (primaryBitcast) {
       const auto& bitcasts = mallocData.bitcasts;
       std::for_each(bitcasts.begin(), bitcasts.end(), [&](auto bitcastInst) {
-        if (bitcastInst != primaryBitcast && (!::util::type::isVoidPtr(bitcastInst->getDestTy()) &&
+        if (bitcastInst != primaryBitcast && (!typeart::util::type::isVoidPtr(bitcastInst->getDestTy()) &&
                                               primaryBitcast->getDestTy() != bitcastInst->getDestTy())) {
           // Second non-void* bitcast detected - semantics unclear
           LOG_WARNING("Encountered ambiguous pointer type in allocation: " << util::dump(*(mallocData.call)));

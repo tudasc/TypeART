@@ -1,15 +1,14 @@
 #include "TypeUtil.h"
+#include "Logger.h"
 
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Type.h"
 
-#include "Logger.h"
-#include <iostream>
-
 using namespace llvm;
 
+namespace typeart {
 namespace util {
 namespace type {
 
@@ -60,7 +59,8 @@ unsigned getArraySizeInBytes(llvm::Type* arrT, const llvm::DataLayout& dl) {
   Type* underlyingType = st->getElementType();
   unsigned bytes = getScalarSizeInBytes(underlyingType);
   bytes *= st->getNumElements();
-  std::cout << "Determined number of bytes to allocate: " << bytes << std::endl;
+
+  LOG_DEBUG("Determined number of bytes to allocate: " << bytes);
 
   return bytes;
 }
@@ -95,7 +95,7 @@ unsigned getTypeSizeForArrayAlloc(llvm::AllocaInst* ai, const llvm::DataLayout& 
       // to have a small vector to store whether we already generated
       // instructions, to possibly refer to the results for further
       // calculations.
-      std::cout << "We hit not yet determinable array size expression\n";
+      LOG_WARNING("We hit not yet determinable array size expression: " << *ai);
     }
   }
   return bytes;
@@ -103,3 +103,4 @@ unsigned getTypeSizeForArrayAlloc(llvm::AllocaInst* ai, const llvm::DataLayout& 
 
 }  // namespace type
 }  // namespace util
+}  // namespace typeart
