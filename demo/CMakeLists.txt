@@ -82,9 +82,9 @@ add_library(tool SHARED
   tool.c
 )
 make_mpi_target(tool)
-target_link_libraries(tool
-  ${TYPEART_LIBRARY}
-)
+#target_link_libraries(tool
+#  ${TYPEART_LIBRARY}
+#)
 target_include_directories(tool PRIVATE
   "${CMAKE_SOURCE_DIR}/../runtime"
   "${CMAKE_SOURCE_DIR}/../typelib"
