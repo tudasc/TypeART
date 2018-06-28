@@ -42,6 +42,12 @@ class TypeArtRT {
    */
   TypeArtStatus getTypeInfo(const void* addr, typeart::TypeInfo* type, size_t* count) const;
 
+    /**
+     * Similar to getTypeInfo, except the outermost recorded type is returned.
+     * An additional byte offset is returned, marking the position of the given address w.r.t. the start of the type.
+     */
+    TypeArtStatus getContainingTypeInfo(const void* addr, typeart::TypeInfo* type, size_t* count, size_t* offset);
+
   /**
    * Returns the builtin type at the given address. Returns WRONG_KIND, if the type is not a builtin.
    */

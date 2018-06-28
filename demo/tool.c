@@ -7,30 +7,26 @@
 
 int isCompatible(MPI_Datatype mpi_type, typeart_builtin_type recorded_type)
 {
-  // TODO: Is there a more elegant way to do this?
-  if (mpi_type == MPI_CHAR || mpi_type == MPI_BYTE) {
-    return recorded_type == C_CHAR;
-  } else if (mpi_type == MPI_UNSIGNED_CHAR) {
-    return recorded_type == C_UCHAR;
-  } else if (mpi_type == MPI_SHORT) {
-    return recorded_type = C_SHORT;
-  } else if (mpi_type == MPI_UNSIGNED_SHORT) {
-    return recorded_type == C_USHORT;
-  } else if (mpi_type == MPI_INT) {
-    return recorded_type == C_INT;
-  } else if (mpi_type == MPI_UNSIGNED) {
-    return recorded_type == C_UINT;
-  } else if (mpi_type == MPI_LONG) {
-    return recorded_type == C_LONG;
-  } else if (mpi_type == MPI_UNSIGNED_LONG) {
-    return recorded_type == C_ULONG;
-  } else if (mpi_type == MPI_FLOAT) {
-    return recorded_type == C_FLOAT;
-  } else if (mpi_type == MPI_DOUBLE) {
-    return recorded_type == C_DOUBLE;
+
+  switch (recorded_type) {
+    case C_CHAR:
+      return mpi_type == MPI_CHAR || mpi_type == MPI_UNSIGNED_CHAR;
+    case C_SHORT:
+      return mpi_type == MPI_SHORT || mpi_type == MPI_UNSIGNED_SHORT;
+    case C_INT:
+      return mpi_type == MPI_INT || mpi_type == MPI_UNSIGNED;
+    case C_LONG:
+      return mpi_type == MPI_LONG || mpi_type == MPI_UNSIGNED_LONG;
+    case C_FLOAT:
+      return mpi_type == MPI_FLOAT;
+    case C_DOUBLE:
+      return mpi_type == MPI_DOUBLE;
+    default:
+      break;
   }
   return 0;
 }
+
 
 void analyseBuffer(const void *buf, int count, MPI_Datatype type)
 {
@@ -49,7 +45,7 @@ void analyseBuffer(const void *buf, int count, MPI_Datatype type)
     int name_len;
     MPI_Type_get_name(type, type_name, &name_len);
 
-    printf("Basetype(%s, addr=%p, size=%i , count=%i)\n", type_name, buf, size, count);
+    //printf("Basetype(%s, addr=%p, size=%i , count=%i)\n", type_name, buf, size, count);
     //TODO: check for matching c-type
 
     typeart_type_info type_info;
@@ -79,6 +75,7 @@ void analyseBuffer(const void *buf, int count, MPI_Datatype type)
         if (type_info.kind == POINTER) {
           recorded_name = "Pointer";
         }
+        //fprintf(stdout, "Error ")
         fprintf(stdout, "Error: Incompatible buffer of type %d (%s) - expected %s instead\n", type_info.id, recorded_name, type_name);
       }
 
@@ -108,9 +105,13 @@ void analyseBuffer(const void *buf, int count, MPI_Datatype type)
   {// MPI_TYPE_CREATE_STRUCT
     int i, j; MPI_Aint offset, lb, extent;
     MPI_Type_get_extent(type, &lb, &extent);
-    for (i=0, offset=0; i<count; i++, offset+=extent )
-      for (j=0; j<array_of_integers[0]; j++)
-        analyseBuffer((void*)((MPI_Aint)buf+offset+array_of_addresses[j]), array_of_integers[j+1], array_of_datatypes[j]);
+    fprintf(stdout, "Analyzing %d structs:\n", count);
+    for (i=0, offset=0; i<count; i++, offset+=extent ) {
+      for (j = 0; j < array_of_integers[0]; j++)
+        analyseBuffer((void *) ((MPI_Aint) buf + offset + array_of_addresses[j]), array_of_integers[j + 1],
+                      array_of_datatypes[j]);
+      fprintf(stdout, "\n");
+    }
     return;
   }
     

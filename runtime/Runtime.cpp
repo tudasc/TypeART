@@ -176,6 +176,12 @@ TypeArtRT::TypeArtStatus TypeArtRT::getTypeInfo(const void* addr, typeart::TypeI
   return UNKNOWN_ADDRESS;
 }
 
+TypeArtRT::TypeArtStatus TypeArtRT::getContainingTypeInfo(const void *addr, typeart::TypeInfo *type, size_t *count,
+                                                          size_t *offset)
+{
+
+}
+
 TypeArtRT::TypeArtStatus TypeArtRT::getBuiltinInfo(const void* addr, typeart::BuiltinType* type) const {
   TypeInfo info;
   size_t count;
