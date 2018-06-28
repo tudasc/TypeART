@@ -17,6 +17,8 @@ typedef enum typeart_status_t { SUCCESS, UNKNOWN_ADDRESS, BAD_ALIGNMENT, WRONG_K
 
 typeart_status typeart_get_builtin_type(const void* addr, typeart_builtin_type* type);
 typeart_status typeart_get_type(const void* addr, typeart_type_info* type, size_t* count);
+typeart_status typeart_get_containing_type(const void* addr, typeart_type_info* type, size_t* count,
+                                           const void** base_address, size_t* offset);
 typeart_status typeart_resolve_type(int id, size_t* len, const typeart_type_info** types, const size_t** count,
                                     const size_t** offsets, size_t* extent);
 // lookup_result typeart_support_resolve_type_alloc_buffer(int id, int* len, typeart_type_info* types[], int* count[],

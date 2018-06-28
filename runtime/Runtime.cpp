@@ -134,55 +134,74 @@ TypeArtRT::TypeArtStatus TypeArtRT::getTypeInfoInternal(const void* baseAddr, si
 }
 
 TypeArtRT::TypeArtStatus TypeArtRT::getTypeInfo(const void* addr, typeart::TypeInfo* type, size_t* count) const {
+  TypeInfo containingType;
+  size_t containingTypeCount;
+  const void* containingTypeAddr;
+  size_t internalOffset;
+
+  TypeArtStatus status =
+      getContainingTypeInfo(addr, &containingType, &containingTypeCount, &containingTypeAddr, &internalOffset);
+  if (status != SUCCESS) {
+    return status;
+  }
+
+  if (internalOffset == 0) {
+    *type = containingType;
+    *count = containingTypeCount;
+    return SUCCESS;
+  }
+
+  if (typeDB.isBuiltinType(containingType.id)) {
+    return BAD_ALIGNMENT;  // Address points to the middle of a builtin type
+  }
+
+  auto structInfo = typeDB.getStructInfo(containingType.id);
+  if (structInfo) {
+    return getTypeInfoInternal(containingTypeAddr, internalOffset, *structInfo, type, count);
+  }
+  return INVALID_ID;
+}
+
+TypeArtRT::TypeArtStatus TypeArtRT::getContainingTypeInfo(const void* addr, typeart::TypeInfo* type, size_t* count,
+                                                          const void** baseAddress, size_t* offset) const {
   const void* basePtr = findBaseAddress(addr);
 
   if (basePtr) {
     auto basePtrInfo = typeMap.find(basePtr)->second;
 
-    // Check for exact match
+    // Check for exact match -> no further checks and offsets calculations needed
     if (basePtr == addr) {
       *type = typeDB.getTypeInfo(basePtrInfo.typeId);
       *count = basePtrInfo.count;
+      *baseAddress = addr;
+      *offset = 0;
       return SUCCESS;
     }
 
     // The address points inside a known array
     const void* blockEnd = addByteOffset(basePtr, basePtrInfo.count * basePtrInfo.typeSize);
+
     // Ensure that the given address is in bounds and points to the start of an element
     if (addr >= blockEnd) {
       return UNKNOWN_ADDRESS;
     }
+
+    assert(addr >= basePtr && "Error in base address computation");
     size_t addrDif = reinterpret_cast<size_t>(addr) - reinterpret_cast<size_t>(basePtr);
+
     size_t internalOffset =
         addrDif % basePtrInfo.typeSize;  // Offset of the pointer w.r.t. the start of the containing type
-    if (internalOffset != 0) {
-      if (typeDB.isBuiltinType(basePtrInfo.typeId)) {
-        return BAD_ALIGNMENT;  // Address points to the middle of a builtin type
-      } else {
-        assert(addrDif >= internalOffset && "Error in computation of offset within struct");
-        // Compute the address of the start of the struct
-        const void* structAddr = addByteOffset(basePtr, addrDif - internalOffset);
-        auto structInfo = typeDB.getStructInfo(basePtrInfo.typeId);
-        if (structInfo) {
-          return getTypeInfoInternal(structAddr, internalOffset, *structInfo, type, count);
-        }
-        return INVALID_ID;
-      }
-    } else {
-      // Compute the element count from the given address
-      *count = basePtrInfo.count - addrDif / basePtrInfo.typeSize;
-      *type = typeDB.getTypeInfo(basePtrInfo.typeId);
-      return SUCCESS;
-    }
+
+    size_t typeOffset = addrDif / basePtrInfo.typeSize;  // Index of the element
+    size_t typeCount = basePtrInfo.count - typeOffset;
+
+    *type = typeDB.getTypeInfo(basePtrInfo.typeId);
+    *count = typeCount;
+    *baseAddress = addByteOffset(basePtr, typeOffset * basePtrInfo.typeSize);
+    *offset = internalOffset;
+    return SUCCESS;
   }
-
   return UNKNOWN_ADDRESS;
-}
-
-TypeArtRT::TypeArtStatus TypeArtRT::getContainingTypeInfo(const void *addr, typeart::TypeInfo *type, size_t *count,
-                                                          size_t *offset)
-{
-
 }
 
 TypeArtRT::TypeArtStatus TypeArtRT::getBuiltinInfo(const void* addr, typeart::BuiltinType* type) const {
@@ -292,6 +311,11 @@ typeart_status typeart_get_builtin_type(const void* addr, typeart::BuiltinType* 
 
 typeart_status typeart_get_type(const void* addr, typeart::TypeInfo* type, size_t* count) {
   return typeart::TypeArtRT::get().getTypeInfo(addr, type, count);
+}
+
+typeart_status typeart_get_containing_type(const void* addr, typeart::TypeInfo* type, size_t* count,
+                                           const void** base_address, size_t* offset) {
+  return typeart::TypeArtRT::get().getContainingTypeInfo(addr, type, count, base_address, offset);
 }
 
 typeart_status typeart_resolve_type(int id, size_t* len, const typeart_type_info** types, const size_t** count,
