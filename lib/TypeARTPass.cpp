@@ -38,7 +38,7 @@ STATISTIC(NumFoundMallocs, "Number of detected mallocs");
 STATISTIC(NumFoundFrees, "Number of detected frees");
 STATISTIC(NumFoundAlloca, "Number of detected (stack) allocas");
 
-namespace tu = util::type;
+namespace tu = typeart::util::type;
 
 namespace typeart {
 namespace pass {

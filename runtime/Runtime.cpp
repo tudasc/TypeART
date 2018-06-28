@@ -1,6 +1,5 @@
 #include "Runtime.h"
 #include "RuntimeInterface.h"
-#include "RuntimeUtil.h"
 #include "TypeIO.h"
 #include "support/Logger.h"
 
@@ -8,12 +7,16 @@
 #include <cassert>
 #include <cstdlib>
 #include <cstring>
-#include <iostream>
 #include <sstream>
 
 namespace typeart {
 
 std::string TypeArtRT::defaultTypeFileName{"types.yaml"};
+
+template <typename T>
+inline const void* addByteOffset(const void* addr, T offset) {
+  return static_cast<const void*>(static_cast<const uint8_t*>(addr) + offset);
+}
 
 TypeArtRT::TypeArtRT() {
   // Try to load types from specified file first.
@@ -22,14 +25,14 @@ TypeArtRT::TypeArtRT() {
   if (typeFile) {
     if (!loadTypes(typeFile)) {
       LOG_ERROR("Failed to load recorded types from " << typeFile);
-      exit(0);  // TODO: Error handling
+      std::exit(EXIT_FAILURE);  // TODO: Error handling
     }
   } else {
     if (!loadTypes(defaultTypeFileName)) {
       LOG_ERROR("No type file with default name \""
                 << defaultTypeFileName
                 << "\" in current directory. To specify a different file, edit the TYPE_FILE environment variable.");
-      exit(0);  // TODO: Error handling
+      std::exit(EXIT_FAILURE);  // TODO: Error handling
     }
   }
 
