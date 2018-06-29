@@ -32,10 +32,16 @@ install(
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
   INCLUDES DESTINATION
-    ${CMAKE_CURRENT_SOURCE_DIR}
+    include 
 )
 
 install(
   FILES TypeInterface.h
   DESTINATION include
+)
+
+install(
+  EXPORT typeart_typelib
+  NAMESPACE typeart_
+  DESTINATION lib/typeart
 )
