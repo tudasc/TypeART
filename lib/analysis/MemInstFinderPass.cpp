@@ -12,6 +12,8 @@
 #include "support/TypeUtil.h"
 #include "support/Util.h"
 
+#include "llvm/IR/Instructions.h"
+
 using namespace llvm;
 
 #define DEBUG_TYPE "meminstanalysis"
@@ -24,7 +26,102 @@ static RegisterPass<typeart::MemInstFinderPass> X("mem-inst-finder",            
 );
 }  // namespace
 
+static cl::opt<bool> ClMemInstFilter("alloca-filter", cl::desc("Filter alloca instructions."), cl::Hidden,
+                                     cl::init(true));
+
 namespace typeart {
+
+struct CallFilter {
+  std::string call_regex;
+
+  CallFilter(const std::string& glob) : call_regex(util::glob2regex(glob)) {
+  }
+
+  bool operator()(AllocaInst* in) {
+    return filter(in);
+  }
+
+  bool filter(Value* in) {
+    if (in == nullptr) {
+      return false;
+    }
+
+    LOG_DEBUG("Filtering value: " << in);
+
+    llvm::SmallPtrSet<Value*, 16> visited_set;
+    llvm::SmallVector<Value*, 16> working_set;
+    llvm::SmallVector<CallSite, 16> working_set_calls;
+
+    const auto addToWorkS = [&](auto v) {
+      if (visited_set.find(v) == visited_set.end()) {
+        working_set.push_back(v);
+        visited_set.insert(v);
+      }
+    };
+
+    const auto addToWork = [&addToWorkS](auto vals) {
+      for (auto v : vals) {
+        addToWorkS(v);
+      }
+    };
+
+    const auto peek = [&working_set]() -> Value* {
+      if (working_set.empty()) {
+        return nullptr;
+      }
+      auto user_iter = working_set.end() - 1;
+      working_set.erase(user_iter);
+      return *user_iter;
+    };
+
+    // Seed working set with users of value (e.g., our AllocaInst)
+    for (auto user : in->users()) {
+      working_set.push_back(user);
+    }
+
+    // Search through all users of users .... (e.g., our AllocaInst)
+    while (!working_set.empty()) {
+      auto val = peek();
+
+      // If we encounter a callsite, we want to analyze later, or quit in case we have a regex match
+      CallSite c(val);
+      if (c.isCall()) {
+        const bool indirect_call = c.getCalledFunction() == nullptr;
+
+        if (indirect_call) {
+          LOG_DEBUG("Found an indirect call, not filtering alloca. Call: " << c.getInstruction());
+          return false;  // Indirect calls might contain a critical function.
+        }
+
+        LOG_DEBUG("Found a call as a user of alloca. Call: " << c.getInstruction());
+        auto f_name = util::demangle(c.getCalledFunction()->getName());
+        if (util::regex_matches(call_regex, f_name)) {
+          LOG_DEBUG("Filtering alloca based on call!");
+          return true;
+        }
+        working_set_calls.push_back(c);
+      }
+      // Not a call, cont. our search
+      addToWork(val->users());
+    }
+
+    // Analyze the collected callsites (recursively)
+    for (auto csite : working_set_calls) {
+      for (Use& arg : csite.args()) {
+        // If we encounter a call with any arg related to an (MPI) call we filter
+        // TODO correlation between initial alloca and the arg num. For
+        // now we are very inclusive and basically state, any subfunction, which our alloca is connected to should not
+        // have a call_regex function name
+        const bool filter_arg = filter(arg.get());
+        if (!filter_arg) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
+};
 
 char MemInstFinderPass::ID = 0;
 
@@ -54,6 +151,16 @@ bool MemInstFinderPass::runOnFunction(llvm::Function& f) {
 
   mOpsCollector.clear();
   mOpsCollector.visit(f);
+
+  if (ClMemInstFilter) {
+    CallFilter cfilter("MPI_*");
+    auto& allocs = mOpsCollector.listAlloca;
+    for (auto* alloc : allocs) {
+      if (cfilter(alloc)) {
+        allocs.erase(alloc);
+      }
+    }
+  }
 
   for (const auto& mallocData : mOpsCollector.listMalloc) {
     checkAmbigiousMalloc(mallocData);
