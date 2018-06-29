@@ -31,3 +31,19 @@ target_link_libraries(typeart
 make_tidy_check(typeart
   "${RUNTIME_LIB_SOURCES}"
 )
+
+
+install(
+  TARGETS typeart
+  EXPORT typeart_runtime
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib/static
+  INCLUDES DESTINATION
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/typelib
+)
+
+install(
+  FILES RuntimeInterface.h
+  DESTINATION include
+)

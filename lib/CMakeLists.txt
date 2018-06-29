@@ -16,3 +16,13 @@ make_llvm_module(TypeArtPass
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/typelib
 )
+
+install(
+  TARGETS TypeArtPass
+  EXPORT typeart_llvm
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  INCLUDES DESTINATION
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/typelib
+)

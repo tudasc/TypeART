@@ -8,3 +8,13 @@ make_llvm_module(MemInstFinderPass
   INCLUDE_DIRS
     ${CMAKE_CURRENT_SOURCE_DIR}/..
 )
+
+install(
+  TARGETS MemInstFinderPass
+  EXPORT typeart_llvm
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  INCLUDES DESTINATION
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/typelib
+)

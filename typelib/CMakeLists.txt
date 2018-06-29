@@ -26,3 +26,16 @@ make_tidy_check(typelib
   "${TYPE_LIB_SOURCES}"
 )
   
+install(
+  TARGETS typelib
+  EXPORT typeart_typelib
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  INCLUDES DESTINATION
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+install(
+  FILES TypeInterface.h
+  DESTINATION include
+)
