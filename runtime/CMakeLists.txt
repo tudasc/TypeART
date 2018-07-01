@@ -61,9 +61,9 @@ install(
 
 #set(DEPENDENCY libaTargets.cmake
 configure_package_config_file(
-    ${CMAKE_SOURCE_DIR}/cmake/Config.cmake.in
-    ${CMAKE_CURRENT_BINARY_DIR}/typeart_runtimeConfig.cmake
-    INSTALL_DESTINATION lib/cmake
+  ${CMAKE_SOURCE_DIR}/cmake/Config.cmake.in
+  ${CMAKE_CURRENT_BINARY_DIR}/typeart_runtimeConfig.cmake
+  INSTALL_DESTINATION lib/cmake
 )
 
 install(FILES

@@ -35,9 +35,9 @@ install(
 )
 
 configure_package_config_file(
-    ${CMAKE_SOURCE_DIR}/cmake/Config.cmake.in
-    ${CMAKE_CURRENT_BINARY_DIR}/typeart_llvmConfig.cmake
-    INSTALL_DESTINATION lib/cmake
+  ${CMAKE_SOURCE_DIR}/cmake/Config.cmake.in
+  ${CMAKE_CURRENT_BINARY_DIR}/typeart_llvmConfig.cmake
+  INSTALL_DESTINATION lib/cmake
 )
 
 install(FILES

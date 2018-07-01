@@ -1,6 +1,3 @@
-# FIXME the integration of all typeart libs/includes is cumbersome. 
-# -- Needed: install_target of typeart for a common specified folder for everything
-
 cmake_minimum_required(VERSION 3.5)
 
 project(MPI_type_demo
@@ -20,8 +17,8 @@ find_package(typeart_runtime REQUIRED)
 
 
 find_package(typeart_llvm REQUIRED)
-get_property(TYPEART_PASS_DIR TARGET typeart::typeartpass PROPERTY LOCATION)
-get_property(TYPEART_MEMINST_PASS_DIR TARGET typeart::meminstfinderpass PROPERTY LOCATION)
+get_property(TYPEART_PASS_LOC TARGET typeart::typeartpass PROPERTY LOCATION)
+get_property(TYPEART_MEMINST_PASS_LOC TARGET typeart::meminstfinderpass PROPERTY LOCATION)
 
 
 function(make_mpi_target target)
@@ -51,7 +48,7 @@ function(apply_pass target)
   )
   set_target_properties(${target} PROPERTIES
     COMPILE_FLAGS
-      "-Xclang -load -Xclang ${TYPEART_MEMINST_PASS_DIR} -Xclang -load -Xclang ${TYPEART_PASS_DIR}"
+      "-Xclang -load -Xclang ${TYPEART_MEMINST_PASS_LOC} -Xclang -load -Xclang ${TYPEART_PASS_LOC}"
   )
 endfunction()
 
