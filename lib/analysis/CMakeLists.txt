@@ -3,14 +3,14 @@ set(MEM_PASS_SOURCES
   MemOpVisitor.cpp
 )
 
-make_llvm_module(MemInstFinderPass
+make_llvm_module(meminstfinderpass
   "${MEM_PASS_SOURCES}"
   INCLUDE_DIRS
     ${CMAKE_CURRENT_SOURCE_DIR}/..
 )
 
 install(
-  TARGETS MemInstFinderPass
+  TARGETS meminstfinderpass
   EXPORT typeart_llvm
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib

@@ -11,20 +11,18 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(MPI REQUIRED)
 
-find_library(TYPEART_LIBRARY
-  NAMES typeart libtypeart
-  PATHS "${CMAKE_SOURCE_DIR}/../build/runtime"
-)
+message(STATUS "Searching here: " ${CMAKE_PREFIX_PATH})
 
-find_library(typeart_pass
-  TypeArtPass.so
-  PATHS "${CMAKE_SOURCE_DIR}/../build/lib"
-)
+# required to load typelib before runtime! 
+# (cf. https://stackoverflow.com/a/50064639) 
+find_package(typeart_typelib REQUIRED)
+find_package(typeart_runtime REQUIRED)
 
-find_library(typeart_pass_analysis
-  MemInstFinderPass.so
-  PATHS "${CMAKE_SOURCE_DIR}/../build/lib/analysis"
-)
+
+find_package(typeart_llvm REQUIRED)
+get_property(TYPEART_PASS_DIR TARGET typeart::typeartpass PROPERTY LOCATION)
+get_property(TYPEART_MEMINST_PASS_DIR TARGET typeart::meminstfinderpass PROPERTY LOCATION)
+
 
 function(make_mpi_target target)
   target_link_libraries(${target} ${MPI_LIBRARIES})
@@ -46,28 +44,20 @@ function(make_mpi_target target)
   )
 endfunction()
 
-function(apply_pass target)
-  if(NOT TYPEART_LIBRARY-NOTFOUND)
-    target_link_libraries(${target}
-      ${TYPEART_LIBRARY}
-    )
-  else()
-    message(STATUS "Typeart runtime libs not found")
-  endif()
-  
-  if(NOT typeart_pass-NOTFOUND AND NOT typeart_pass_analysis-NOTFOUND)
-    set_target_properties(${target} PROPERTIES
-      COMPILE_FLAGS
-        "-Xclang -load -Xclang ${typeart_pass_analysis} -Xclang -load -Xclang ${typeart_pass}"
-      )
-  else()
-    message(STATUS "Typeart LLVM Pass libs not found")
-  endif()
+function(apply_pass target) 
+  # need to link runtime for the instrumentation function symbols, otherwise it errors out:
+  target_link_libraries(${target}
+     typeart::runtime
+  )
+  set_target_properties(${target} PROPERTIES
+    COMPILE_FLAGS
+      "-Xclang -load -Xclang ${TYPEART_MEMINST_PASS_DIR} -Xclang -load -Xclang ${TYPEART_PASS_DIR}"
+  )
 endfunction()
 
 function(make_run_target target comment)
   add_custom_target(run-${target}
-    COMMAND env LD_PRELOAD=\"${CMAKE_BINARY_DIR}/libtool.so ${TYPEART_LIBRARY}\" ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 1 ${MPIEXEC_PREFLAGS} ${target}
+    COMMAND env LD_PRELOAD=${CMAKE_BINARY_DIR}/libtool.so ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 1 ${MPIEXEC_PREFLAGS} ${target}
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     COMMENT "${comment}"
     USES_TERMINAL
@@ -82,12 +72,8 @@ add_library(tool SHARED
   tool.c
 )
 make_mpi_target(tool)
-#target_link_libraries(tool
-#  ${TYPEART_LIBRARY}
-#)
-target_include_directories(tool PRIVATE
-  "${CMAKE_SOURCE_DIR}/../runtime"
-  "${CMAKE_SOURCE_DIR}/../typelib"
+target_link_libraries(tool
+   typeart::runtime
 )
 
 

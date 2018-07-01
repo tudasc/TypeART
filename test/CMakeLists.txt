@@ -26,7 +26,7 @@ configure_typeart_lit_site_cfg(
   ${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg
 )
 
-set(TYPEARTPASS_TEST_DEPENDS TypeArtPass)
+set(TYPEARTPASS_TEST_DEPENDS typeartpass)
 
 find_program(LLVM_LIT_PATH
   NAME llvm-lit

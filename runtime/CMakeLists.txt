@@ -6,7 +6,9 @@ add_library(runtime SHARED
   ${RUNTIME_LIB_SOURCES}
 )
 
-target_link_libraries(runtime typelib)
+target_link_libraries(runtime 
+  typelib
+)
 
 target_include_directories(runtime 
   PUBLIC
@@ -34,9 +36,12 @@ make_tidy_check(runtime
 )
 
 
+set(PROJECT_NAME typeart_runtime)
+set(TARGETS_EXPORT_NAME typeart_runtime)
+
 install(
   TARGETS runtime
-  EXPORT typeart_runtime
+  EXPORT ${TARGETS_EXPORT_NAME}
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib/static
 #  INCLUDES DESTINATION
@@ -49,7 +54,19 @@ install(
 )
 
 install(
-  EXPORT typeart_runtime
-  NAMESPACE typeart_
-  DESTINATION lib/typeart
+  EXPORT ${TARGETS_EXPORT_NAME}
+  NAMESPACE typeart::
+  DESTINATION lib/cmake
+)
+
+#set(DEPENDENCY libaTargets.cmake
+configure_package_config_file(
+    ${CMAKE_SOURCE_DIR}/cmake/Config.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/typeart_runtimeConfig.cmake
+    INSTALL_DESTINATION lib/cmake
+)
+
+install(FILES
+  ${CMAKE_CURRENT_BINARY_DIR}/typeart_runtimeConfig.cmake
+  DESTINATION lib/cmake
 )
