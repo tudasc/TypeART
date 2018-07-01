@@ -12,6 +12,7 @@
 #include "support/TypeUtil.h"
 #include "support/Util.h"
 
+#include "llvm/ADT/Statistic.h"
 #include "llvm/IR/Instructions.h"
 
 using namespace llvm;
@@ -29,18 +30,26 @@ static RegisterPass<typeart::MemInstFinderPass> X("mem-inst-finder",            
 static cl::opt<bool> ClMemInstFilter("alloca-filter", cl::desc("Filter alloca instructions."), cl::Hidden,
                                      cl::init(true));
 
+STATISTIC(NumDetectedAllocs, "Number of detected allocs");
+STATISTIC(NumFilteredAllocs, "Number of filtered allocs");
+
 namespace typeart {
 
 struct CallFilter {
   std::string call_regex;
 
-  CallFilter(const std::string& glob) : call_regex(util::glob2regex(glob)) {
+  explicit CallFilter(const std::string& glob) : call_regex(util::glob2regex(glob)) {
   }
 
   bool operator()(AllocaInst* in) {
-    return filter(in);
+    const auto filter_ = filter(in);
+    if (filter_) {
+      ++NumFilteredAllocs;
+    }
+    return filter_;
   }
 
+ private:
   bool filter(Value* in) {
     if (in == nullptr) {
       return false;
@@ -97,7 +106,7 @@ struct CallFilter {
         auto f_name = util::demangle(c.getCalledFunction()->getName());
         if (util::regex_matches(call_regex, f_name)) {
           LOG_DEBUG("Filtering alloca based on call!");
-          return true;
+          return false;
         }
         working_set_calls.push_back(c);
       }
@@ -166,6 +175,12 @@ bool MemInstFinderPass::runOnFunction(llvm::Function& f) {
     checkAmbigiousMalloc(mallocData);
   }
 
+  return false;
+}
+
+bool MemInstFinderPass::doFinalization(llvm::Module&) {
+  LOG_DEBUG("Found alloca count: " << NumDetectedAllocs);
+  LOG_DEBUG("Filtered alloca count: " << NumFilteredAllocs);
   return false;
 }
 
