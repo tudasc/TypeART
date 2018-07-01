@@ -25,4 +25,37 @@ target_include_directories(typelib
 make_tidy_check(typelib
   "${TYPE_LIB_SOURCES}"
 )
-  
+
+set(PROJECT_NAME typeart_typelib)
+set(TARGETS_EXPORT_NAME typeart_typelib)
+
+install(
+  TARGETS typelib
+  EXPORT ${TARGETS_EXPORT_NAME}
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  INCLUDES DESTINATION
+    include 
+)
+
+install(
+  FILES TypeInterface.h TypeIO.h TypeDB.h
+  DESTINATION include
+)
+
+install(
+  EXPORT ${TARGETS_EXPORT_NAME}
+  NAMESPACE typeart::
+  DESTINATION lib/cmake
+)
+
+configure_package_config_file(
+  ${CMAKE_SOURCE_DIR}/cmake/Config.cmake.in
+  ${CMAKE_CURRENT_BINARY_DIR}/typeart_typelibConfig.cmake
+  INSTALL_DESTINATION lib/cmake
+)
+
+install(FILES
+  ${CMAKE_CURRENT_BINARY_DIR}/typeart_typelibConfig.cmake
+  DESTINATION lib/cmake
+)
