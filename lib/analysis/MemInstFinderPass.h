@@ -11,15 +11,37 @@
 #include "MemOpVisitor.h"
 #include "llvm/Pass.h"
 
+#include <memory>
+
 namespace llvm {
 class Function;
+class AllocaInst;
 }  // namespace llvm
 
 namespace typeart {
 
+namespace filter {
+
+class CallFilter {
+  class FilterImpl;
+  std::unique_ptr<FilterImpl> fImpl;
+
+ public:
+  explicit CallFilter(const std::string& glob);
+  CallFilter(const CallFilter&) = delete;
+  CallFilter(CallFilter&&) = default;
+  bool operator()(llvm::AllocaInst* in);
+  CallFilter& operator=(CallFilter&&);
+  CallFilter& operator=(const CallFilter&) = delete;
+  virtual ~CallFilter();
+};
+
+}  // namespace filter
+
 class MemInstFinderPass : public llvm::FunctionPass {
  private:
   MemOpVisitor mOpsCollector;
+  filter::CallFilter filter;
 
  public:
   static char ID;
