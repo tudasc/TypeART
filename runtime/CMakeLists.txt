@@ -1,3 +1,6 @@
+set(PROJECT_NAME typeart_runtime)
+set(TARGETS_EXPORT_NAME ${PROJECT_NAME}-targets)
+
 set(RUNTIME_LIB_SOURCES
   Runtime.cpp
 )
@@ -24,6 +27,7 @@ target_include_directories(runtime
     ${LLVM_INCLUDE_DIRS}
 )
 
+target_project_compile_options(runtime)
 target_define_file_basename(runtime)
 
 target_link_libraries(runtime
@@ -35,9 +39,6 @@ make_tidy_check(runtime
   "${RUNTIME_LIB_SOURCES}"
 )
 
-
-set(PROJECT_NAME typeart_runtime)
-set(TARGETS_EXPORT_NAME typeart_runtime)
 
 install(
   TARGETS runtime
@@ -62,11 +63,11 @@ install(
 #set(DEPENDENCY libaTargets.cmake
 configure_package_config_file(
   ${CMAKE_SOURCE_DIR}/cmake/Config.cmake.in
-  ${CMAKE_CURRENT_BINARY_DIR}/typeart_runtimeConfig.cmake
+  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
   INSTALL_DESTINATION lib/cmake
 )
 
 install(FILES
-  ${CMAKE_CURRENT_BINARY_DIR}/typeart_runtimeConfig.cmake
+  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
   DESTINATION lib/cmake
 )

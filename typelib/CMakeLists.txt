@@ -1,3 +1,6 @@
+set(PROJECT_NAME typeart_typelib)
+set(TARGETS_EXPORT_NAME ${PROJECT_NAME}-targets)
+
 set(TYPE_LIB_SOURCES
   TypeDB.cpp 
   TypeIO.cpp
@@ -22,12 +25,11 @@ target_include_directories(typelib
     ${LLVM_INCLUDE_DIRS}
 )
 
+target_project_compile_options(typelib)
+
 make_tidy_check(typelib
   "${TYPE_LIB_SOURCES}"
 )
-
-set(PROJECT_NAME typeart_typelib)
-set(TARGETS_EXPORT_NAME typeart_typelib)
 
 install(
   TARGETS typelib
@@ -51,11 +53,11 @@ install(
 
 configure_package_config_file(
   ${CMAKE_SOURCE_DIR}/cmake/Config.cmake.in
-  ${CMAKE_CURRENT_BINARY_DIR}/typeart_typelibConfig.cmake
+  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
   INSTALL_DESTINATION lib/cmake
 )
 
 install(FILES
-  ${CMAKE_CURRENT_BINARY_DIR}/typeart_typelibConfig.cmake
+  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
   DESTINATION lib/cmake
 )

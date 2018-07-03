@@ -1,3 +1,6 @@
+set(PROJECT_NAME typeart_llvm)
+set(TARGETS_EXPORT_NAME ${PROJECT_NAME}-targets)
+
 add_subdirectory(analysis)
 
 set(PASS_SOURCES
@@ -17,8 +20,7 @@ make_llvm_module(typeartpass
     ${CMAKE_SOURCE_DIR}/typelib
 )
 
-set(PROJECT_NAME typeart_llvm)
-set(TARGETS_EXPORT_NAME typeart_llvm)
+target_project_compile_options(typeartpass)
 
 install(
   TARGETS typeartpass
@@ -36,11 +38,11 @@ install(
 
 configure_package_config_file(
   ${CMAKE_SOURCE_DIR}/cmake/Config.cmake.in
-  ${CMAKE_CURRENT_BINARY_DIR}/typeart_llvmConfig.cmake
+  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
   INSTALL_DESTINATION lib/cmake
 )
 
 install(FILES
-  ${CMAKE_CURRENT_BINARY_DIR}/typeart_llvmConfig.cmake
+  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
   DESTINATION lib/cmake
 )
