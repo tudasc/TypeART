@@ -48,20 +48,6 @@ class CallFilter::FilterImpl {
   FilterImpl(const std::string& glob) : call_regex(util::glob2regex(glob)) {
   }
 
-  bool filter(Argument* arg) {
-    for (auto* user : arg->users()) {
-      LOG_DEBUG("Looking at arg user " << *user);
-      // This code is for non mem2reg code (i.e., where the argument is stored to a local alloca):
-      if (StoreInst* store = llvm::dyn_cast<StoreInst>(user)) {
-        // if (auto* alloca = llvm::dyn_cast<AllocaInst>(store->getPointerOperand())) {
-        //  LOG_DEBUG("Argument is a store inst and the operand is alloca");
-        return filter(store->getPointerOperand());
-        // }
-      }
-    }
-    return filter(llvm::dyn_cast<Value>(arg));
-  }
-
   bool filter(Value* in) {
     if (in == nullptr) {
       LOG_DEBUG("Called with nullptr");
@@ -70,7 +56,7 @@ class CallFilter::FilterImpl {
 
     llvm::SmallPtrSet<Value*, 16> visited_set;
     llvm::SmallVector<Value*, 16> working_set;
-    llvm::SmallVector<CallSite, 16> working_set_calls;
+    llvm::SmallVector<CallSite, 8> working_set_calls;
 
     const auto addToWorkS = [&](auto v) {
       if (visited_set.find(v) == visited_set.end()) {
@@ -107,8 +93,8 @@ class CallFilter::FilterImpl {
         const auto callee = c.getCalledFunction();
         const bool indirect_call = callee == nullptr;
 
-        if (indirect_call) {
-          LOG_DEBUG("Found an indirect call, not filtering alloca. Call: " << *c.getInstruction());
+        if (indirect_call || callee->isDeclaration()) {
+          LOG_DEBUG("Found an indirect call/only declaration, not filtering alloca. Call: " << *c.getInstruction());
           return false;  // Indirect calls might contain a critical function.
         }
 
@@ -119,46 +105,79 @@ class CallFilter::FilterImpl {
         }
 
         LOG_DEBUG("Found a call. Call: " << *c.getInstruction() << " Name: " << name);
-        if (callee->isDeclaration() || util::regex_matches(call_regex, name)) {
-          LOG_DEBUG("Keeping alloca based on call. is_def: " << callee->isDeclaration());
+        if (util::regex_matches(call_regex, name)) {
+          LOG_DEBUG("Keeping alloca based on call name filter match");
           return false;
         }
 
         working_set_calls.push_back(c);
+        // Caveat: below, we add users of the function call to the search even though it might be a
+        // simple "sink "of the alloca we analyse
       }
-      // Not a call, cont. our search
+      // cont. our search
       addToWork(val->users());
     }
 
-    if (working_set_calls.size() > 0) {
-      // return false;  // we don't follow subfunctions yet
-    }
-
-    // Analyze the collected callsites (recursively)
     for (auto csite : working_set_calls) {
-      LOG_DEBUG("Analyzing function call " << csite.getCalledFunction()->getName())
-      for (Use& arg : csite.args()) {
-        auto argNum = csite.getArgumentNo(&arg);
-        auto arg_ = arg.get();
-        LOG_DEBUG("Arg #" << argNum << " (" << *arg_ << ")");
-        // If we encounter a call with **any** arg related to an (MPI) call we filter
-        // TODO correlation between initial alloca and the arg num. For
-        // now we are very inclusive and basically state, any subfunction, which our alloca is connected to should not
-        // have a call_regex function name
-        Argument& the_arg = *(csite.getCalledFunction()->arg_begin() + argNum);
-        // for (auto arg_user : the_arg.users()) {
-        LOG_DEBUG("Calling filter with inst ("
-                  << ") of argument: " << the_arg);
-        const bool filter_arg = filter(&the_arg);
-        LOG_DEBUG("Should filter? : " << filter_arg);
-        if (!filter_arg) {
-          return false;
-        }
-        //}
+      const bool filter_ = filter(csite, in);
+      if (!filter_) {
+        return false;
       }
     }
 
     return true;
+  }
+
+ private:
+  bool filter(CallSite& csite, Value* in) {
+    const auto analyse_arg = [&](auto& csite, auto argNum) -> bool {
+      Argument& the_arg = *(csite.getCalledFunction()->arg_begin() + argNum);
+      LOG_DEBUG("Calling filter with inst of argument: " << the_arg);
+      const bool filter_arg = filter(&the_arg);
+      LOG_DEBUG("Should filter? : " << filter_arg);
+      return filter_arg;
+    };
+
+    LOG_DEBUG("Analyzing function call " << csite.getCalledFunction()->getName());
+
+    // this only works if we can correlate alloca with argument.
+    const auto pos = std::find_if(csite.arg_begin(), csite.arg_end(),
+                                  [&in](const Use& arg_use) -> bool { return arg_use.get() == in; });
+
+    if (pos != csite.arg_end()) {
+      const auto argNum = std::distance(csite.arg_begin(), pos);
+      LOG_DEBUG("Found exact position: " << argNum);
+      const bool filter_arg = analyse_arg(csite, argNum);
+      if (!filter_arg) {
+        return false;
+      }
+    } else {
+      LOG_DEBUG("Analyze all args, cannot correlate alloca with arg.");
+      const bool not_filter_arg =
+          std::any_of(csite.arg_begin(), csite.arg_end(), [&csite, &analyse_arg](const Use& arg_use) {
+            auto argNum = csite.getArgumentNo(&arg_use);
+            return !analyse_arg(csite, argNum);
+          });
+      if (not_filter_arg) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  bool filter(Argument* arg) {
+    for (auto* user : arg->users()) {
+      LOG_DEBUG("Looking at arg user " << *user);
+      // This code is for non mem2reg code (i.e., where the argument is stored to a local alloca):
+      if (StoreInst* store = llvm::dyn_cast<StoreInst>(user)) {
+        // if (auto* alloca = llvm::dyn_cast<AllocaInst>(store->getPointerOperand())) {
+        //  LOG_DEBUG("Argument is a store inst and the operand is alloca");
+        return filter(store->getPointerOperand());
+        // }
+      }
+    }
+    return filter(llvm::dyn_cast<Value>(arg));
   }
 };
 
