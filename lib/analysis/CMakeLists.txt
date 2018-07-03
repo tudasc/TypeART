@@ -9,9 +9,11 @@ make_llvm_module(meminstfinderpass
     ${CMAKE_CURRENT_SOURCE_DIR}/..
 )
 
+target_project_compile_options(meminstfinderpass)
+
 install(
   TARGETS meminstfinderpass
-  EXPORT typeart_llvm
+  EXPORT ${TARGETS_EXPORT_NAME}
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
 )

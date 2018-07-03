@@ -14,6 +14,26 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Debug)
 endif()
 
-if (UNIX)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic -Wunreachable-code -Wwrite-strings -Wpointer-arith -Wcast-align -Wcast-qual -Wno-unused-parameter")
-endif (UNIX)
+
+function(target_project_compile_options target)
+  cmake_parse_arguments(ARG "" "" "PRIVATE_FLAGS;PUBLIC_FLAGS" ${ARGN})
+
+  target_compile_options(${target} PRIVATE
+    -Wall -Wextra -pedantic
+    -Wunreachable-code -Wwrite-strings
+    -Wpointer-arith -Wcast-align
+    -Wcast-qual -Wno-unused-parameter
+  )
+
+  if(ARG_PRIVATE_FLAGS)
+    target_compile_options(${target} PRIVATE
+      "${ARG_PRIVATE_FLAGS}"
+    )
+  endif()
+
+  if(ARG_PUBLIC_FLAGS)
+    target_compile_options(${target} PUBLIC
+      "${ARG_PUBLIC_FLAGS}"
+    )
+  endif()
+endfunction()
