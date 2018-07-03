@@ -42,7 +42,7 @@ namespace typeart {
 namespace filter {
 
 class CallFilter::FilterImpl {
-  std::string call_regex;
+  const std::string call_regex;
 
  public:
   FilterImpl(const std::string& glob) : call_regex(util::glob2regex(glob)) {
@@ -58,23 +58,16 @@ class CallFilter::FilterImpl {
     llvm::SmallVector<Value*, 16> working_set;
     llvm::SmallVector<CallSite, 8> working_set_calls;
 
-    const auto addToWorkS = [&](auto v) {
-      if (visited_set.find(v) == visited_set.end()) {
-        working_set.push_back(v);
-        visited_set.insert(v);
-      }
-    };
-
-    const auto addToWork = [&addToWorkS](auto vals) {
+    const auto addToWork = [&visited_set, &working_set](auto vals) {
       for (auto v : vals) {
-        addToWorkS(v);
+        if (visited_set.find(v) == visited_set.end()) {
+          working_set.push_back(v);
+          visited_set.insert(v);
+        }
       }
     };
 
     const auto peek = [&working_set]() -> Value* {
-      if (working_set.empty()) {
-        return nullptr;
-      }
       auto user_iter = working_set.end() - 1;
       working_set.erase(user_iter);
       return *user_iter;
@@ -83,7 +76,7 @@ class CallFilter::FilterImpl {
     // Seed working set with users of value (e.g., our AllocaInst)
     addToWork(in->users());
 
-    // Search through all users of users .... (e.g., our AllocaInst)
+    // Search through all users of users of .... (e.g., our AllocaInst)
     while (!working_set.empty()) {
       auto val = peek();
 
@@ -98,9 +91,9 @@ class CallFilter::FilterImpl {
           return false;  // Indirect calls might contain a critical function calls.
         }
 
-        const auto name = getName(callee);
+        const auto name = FilterImpl::getName(callee);
 
-        LOG_DEBUG("Found a call. Call: " << *c.getInstruction() << " Name: " << name);
+        LOG_DEBUG("Found a call. Call: (" << *c.getInstruction() << ") Name: " << name);
         if (util::regex_matches(call_regex, name)) {
           LOG_DEBUG("Keeping alloca based on call name filter match");
           return false;
@@ -136,10 +129,7 @@ class CallFilter::FilterImpl {
     if (pos != csite.arg_end()) {
       const auto argNum = std::distance(csite.arg_begin(), pos);
       LOG_DEBUG("Found exact position: " << argNum);
-      const bool filter_arg = analyse_arg(csite, argNum);
-      if (!filter_arg) {
-        return false;
-      }
+      return analyse_arg(csite, argNum);
     } else {
       LOG_DEBUG("Analyze all args, cannot correlate alloca with arg.");
       return std::all_of(csite.arg_begin(), csite.arg_end(), [&csite, &analyse_arg](const Use& arg_use) {
@@ -165,7 +155,7 @@ class CallFilter::FilterImpl {
     return filter(llvm::dyn_cast<Value>(arg));
   }
 
-  std::string getName(const Function* f) const {
+  static inline std::string getName(const Function* f) {
     auto name = f->getName();
     // FIXME figure out if we need to demangle, i.e., source is .c or .cpp
     const auto f_name = util::demangle(name);
