@@ -45,25 +45,20 @@ void analyseBuffer(const void *buf, int count, MPI_Datatype type)
     int name_len;
     MPI_Type_get_name(type, type_name, &name_len);
 
-    //printf("Basetype(%s, addr=%p, size=%i , count=%i)\n", type_name, buf, size, count);
-    //TODO: check for matching c-type
+    printf("Basetype(%s, addr=%p, size=%i , count=%i)\n", type_name, buf, size, count);
 
     typeart_type_info type_info;
     size_t count_check;
     typeart_status status = typeart_get_type(buf, &type_info, &count_check);
-    if (status == SUCCESS) {
+    if (status == TA_OK) {
       
       //printf("Lookup was successful!\n");
 
       // If the address corresponds to a struct, fetch the type of the first member
       while (type_info.kind == STRUCT) {
-        size_t len;
-        const typeart_type_info* types;
-        const size_t* count;
-        const size_t* offsets;
-        size_t extent;
-        typeart_resolve_type(type_info.id, &len, &types, &count, &offsets, &extent);
-        type_info = types[0];
+        typeart_struct_layout struct_layout;
+        typeart_resolve_type(type_info.id, &struct_layout);
+        type_info = struct_layout.member_types[0];
       }
 
       //fprintf(stderr, "Type id=%d, name=%s\n", type_info.id, typeart_get_type_name(type_info.id));
@@ -81,9 +76,9 @@ void analyseBuffer(const void *buf, int count, MPI_Datatype type)
 
     } else {
       fprintf(stdout, "Error: ");
-      if (status == BAD_ALIGNMENT) {
+      if (status == TA_BAD_ALIGNMENT) {
         fprintf(stdout, "Buffer address does not align with the underlying type at %p\n", buf);
-      } else if (status == UNKNOWN_ADDRESS) {
+      } else if (status == TA_UNKNOWN_ADDRESS) {
         fprintf(stdout, "No buffer allocated at address %p\n", buf);
       }
     }

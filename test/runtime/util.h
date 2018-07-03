@@ -14,18 +14,15 @@ void check(void* addr, int id, int expected_count, int resolveStructs) {
     typeart_type_info type_info;
     size_t count_check;
     typeart_status status = typeart_get_type(addr, &type_info, &count_check);
-    if (status == SUCCESS) {
+    if (status == TA_OK) {
         if (resolveStructs) {
             // If the address corresponds to a struct, fetch the type of the first member
             while (type_info.kind == STRUCT) {
-                size_t len;
-                const typeart_type_info *types;
-                const size_t *count;
-                const size_t *offsets;
-                size_t extent;
-                typeart_resolve_type(type_info.id, &len, &types, &count, &offsets, &extent);
-                type_info = types[0];
-                count_check = count[0];
+
+                typeart_struct_layout struct_layout;
+                typeart_resolve_type(type_info.id, &struct_layout);
+                type_info = struct_layout.member_types[0];
+                count_check = struct_layout.count[0];
             }
         }
 
@@ -41,10 +38,10 @@ void check(void* addr, int id, int expected_count, int resolveStructs) {
 
     } else {
         switch (status) {
-            case UNKNOWN_ADDRESS:
+            case TA_UNKNOWN_ADDRESS:
                 fprintf(stderr, "Error: Unknown address\n");
                 break;
-            case BAD_ALIGNMENT:
+            case TA_BAD_ALIGNMENT:
                 fprintf(stderr, "Error: Bad alignment\n");
                 break;
             default:
@@ -58,15 +55,11 @@ void check_struct(void* addr, const char* name, int expected_count) {
     typeart_type_info type_info;
     size_t count_check;
     typeart_status status = typeart_get_type(addr, &type_info, &count_check);
-    if (status == SUCCESS) {
+    if (status == TA_OK) {
         if (type_info.kind == STRUCT) {
-            size_t len;
-            const typeart_type_info *types;
-            const size_t *counts;
-            const size_t *offsets;
-            size_t extent;
-            typeart_resolve_type(type_info.id, &len, &types, &counts, &offsets, &extent);
-            if (strcmp(typeart_get_type_name(type_info.id), name) != 0) {
+            typeart_struct_layout struct_layout;
+            typeart_resolve_type(type_info.id, &struct_layout);
+            if (strcmp(typeart_get_type_name(type_info.id), struct_layout.name) != 0) {
                 fprintf(stderr, "Error: Name mismatch\n");
             } else if (expected_count != count_check) {
                 fprintf(stderr, "Error: Count mismatch (%zu)\n", count_check);
@@ -78,10 +71,10 @@ void check_struct(void* addr, const char* name, int expected_count) {
         }
     } else {
         switch (status) {
-            case UNKNOWN_ADDRESS:
+            case TA_UNKNOWN_ADDRESS:
                 fprintf(stderr, "Error: Unknown address\n");
                 break;
-            case BAD_ALIGNMENT:
+            case TA_BAD_ALIGNMENT:
                 fprintf(stderr, "Error: Bad alignment\n");
                 break;
             default:
