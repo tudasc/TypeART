@@ -48,7 +48,7 @@ class CallFilter::FilterImpl {
   FilterImpl(const std::string& glob) : call_regex(util::glob2regex(glob)) {
   }
 
-  bool filter(Value* in) {
+  bool filter(Value* in) const {
     if (in == nullptr) {
       LOG_DEBUG("Called with nullptr");
       return false;
@@ -95,14 +95,10 @@ class CallFilter::FilterImpl {
 
         if (indirect_call || callee->isDeclaration()) {
           LOG_DEBUG("Found an indirect call/only declaration, not filtering alloca. Call: " << *c.getInstruction());
-          return false;  // Indirect calls might contain a critical function.
+          return false;  // Indirect calls might contain a critical function calls.
         }
 
-        auto name = callee->getName();
-        auto f_name = util::demangle(name);
-        if (f_name != "") {
-          name = f_name;  // FIXME figure out if we need to demangle, i.e., source is .c or .cpp
-        }
+        const auto name = getName(callee);
 
         LOG_DEBUG("Found a call. Call: " << *c.getInstruction() << " Name: " << name);
         if (util::regex_matches(call_regex, name)) {
@@ -112,24 +108,17 @@ class CallFilter::FilterImpl {
 
         working_set_calls.push_back(c);
         // Caveat: below, we add users of the function call to the search even though it might be a
-        // simple "sink "of the alloca we analyse
+        // simple "sink" for the alloca we analyse
       }
       // cont. our search
       addToWork(val->users());
     }
 
-    for (auto csite : working_set_calls) {
-      const bool filter_ = filter(csite, in);
-      if (!filter_) {
-        return false;
-      }
-    }
-
-    return true;
+    return std::all_of(working_set_calls.begin(), working_set_calls.end(), [&](CallSite c) { return filter(c, in); });
   }
 
  private:
-  bool filter(CallSite& csite, Value* in) {
+  bool filter(CallSite& csite, Value* in) const {
     const auto analyse_arg = [&](auto& csite, auto argNum) -> bool {
       Argument& the_arg = *(csite.getCalledFunction()->arg_begin() + argNum);
       LOG_DEBUG("Calling filter with inst of argument: " << the_arg);
@@ -140,10 +129,10 @@ class CallFilter::FilterImpl {
 
     LOG_DEBUG("Analyzing function call " << csite.getCalledFunction()->getName());
 
-    // this only works if we can correlate alloca with argument.
+    // this only works if we can correlate alloca with argument:
     const auto pos = std::find_if(csite.arg_begin(), csite.arg_end(),
                                   [&in](const Use& arg_use) -> bool { return arg_use.get() == in; });
-
+    // auto pos = csite.arg_end();
     if (pos != csite.arg_end()) {
       const auto argNum = std::distance(csite.arg_begin(), pos);
       LOG_DEBUG("Found exact position: " << argNum);
@@ -153,20 +142,16 @@ class CallFilter::FilterImpl {
       }
     } else {
       LOG_DEBUG("Analyze all args, cannot correlate alloca with arg.");
-      const bool not_filter_arg =
-          std::any_of(csite.arg_begin(), csite.arg_end(), [&csite, &analyse_arg](const Use& arg_use) {
-            auto argNum = csite.getArgumentNo(&arg_use);
-            return !analyse_arg(csite, argNum);
-          });
-      if (not_filter_arg) {
-        return false;
-      }
+      return std::all_of(csite.arg_begin(), csite.arg_end(), [&csite, &analyse_arg](const Use& arg_use) {
+        auto argNum = csite.getArgumentNo(&arg_use);
+        return analyse_arg(csite, argNum);
+      });
     }
 
     return true;
   }
 
-  bool filter(Argument* arg) {
+  bool filter(Argument* arg) const {
     for (auto* user : arg->users()) {
       LOG_DEBUG("Looking at arg user " << *user);
       // This code is for non mem2reg code (i.e., where the argument is stored to a local alloca):
@@ -178,6 +163,17 @@ class CallFilter::FilterImpl {
       }
     }
     return filter(llvm::dyn_cast<Value>(arg));
+  }
+
+  std::string getName(const Function* f) const {
+    auto name = f->getName();
+    // FIXME figure out if we need to demangle, i.e., source is .c or .cpp
+    const auto f_name = util::demangle(name);
+    if (f_name != "") {
+      name = f_name;
+    }
+
+    return name;
   }
 };
 
@@ -241,7 +237,7 @@ bool MemInstFinderPass::runOnFunction(llvm::Function& f) {
         allocs.erase(alloc);
       }
     }
-    LOG_DEBUG("Result : " << util::dump(allocs));
+    LOG_DEBUG("Allocas to instrument : " << util::dump(allocs));
   }
 
   for (const auto& mallocData : mOpsCollector.listMalloc) {
