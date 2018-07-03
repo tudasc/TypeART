@@ -1,4 +1,5 @@
 function(make_llvm_module name sources)
+  # TODO default of include_dirs is private
   cmake_parse_arguments(ARG "" "" "INCLUDE_DIRS;DEPENDS;LINK_LIBS" ${ARGN})
   
   add_llvm_loadable_module(${name}
@@ -15,7 +16,7 @@ function(make_llvm_module name sources)
   
   if(ARG_INCLUDE_DIRS)
     target_include_directories(${name}
-      PUBLIC 
+      PRIVATE
       ${ARG_INCLUDE_DIRS}
     )
   endif()

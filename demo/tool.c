@@ -1,9 +1,7 @@
-#include <stdio.h>
 #include <mpi.h>
+#include <stdio.h>
 
 #include <RuntimeInterface.h>
-
-
 
 int isCompatible(MPI_Datatype mpi_type, typeart_builtin_type recorded_type)
 {
@@ -27,17 +25,16 @@ int isCompatible(MPI_Datatype mpi_type, typeart_builtin_type recorded_type)
   return 0;
 }
 
-
 void analyseBuffer(const void *buf, int count, MPI_Datatype type)
 {
+
   int num_integers, num_addresses, num_datatypes, combiner;
-  PMPI_Type_get_envelope( type, &num_integers, &num_addresses, &num_datatypes, &combiner);
-//  printf("MPI_Type_get_envelope(t,%i,%i,%i,%i)\n", num_integers, num_addresses, num_datatypes, combiner);
+  PMPI_Type_get_envelope(type, &num_integers, &num_addresses, &num_datatypes, &combiner);
+  //  printf("MPI_Type_get_envelope(t,%i,%i,%i,%i)\n", num_integers, num_addresses, num_datatypes, combiner);
   int array_of_integers[num_integers];
   MPI_Aint array_of_addresses[num_addresses];
   MPI_Datatype array_of_datatypes[num_datatypes];
-  if (combiner==MPI_COMBINER_NAMED)
-  {
+  if (combiner == MPI_COMBINER_NAMED) {
     int size;
     MPI_Type_size(type, &size);
 
@@ -50,9 +47,8 @@ void analyseBuffer(const void *buf, int count, MPI_Datatype type)
     typeart_type_info type_info;
     size_t count_check;
     typeart_status status = typeart_get_type(buf, &type_info, &count_check);
+    
     if (status == TA_OK) {
-      
-      //printf("Lookup was successful!\n");
 
       // If the address corresponds to a struct, fetch the type of the first member
       while (type_info.kind == STRUCT) {
@@ -61,17 +57,18 @@ void analyseBuffer(const void *buf, int count, MPI_Datatype type)
         type_info = struct_layout.member_types[0];
       }
 
-      //fprintf(stderr, "Type id=%d, name=%s\n", type_info.id, typeart_get_type_name(type_info.id));
+      // fprintf(stderr, "Type id=%d, name=%s\n", type_info.id, typeart_get_type_name(type_info.id));
 
       if (isCompatible(type, type_info.id)) {
-        //printf("Types are compatible\n");
+        // printf("Types are compatible\n");
       } else {
         const char* recorded_name = typeart_get_type_name(type_info.id);
         if (type_info.kind == POINTER) {
           recorded_name = "Pointer";
         }
-        //fprintf(stdout, "Error ")
-        fprintf(stdout, "Error: Incompatible buffer of type %d (%s) - expected %s instead\n", type_info.id, recorded_name, type_name);
+
+        fprintf(stdout, "Error: Incompatible buffer of type %d (%s) - expected %s instead\n", type_info.id,
+                recorded_name, type_name);
       }
 
     } else {
@@ -85,21 +82,22 @@ void analyseBuffer(const void *buf, int count, MPI_Datatype type)
 
     return;
   }
-  
-  MPI_Type_get_contents(type, num_integers, num_addresses, num_datatypes, 
-                        array_of_integers, array_of_addresses, array_of_datatypes);
-  if (combiner==MPI_COMBINER_RESIZED)
-  {// MPI_TYPE_CREATE_RESIZED
-    int i; MPI_Aint offset;
-    for (i=0, offset=array_of_addresses[0]; i<count; i++, offset+=array_of_addresses[1] )
-      analyseBuffer((void*)((MPI_Aint)buf+offset), 1, array_of_datatypes[0]);
+
+  MPI_Type_get_contents(type, num_integers, num_addresses, num_datatypes, array_of_integers, array_of_addresses,
+                        array_of_datatypes);
+  if (combiner == MPI_COMBINER_RESIZED) {  // MPI_TYPE_CREATE_RESIZED
+    int i;
+    MPI_Aint offset;
+    for (i = 0, offset = array_of_addresses[0]; i < count; i++, offset += array_of_addresses[1])
+      analyseBuffer((void*)((MPI_Aint)buf + offset), 1, array_of_datatypes[0]);
     return;
   }
-    
-  if (combiner==MPI_COMBINER_STRUCT)
-  {// MPI_TYPE_CREATE_STRUCT
-    int i, j; MPI_Aint offset, lb, extent;
+
+  if (combiner == MPI_COMBINER_STRUCT) {  // MPI_TYPE_CREATE_STRUCT
+    int i, j;
+    MPI_Aint offset, lb, extent;
     MPI_Type_get_extent(type, &lb, &extent);
+
     fprintf(stdout, "Analyzing %d structs:\n", count);
     for (i=0, offset=0; i<count; i++, offset+=extent ) {
       for (j = 0; j < array_of_integers[0]; j++)
@@ -107,26 +105,19 @@ void analyseBuffer(const void *buf, int count, MPI_Datatype type)
                       array_of_datatypes[j]);
       fprintf(stdout, "\n");
     }
+
     return;
   }
-    
 }
 
-
-int MPI_Sendrecv(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
-                int dest, int sendtag,
-                void *recvbuf, int recvcount, MPI_Datatype recvtype,
-                int source, int recvtag,
-                MPI_Comm comm, MPI_Status *status)
-{
+int MPI_Sendrecv(const void* sendbuf, int sendcount, MPI_Datatype sendtype, int dest, int sendtag, void* recvbuf,
+                 int recvcount, MPI_Datatype recvtype, int source, int recvtag, MPI_Comm comm, MPI_Status* status) {
   printf("Analyze Send\n");
   analyseBuffer(sendbuf, sendcount, sendtype);
   analyseBuffer(0, sendcount, sendtype);
   printf("Analyze Recv\n");
   analyseBuffer(recvbuf, recvcount, recvtype);
   analyseBuffer(0, recvcount, recvtype);
-  PMPI_Sendrecv (sendbuf, sendcount, sendtype, dest, sendtag,
-                recvbuf, recvcount, recvtype, source, recvtag,
-                 comm, status);
+  return PMPI_Sendrecv(sendbuf, sendcount, sendtype, dest, sendtag, recvbuf, recvcount, recvtype, source, recvtag, comm,
+                       status);
 }
-
