@@ -318,11 +318,6 @@ void TypeArtRT::onFree(const void* addr) {
 }
 
 void TypeArtRT::onLeaveScope(size_t alloca_count) {
-  if (alloca_count == 0) {
-    //    LOG_ERROR("alloca_count value is zero");
-    return;
-  }
-
   if (alloca_count > stackVars.size()) {
     //    LOG_ERROR("Stack is smaller than requested de-allocation count!");
     alloca_count = stackVars.size();

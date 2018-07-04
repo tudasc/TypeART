@@ -10,6 +10,7 @@
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
 #include "llvm/Support/Format.h"
+#include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/Transforms/Utils/EscapeEnumerator.h"
 
 #include <iostream>
@@ -176,9 +177,14 @@ bool TypeArtPass::runOnFunction(Function& f) {
 
     // Find return instructions and exceptions
     EscapeEnumerator ee(f);
-    while (IRBuilder<>* beforeEscape = ee.Next()) {
-      auto counter_load = beforeEscape->CreateLoad(counter, "__ta_counter_load");
-      beforeEscape->CreateCall(typeart_leave_scope.f, ArrayRef<Value*>{counter_load});
+    while (IRBuilder<>* irb = ee.Next()) {
+      auto I = &(*irb->GetInsertPoint());
+
+      auto counter_load = irb->CreateLoad(counter, "__ta_counter_load");
+      auto cond = irb->CreateICmpNE(counter_load, ConstantInt::get(tu::getInt64Type(c), 0), "__ta_cond");
+      auto then_term = SplitBlockAndInsertIfThen(cond, I, false);
+      irb->SetInsertPoint(then_term);
+      irb->CreateCall(typeart_leave_scope.f, ArrayRef<Value*>{counter_load});
     }
   } else {
     // FIXME just for counting (and make tests pass)
