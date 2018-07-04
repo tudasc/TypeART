@@ -28,7 +28,7 @@ static RegisterPass<typeart::MemInstFinderPass> X("mem-inst-finder",            
 }  // namespace
 
 static cl::opt<bool> ClMemInstFilter("alloca-filter", cl::desc("Filter alloca instructions."), cl::Hidden,
-                                     cl::init(true));
+                                     cl::init(false));
 
 static cl::opt<const char*> ClMemInstAllocaFilterStr("alloca-filter-str",
                                                      cl::desc("Filter alloca instructions based on string."),
