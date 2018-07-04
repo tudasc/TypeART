@@ -85,9 +85,9 @@ bool MemInstFinderPass::runOnFunction(llvm::Function& f) {
     };
 
     for (auto alloc : alist) {
+      LOG_DEBUG("Filtering allocs (used to store a heap alloc pointer!) in function: " << f.getName());
       if (filterMallocAllocPairing(alloc)) {
-        LOG_DEBUG("Filtering alloc (used to store a heap alloc pointer!): " << *alloc
-                                                                            << " In function: " << f.getName());
+        LOG_DEBUG("Filtering alloc: " << util::dump(*alloc));
         alist.erase(alloc);
       }
     }
