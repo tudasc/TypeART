@@ -24,7 +24,7 @@ void free_vector(vector v) {
 int fill_vector(void* values, int count, vector* v) {
   typeart_builtin_type type;
   typeart_status result = typeart_get_builtin_type(values, &type);
-  if (result == SUCCESS && type == C_DOUBLE) {
+  if (result == TA_OK && type == C_DOUBLE) {
     memcpy(v->vals, values, count);
     v->size = count;
     fprintf(stderr, "Success\n");
