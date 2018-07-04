@@ -300,7 +300,7 @@ void TypeArtRT::onAlloc(const void* addr, int typeId, size_t count, size_t typeS
     auto typeString = typeDB.getTypeName(typeId);
     LOG_TRACE("Alloc " << addr << " " << typeString << " " << typeSize << " " << count << " " << (isLocal ? "S" : "H"));
     if (isLocal) {
-      LOG_TRACE("Alloc is stack");
+      //      LOG_TRACE("Alloc is stack");
       stackVars.push_back(addr);
     }
   }
