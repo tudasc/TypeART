@@ -10,8 +10,7 @@
 extern "C" {
 void __typeart_alloc(void* addr, int typeId, size_t count, size_t typeSize, int isLocal);
 void __typeart_free(void* addr);
-void __typeart_enter_scope();
-void __typeart_leave_scope();
+void __typeart_leave_scope(size_t alloca_count);
 }
 
 namespace typeart {
@@ -131,9 +130,7 @@ class TypeArtRT {
 
   void onFree(const void* addr);
 
-  void onEnterScope();
-
-  void onLeaveScope();
+  void onLeaveScope(size_t alloca_count);
 
  private:
   TypeArtRT();
@@ -170,7 +167,7 @@ class TypeArtRT {
 
   std::map<const void*, PointerInfo> typeMap;
 
-  std::deque<std::vector<const void*>> scopes;
+  std::vector<const void*> stackVars;
 
   static std::string defaultTypeFileName;
 };

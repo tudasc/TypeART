@@ -29,8 +29,6 @@ class TypeArtPass : public llvm::FunctionPass {
 
   TypeArtFunc typeart_free{"__typeart_free"};
 
-  TypeArtFunc typeart_enter_scope{"__typeart_enter_scope"};
-
   TypeArtFunc typeart_leave_scope{"__typeart_leave_scope"};
 
   TypeManager typeManager;
