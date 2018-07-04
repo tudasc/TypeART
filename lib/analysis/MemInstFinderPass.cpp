@@ -88,7 +88,7 @@ class CallFilter::FilterImpl {
 
         if (indirect_call || callee->isDeclaration()) {
           LOG_DEBUG("Found an indirect call/only declaration, not filtering alloca. Call: " << *c.getInstruction());
-          return false;  // Indirect calls might contain a critical function calls.
+          return false;  // Indirect calls might contain critical function calls.
         }
 
         const auto name = FilterImpl::getName(callee);
@@ -100,8 +100,22 @@ class CallFilter::FilterImpl {
         }
 
         working_set_calls.push_back(c);
-        // Caveat: below, we add users of the function call to the search even though it might be a
-        // simple "sink" for the alloca we analyse
+        // Caveat: below at the end of the loop, we add users of the function call to the search even though it might be
+        // a simple "sink" for the alloca we analyse
+      } else if (StoreInst* store = llvm::dyn_cast<StoreInst>(val)) {
+        // If we encounter a store, we follow the store target pointer.
+        // More inclusive than strictly necessary in some cases.
+        LOG_DEBUG("Store found: " << *store
+                                  << " Store target has users: " << util::dump(store->getPointerOperand()->users()));
+        auto store_target = store->getPointerOperand();
+        // FIXME here we check store operand, if target is another alloca, we already track that?:
+        // Note: if we apply this to malloc filtering, this might become problematic?
+        if (llvm::isa<AllocaInst>(store_target)) {
+          LOG_DEBUG("Target is alloca, skipping!");
+        } else {
+          addToWork(store_target->users());
+        }
+        continue;
       }
       // cont. our search
       addToWork(val->users());

@@ -146,17 +146,6 @@ bool TypeArtPass::runOnFunction(Function& f) {
     return true;
   };
 
-  const auto instrumentEnterScope = [&](auto& insertBefore) -> bool {
-    IRBuilder<> IRB(&insertBefore);
-    IRB.CreateCall(typeart_enter_scope.f);
-    return true;
-  };
-
-  const auto instrumentLeaveScope = [&](auto& builder) -> bool {
-    builder.CreateCall(typeart_leave_scope.f);
-    return true;
-  };
-
   // instrument collected calls of bb:
   for (auto& malloc : listMalloc) {
     ++NumFoundMallocs;
@@ -169,29 +158,27 @@ bool TypeArtPass::runOnFunction(Function& f) {
   }
 
   if (ClTypeArtAlloca) {
-    // Create new scope
-    auto& entryPoint = *f.getEntryBlock().getFirstInsertionPt();
-    instrumentEnterScope(entryPoint);
+    const bool alloca_mod = std::any_of(listAlloca.begin(), listAlloca.end(), instrumentAlloca);
 
-    // Find return instructions and exceptions
-    EscapeEnumerator ee(f);
-    while (IRBuilder<>* beforeEscape = ee.Next()) {
-      instrumentLeaveScope(*beforeEscape);
-    }
+    if (alloca_mod) {
+      // Create new scope
+      auto& entryPoint = *f.getEntryBlock().getFirstInsertionPt();
+      IRBuilder<> IRB(&entryPoint);
+      IRB.CreateCall(typeart_enter_scope.f);
 
-    for (auto alloca : listAlloca) {
-      if (alloca->getAllocatedType()->isArrayTy()) {
-        ++NumFoundAlloca;
-        mod |= instrumentAlloca(alloca);
+      // Find return instructions and exceptions
+      EscapeEnumerator ee(f);
+      while (IRBuilder<>* beforeEscape = ee.Next()) {
+        beforeEscape->CreateCall(typeart_leave_scope.f);
       }
     }
+
+    mod |= alloca_mod;
   } else {
     // FIXME just for counting (and make tests pass)
-    for (auto alloca : listAlloca) {
-      if (alloca->getAllocatedType()->isArrayTy()) {
-        ++NumFoundAlloca;
-      }
-    }
+    //    NumFoundAlloca += std::count_if(listAlloca.begin(), listAlloca.end(),
+    //                                    [](auto alloca) { return alloca->getAllocatedType()->isArrayTy(); });
+    NumFoundAlloca += listAlloca.size();
   }
 
   return mod;
