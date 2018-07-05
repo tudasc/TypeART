@@ -2,10 +2,11 @@
 #define RUNTIME_RUNTIME_H_
 
 #include "RuntimeInterface.h"
+#include "StackWrapper.h"
 #include "TypeDB.h"
 
-#include <deque>
 #include <map>
+#include <vector>
 
 extern "C" {
 void __typeart_alloc(void* addr, int typeId, size_t count, size_t typeSize, int isLocal);
@@ -25,6 +26,7 @@ struct PointerInfo {
 class TypeArtRT {
  public:
   using TypeArtStatus = typeart_status;
+  using Stack = StackWrapper<std::vector<const void*>>;
 
   static TypeArtRT& get() {
     static TypeArtRT instance;
@@ -162,13 +164,9 @@ class TypeArtRT {
   const void* findBaseAddress(const void* addr) const;
 
   // Class members
-
-  TypeDB typeDB;
-
   std::map<const void*, PointerInfo> typeMap;
-
-  std::vector<const void*> stackVars;
-
+  Stack stackVars;
+  TypeDB typeDB;
   static std::string defaultTypeFileName;
 };
 

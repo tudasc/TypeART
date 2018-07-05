@@ -42,7 +42,7 @@ TypeArtRT::TypeArtRT() {
   }
   LOG_INFO("Recorded types: " << ss.str());
 
-  stackVars.reserve(1024);
+  stackVars.container().reserve(1024);
 
   printTraceStart();
 }
@@ -301,6 +301,7 @@ void TypeArtRT::onAlloc(const void* addr, int typeId, size_t count, size_t typeS
     LOG_TRACE("Alloc " << addr << " " << typeString << " " << typeSize << " " << count << " " << (isLocal ? "S" : "H"));
     if (isLocal) {
       //      LOG_TRACE("Alloc is stack");
+      //      LOG_TRACE("Alloc is stack " << stackVars.size() << " " << stackVars.container().size());
       stackVars.push_back(addr);
     }
   }
@@ -319,17 +320,24 @@ void TypeArtRT::onFree(const void* addr) {
 
 void TypeArtRT::onLeaveScope(size_t alloca_count) {
   if (alloca_count > stackVars.size()) {
-    //    LOG_ERROR("Stack is smaller than requested de-allocation count!");
+    LOG_ERROR("Stack is smaller than requested de-allocation count!");
     alloca_count = stackVars.size();
   }
 
-  const auto start_pos = (stackVars.cend() - alloca_count);
+  const auto cend = stackVars.cend();
+  const auto start_pos = (cend - alloca_count);
   //  LOG_TRACE("Freeing stack (" << alloca_count << ") from " << std::distance(start_pos, stackVars.cend()) << " until
   //  "
   //                              << stackVars.size())
-  std::for_each(start_pos, stackVars.cend(), [&](const void* addr) { onFree(addr); });
-  //  LOG_TRACE("Erasing all.")
-  stackVars.erase(start_pos);
+  std::for_each(start_pos, cend, [&](const void* addr) { onFree(addr); });
+  stackVars.free(alloca_count);
+
+  // FIXME this is an expensive O(n) operation due to using a vector for stackBars,
+  // and is strictly speaking, not a necessary operation.
+  // Possible fix: use an additional index and set it to the "end" of valid addresses in the vector
+  // for push_back we need to check if the index is then outside of the vector range and use either push_back or
+  // vecAdr[index]
+  // stackVars.erase(start_pos, cend);
 }
 
 }  // namespace typeart
