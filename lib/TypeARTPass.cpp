@@ -10,6 +10,7 @@
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
 #include "llvm/Support/Format.h"
+#include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/Transforms/Utils/EscapeEnumerator.h"
 
 #include <iostream>
@@ -124,7 +125,7 @@ bool TypeArtPass::runOnFunction(Function& f) {
     return true;
   };
 
-  const auto instrumentAlloca = [&](const auto& alloca) -> bool {
+  const auto instrumentAlloca = [&](const auto& alloca, auto counter) -> bool {
     unsigned typeSize = tu::getTypeSizeForArrayAlloc(alloca, dl);
     auto insertBefore = alloca->getNextNode();
 
@@ -139,21 +140,15 @@ bool TypeArtPass::runOnFunction(Function& f) {
     auto isLocalConst = ConstantInt::get(tu::getInt32Type(c), 1);
 
     IRBuilder<> IRB(insertBefore);
+
+    //    auto load_counter = IRB.CreateLoad(counter);
+    //    Value* increment_counter = IRB.CreateAdd(IRB.getInt64(1), load_counter);
+    //    IRB.CreateStore(increment_counter, counter);
+
     auto arrayPtr = IRB.CreateBitOrPointerCast(alloca, tu::getVoidPtrType(c));
     IRB.CreateCall(typeart_alloc.f,
                    ArrayRef<Value*>{arrayPtr, typeIdConst, numElementsConst, typeSizeConst, isLocalConst});
 
-    return true;
-  };
-
-  const auto instrumentEnterScope = [&](auto& insertBefore) -> bool {
-    IRBuilder<> IRB(&insertBefore);
-    IRB.CreateCall(typeart_enter_scope.f);
-    return true;
-  };
-
-  const auto instrumentLeaveScope = [&](auto& builder) -> bool {
-    builder.CreateCall(typeart_leave_scope.f);
     return true;
   };
 
@@ -168,22 +163,41 @@ bool TypeArtPass::runOnFunction(Function& f) {
     mod |= instrumentFree(free);
   }
 
-  if (ClTypeArtAlloca) {
-    // Create new scope
-    auto& entryPoint = *f.getEntryBlock().getFirstInsertionPt();
-    instrumentEnterScope(entryPoint);
+  if (ClTypeArtAlloca && listAlloca.size() > 0) {
+    llvm::SmallDenseMap<BasicBlock*, size_t> allocCounts;
 
-    // Find return instructions and exceptions
-    EscapeEnumerator ee(f);
-    while (IRBuilder<>* beforeEscape = ee.Next()) {
-      instrumentLeaveScope(*beforeEscape);
-    }
+    IRBuilder<> CBuilder(f.getEntryBlock().getFirstNonPHI());
+    auto counter = CBuilder.CreateAlloca(tu::getInt64Type(c), 0, "__ta_alloca_counter");
+    CBuilder.CreateStore(ConstantInt::get(tu::getInt64Type(c), 0), counter);
 
     for (auto alloca : listAlloca) {
       if (alloca->getAllocatedType()->isArrayTy()) {
         ++NumFoundAlloca;
-        mod |= instrumentAlloca(alloca);
+        const bool instrumented = instrumentAlloca(alloca, counter);
+        if (instrumented) {
+          mod = true;
+          allocCounts[alloca->getParent()]++;
+        }
       }
+    }
+
+    for (auto data : allocCounts) {
+      IRBuilder<> IRB(data.first->getTerminator());
+      auto load_counter = IRB.CreateLoad(counter);
+      Value* increment_counter = IRB.CreateAdd(IRB.getInt64(data.second), load_counter);
+      IRB.CreateStore(increment_counter, counter);
+    }
+
+    // Find return instructions and exceptions
+    EscapeEnumerator ee(f);
+    while (IRBuilder<>* irb = ee.Next()) {
+      auto I = &(*irb->GetInsertPoint());
+
+      auto counter_load = irb->CreateLoad(counter, "__ta_counter_load");
+      auto cond = irb->CreateICmpNE(counter_load, ConstantInt::get(tu::getInt64Type(c), 0), "__ta_cond");
+      auto then_term = SplitBlockAndInsertIfThen(cond, I, false);
+      irb->SetInsertPoint(then_term);
+      irb->CreateCall(typeart_leave_scope.f, ArrayRef<Value*>{counter_load});
     }
   } else {
     // FIXME just for counting (and make tests pass)
@@ -229,8 +243,8 @@ void TypeArtPass::declareInstrumentationFunctions(Module& m) {
 
   make_function(typeart_alloc, FunctionType::get(Type::getVoidTy(c), alloc_arg_types, false));
   make_function(typeart_free, FunctionType::get(Type::getVoidTy(c), free_arg_types, false));
-  make_function(typeart_enter_scope, FunctionType::get(Type::getVoidTy(c), false));
-  make_function(typeart_leave_scope, FunctionType::get(Type::getVoidTy(c), false));
+  make_function(typeart_leave_scope,
+                FunctionType::get(Type::getVoidTy(c), ArrayRef<Type*>{Type::getInt64Ty(c)}, false));
 }
 
 void TypeArtPass::propagateTypeInformation(Module&) {

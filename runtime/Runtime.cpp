@@ -42,6 +42,8 @@ TypeArtRT::TypeArtRT() {
   }
   LOG_INFO("Recorded types: " << ss.str());
 
+  stackVars.container().reserve(1024);
+
   printTraceStart();
 }
 
@@ -298,12 +300,9 @@ void TypeArtRT::onAlloc(const void* addr, int typeId, size_t count, size_t typeS
     auto typeString = typeDB.getTypeName(typeId);
     LOG_TRACE("Alloc " << addr << " " << typeString << " " << typeSize << " " << count << " " << (isLocal ? "S" : "H"));
     if (isLocal) {
-      if (scopes.empty()) {
-        LOG_ERROR("Error while recording stack allocation: no active scope");
-        return;
-      }
-      auto& scope = scopes.back();
-      scope.push_back(addr);
+      //      LOG_TRACE("Alloc is stack");
+      //      LOG_TRACE("Alloc is stack " << stackVars.size() << " " << stackVars.container().size());
+      stackVars.push_back(addr);
     }
   }
 }
@@ -319,22 +318,26 @@ void TypeArtRT::onFree(const void* addr) {
   }
 }
 
-void TypeArtRT::onEnterScope() {
-  LOG_TRACE("Entering scope");
-  scopes.emplace_back();
-}
+void TypeArtRT::onLeaveScope(size_t alloca_count) {
+  if (alloca_count > stackVars.size()) {
+    LOG_ERROR("Stack is smaller than requested de-allocation count!");
+    alloca_count = stackVars.size();
+  }
 
-void TypeArtRT::onLeaveScope() {
-  if (scopes.empty()) {
-    LOG_ERROR("Error while leaving scope: no active scope");
-    return;
-  }
-  std::vector<const void*>& scope = scopes.back();
-  LOG_TRACE("Leaving scope: freeing " << scope.size() << " stack entries");
-  for (const void* addr : scope) {
-    onFree(addr);
-  }
-  scopes.pop_back();
+  const auto cend = stackVars.cend();
+  const auto start_pos = (cend - alloca_count);
+  //  LOG_TRACE("Freeing stack (" << alloca_count << ") from " << std::distance(start_pos, stackVars.cend()) << " until
+  //  "
+  //                              << stackVars.size())
+  std::for_each(start_pos, cend, [&](const void* addr) { onFree(addr); });
+  stackVars.free(alloca_count);
+
+  // FIXME this is an expensive O(n) operation due to using a vector for stackBars,
+  // and is strictly speaking, not a necessary operation.
+  // Possible fix: use an additional index and set it to the "end" of valid addresses in the vector
+  // for push_back we need to check if the index is then outside of the vector range and use either push_back or
+  // vecAdr[index]
+  // stackVars.erase(start_pos, cend);
 }
 
 }  // namespace typeart
@@ -347,12 +350,8 @@ void __typeart_free(void* addr) {
   typeart::TypeArtRT::get().onFree(addr);
 }
 
-void __typeart_enter_scope() {
-  typeart::TypeArtRT::get().onEnterScope();
-}
-
-void __typeart_leave_scope() {
-  typeart::TypeArtRT::get().onLeaveScope();
+void __typeart_leave_scope(size_t alloca_count) {
+  typeart::TypeArtRT::get().onLeaveScope(alloca_count);
 }
 
 typeart_status typeart_get_builtin_type(const void* addr, typeart::BuiltinType* type) {

@@ -1,6 +1,7 @@
 set(MEM_PASS_SOURCES
   MemInstFinderPass.cpp
   MemOpVisitor.cpp
+  ../support/TypeUtil.cpp
 )
 
 make_llvm_module(meminstfinderpass
