@@ -10,6 +10,7 @@
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
 #include "llvm/Support/Format.h"
+#include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/Transforms/Utils/EscapeEnumerator.h"
 
 #include <iostream>
@@ -79,6 +80,8 @@ bool TypeArtPass::runOnFunction(Function& f) {
   auto& c = f.getContext();
   DataLayout dl(f.getParent());
 
+  llvm::SmallDenseMap<BasicBlock*, size_t> allocCounts;
+
   const auto& listMalloc = getAnalysis<MemInstFinderPass>().getFunctionMallocs();
   const auto& listAlloca = getAnalysis<MemInstFinderPass>().getFunctionAllocs();
   const auto& listFree = getAnalysis<MemInstFinderPass>().getFunctionFrees();
@@ -124,14 +127,21 @@ bool TypeArtPass::runOnFunction(Function& f) {
     return true;
   };
 
-  const auto instrumentAlloca = [&](const auto& alloca) -> bool {
+  const auto instrumentAlloca = [&](auto alloca) -> bool {
+    Type* elementType = nullptr;
+    unsigned arraySize = 1;
+
     unsigned typeSize = tu::getTypeSizeForArrayAlloc(alloca, dl);
+    if (alloca->getAllocatedType()->isArrayTy()) {
+      elementType = alloca->getAllocatedType()->getArrayElementType();
+      arraySize = alloca->getAllocatedType()->getArrayNumElements();
+    } else {
+      elementType = alloca->getAllocatedType();
+    }
+
     auto insertBefore = alloca->getNextNode();
 
-    auto elementType = alloca->getAllocatedType()->getArrayElementType();
-
     int typeId = typeManager.getOrRegisterType(elementType, dl);
-    auto arraySize = alloca->getAllocatedType()->getArrayNumElements();
 
     auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), typeId);
     auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
@@ -139,9 +149,18 @@ bool TypeArtPass::runOnFunction(Function& f) {
     auto isLocalConst = ConstantInt::get(tu::getInt32Type(c), 1);
 
     IRBuilder<> IRB(insertBefore);
+
+    // Single increment for an alloca:
+    //    auto load_counter = IRB.CreateLoad(counter);
+    //    Value* increment_counter = IRB.CreateAdd(IRB.getInt64(1), load_counter);
+    //    IRB.CreateStore(increment_counter, counter);
+
     auto arrayPtr = IRB.CreateBitOrPointerCast(alloca, tu::getVoidPtrType(c));
     IRB.CreateCall(typeart_alloc.f,
                    ArrayRef<Value*>{arrayPtr, typeIdConst, numElementsConst, typeSizeConst, isLocalConst});
+
+    allocCounts[alloca->getParent()]++;
+    ++NumFoundAlloca;
 
     return true;
   };
@@ -157,23 +176,38 @@ bool TypeArtPass::runOnFunction(Function& f) {
     mod |= instrumentFree(free);
   }
 
-  if (ClTypeArtAlloca) {
-    const bool alloca_mod = std::any_of(listAlloca.begin(), listAlloca.end(), instrumentAlloca);
+  if (ClTypeArtAlloca && listAlloca.size() > 0) {
+    const bool instrumented_alloca = std::count_if(listAlloca.begin(), listAlloca.end(), instrumentAlloca) > 0;
+    mod |= instrumented_alloca;
 
-    if (alloca_mod) {
-      // Create new scope
-      auto& entryPoint = *f.getEntryBlock().getFirstInsertionPt();
-      IRBuilder<> IRB(&entryPoint);
-      IRB.CreateCall(typeart_enter_scope.f);
+    if (instrumented_alloca) {
+      //      LOG_DEBUG("Add alloca counter")
+      // counter = 0 at beginning of function
+      IRBuilder<> CBuilder(f.getEntryBlock().getFirstNonPHI());
+      auto counter = CBuilder.CreateAlloca(tu::getInt64Type(c), 0, "__ta_alloca_counter");
+      CBuilder.CreateStore(ConstantInt::get(tu::getInt64Type(c), 0), counter);
 
-      // Find return instructions and exceptions
+      // In each basic block: counter =+ num_alloca (in BB)
+      for (auto data : allocCounts) {
+        IRBuilder<> IRB(data.first->getTerminator());
+        auto load_counter = IRB.CreateLoad(counter);
+        Value* increment_counter = IRB.CreateAdd(IRB.getInt64(data.second), load_counter);
+        IRB.CreateStore(increment_counter, counter);
+      }
+
+      // Find return instructions:
+      // if(counter > 0) call runtime for stack cleanup
       EscapeEnumerator ee(f);
-      while (IRBuilder<>* beforeEscape = ee.Next()) {
-        beforeEscape->CreateCall(typeart_leave_scope.f);
+      while (IRBuilder<>* irb = ee.Next()) {
+        auto I = &(*irb->GetInsertPoint());
+
+        auto counter_load = irb->CreateLoad(counter, "__ta_counter_load");
+        auto cond = irb->CreateICmpNE(counter_load, ConstantInt::get(tu::getInt64Type(c), 0), "__ta_cond");
+        auto then_term = SplitBlockAndInsertIfThen(cond, I, false);
+        irb->SetInsertPoint(then_term);
+        irb->CreateCall(typeart_leave_scope.f, ArrayRef<Value*>{counter_load});
       }
     }
-
-    mod |= alloca_mod;
   } else {
     // FIXME just for counting (and make tests pass)
     //    NumFoundAlloca += std::count_if(listAlloca.begin(), listAlloca.end(),
@@ -182,7 +216,7 @@ bool TypeArtPass::runOnFunction(Function& f) {
   }
 
   return mod;
-}
+}  // namespace pass
 
 bool TypeArtPass::doFinalization(Module&) {
   /*
@@ -216,8 +250,8 @@ void TypeArtPass::declareInstrumentationFunctions(Module& m) {
 
   make_function(typeart_alloc, FunctionType::get(Type::getVoidTy(c), alloc_arg_types, false));
   make_function(typeart_free, FunctionType::get(Type::getVoidTy(c), free_arg_types, false));
-  make_function(typeart_enter_scope, FunctionType::get(Type::getVoidTy(c), false));
-  make_function(typeart_leave_scope, FunctionType::get(Type::getVoidTy(c), false));
+  make_function(typeart_leave_scope,
+                FunctionType::get(Type::getVoidTy(c), ArrayRef<Type*>{tu::getInt64Type(c)}, false));
 }
 
 void TypeArtPass::propagateTypeInformation(Module&) {

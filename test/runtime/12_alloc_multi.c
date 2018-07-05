@@ -2,6 +2,12 @@
 
 #include <stdlib.h>
 
+void call() {
+  const int n = 10;
+  double a[n];	
+  double b[n];
+}
+
 int main(int argc, char** argv) {
   const int n = 42;
   // CHECK: [Trace] TypeART Runtime Trace
@@ -26,6 +32,12 @@ int main(int argc, char** argv) {
 
   // CHECK: [Trace] Alloc 0x{{.*}} unknown 8 42
   int* g[n];
+
+  // CHECK: [Trace] Alloc 0x{{.*}} double 8 10
+  // CHECK: [Trace] Alloc 0x{{.*}} double 8 10
+  call();
+  // CHECK: [Trace] Free 0x{{.*}}
+  // CHECK: [Trace] Free 0x{{.*}}
 
   // CHECK: [Trace] Free 0x{{.*}}
   // CHECK: [Trace] Free 0x{{.*}}
