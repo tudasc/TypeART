@@ -141,9 +141,9 @@ bool TypeArtPass::runOnFunction(Function& f) {
 
     IRBuilder<> IRB(insertBefore);
 
-    auto load_counter = IRB.CreateLoad(counter);
-    Value* increment_counter = IRB.CreateAdd(IRB.getInt64(1), load_counter);
-    IRB.CreateStore(increment_counter, counter);
+    //    auto load_counter = IRB.CreateLoad(counter);
+    //    Value* increment_counter = IRB.CreateAdd(IRB.getInt64(1), load_counter);
+    //    IRB.CreateStore(increment_counter, counter);
 
     auto arrayPtr = IRB.CreateBitOrPointerCast(alloca, tu::getVoidPtrType(c));
     IRB.CreateCall(typeart_alloc.f,
@@ -164,6 +164,8 @@ bool TypeArtPass::runOnFunction(Function& f) {
   }
 
   if (ClTypeArtAlloca && listAlloca.size() > 0) {
+    llvm::SmallDenseMap<BasicBlock*, size_t> allocCounts;
+
     IRBuilder<> CBuilder(f.getEntryBlock().getFirstNonPHI());
     auto counter = CBuilder.CreateAlloca(tu::getInt64Type(c), 0, "__ta_alloca_counter");
     CBuilder.CreateStore(ConstantInt::get(tu::getInt64Type(c), 0), counter);
@@ -171,8 +173,19 @@ bool TypeArtPass::runOnFunction(Function& f) {
     for (auto alloca : listAlloca) {
       if (alloca->getAllocatedType()->isArrayTy()) {
         ++NumFoundAlloca;
-        mod |= instrumentAlloca(alloca, counter);
+        const bool instrumented = instrumentAlloca(alloca, counter);
+        if (instrumented) {
+          mod = true;
+          allocCounts[alloca->getParent()]++;
+        }
       }
+    }
+
+    for (auto data : allocCounts) {
+      IRBuilder<> IRB(data.first->getTerminator());
+      auto load_counter = IRB.CreateLoad(counter);
+      Value* increment_counter = IRB.CreateAdd(IRB.getInt64(data.second), load_counter);
+      IRB.CreateStore(increment_counter, counter);
     }
 
     // Find return instructions and exceptions
