@@ -14,6 +14,7 @@
 
 #include "llvm/ADT/Statistic.h"
 #include "llvm/IR/Instructions.h"
+#include "llvm/Support/Format.h"
 
 using namespace llvm;
 
@@ -27,22 +28,24 @@ static RegisterPass<typeart::MemInstFinderPass> X("mem-inst-finder",            
 );
 }  // namespace
 
-static cl::opt<bool> ClFilterNonArrayAlloca("alloca-array", cl::desc("Only use alloca instructions of arrays."),
+static cl::opt<bool> ClFilterNonArrayAlloca("alloca-array-only", cl::desc("Only use alloca instructions of arrays."),
                                             cl::Hidden, cl::init(true));
 
-static cl::opt<bool> ClFilterMallocAllocPair("mem-inst-malloc-store-filter",
+static cl::opt<bool> ClFilterMallocAllocPair("malloc-store-filter",
                                              cl::desc("Filter allocs that get a store from a heap alloc."), cl::Hidden,
                                              cl::init(false));
 
-static cl::opt<bool> ClMemInstFilter("alloca-filter", cl::desc("Filter alloca instructions."), cl::Hidden,
-                                     cl::init(false));
+static cl::opt<bool> ClCallFilter("call-filter",
+                                  cl::desc("Filter alloca instructions that are passed to specific calls."), cl::Hidden,
+                                  cl::init(false));
 
-static cl::opt<const char*> ClMemInstAllocaFilterStr("alloca-filter-str",
-                                                     cl::desc("Filter alloca instructions based on string."),
-                                                     cl::Hidden, cl::init("MPI_*"));
+static cl::opt<const char*> ClCallFilterGlob("call-filter-str", cl::desc("Filter alloca instructions based on string."),
+                                             cl::Hidden, cl::init("MPI_*"));
 
 STATISTIC(NumDetectedAllocs, "Number of detected allocs");
-STATISTIC(NumFilteredAllocs, "Number of filtered allocs");
+STATISTIC(NumCallFilteredAllocs, "Number of call filtered allocs");
+STATISTIC(NumFilteredMallocAllocs, "Number of  filtered  malloc-related allocs");
+STATISTIC(NumFilteredNonArrayAllocs, "Number of call filtered allocs");
 
 namespace typeart {
 
@@ -196,7 +199,6 @@ bool CallFilter::operator()(AllocaInst* in) {
   const auto filter_ = fImpl->filter(in);
   if (filter_) {
     LOG_DEBUG("Filtering value: " << *in << "\n");
-    ++NumFilteredAllocs;
   } else {
     LOG_DEBUG("Keeping value: " << *in << "\n");
   }
@@ -211,8 +213,7 @@ CallFilter::~CallFilter() = default;
 
 char MemInstFinderPass::ID = 0;
 
-MemInstFinderPass::MemInstFinderPass()
-    : llvm::FunctionPass(ID), mOpsCollector(), filter(ClMemInstAllocaFilterStr.getValue()) {
+MemInstFinderPass::MemInstFinderPass() : llvm::FunctionPass(ID), mOpsCollector(), filter(ClCallFilterGlob.getValue()) {
 }
 
 void MemInstFinderPass::getAnalysisUsage(llvm::AnalysisUsage& info) const {
@@ -240,11 +241,14 @@ bool MemInstFinderPass::runOnFunction(llvm::Function& f) {
   mOpsCollector.clear();
   mOpsCollector.visit(f);
 
+  NumDetectedAllocs += mOpsCollector.listAlloca.size();
+
   if (ClFilterNonArrayAlloca) {
     auto& allocs = mOpsCollector.listAlloca;
     for (auto* alloc : allocs) {
       if (!alloc->getAllocatedType()->isArrayTy()) {
         allocs.erase(alloc);
+        ++NumFilteredNonArrayAllocs;
       }
     }
   }
@@ -279,15 +283,17 @@ bool MemInstFinderPass::runOnFunction(llvm::Function& f) {
       if (filterMallocAllocPairing(alloc)) {
         LOG_DEBUG("Filtering alloc: " << util::dump(*alloc));
         alist.erase(alloc);
+        ++NumFilteredMallocAllocs;
       }
     }
   }
 
-  if (ClMemInstFilter) {
+  if (ClCallFilter) {
     auto& allocs = mOpsCollector.listAlloca;
     for (auto* alloc : allocs) {
       if (filter(alloc)) {
         allocs.erase(alloc);
+        ++NumCallFilteredAllocs;
       }
     }
     LOG_DEBUG("Allocas to instrument : " << util::dump(allocs));
@@ -301,8 +307,32 @@ bool MemInstFinderPass::runOnFunction(llvm::Function& f) {
 }
 
 bool MemInstFinderPass::doFinalization(llvm::Module& m) {
-  LOG_DEBUG("Found alloca count: " << NumDetectedAllocs);
-  LOG_DEBUG("Filtered alloca count: " << NumFilteredAllocs);
+  auto& out = llvm::outs();
+
+  const unsigned max_string{28u};
+  const unsigned max_val{5u};
+  std::string line(42, '-');
+  line += "\n";
+  const auto make_format = [&](const char* desc, const auto val) {
+    return format("%-*s: %*.1f\n", max_string, desc, max_val, val);
+  };
+
+  auto all_stack = double(NumDetectedAllocs.getValue());
+  auto nonarray_stack = double(NumFilteredNonArrayAllocs.getValue());
+  auto malloc_alloc_stack = double(NumFilteredMallocAllocs.getValue());
+  auto call_filter_stack = double(NumCallFilteredAllocs.getValue());
+
+  out << line;
+  out << "   MemInstFinderPass\n";
+  out << line;
+  out << "Stack Memory\n";
+  out << line;
+  out << make_format("Alloca", all_stack);
+  out << make_format("% non array filtered", (nonarray_stack / all_stack) * 100);
+  out << make_format("% malloc-alloc filtered", (malloc_alloc_stack / (all_stack - nonarray_stack)) * 100);
+  out << make_format("% call filtered", (call_filter_stack / (all_stack - nonarray_stack - malloc_alloc_stack)) * 100);
+  out << line;
+  out.flush();
   return false;
 }
 
