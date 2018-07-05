@@ -24,6 +24,10 @@ static RegisterPass<typeart::MemInstFinderPass> X("mem-inst-finder",            
 );
 }  // namespace
 
+static cl::opt<bool> ClFilterMallocAllocPair("mem-inst-malloc-store-filter",
+                                             cl::desc("Filter allocs that get a store from a heap alloc."), cl::Hidden,
+                                             cl::init(false));
+
 namespace typeart {
 
 char MemInstFinderPass::ID = 0;
@@ -54,6 +58,40 @@ bool MemInstFinderPass::runOnFunction(llvm::Function& f) {
 
   mOpsCollector.clear();
   mOpsCollector.visit(f);
+
+  if (ClFilterMallocAllocPair) {
+    auto& alist = mOpsCollector.listAlloca;
+    auto& mlist = mOpsCollector.listMalloc;
+
+    const auto filterMallocAllocPairing = [&mlist](const auto alloc) {
+      // Only look for the direct users of the alloc:
+      // TODO is a deeper analysis required?
+      for (auto inst : alloc->users()) {
+        if (StoreInst* store = dyn_cast<StoreInst>(inst)) {
+          const auto source = store->getValueOperand();
+          if (isa<BitCastInst>(source)) {
+            for (auto& mdata : mlist) {
+              // is it a bitcast we already collected? if yes, we can filter the alloc
+              return std::any_of(mdata.bitcasts.begin(), mdata.bitcasts.end(),
+                                 [&source](const auto bcast) { return bcast == source; });
+            }
+          } else if (isa<CallInst>(source)) {
+            return std::any_of(mlist.begin(), mlist.end(),
+                               [&source](const auto& mdata) { return mdata.call == source; });
+          }
+        }
+      }
+      return false;
+    };
+
+    for (auto alloc : alist) {
+      LOG_DEBUG("Filtering allocs (used to store a heap alloc pointer!) in function: " << f.getName());
+      if (filterMallocAllocPairing(alloc)) {
+        LOG_DEBUG("Filtering alloc: " << util::dump(*alloc));
+        alist.erase(alloc);
+      }
+    }
+  }
 
   for (const auto& mallocData : mOpsCollector.listMalloc) {
     checkAmbigiousMalloc(mallocData);
