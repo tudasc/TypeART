@@ -5,43 +5,43 @@ set(RUNTIME_LIB_SOURCES
   Runtime.cpp
 )
 
-add_library(runtime SHARED
+add_library(typeart-rt SHARED
   ${RUNTIME_LIB_SOURCES}
 )
 
-target_link_libraries(runtime 
+target_link_libraries(typeart-rt 
   typelib
 )
 
-target_include_directories(runtime 
+target_include_directories(typeart-rt 
   PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/typelib>
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/typelib>
     $<INSTALL_INTERFACE:include>
   PRIVATE
-    ${CMAKE_SOURCE_DIR}/lib # For the logger
+    ${PROJECT_SOURCE_DIR}/lib # For the logger
 )
 
-target_include_directories(runtime 
+target_include_directories(typeart-rt
   SYSTEM 
   PRIVATE
     ${LLVM_INCLUDE_DIRS}
 )
 
-target_project_compile_options(runtime)
-target_define_file_basename(runtime)
+target_project_compile_options(typeart-rt)
+target_define_file_basename(typeart-rt)
 
-target_link_libraries(runtime
+target_link_libraries(typeart-rt
   LLVMCore
   LLVMSupport
 )
 
-make_tidy_check(runtime
+make_tidy_check(typeart-rt
   "${RUNTIME_LIB_SOURCES}"
 )
 
 
 install(
-  TARGETS runtime
+  TARGETS typeart-rt
   EXPORT ${TARGETS_EXPORT_NAME}
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib/static
@@ -62,7 +62,7 @@ install(
 
 #set(DEPENDENCY libaTargets.cmake
 configure_package_config_file(
-  ${CMAKE_SOURCE_DIR}/cmake/Config.cmake.in
+  ${PROJECT_SOURCE_DIR}/cmake/Config.cmake.in
   ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
   INSTALL_DESTINATION lib/cmake
 )
