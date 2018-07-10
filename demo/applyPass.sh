@@ -1,8 +1,8 @@
 #!/bin/bash
 
 target=$1
-pathToPlugin=${2:-build/lib}
-pathToRT=${3:-build/runtime}
+pathToPlugin=${2:-../build/lib}
+pathToRT=${3:-../build/runtime}
 mpi=${4:-1}
 outfile=${5}
 
@@ -38,6 +38,6 @@ if [ -e "types.yaml" ]; then
 fi
 
 OMPI_CC=$c_compiler OMPI_CXX=$cxx_compiler $compiler_wrapper -S -emit-llvm "$target" -o "$tmpfile".ll
-opt -load "${pathToPlugin}/analysis/MemInstFinderPass.so" -load "${pathToPlugin}/TypeArtPass.so" -typeart -typeart-alloca < "$tmpfile".ll -o "$tmpfile".ll > /dev/null
+opt -load "${pathToPlugin}/analysis/meminstfinderpass.so" -load "${pathToPlugin}/typeartpass.so" -typeart -typeart-alloca < "$tmpfile".ll -S -o "$tmpfile".ll
 llc "$tmpfile".ll -o "$tmpfile".s
 OMPI_CC=$c_compiler OMPI_CXX=$cxx_compiler $compiler_wrapper "$tmpfile".s -L"$pathToRT" -ltypeart -o "$outfile"

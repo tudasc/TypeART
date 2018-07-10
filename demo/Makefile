@@ -5,7 +5,7 @@ CC ?= cc
 TYPEART_PASS_DIR = $(BUILDDIR)/lib
 TYPEART_RUNTIME_DIR = $(BUILDDIR)/runtime
 CLFLAGS = -L$(TYPEART_RUNTIME_DIR) -lruntime
-CFLAGS = -Xclang -load -Xclang $(TYPEART_PASS_DIR)/analysis/meminstfinderpass.so -Xclang -load -Xclang $(TYPEART_PASS_DIR)/typeartpass.so
+CFLAGS = -Xclang -load -Xclang $(TYPEART_PASS_DIR)/analysis/meminstfinderpass.so -Xclang -load -Xclang $(TYPEART_PASS_DIR)/typeartpass.so -mllvm -alloca-array-only=false -mllvm -call-filter -mllvm -typeart-alloca
 
 
 all: libtool.so 01_ex 02_ex

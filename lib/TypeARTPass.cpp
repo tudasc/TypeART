@@ -176,7 +176,7 @@ bool TypeArtPass::runOnFunction(Function& f) {
     mod |= instrumentFree(free);
   }
 
-  if (ClTypeArtAlloca && listAlloca.size() > 0) {
+  if (ClTypeArtAlloca) {
     const bool instrumented_alloca = std::count_if(listAlloca.begin(), listAlloca.end(), instrumentAlloca) > 0;
     mod |= instrumented_alloca;
 
@@ -209,9 +209,6 @@ bool TypeArtPass::runOnFunction(Function& f) {
       }
     }
   } else {
-    // FIXME just for counting (and make tests pass)
-    //    NumFoundAlloca += std::count_if(listAlloca.begin(), listAlloca.end(),
-    //                                    [](auto alloca) { return alloca->getAllocatedType()->isArrayTy(); });
     NumFoundAlloca += listAlloca.size();
   }
 

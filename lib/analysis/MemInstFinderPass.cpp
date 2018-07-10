@@ -107,6 +107,7 @@ class CallFilter::FilterImpl {
         const auto callee = c.getCalledFunction();
         const bool indirect_call = callee == nullptr;
 
+        // FIXME the MPI calls are all hitting this branch (obviously)
         if (indirect_call || callee->isDeclaration()) {
           LOG_DEBUG("Found an indirect call/only declaration, not filtering alloca. Call: "
                     << util::dump(*c.getInstruction()));
@@ -323,14 +324,16 @@ bool MemInstFinderPass::runOnFunction(llvm::Function& f) {
         ++NumCallFilteredAllocs;
       }
     }
-    LOG_DEBUG("Allocas to instrument : " << util::dump(allocs));
+    LOG_DEBUG(allocs.size() << " allocas to instrument : " << util::dump(allocs));
   }
 
   auto& mallocs = mOpsCollector.listMalloc;
+  NumDetectedHeap = mallocs.size();
 
   if (ClCallFilterHeap) {
     mallocs.erase(mallocs.begin(),
                   std::remove_if(mallocs.begin(), mallocs.end(), [&](MallocData& data) { return filter(data.call); }));
+    NumFilteredDetectedHeap = NumDetectedHeap - mallocs.size();
   }
 
   for (const auto& mallocData : mallocs) {
@@ -361,7 +364,7 @@ bool MemInstFinderPass::doFinalization(llvm::Module&) {
   out << line;
   out << "Heap Memory\n";
   out << line;
-  out << make_format("Heap alloc", NumDetectedHeap.getValue());
+  out << make_format("Heap alloc", double(NumDetectedHeap.getValue()));
   out << make_format(
       "% call filtered",
       (double(NumFilteredDetectedHeap.getValue()) / std::max(1.0, double(NumDetectedHeap.getValue()))) * 100.0);
