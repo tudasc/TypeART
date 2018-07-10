@@ -9,6 +9,8 @@
 #include "support/Logger.h"
 #include "support/TypeUtil.h"
 
+#include "support/Util.h"
+
 #include <algorithm>
 
 namespace typeart {
@@ -79,7 +81,6 @@ void MemOpVisitor::visitFreeLike(llvm::CallInst& ci) {
 void MemOpVisitor::visitAllocaInst(llvm::AllocaInst& ai) {
   LOG_DEBUG("Found alloca " << ai);
 
-  // TODO filter based on indirect pointers (void *p = other_ptr)
   listAlloca.insert(&ai);
 }
 

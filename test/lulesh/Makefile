@@ -13,7 +13,7 @@ MPICXX = mpig++ -DUSE_MPI=1
 CXX = $(SERCXX)
 
 COMPILE_SCRIPT = ./buildAndApplyPass.sh
-RTPATH = /home/sebastian/git/llvm-must-support/build/runtime
+RTPATH = ../../build/runtime
 
 SOURCES2.0 = \
 	lulesh.cc \

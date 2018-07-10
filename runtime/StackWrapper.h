@@ -25,14 +25,14 @@ class StackWrapper {
   explicit StackWrapper(const Container& other) : c(other) {
   }
 
-  StackWrapper(Container&& other) : c(std::move(other)) {
+  explicit StackWrapper(Container&& other) : c(std::move(other)) {
   }
 
-  Container& container() {
+  inline Container& container() {
     return c;
   }
 
-  const Container& container() const {
+  inline const Container& container() const {
     return c;
   }
 

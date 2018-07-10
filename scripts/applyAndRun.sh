@@ -28,7 +28,7 @@ if [ -e "${tmpDir}/types.yaml" ]; then
 fi
 
 $compiler -S -emit-llvm "$target" -o "$tmpfile".ll -I${scriptDir}/../typelib
-opt -load ${pathToPlugin}/analysis/meminstfinderpass.so -load ${pathToPlugin}/typeartpass.so -typeart "$pluginArgs"< "$tmpfile".ll -o "$tmpfile".ll > /dev/null
+opt -load ${pathToPlugin}/analysis/meminstfinderpass.so -load ${pathToPlugin}/typeartpass.so -typeart $pluginArgs < "$tmpfile".ll -o "$tmpfile".ll > /dev/null
 llc "$tmpfile".ll -o "$tmpfile".s
 $compiler "$tmpfile".s -L"$pathToRT" -lruntime -o "$tmpfile".o
 echo -e Executing with runtime lib

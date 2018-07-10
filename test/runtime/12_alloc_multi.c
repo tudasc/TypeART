@@ -1,4 +1,5 @@
 // RUN: %scriptpath/applyAndRun.sh %s %pluginpath "-typeart-alloca" %rtpath 2>&1 | FileCheck %s
+// RUN: %scriptpath/applyAndRun.sh %s %pluginpath "-typeart-alloca -call-filter" %rtpath 2>&1 | FileCheck %s --check-prefix CHECK-FILTER
 
 #include <stdlib.h>
 
@@ -11,6 +12,7 @@ void call() {
 int main(int argc, char** argv) {
   const int n = 42;
   // CHECK: [Trace] TypeART Runtime Trace
+  // CHECK-FILTER-NOT: [Trace] TypeART Runtime Trace
 
   // CHECK: [Trace] Alloc 0x{{.*}} char 1 42
   char a[n];

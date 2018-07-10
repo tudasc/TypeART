@@ -80,6 +80,8 @@ bool TypeArtPass::runOnFunction(Function& f) {
   auto& c = f.getContext();
   DataLayout dl(f.getParent());
 
+  llvm::SmallDenseMap<BasicBlock*, size_t> allocCounts;
+
   const auto& listMalloc = getAnalysis<MemInstFinderPass>().getFunctionMallocs();
   const auto& listAlloca = getAnalysis<MemInstFinderPass>().getFunctionAllocs();
   const auto& listFree = getAnalysis<MemInstFinderPass>().getFunctionFrees();
@@ -125,14 +127,21 @@ bool TypeArtPass::runOnFunction(Function& f) {
     return true;
   };
 
-  const auto instrumentAlloca = [&](const auto& alloca, auto counter) -> bool {
+  const auto instrumentAlloca = [&](auto alloca) -> bool {
+    Type* elementType = nullptr;
+    unsigned arraySize = 1;
+
     unsigned typeSize = tu::getTypeSizeForArrayAlloc(alloca, dl);
+    if (alloca->getAllocatedType()->isArrayTy()) {
+      elementType = alloca->getAllocatedType()->getArrayElementType();
+      arraySize = alloca->getAllocatedType()->getArrayNumElements();
+    } else {
+      elementType = alloca->getAllocatedType();
+    }
+
     auto insertBefore = alloca->getNextNode();
 
-    auto elementType = alloca->getAllocatedType()->getArrayElementType();
-
     int typeId = typeManager.getOrRegisterType(elementType, dl);
-    auto arraySize = alloca->getAllocatedType()->getArrayNumElements();
 
     auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), typeId);
     auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
@@ -141,6 +150,7 @@ bool TypeArtPass::runOnFunction(Function& f) {
 
     IRBuilder<> IRB(insertBefore);
 
+    // Single increment for an alloca:
     //    auto load_counter = IRB.CreateLoad(counter);
     //    Value* increment_counter = IRB.CreateAdd(IRB.getInt64(1), load_counter);
     //    IRB.CreateStore(increment_counter, counter);
@@ -148,6 +158,9 @@ bool TypeArtPass::runOnFunction(Function& f) {
     auto arrayPtr = IRB.CreateBitOrPointerCast(alloca, tu::getVoidPtrType(c));
     IRB.CreateCall(typeart_alloc.f,
                    ArrayRef<Value*>{arrayPtr, typeIdConst, numElementsConst, typeSizeConst, isLocalConst});
+
+    allocCounts[alloca->getParent()]++;
+    ++NumFoundAlloca;
 
     return true;
   };
@@ -163,53 +176,44 @@ bool TypeArtPass::runOnFunction(Function& f) {
     mod |= instrumentFree(free);
   }
 
-  if (ClTypeArtAlloca && listAlloca.size() > 0) {
-    llvm::SmallDenseMap<BasicBlock*, size_t> allocCounts;
+  if (ClTypeArtAlloca) {
+    const bool instrumented_alloca = std::count_if(listAlloca.begin(), listAlloca.end(), instrumentAlloca) > 0;
+    mod |= instrumented_alloca;
 
-    IRBuilder<> CBuilder(f.getEntryBlock().getFirstNonPHI());
-    auto counter = CBuilder.CreateAlloca(tu::getInt64Type(c), 0, "__ta_alloca_counter");
-    CBuilder.CreateStore(ConstantInt::get(tu::getInt64Type(c), 0), counter);
+    if (instrumented_alloca) {
+      //      LOG_DEBUG("Add alloca counter")
+      // counter = 0 at beginning of function
+      IRBuilder<> CBuilder(f.getEntryBlock().getFirstNonPHI());
+      auto counter = CBuilder.CreateAlloca(tu::getInt64Type(c), nullptr, "__ta_alloca_counter");
+      CBuilder.CreateStore(CBuilder.getInt64(0), counter);
 
-    for (auto alloca : listAlloca) {
-      if (alloca->getAllocatedType()->isArrayTy()) {
-        ++NumFoundAlloca;
-        const bool instrumented = instrumentAlloca(alloca, counter);
-        if (instrumented) {
-          mod = true;
-          allocCounts[alloca->getParent()]++;
-        }
+      // In each basic block: counter =+ num_alloca (in BB)
+      for (auto data : allocCounts) {
+        IRBuilder<> IRB(data.first->getTerminator());
+        auto load_counter = IRB.CreateLoad(counter);
+        Value* increment_counter = IRB.CreateAdd(IRB.getInt64(data.second), load_counter);
+        IRB.CreateStore(increment_counter, counter);
       }
-    }
 
-    for (auto data : allocCounts) {
-      IRBuilder<> IRB(data.first->getTerminator());
-      auto load_counter = IRB.CreateLoad(counter);
-      Value* increment_counter = IRB.CreateAdd(IRB.getInt64(data.second), load_counter);
-      IRB.CreateStore(increment_counter, counter);
-    }
+      // Find return instructions:
+      // if(counter > 0) call runtime for stack cleanup
+      EscapeEnumerator ee(f);
+      while (IRBuilder<>* irb = ee.Next()) {
+        auto I = &(*irb->GetInsertPoint());
 
-    // Find return instructions and exceptions
-    EscapeEnumerator ee(f);
-    while (IRBuilder<>* irb = ee.Next()) {
-      auto I = &(*irb->GetInsertPoint());
-
-      auto counter_load = irb->CreateLoad(counter, "__ta_counter_load");
-      auto cond = irb->CreateICmpNE(counter_load, ConstantInt::get(tu::getInt64Type(c), 0), "__ta_cond");
-      auto then_term = SplitBlockAndInsertIfThen(cond, I, false);
-      irb->SetInsertPoint(then_term);
-      irb->CreateCall(typeart_leave_scope.f, ArrayRef<Value*>{counter_load});
+        auto counter_load = irb->CreateLoad(counter, "__ta_counter_load");
+        auto cond = irb->CreateICmpNE(counter_load, irb->getInt64(0), "__ta_cond");
+        auto then_term = SplitBlockAndInsertIfThen(cond, I, false);
+        irb->SetInsertPoint(then_term);
+        irb->CreateCall(typeart_leave_scope.f, ArrayRef<Value*>{counter_load});
+      }
     }
   } else {
-    // FIXME just for counting (and make tests pass)
-    for (auto alloca : listAlloca) {
-      if (alloca->getAllocatedType()->isArrayTy()) {
-        ++NumFoundAlloca;
-      }
-    }
+    NumFoundAlloca += listAlloca.size();
   }
 
   return mod;
-}
+}  // namespace pass
 
 bool TypeArtPass::doFinalization(Module&) {
   /*
@@ -244,7 +248,7 @@ void TypeArtPass::declareInstrumentationFunctions(Module& m) {
   make_function(typeart_alloc, FunctionType::get(Type::getVoidTy(c), alloc_arg_types, false));
   make_function(typeart_free, FunctionType::get(Type::getVoidTy(c), free_arg_types, false));
   make_function(typeart_leave_scope,
-                FunctionType::get(Type::getVoidTy(c), ArrayRef<Type*>{Type::getInt64Ty(c)}, false));
+                FunctionType::get(Type::getVoidTy(c), ArrayRef<Type*>{tu::getInt64Type(c)}, false));
 }
 
 void TypeArtPass::propagateTypeInformation(Module&) {

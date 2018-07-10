@@ -3,9 +3,7 @@
 
 #include <RuntimeInterface.h>
 
-int isCompatible(MPI_Datatype mpi_type, typeart_builtin_type recorded_type)
-{
-
+int isCompatible(MPI_Datatype mpi_type, typeart_builtin_type recorded_type) {
   switch (recorded_type) {
     case C_CHAR:
       return mpi_type == MPI_CHAR || mpi_type == MPI_UNSIGNED_CHAR;
@@ -25,9 +23,7 @@ int isCompatible(MPI_Datatype mpi_type, typeart_builtin_type recorded_type)
   return 0;
 }
 
-void analyseBuffer(const void *buf, int count, MPI_Datatype type)
-{
-
+void analyseBuffer(const void* buf, int count, MPI_Datatype type) {
   int num_integers, num_addresses, num_datatypes, combiner;
   PMPI_Type_get_envelope(type, &num_integers, &num_addresses, &num_datatypes, &combiner);
   //  printf("MPI_Type_get_envelope(t,%i,%i,%i,%i)\n", num_integers, num_addresses, num_datatypes, combiner);
@@ -47,9 +43,8 @@ void analyseBuffer(const void *buf, int count, MPI_Datatype type)
     typeart_type_info type_info;
     size_t count_check;
     typeart_status status = typeart_get_type(buf, &type_info, &count_check);
-    
-    if (status == TA_OK) {
 
+    if (status == TA_OK) {
       // If the address corresponds to a struct, fetch the type of the first member
       while (type_info.kind == STRUCT) {
         typeart_struct_layout struct_layout;
@@ -99,9 +94,9 @@ void analyseBuffer(const void *buf, int count, MPI_Datatype type)
     MPI_Type_get_extent(type, &lb, &extent);
 
     fprintf(stdout, "Analyzing %d structs:\n", count);
-    for (i=0, offset=0; i<count; i++, offset+=extent ) {
+    for (i = 0, offset = 0; i < count; i++, offset += extent) {
       for (j = 0; j < array_of_integers[0]; j++)
-        analyseBuffer((void *) ((MPI_Aint) buf + offset + array_of_addresses[j]), array_of_integers[j + 1],
+        analyseBuffer((void*)((MPI_Aint)buf + offset + array_of_addresses[j]), array_of_integers[j + 1],
                       array_of_datatypes[j]);
       fprintf(stdout, "\n");
     }
@@ -114,10 +109,10 @@ int MPI_Sendrecv(const void* sendbuf, int sendcount, MPI_Datatype sendtype, int 
                  int recvcount, MPI_Datatype recvtype, int source, int recvtag, MPI_Comm comm, MPI_Status* status) {
   printf("Analyze Send\n");
   analyseBuffer(sendbuf, sendcount, sendtype);
-  analyseBuffer(0, sendcount, sendtype);
+  // analyseBuffer(0, sendcount, sendtype);
   printf("Analyze Recv\n");
   analyseBuffer(recvbuf, recvcount, recvtype);
-  analyseBuffer(0, recvcount, recvtype);
+  // analyseBuffer(0, recvcount, recvtype);
   return PMPI_Sendrecv(sendbuf, sendcount, sendtype, dest, sendtag, recvbuf, recvcount, recvtype, source, recvtag, comm,
                        status);
 }
