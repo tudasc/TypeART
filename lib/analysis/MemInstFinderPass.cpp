@@ -40,12 +40,14 @@ static cl::opt<bool> ClCallFilter("call-filter",
                                   cl::init(false));
 
 static cl::opt<bool> ClCallFilterHeap("call-filter-heap",
-                                      cl::desc("Filter alloca instructions that are passed to specific calls."),
+                                      cl::desc("Filter heap alloc instructions that are passed to specific calls."),
                                       cl::Hidden, cl::init(false));
 
 static cl::opt<const char*> ClCallFilterGlob("call-filter-str", cl::desc("Filter alloca instructions based on string."),
                                              cl::Hidden, cl::init("MPI_*"));
 
+STATISTIC(NumDetectedHeap, "Number of detected heap allocs");
+STATISTIC(NumFilteredDetectedHeap, "Number of filtered heap allocs");
 STATISTIC(NumDetectedAllocs, "Number of detected allocs");
 STATISTIC(NumCallFilteredAllocs, "Number of call filtered allocs");
 STATISTIC(NumFilteredMallocAllocs, "Number of  filtered  malloc-related allocs");
@@ -356,6 +358,13 @@ bool MemInstFinderPass::doFinalization(llvm::Module&) {
 
   out << line;
   out << "   MemInstFinderPass\n";
+  out << line;
+  out << "Heap Memory\n";
+  out << line;
+  out << make_format("Heap alloc", NumDetectedHeap.getValue());
+  out << make_format(
+      "% call filtered",
+      (double(NumFilteredDetectedHeap.getValue()) / std::max(1.0, double(NumDetectedHeap.getValue()))) * 100.0);
   out << line;
   out << "Stack Memory\n";
   out << line;
