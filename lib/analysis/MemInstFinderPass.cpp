@@ -39,6 +39,10 @@ static cl::opt<bool> ClCallFilter("call-filter",
                                   cl::desc("Filter alloca instructions that are passed to specific calls."), cl::Hidden,
                                   cl::init(false));
 
+static cl::opt<bool> ClCallFilterHeap("call-filter-heap",
+                                      cl::desc("Filter alloca instructions that are passed to specific calls."),
+                                      cl::Hidden, cl::init(false));
+
 static cl::opt<const char*> ClCallFilterGlob("call-filter-str", cl::desc("Filter alloca instructions based on string."),
                                              cl::Hidden, cl::init("MPI_*"));
 
@@ -53,9 +57,14 @@ namespace filter {
 
 class CallFilter::FilterImpl {
   const std::string call_regex;
+  bool malloc_mode{false};
 
  public:
-  FilterImpl(const std::string& glob) : call_regex(util::glob2regex(glob)) {
+  explicit FilterImpl(const std::string& glob) : call_regex(util::glob2regex(glob)) {
+  }
+
+  void setMode(bool search_malloc) {
+    malloc_mode = search_malloc;
   }
 
   bool filter(Value* in) const {
@@ -97,13 +106,14 @@ class CallFilter::FilterImpl {
         const bool indirect_call = callee == nullptr;
 
         if (indirect_call || callee->isDeclaration()) {
-          LOG_DEBUG("Found an indirect call/only declaration, not filtering alloca. Call: " << *c.getInstruction());
+          LOG_DEBUG("Found an indirect call/only declaration, not filtering alloca. Call: "
+                    << util::dump(*c.getInstruction()));
           return false;  // Indirect calls might contain critical function calls.
         }
 
         const auto name = FilterImpl::getName(callee);
 
-        LOG_DEBUG("Found a call. Call: (" << *c.getInstruction() << ") Name: " << name);
+        LOG_DEBUG("Found a call. Call: (" << util::dump(*c.getInstruction()) << ") Name: " << name);
         if (util::regex_matches(call_regex, name)) {
           LOG_DEBUG("Keeping alloca based on call name filter match");
           return false;
@@ -115,12 +125,12 @@ class CallFilter::FilterImpl {
       } else if (StoreInst* store = llvm::dyn_cast<StoreInst>(val)) {
         // If we encounter a store, we follow the store target pointer.
         // More inclusive than strictly necessary in some cases.
-        LOG_DEBUG("Store found: " << *store
+        LOG_DEBUG("Store found: " << util::dump(*store)
                                   << " Store target has users: " << util::dump(store->getPointerOperand()->users()));
         auto store_target = store->getPointerOperand();
         // FIXME here we check store operand, if target is another alloca, we already track that?:
         // Note: if we apply this to malloc filtering, this might become problematic?
-        if (llvm::isa<AllocaInst>(store_target)) {
+        if (!malloc_mode && llvm::isa<AllocaInst>(store_target)) {
           LOG_DEBUG("Target is alloca, skipping!");
         } else {
           addToWork(store_target->users());
@@ -138,7 +148,7 @@ class CallFilter::FilterImpl {
   bool filter(CallSite& csite, Value* in) const {
     const auto analyse_arg = [&](auto& csite, auto argNum) -> bool {
       Argument& the_arg = *(csite.getCalledFunction()->arg_begin() + argNum);
-      LOG_DEBUG("Calling filter with inst of argument: " << the_arg);
+      LOG_DEBUG("Calling filter with inst of argument: " << util::dump(the_arg));
       const bool filter_arg = filter(&the_arg);
       LOG_DEBUG("Should filter? : " << filter_arg);
       return filter_arg;
@@ -167,7 +177,7 @@ class CallFilter::FilterImpl {
 
   bool filter(Argument* arg) const {
     for (auto* user : arg->users()) {
-      LOG_DEBUG("Looking at arg user " << *user);
+      LOG_DEBUG("Looking at arg user " << util::dump(*user));
       // This code is for non mem2reg code (i.e., where the argument is stored to a local alloca):
       if (StoreInst* store = llvm::dyn_cast<StoreInst>(user)) {
         // if (auto* alloca = llvm::dyn_cast<AllocaInst>(store->getPointerOperand())) {
@@ -195,17 +205,32 @@ CallFilter::CallFilter(const std::string& glob) : fImpl{std::make_unique<FilterI
 }
 
 bool CallFilter::operator()(AllocaInst* in) {
-  LOG_DEBUG("Analyzing value: " << *in);
+  LOG_DEBUG("Analyzing value: " << util::dump(*in));
+  fImpl->setMode(/*search mallocs = */ false);
   const auto filter_ = fImpl->filter(in);
   if (filter_) {
-    LOG_DEBUG("Filtering value: " << *in << "\n");
+    LOG_DEBUG("Filtering value: " << util::dump(*in) << "\n");
   } else {
-    LOG_DEBUG("Keeping value: " << *in << "\n");
+    LOG_DEBUG("Keeping value: " << util::dump(*in) << "\n");
   }
   return filter_;
 }
 
-CallFilter& CallFilter::operator=(CallFilter&&) = default;
+bool CallFilter::operator()(CallSite c) {
+  auto in = c.getInstruction();
+  LOG_DEBUG("Analyzing call: " << util::dump(*in));
+  fImpl->setMode(/*search mallocs = */ true);
+  const auto filter_ = fImpl->filter(in);
+  fImpl->setMode(false);
+  if (filter_) {
+    LOG_DEBUG("Filtering call: " << util::dump(*in) << "\n");
+  } else {
+    LOG_DEBUG("Keeping call: " << util::dump(*in) << "\n");
+  }
+  return filter_;
+}
+
+CallFilter& CallFilter::operator=(CallFilter&&) noexcept = default;
 
 CallFilter::~CallFilter() = default;
 
@@ -299,14 +324,21 @@ bool MemInstFinderPass::runOnFunction(llvm::Function& f) {
     LOG_DEBUG("Allocas to instrument : " << util::dump(allocs));
   }
 
-  for (const auto& mallocData : mOpsCollector.listMalloc) {
+  auto& mallocs = mOpsCollector.listMalloc;
+
+  if (ClCallFilterHeap) {
+    mallocs.erase(mallocs.begin(),
+                  std::remove_if(mallocs.begin(), mallocs.end(), [&](MallocData& data) { return filter(data.call); }));
+  }
+
+  for (const auto& mallocData : mallocs) {
     checkAmbigiousMalloc(mallocData);
   }
 
   return false;
 }
 
-bool MemInstFinderPass::doFinalization(llvm::Module& m) {
+bool MemInstFinderPass::doFinalization(llvm::Module&) {
   auto& out = llvm::outs();
 
   const unsigned max_string{28u};
@@ -328,9 +360,11 @@ bool MemInstFinderPass::doFinalization(llvm::Module& m) {
   out << "Stack Memory\n";
   out << line;
   out << make_format("Alloca", all_stack);
-  out << make_format("% non array filtered", (nonarray_stack / all_stack) * 100);
-  out << make_format("% malloc-alloc filtered", (malloc_alloc_stack / (all_stack - nonarray_stack)) * 100);
-  out << make_format("% call filtered", (call_filter_stack / (all_stack - nonarray_stack - malloc_alloc_stack)) * 100);
+  out << make_format("% non array filtered", (nonarray_stack / all_stack) * 100.0);
+  out << make_format("% malloc-alloc filtered",
+                     (malloc_alloc_stack / std::max(1.0, all_stack - nonarray_stack)) * 100.0);
+  out << make_format("% call filtered",
+                     (call_filter_stack / std::max(1.0, all_stack - nonarray_stack - malloc_alloc_stack)) * 100.0);
   out << line;
   out.flush();
   return false;

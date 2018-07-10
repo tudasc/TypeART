@@ -22,12 +22,14 @@ fi
 
 function show_ir() {
 # FIXME -OX as argument for opt causes passed to run twice..
-  $compiler $flags -S -emit-llvm "$target" -o - | opt -load "$pathToPlugin"/analysis/meminstfinderpass.so -load "$pathToPlugin"/typeartpass.so -typeart -typeart-alloca -typeart-stats -S 2>&1
+  $compiler $flags -S -emit-llvm "$target" -o - | opt -load "$pathToPlugin"/analysis/meminstfinderpass.so -load "$pathToPlugin"/typeartpass.so -typeart -typeart-alloca -typeart-stats -alloca-array-only=false -call-filter -S 2>&1
 }
 
 function show_ir_mem() {
 # FIXME -OX as argument for opt causes passed to run twice..
-  $compiler $flags -S -emit-llvm "$target" -o - | opt -load "$pathToPlugin"/analysis/meminstfinderpass.so -mem-inst-finder -S 2>&1
+  echo $compiler $flags -S -emit-llvm "$target" -o - | opt -load "$pathToPlugin"/analysis/meminstfinderpass.so -mem-inst-finder
+
+  $compiler $flags -S -emit-llvm "$target" -o - | opt -load "$pathToPlugin"/analysis/meminstfinderpass.so -mem-inst-finder -alloca-array-only=false -call-filter -S 2>&1
 }
 
 show_ir

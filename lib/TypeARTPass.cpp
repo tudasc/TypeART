@@ -184,8 +184,8 @@ bool TypeArtPass::runOnFunction(Function& f) {
       //      LOG_DEBUG("Add alloca counter")
       // counter = 0 at beginning of function
       IRBuilder<> CBuilder(f.getEntryBlock().getFirstNonPHI());
-      auto counter = CBuilder.CreateAlloca(tu::getInt64Type(c), 0, "__ta_alloca_counter");
-      CBuilder.CreateStore(ConstantInt::get(tu::getInt64Type(c), 0), counter);
+      auto counter = CBuilder.CreateAlloca(tu::getInt64Type(c), nullptr, "__ta_alloca_counter");
+      CBuilder.CreateStore(CBuilder.getInt64(0), counter);
 
       // In each basic block: counter =+ num_alloca (in BB)
       for (auto data : allocCounts) {
@@ -202,7 +202,7 @@ bool TypeArtPass::runOnFunction(Function& f) {
         auto I = &(*irb->GetInsertPoint());
 
         auto counter_load = irb->CreateLoad(counter, "__ta_counter_load");
-        auto cond = irb->CreateICmpNE(counter_load, ConstantInt::get(tu::getInt64Type(c), 0), "__ta_cond");
+        auto cond = irb->CreateICmpNE(counter_load, irb->getInt64(0), "__ta_cond");
         auto then_term = SplitBlockAndInsertIfThen(cond, I, false);
         irb->SetInsertPoint(then_term);
         irb->CreateCall(typeart_leave_scope.f, ArrayRef<Value*>{counter_load});

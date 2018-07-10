@@ -16,6 +16,7 @@
 namespace llvm {
 class Function;
 class AllocaInst;
+class CallSite;
 }  // namespace llvm
 
 namespace typeart {
@@ -31,7 +32,8 @@ class CallFilter {
   CallFilter(const CallFilter&) = delete;
   CallFilter(CallFilter&&) = default;
   bool operator()(llvm::AllocaInst* in);
-  CallFilter& operator=(CallFilter&&);
+  bool operator()(llvm::CallSite in);
+  CallFilter& operator=(CallFilter&&) noexcept;
   CallFilter& operator=(const CallFilter&) = delete;
   virtual ~CallFilter();
 };

@@ -1,5 +1,5 @@
 // RUN: %scriptpath/applyAndRun.sh %s %pluginpath "-typeart-alloca" %rtpath 2>&1 | FileCheck %s
-
+// XFAIL: *
 #include <stdlib.h>
 
 int main(int argc, char** argv) {
