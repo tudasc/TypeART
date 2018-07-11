@@ -14,18 +14,21 @@
 
 namespace typeart {
 
+	enum class MemOpKind {MALLOC, CALLOC, REALLOC, FREE};
+
 struct MallocData {
   llvm::CallInst* call{nullptr};
   llvm::BitCastInst* primary{nullptr};  // Non-null if non (void*) cast exists
   llvm::SmallPtrSet<llvm::BitCastInst*, 4> bitcasts;
+	MemOpKind kind;
 };
 
 struct MemOpVisitor : public llvm::InstVisitor<MemOpVisitor> {
   MemOpVisitor();
   void clear();
   void visitCallInst(llvm::CallInst& ci);
-  void visitMallocLike(llvm::CallInst& ci);
-  void visitFreeLike(llvm::CallInst& ci);
+  void visitMallocLike(llvm::CallInst& ci, MemOpKind k);
+  void visitFreeLike(llvm::CallInst& ci, MemOpKind k);
   void visitAllocaInst(llvm::AllocaInst& ai);
   virtual ~MemOpVisitor();
 
@@ -33,10 +36,17 @@ struct MemOpVisitor : public llvm::InstVisitor<MemOpVisitor> {
   llvm::SmallPtrSet<llvm::CallInst*, 8> listFree;
   llvm::SmallPtrSet<llvm::AllocaInst*, 8> listAlloca;
 
+	using MemFuncT = std::pair<std::string, MemOpKind>;
+
  private:
   /** Look up sets for keyword strings */
-  const std::set<std::string> allocFunctions{"malloc", "_Znwm" /*new*/, "_Znam" /*new[]*/};
-  const std::set<std::string> deallocFunctions{"free", "_ZdlPv" /*delete*/, "_ZdaPv" /*delete[]*/};
+  const std::set<MemFuncT> allocFunctions{{"malloc", MemOpKind::MALLOC},
+                                          {"_Znwm", MemOpKind::MALLOC} /*new*/,
+                                          {"_Znam", MemOpKind::MALLOC} /*new[]*/,
+                                          {"calloc", MemOpKind::CALLOC},
+                                          {"realloc", MemOpKind::REALLOC}};
+  const std::set<MemFuncT> deallocFunctions{
+      {"free", MemOpKind::FREE}, {"_ZdlPv", MemOpKind::FREE} /*delete*/, {"_ZdaPv", MemOpKind::FREE} /*delete[]*/};
 };
 
 }  // namespace typeart

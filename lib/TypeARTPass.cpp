@@ -117,7 +117,24 @@ bool TypeArtPass::runOnFunction(Function& f) {
     auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), typeId);
     auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
     // Compute element count: count = numBytes / typeSize
-    auto elementCount = IRB.CreateUDiv(mallocArg, typeSizeConst);
+    Value* elementCount;
+		if (malloc.kind == MemOpKind::MALLOC) {
+			elementCount = IRB.CreateUDiv(mallocArg, typeSizeConst);
+		} else if (malloc.kind == MemOpKind::CALLOC) {
+			elementCount = mallocInst->getOperand(0); // get the element count in calloc call
+		} else if (malloc.kind == MemOpKind::REALLOC) {
+			auto mArg = mallocInst->getOperand(1);
+			elementCount = IRB.CreateUDiv(mArg, typeSizeConst);
+
+			IRBuilder<> FreeB(mallocInst);
+			auto addrOp = mallocInst->getOperand(0);
+			FreeB.CreateCall(typeart_free.f, ArrayRef<Value *>{addrOp});
+
+		} else {
+			LOG_ERROR("Unknown malloc kind. Not instrumenting. " << util::dump(*mallocInst));
+			return false;
+		}
+
     auto isLocalConst = ConstantInt::get(tu::getInt32Type(c), 0);
     IRB.CreateCall(typeart_alloc.f,
                    ArrayRef<Value*>{mallocInst, typeIdConst, elementCount, typeSizeConst, isLocalConst});

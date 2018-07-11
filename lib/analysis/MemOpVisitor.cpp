@@ -25,19 +25,25 @@ void MemOpVisitor::visitCallInst(llvm::CallInst& ci) {
     if (!f) {
       // TODO handle calls through, e.g., function pointers? - seems infeasible
       LOG_INFO("Encountered indirect call, skipping.");
-      return false;
+      return std::pair<bool, decltype(funcSet.begin())>(false, funcSet.end());
     }
-    return std::find(std::begin(funcSet), std::end(funcSet), f->getName().str()) != std::end(funcSet);
+    auto res = std::find_if(std::begin(funcSet), std::end(funcSet),
+                        [&f](const auto& p) { return p.first == f->getName().str(); });
+		return std::pair<bool, decltype(res)>(res != funcSet.end(), res);
   };
 
-  if (isInSet(allocFunctions)) {
-    visitMallocLike(ci);
-  } else if (isInSet(deallocFunctions)) {
-    visitFreeLike(ci);
+	auto p = isInSet(allocFunctions);
+  if (p.first) {
+    visitMallocLike(ci, (*p.second).second);
+  } else {
+		p = isInSet(deallocFunctions);
+		if (p.first) {
+    visitFreeLike(ci, (*p.second).second);
+		}
   }
 }
 
-void MemOpVisitor::visitMallocLike(llvm::CallInst& ci) {
+void MemOpVisitor::visitMallocLike(llvm::CallInst& ci, MemOpKind k) {
   //  LOG_DEBUG("Found malloc-like: " << ci.getCalledFunction()->getName());
 
   SmallPtrSet<BitCastInst*, 4> bcasts;
@@ -69,10 +75,10 @@ void MemOpVisitor::visitMallocLike(llvm::CallInst& ci) {
 
   //  LOG_DEBUG("  >> number of bitcasts found: " << bcasts.size());
 
-  listMalloc.push_back(MallocData{&ci, primaryBitcast, bcasts});
+  listMalloc.push_back(MallocData{&ci, primaryBitcast, bcasts, k});
 }
 
-void MemOpVisitor::visitFreeLike(llvm::CallInst& ci) {
+void MemOpVisitor::visitFreeLike(llvm::CallInst& ci, MemOpKind) {
   //  LOG_DEBUG(ci.getCalledFunction()->getName());
 
   listFree.insert(&ci);
