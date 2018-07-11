@@ -15,6 +15,7 @@ target_link_libraries(typeart-rt
 
 target_include_directories(typeart-rt 
   PUBLIC
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/runtime>
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/typelib>
     $<INSTALL_INTERFACE:include>
   PRIVATE
