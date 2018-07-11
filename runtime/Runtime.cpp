@@ -18,6 +18,22 @@ inline const void* addByteOffset(const void* addr, T offset) {
   return static_cast<const void*>(static_cast<const uint8_t*>(addr) + offset);
 }
 
+inline static std::string toString(const void* addr, int typeId, size_t count, size_t typeSize, int isLocal) {
+  std::stringstream s;
+  // clang-format off
+  s << addr
+    << ". typeId: " << typeId
+    << ". count: " << count
+    << ". typeSize " << typeSize
+    << ". local: " << isLocal;
+  // clang-format on
+  return s.str();
+}
+
+inline static std::string toString(const PointerInfo& info) {
+  return toString(info.addr, info.typeId, info.count, info.typeSize, -1);
+}
+
 TypeArtRT::TypeArtRT() {
   // Try to load types from specified file first.
   // Then look at default location.
@@ -293,14 +309,14 @@ const std::string& TypeArtRT::getTypeName(int id) const {
 void TypeArtRT::onAlloc(const void* addr, int typeId, size_t count, size_t typeSize, bool isLocal) {
   auto it = typeMap.find(addr);
   if (it != typeMap.end()) {
-    LOG_ERROR("Alloc recorded with unknown type ID: " << typeId);
-    // TODO: What should the behaviour be here?
+    const auto info = (*it).second;
+    LOG_ERROR("Already exists: " << toString(addr, typeId, count, typeSize, isLocal));
+    LOG_ERROR("Data in map is: " << toString(info));
   } else {
     typeMap[addr] = {addr, typeId, count, typeSize};
     auto typeString = typeDB.getTypeName(typeId);
     LOG_TRACE("Alloc " << addr << " " << typeString << " " << typeSize << " " << count << " " << (isLocal ? "S" : "H"));
     if (isLocal) {
-      //      LOG_TRACE("Alloc is stack");
       //      LOG_TRACE("Alloc is stack " << stackVars.size() << " " << stackVars.container().size());
       stackVars.push_back(addr);
     }
@@ -310,8 +326,8 @@ void TypeArtRT::onAlloc(const void* addr, int typeId, size_t count, size_t typeS
 void TypeArtRT::onFree(const void* addr) {
   auto it = typeMap.find(addr);
   if (it != typeMap.end()) {
+    LOG_TRACE("Free " << toString((*it).second));
     typeMap.erase(it);
-    LOG_TRACE("Free " << addr);
   } else {
     LOG_ERROR("Free recorded on unregistered address: " << addr);
     // TODO: What to do when not found?
@@ -320,17 +336,17 @@ void TypeArtRT::onFree(const void* addr) {
 
 void TypeArtRT::onLeaveScope(size_t alloca_count) {
   if (alloca_count > stackVars.size()) {
-    LOG_ERROR("Stack is smaller than requested de-allocation count!");
+    LOG_ERROR("Stack is smaller than requested de-allocation count. alloca_count: " << alloca_count
+                                                                                    << ". size: " << stackVars.size());
     alloca_count = stackVars.size();
   }
 
   const auto cend = stackVars.cend();
   const auto start_pos = (cend - alloca_count);
-  //  LOG_TRACE("Freeing stack (" << alloca_count << ") from " << std::distance(start_pos, stackVars.cend()) << " until
-  //  "
-  //                              << stackVars.size())
+  LOG_TRACE("Freeing stack (" << alloca_count << ")  " << std::distance(start_pos, stackVars.cend()))
   std::for_each(start_pos, cend, [&](const void* addr) { onFree(addr); });
   stackVars.free(alloca_count);
+  LOG_TRACE("Stack after free: " << stackVars.size());
 
   // FIXME this is an expensive O(n) operation due to using a vector for stackBars,
   // and is strictly speaking, not a necessary operation.

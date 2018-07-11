@@ -14,6 +14,7 @@ CXX = $(SERCXX)
 
 COMPILE_SCRIPT = ./buildAndApplyPass.sh
 RTPATH = ../../build/runtime
+TYPEART_PASS_DIR = ../../build/lib
 
 SOURCES2.0 = \
 	lulesh.cc \
@@ -21,7 +22,7 @@ SOURCES2.0 = \
 	lulesh-viz.cc \
 	lulesh-util.cc \
 	lulesh-init.cc
-OBJECTS2.0 = $(SOURCES2.0:.cc=.s)
+OBJECTS2.0 = $(SOURCES2.0:.cc=.o)
 
 #Default build suggestions with OpenMP for g++
 #CXXFLAGS = -g -O3 -fopenmp -I. -Wall
@@ -30,6 +31,7 @@ OBJECTS2.0 = $(SOURCES2.0:.cc=.s)
 #Below are reasonable default flags for a serial build
 CXXFLAGS = -DUSE_MPI=0 -g -O3 -I. -Wall
 LDFLAGS = -g -O3
+CLFLAGS = -Xclang -load -Xclang $(TYPEART_PASS_DIR)/analysis/meminstfinderpass.so -Xclang -load -Xclang $(TYPEART_PASS_DIR)/typeartpass.so -mllvm -alloca-array-only=false -mllvm -typeart-alloca
 
 #common places you might find silo on the Livermore machines.
 #SILO_INCDIR = /opt/local/include
@@ -45,17 +47,16 @@ LDFLAGS = -g -O3
 #CXXFLAGS = -g -DVIZ_MESH -I${SILO_INCDIR} -Wall -Wno-pragmas
 #LDFLAGS = -g -L${SILO_LIBDIR} -Wl,-rpath -Wl,${SILO_LIBDIR} -lsiloh5 -lhdf5
 
-.cc.s: lulesh.h
+.cc.o: lulesh.h
 	@echo "Building $<"
-	$(COMPILE_SCRIPT) $< $@ $(CXXFLAGS)
-	#$(CXX) -c $(CXXFLAGS) -o $@  $<
+#	$(COMPILE_SCRIPT) $< $@ $(CXXFLAGS)
+	$(CXX) -c $(CXXFLAGS) $(CLFLAGS) -o $@  $<
 
 all: $(LULESH_EXEC)
 
 lulesh2.0: $(OBJECTS2.0)
 	@echo "Linking"
-	$(CXX) $(OBJECTS2.0) $(LDFLAGS) -lm -L$(RTPATH) -lmustsupport -o $@
-	#$(CXX) $(OBJECTS2.0) $(LDFLAGS) -lm -o $@
+	$(CXX) $(OBJECTS2.0) $(LDFLAGS) -lm -L$(RTPATH) -lruntime -o $@
 
 clean:
 	/bin/rm -f *.o *.s *~ $(OBJECTS) $(LULESH_EXEC)

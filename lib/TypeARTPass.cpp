@@ -66,7 +66,8 @@ bool TypeArtPass::doInitialization(Module& m) {
    *
    * Also scan the LLVM module for type definitions and add them to our type list.
    */
-  declareInstrumentationFunctions(m);
+
+  //  declareInstrumentationFunctions(m);
 
   propagateTypeInformation(m);
 
@@ -75,6 +76,12 @@ bool TypeArtPass::doInitialization(Module& m) {
 
 bool TypeArtPass::runOnFunction(Function& f) {
   using namespace typeart;
+
+  LOG_DEBUG("Running on function: " << f.getName())
+
+  // FIXME this is required when "PassManagerBuilder::EP_OptimizerLast" is used as the function (constant) pointer are
+  // nullpointer/invalidated
+  declareInstrumentationFunctions(*f.getParent());
 
   bool mod{false};
   auto& c = f.getContext();
@@ -233,6 +240,11 @@ bool TypeArtPass::doFinalization(Module&) {
 }
 
 void TypeArtPass::declareInstrumentationFunctions(Module& m) {
+  // Remove this return if problems come up during compilation
+  if (typeart_alloc.f != nullptr && typeart_free.f != nullptr && typeart_leave_scope.f != nullptr) {
+    return;
+  }
+
   const auto make_function = [&m](auto& f_struct, auto f_type) {
     f_struct.f = m.getOrInsertFunction(f_struct.name, f_type);
     if (auto f = dyn_cast<Function>(f_struct.f)) {
@@ -302,4 +314,4 @@ void TypeArtPass::printStats(llvm::raw_ostream& out) {
 static void registerClangPass(const llvm::PassManagerBuilder&, llvm::legacy::PassManagerBase& PM) {
   PM.add(new typeart::pass::TypeArtPass());
 }
-static RegisterStandardPasses RegisterClangPass(PassManagerBuilder::EP_EarlyAsPossible, registerClangPass);
+static RegisterStandardPasses RegisterClangPass(PassManagerBuilder::EP_OptimizerLast, registerClangPass);

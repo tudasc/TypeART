@@ -106,12 +106,21 @@ class CallFilter::FilterImpl {
       if (c.isCall()) {
         const auto callee = c.getCalledFunction();
         const bool indirect_call = callee == nullptr;
+        const bool is_decl = callee->isDeclaration();
 
-        // FIXME the MPI calls are all hitting this branch (obviously)
-        if (indirect_call || callee->isDeclaration()) {
-          LOG_DEBUG("Found an indirect call/only declaration, not filtering alloca. Call: "
-                    << util::dump(*c.getInstruction()));
+        if (indirect_call) {
+          LOG_DEBUG("Found an indirect call, not filtering alloca.");
           return false;  // Indirect calls might contain critical function calls.
+        }
+        // FIXME the MPI calls are all hitting this branch (obviously)
+        if (is_decl) {
+          LOG_DEBUG("Found call with declaration only. Call: " << util::dump(*c.getInstruction()));
+          if (c.getIntrinsicID() == Intrinsic::ID::not_intrinsic) {
+            return false;
+          } else {
+            LOG_DEBUG("Call is an intrinsic. Continue analyzing...")
+            continue;
+          }
         }
 
         const auto name = FilterImpl::getName(callee);
@@ -328,12 +337,12 @@ bool MemInstFinderPass::runOnFunction(llvm::Function& f) {
   }
 
   auto& mallocs = mOpsCollector.listMalloc;
-  NumDetectedHeap = mallocs.size();
+  NumDetectedHeap += mallocs.size();
 
   if (ClCallFilterHeap) {
     mallocs.erase(mallocs.begin(),
                   std::remove_if(mallocs.begin(), mallocs.end(), [&](MallocData& data) { return filter(data.call); }));
-    NumFilteredDetectedHeap = NumDetectedHeap - mallocs.size();
+    NumFilteredDetectedHeap += NumDetectedHeap - mallocs.size();
   }
 
   for (const auto& mallocData : mallocs) {
@@ -372,7 +381,7 @@ bool MemInstFinderPass::doFinalization(llvm::Module&) {
   out << "Stack Memory\n";
   out << line;
   out << make_format("Alloca", all_stack);
-  out << make_format("% non array filtered", (nonarray_stack / all_stack) * 100.0);
+  out << make_format("% non array filtered", (nonarray_stack / std::max(1.0, all_stack)) * 100.0);
   out << make_format("% malloc-alloc filtered",
                      (malloc_alloc_stack / std::max(1.0, all_stack - nonarray_stack)) * 100.0);
   out << make_format("% call filtered",

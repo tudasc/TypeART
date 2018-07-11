@@ -38,7 +38,7 @@ void MemOpVisitor::visitCallInst(llvm::CallInst& ci) {
 }
 
 void MemOpVisitor::visitMallocLike(llvm::CallInst& ci) {
-  LOG_DEBUG("Found malloc-like: " << ci.getCalledFunction()->getName());
+  //  LOG_DEBUG("Found malloc-like: " << ci.getCalledFunction()->getName());
 
   SmallPtrSet<BitCastInst*, 4> bcasts;
 
@@ -67,19 +67,19 @@ void MemOpVisitor::visitMallocLike(llvm::CallInst& ci) {
 
   BitCastInst* primaryBitcast = bitcast_iter != bcasts.end() ? *bitcast_iter : nullptr;
 
-  LOG_DEBUG("  >> number of bitcasts found: " << bcasts.size());
+  //  LOG_DEBUG("  >> number of bitcasts found: " << bcasts.size());
 
   listMalloc.push_back(MallocData{&ci, primaryBitcast, bcasts});
 }
 
 void MemOpVisitor::visitFreeLike(llvm::CallInst& ci) {
-  LOG_DEBUG(ci.getCalledFunction()->getName());
+  //  LOG_DEBUG(ci.getCalledFunction()->getName());
 
   listFree.insert(&ci);
 }
 
 void MemOpVisitor::visitAllocaInst(llvm::AllocaInst& ai) {
-  LOG_DEBUG("Found alloca " << ai);
+  //  LOG_DEBUG("Found alloca " << ai);
 
   listAlloca.insert(&ai);
 }
