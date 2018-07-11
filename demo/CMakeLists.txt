@@ -43,9 +43,9 @@ endfunction()
 
 function(apply_pass target) 
   # need to link runtime for the instrumentation function symbols, otherwise it errors out:
-  target_link_libraries(${target}
-     typeart::runtime
-  )
+#  target_link_libraries(${target}
+#     typeart::runtime
+#  )
   set_target_properties(${target} PROPERTIES
     COMPILE_FLAGS
       "-Xclang -load -Xclang ${TYPEART_MEMINST_PASS_LOC} -Xclang -load -Xclang ${TYPEART_PASS_LOC}"
