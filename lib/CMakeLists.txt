@@ -21,6 +21,7 @@ make_llvm_module(typeartpass
 )
 
 target_project_compile_options(typeartpass)
+target_project_compile_definitions(typeartpass)
 
 install(
   TARGETS typeartpass

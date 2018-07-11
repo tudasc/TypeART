@@ -9,6 +9,8 @@ include(clang-format)
 include(llvm-util)
 include(log-util)
 
+set(LOG_LEVEL 3 CACHE STRING "Granularity of logger. 3 ist most verbose, 0 is least.")
+
 if(NOT CMAKE_BUILD_TYPE)
 # set default build type
   set(CMAKE_BUILD_TYPE Debug)
@@ -34,6 +36,26 @@ function(target_project_compile_options target)
   if(ARG_PUBLIC_FLAGS)
     target_compile_options(${target} PUBLIC
       "${ARG_PUBLIC_FLAGS}"
+    )
+  endif()
+endfunction()
+
+function(target_project_compile_definitions target)
+  cmake_parse_arguments(ARG "" "" "PRIVATE_DEFS;PUBLIC_DEFS" ${ARGN})
+
+  target_compile_definitions(${target} PRIVATE
+    LOG_LEVEL=${LOG_LEVEL}
+  )
+
+  if(ARG_PRIVATE_DEFS)
+    target_compile_definitions(${target} PRIVATE
+      "${ARG_PRIVATE_DEFS}"
+    )
+  endif()
+
+  if(ARG_PUBLIC_DEFS)
+    target_compile_definitions(${target} PUBLIC
+      "${ARG_PUBLIC_DEFS}"
     )
   endif()
 endfunction()

@@ -28,7 +28,9 @@ target_include_directories(runtime
 )
 
 target_project_compile_options(runtime)
+target_project_compile_definitions(runtime)
 target_define_file_basename(runtime)
+
 
 target_link_libraries(runtime
   LLVMCore

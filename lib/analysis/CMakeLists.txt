@@ -11,6 +11,7 @@ make_llvm_module(meminstfinderpass
 )
 
 target_project_compile_options(meminstfinderpass)
+target_project_compile_definitions(meminstfinderpass)
 
 install(
   TARGETS meminstfinderpass
