@@ -36,17 +36,25 @@ struct MemOpVisitor : public llvm::InstVisitor<MemOpVisitor> {
   llvm::SmallPtrSet<llvm::CallInst*, 8> listFree;
   llvm::SmallPtrSet<llvm::AllocaInst*, 8> listAlloca;
 
-  using MemFuncT = std::pair<std::string, MemOpKind>;
+  //  using MemFuncT = std::pair<std::string, MemOpKind>;
 
  private:
   /** Look up sets for keyword strings */
-  const std::set<MemFuncT> allocFunctions{{"malloc", MemOpKind::MALLOC},
-                                          {"_Znwm", MemOpKind::MALLOC} /*new*/,
-                                          {"_Znam", MemOpKind::MALLOC} /*new[]*/,
-                                          {"calloc", MemOpKind::CALLOC},
-                                          {"realloc", MemOpKind::REALLOC}};
-  const std::set<MemFuncT> deallocFunctions{
+  const std::map<std::string, MemOpKind> allocMap{{"malloc", MemOpKind::MALLOC},
+                                                  {"_Znwm", MemOpKind::MALLOC} /*new*/,
+                                                  {"_Znam", MemOpKind::MALLOC} /*new[]*/,
+                                                  {"calloc", MemOpKind::CALLOC},
+                                                  {"realloc", MemOpKind::REALLOC}};
+  //  const std::set<MemFuncT> allocFunctions{{"malloc", MemOpKind::MALLOC},
+  //                                          {"_Znwm", MemOpKind::MALLOC} /*new*/,
+  //                                          {"_Znam", MemOpKind::MALLOC} /*new[]*/,
+  //                                          {"calloc", MemOpKind::CALLOC},
+  //                                          {"realloc", MemOpKind::REALLOC}};
+
+  const std::map<std::string, MemOpKind> deallocMap{
       {"free", MemOpKind::FREE}, {"_ZdlPv", MemOpKind::FREE} /*delete*/, {"_ZdaPv", MemOpKind::FREE} /*delete[]*/};
+  //  const std::set<MemFuncT> deallocFunctions{
+  //      {"free", MemOpKind::FREE}, {"_ZdlPv", MemOpKind::FREE} /*delete*/, {"_ZdaPv", MemOpKind::FREE} /*delete[]*/};
 };
 
 }  // namespace typeart
