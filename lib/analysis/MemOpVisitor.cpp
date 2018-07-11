@@ -25,21 +25,21 @@ void MemOpVisitor::visitCallInst(llvm::CallInst& ci) {
     if (!f) {
       // TODO handle calls through, e.g., function pointers? - seems infeasible
       LOG_INFO("Encountered indirect call, skipping.");
-      return std::pair<bool, decltype(funcSet.begin())>(false, funcSet.end());
+      return std::pair<bool, decltype(funcSet.end())>(false, funcSet.end());
     }
     auto res = std::find_if(std::begin(funcSet), std::end(funcSet),
-                        [&f](const auto& p) { return p.first == f->getName().str(); });
-		return std::pair<bool, decltype(res)>(res != funcSet.end(), res);
+                            [&f](const auto& p) { return p.first == f->getName().str(); });
+    return std::pair<bool, decltype(res)>(res != funcSet.end(), res);
   };
 
-	auto p = isInSet(allocFunctions);
+  auto p = isInSet(allocFunctions);
   if (p.first) {
     visitMallocLike(ci, (*p.second).second);
   } else {
-		p = isInSet(deallocFunctions);
-		if (p.first) {
-    visitFreeLike(ci, (*p.second).second);
-		}
+    p = isInSet(deallocFunctions);
+    if (p.first) {
+      visitFreeLike(ci, (*p.second).second);
+    }
   }
 }
 

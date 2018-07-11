@@ -14,13 +14,13 @@
 
 namespace typeart {
 
-	enum class MemOpKind {MALLOC, CALLOC, REALLOC, FREE};
+enum class MemOpKind { MALLOC, CALLOC, REALLOC, FREE };
 
 struct MallocData {
   llvm::CallInst* call{nullptr};
   llvm::BitCastInst* primary{nullptr};  // Non-null if non (void*) cast exists
   llvm::SmallPtrSet<llvm::BitCastInst*, 4> bitcasts;
-	MemOpKind kind;
+  MemOpKind kind;
 };
 
 struct MemOpVisitor : public llvm::InstVisitor<MemOpVisitor> {
@@ -36,7 +36,7 @@ struct MemOpVisitor : public llvm::InstVisitor<MemOpVisitor> {
   llvm::SmallPtrSet<llvm::CallInst*, 8> listFree;
   llvm::SmallPtrSet<llvm::AllocaInst*, 8> listAlloca;
 
-	using MemFuncT = std::pair<std::string, MemOpKind>;
+  using MemFuncT = std::pair<std::string, MemOpKind>;
 
  private:
   /** Look up sets for keyword strings */
