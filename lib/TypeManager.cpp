@@ -67,7 +67,8 @@ int TypeManager::getOrRegisterType(llvm::Type* type, const llvm::DataLayout& dl)
 }
 
 int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLayout& dl) {
-  auto name = type->getStructName();
+	const auto getName = [](auto type)->std::string { if(type->isLiteral()) return "LiteralS" + std::to_string((long int) type); return type->getStructName();};
+  auto name = getName(type);
   // std::cerr << "Looking up struct " << name.str() << std::endl;
   auto it = structMap.find(name);
   if (it != structMap.end()) {
