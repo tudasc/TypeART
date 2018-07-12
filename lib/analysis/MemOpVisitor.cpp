@@ -20,26 +20,25 @@ using namespace llvm;
 MemOpVisitor::MemOpVisitor() = default;
 
 void MemOpVisitor::visitCallInst(llvm::CallInst& ci) {
-  const auto isInSet = [&ci](const auto& funcSet) {
+  const auto isInSet = [&](const auto& fMap) -> llvm::Optional<MemOpKind> {
     const auto* f = ci.getCalledFunction();
     if (!f) {
       // TODO handle calls through, e.g., function pointers? - seems infeasible
       LOG_INFO("Encountered indirect call, skipping.");
-      return std::pair<bool, decltype(funcSet.begin())>(false, funcSet.end());
+      return None;
     }
-    auto res = std::find_if(std::begin(funcSet), std::end(funcSet),
-                        [&f](const auto& p) { return p.first == f->getName().str(); });
-		return std::pair<bool, decltype(res)>(res != funcSet.end(), res);
+    const auto name = f->getName().str();
+    const auto res = fMap.find(name);
+    if (res != fMap.end()) {
+      return {(*res).second};
+    }
+    return None;
   };
 
-	auto p = isInSet(allocFunctions);
-  if (p.first) {
-    visitMallocLike(ci, (*p.second).second);
-  } else {
-		p = isInSet(deallocFunctions);
-		if (p.first) {
-    visitFreeLike(ci, (*p.second).second);
-		}
+  if (auto val = isInSet(allocMap)) {
+    visitMallocLike(ci, val.getValue());
+  } else if (auto val = isInSet(deallocMap)) {
+    visitFreeLike(ci, val.getValue());
   }
 }
 
