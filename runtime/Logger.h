@@ -24,16 +24,16 @@
 
 #ifdef MPI_LOGGER
 
-void mpi_log(int lvl, std::string lvlName, std::string fileName, std::string func, long int line, std::string msg);
-#define OO_LOG_LEVEL_MSG(LEVEL_NUM, LEVEL, MSG) \
-{ \
-	std::string s; \
-	llvm::raw_string_ostream rso(s); \
-	rso << (LEVEL) << LOG_BASENAME_FILE << ":" << __func__ << ":" << __LINE__ << ":" << MSG << "\n"; \
-	mpi_log(LEVEL_NUM, LEVEL, LOG_BASENAME_FILE, "", 0, rso.str()); \
-}
+void mpi_log(std::string msg);
+#define OO_LOG_LEVEL_MSG(LEVEL_NUM, LEVEL, MSG)                                                      \
+  {                                                                                                  \
+    std::string s;                                                                                   \
+    llvm::raw_string_ostream rso(s);                                                                 \
+    rso << (LEVEL) << LOG_BASENAME_FILE << ":" << __func__ << ":" << __LINE__ << ":" << MSG << "\n"; \
+    mpi_log(rso.str());                                  \
+  }
 
-#else // MPI_LOGGER
+#else  // MPI_LOGGER
 
 // clang-format off
 #define OO_LOG_LEVEL_MSG(LEVEL_NUM, LEVEL, MSG) \
