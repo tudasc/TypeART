@@ -9,17 +9,25 @@ extern "C" {
 // Type UNKNOWN is used for pointer types, when the underlying type is not specified.
 // In conjunction with kind BUILTIN, UNKNOWN signifies an invalid type.
 typedef enum typeart_builtin_type_t {
-  C_CHAR = 0,
-  C_UCHAR = 1,
-  C_SHORT = 2,
-  C_USHORT = 3,
-  C_INT = 4,
-  C_UINT = 5,
-  C_LONG = 6,
-  C_ULONG = 7,
-  C_FLOAT = 8,
-  C_DOUBLE = 9,
-  UNKNOWN = 10,
+  TA_INT8 = 0,
+  TA_INT16 = 1,
+  TA_INT32 = 2,
+  TA_INT64 = 3,
+
+    // Note: Unsigned types are currently not supported
+    //TA_UINT8,
+    //TA_UINT16,
+    //TA_UINT32,
+    //TA_UINT64,
+
+  TA_HALF = 4, // IEEE 754 half precision floating point type
+  TA_FLOAT = 5, // IEEE 754 single precision floating point type
+  TA_DOUBLE = 6, // IEEE 754 double precision floating point type
+  TA_FP128 = 7, // IEEE 754 quadruple precision floating point type
+  TA_X86_FP80 = 8, // x86 extended precision 80-bit floating point type
+  TA_PPC_FP128 = 9, // ICM extended precision 128-bit floating point type
+
+  TA_UNKNOWN_TYPE = 10,
   N_BUILTIN_TYPES
 } typeart_builtin_type;
 
