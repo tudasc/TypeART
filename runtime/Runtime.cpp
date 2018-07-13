@@ -9,6 +9,8 @@
 #include <cstring>
 #include <sstream>
 
+#include <llvm/ADT/Optional.h>
+
 namespace typeart {
 
 std::string TypeArtRT::defaultTypeFileName{"types.yaml"};
@@ -75,23 +77,23 @@ void TypeArtRT::printTraceStart() {
   LOG_TRACE("--------------------------------------------------------");
 }
 
-const void* TypeArtRT::findBaseAddress(const void* addr) const {
+llvm::Optional<PointerInfo> TypeArtRT::findBaseAddress(const void* addr) const {
   if (typeMap.empty() || addr < typeMap.begin()->first) {
-    return nullptr;
+    return llvm::None;
   }
 
   auto it = typeMap.lower_bound(addr);
   if (it == typeMap.end()) {
     // No element bigger than base address
-    return typeMap.rbegin()->first;
+    return {typeMap.rbegin()->second};
   }
 
   if (it->first == addr) {
     // Exact match
-    return it->first;
+    return {it->second};
   }
   // Base address
-  return (std::prev(it))->first;
+  return {std::prev(it)->second};
 }
 
 size_t TypeArtRT::getMemberIndex(typeart_struct_layout structInfo, size_t offset) const {
@@ -229,10 +231,13 @@ TypeArtRT::TypeArtStatus TypeArtRT::getTypeInfo(const void* addr, typeart::TypeI
 TypeArtRT::TypeArtStatus TypeArtRT::getContainingTypeInfo(const void* addr, typeart::TypeInfo* type, size_t* count,
                                                           const void** baseAddress, size_t* offset) const {
   // Find the start address of the containing buffer
-  const void* basePtr = findBaseAddress(addr);
+  auto ptrData = findBaseAddress(addr);
 
-  if (basePtr) {
-    auto basePtrInfo = typeMap.find(basePtr)->second;
+  if (ptrData) {
+    const auto& basePtrInfo = ptrData.getValue();
+    auto basePtr = basePtrInfo.addr;
+
+    //    auto basePtrInfo = typeMap.find(basePtr)->second;
 
     // Check for exact match -> no further checks and offsets calculations needed
     if (basePtr == addr) {
