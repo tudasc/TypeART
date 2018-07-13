@@ -9,21 +9,13 @@
 
 namespace typeart {
 
-std::string TypeDB::BuiltinNames[] = {"int8", "int16", "int32", "int64",
-                                      "half", "float", "double", "float128", "x86_float80", "ppc_float128", "unknown"};
+std::string TypeDB::BuiltinNames[] = {"int8",   "int16",    "int32",       "int64",        "half",   "float",
+                                      "double", "float128", "x86_float80", "ppc_float128", "unknown"};
 
 // TODO: Builtin ID changes lead to wrong type sizes/names
-size_t TypeDB::BuiltinSizes[] = {1,
-                                 2,
-                                 4,
-                                 8,
-                                 2,
-                                 4,
-                                 8,
-                                 16,
+size_t TypeDB::BuiltinSizes[] = {1,  2, 4, 8, 2, 4, 8, 16,
                                  16,  // TODO: Always correct?
-                                 16,
-                                 0};
+                                 16, 0};
 
 TypeInfo TypeDB::InvalidType = TypeInfo{BUILTIN, TA_UNKNOWN_TYPE};
 

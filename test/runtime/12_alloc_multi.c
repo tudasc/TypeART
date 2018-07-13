@@ -5,7 +5,7 @@
 
 void call() {
   const int n = 10;
-  double a[n];	
+  double a[n];
   double b[n];
 }
 
