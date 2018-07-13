@@ -20,19 +20,19 @@ int main(int argc, char** argv) {
 
     // CHECK: [Trace] TypeART Runtime Trace
 
-    // CHECK: [Trace] Alloc 0x{{.*}} char 1 1
+    // CHECK: [Trace] Alloc 0x{{.*}} int8 1 1
     // CHECK: [Trace] Free 0x{{.*}}
     new_delete<char>();
 
-    // CHECK: [Trace] Alloc 0x{{.*}} short 2  1
+    // CHECK: [Trace] Alloc 0x{{.*}} int16 2  1
     // CHECK: [Trace] Free 0x{{.*}}
     new_delete<short>();
 
-    // CHECK: [Trace] Alloc 0x{{.*}} int 4 1
+    // CHECK: [Trace] Alloc 0x{{.*}} int32 4 1
     // CHECK: [Trace] Free 0x{{.*}}
     new_delete<int>();
 
-    // CHECK: [Trace] Alloc 0x{{.*}} long 8 1
+    // CHECK: [Trace] Alloc 0x{{.*}} int64 8 1
     // CHECK: [Trace] Free 0x{{.*}}
     new_delete<long>();
 
@@ -49,19 +49,19 @@ int main(int argc, char** argv) {
     new_delete<int*>();
 
 
-    // CHECK: [Trace] Alloc 0x{{.*}} char 1 42
+    // CHECK: [Trace] Alloc 0x{{.*}} int8 1 42
     // CHECK: [Trace] Free 0x{{.*}}
     new_delete<char>(n);
 
-    // CHECK: [Trace] Alloc 0x{{.*}} short 2 42
+    // CHECK: [Trace] Alloc 0x{{.*}} int16 2 42
     // CHECK: [Trace] Free 0x{{.*}}
     new_delete<short>(n);
 
-    // CHECK: [Trace] Alloc 0x{{.*}} int 4 42
+    // CHECK: [Trace] Alloc 0x{{.*}} int32 4 42
     // CHECK: [Trace] Free 0x{{.*}}
     new_delete<int>(n);
 
-    // CHECK: [Trace] Alloc 0x{{.*}} long 8 42
+    // CHECK: [Trace] Alloc 0x{{.*}} int64 8 42
     // CHECK: [Trace] Free 0x{{.*}}
     new_delete<long>(n);
 

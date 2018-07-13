@@ -10,7 +10,7 @@
 namespace typeart {
 
 std::string TypeDB::BuiltinNames[] = {"int8", "int16", "int32", "int64",
-                                      "half", "float", "double", "float128", "x86_float80", "ppc_float128"};
+                                      "half", "float", "double", "float128", "x86_float80", "ppc_float128", "unknown"};
 
 // TODO: Builtin ID changes lead to wrong type sizes/names
 size_t TypeDB::BuiltinSizes[] = {1,

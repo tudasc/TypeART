@@ -67,7 +67,7 @@ int main(int argc, char** argv) {
 // CHECK: member_count:    1
 // CHECK: offsets:         [ 0 ]
 // CHECK: types:
-// CHECK: - id:              4
+// CHECK: - id:              2
 // CHECK: kind:            builtin
 // CHECK: sizes:           [ 1 ]
 // CHECK: - id:              12
@@ -76,11 +76,11 @@ int main(int argc, char** argv) {
 // CHECK: member_count:    3
 // CHECK: offsets:         [ 0, 4, 8 ]
 // CHECK: types:
-// CHECK: - id:              4
+// CHECK: - id:              2
 // CHECK: kind:            builtin
 // CHECK: - id:              0
 // CHECK: kind:            builtin
-// CHECK: - id:              6
+// CHECK: - id:              3
 // CHECK: kind:            builtin
 // CHECK: sizes:           [ 1, 1, 1 ]
 // CHECK: - id:              13
@@ -89,19 +89,17 @@ int main(int argc, char** argv) {
 // CHECK: member_count:    6
 // CHECK: offsets:         [ 0, 16, 32, 36, 48, 56 ]
 // CHECK: types:
-// CHECK: - id:              4
+// CHECK: - id:              2
 // CHECK: kind:            builtin
-// CHECK: - id:              6
-// CHECK: kind:            builtin
-// CHECK: - id:              0
-// CHECK: kind:            builtin
-// TODO: Change 4 -> 5 as soon as unsigned types are supported
-// CHECK: - id:              4
+// CHECK: - id:              3
 // CHECK: kind:            builtin
 // CHECK: - id:              0
 // CHECK: kind:            builtin
-// TODO: Change 6 -> 7 as soon as unsigned types are supported
-// CHECK: - id:              6
+// CHECK: - id:              2
+// CHECK: kind:            builtin
+// CHECK: - id:              0
+// CHECK: kind:            builtin
+// CHECK: - id:              3
 // CHECK: kind:            builtin
 // CHECK: sizes:           [ 3, 2, 1, 3, 5, 1 ]
 // CHECK: - id:              14
@@ -110,11 +108,11 @@ int main(int argc, char** argv) {
 // CHECK: member_count:    4
 // CHECK: offsets:         [ 0, 8, 32, 56 ]
 // CHECK: types:
-// CHECK: - id:              4
+// CHECK: - id:              2
 // CHECK: kind:            builtin
-// CHECK: - id:              9
+// CHECK: - id:              6
 // CHECK: kind:            builtin
-// CHECK: - id:              9
+// CHECK: - id:              6
 // CHECK: kind:            builtin
 // CHECK: - id:              10
 // CHECK: kind:            pointer
