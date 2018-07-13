@@ -22,7 +22,11 @@
 #define LOG_BASENAME_FILE __FILE__
 #endif
 
-#ifdef MPI_LOGGER
+#ifndef MPI_LOGGER
+#define MPI_LOGGER OFF
+#endif
+
+#if MPI_LOGGER 
 
 void mpi_log(std::string msg);
 #define OO_LOG_LEVEL_MSG(LEVEL_NUM, LEVEL, MSG)                                                      \

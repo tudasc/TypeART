@@ -10,7 +10,7 @@ include(llvm-util)
 include(log-util)
 
 set(LOG_LEVEL 3 CACHE STRING "Granularity of logger. 3 ist most verbose, 0 is least.")
-option(MPI_LOGGER "Whether the logger should use MPI." Off)
+option(MPI_LOGGER "Whether the logger should use MPI." OFF)
 
 if(MPI_LOGGER)
 	find_package(MPI REQUIRED)
