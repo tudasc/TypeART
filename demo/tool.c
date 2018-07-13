@@ -4,18 +4,19 @@
 #include <RuntimeInterface.h>
 
 int isCompatible(MPI_Datatype mpi_type, typeart_builtin_type recorded_type) {
+  // This comparison is not exhaustive and is only used for this simple demo
   switch (recorded_type) {
-    case C_CHAR:
+    case TA_INT8:
       return mpi_type == MPI_CHAR || mpi_type == MPI_UNSIGNED_CHAR;
-    case C_SHORT:
+    case TA_INT16:
       return mpi_type == MPI_SHORT || mpi_type == MPI_UNSIGNED_SHORT;
-    case C_INT:
+    case TA_INT32:
       return mpi_type == MPI_INT || mpi_type == MPI_UNSIGNED;
-    case C_LONG:
+    case TA_INT64:
       return mpi_type == MPI_LONG || mpi_type == MPI_UNSIGNED_LONG;
-    case C_FLOAT:
+    case TA_FLOAT:
       return mpi_type == MPI_FLOAT;
-    case C_DOUBLE:
+    case TA_DOUBLE:
       return mpi_type == MPI_DOUBLE;
     default:
       break;

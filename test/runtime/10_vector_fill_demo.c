@@ -24,7 +24,7 @@ void free_vector(vector v) {
 int fill_vector(void* values, int count, vector* v) {
   typeart_builtin_type type;
   typeart_status result = typeart_get_builtin_type(values, &type);
-  if (result == TA_OK && type == C_DOUBLE) {
+  if (result == TA_OK && type == TA_DOUBLE) {
     memcpy(v->vals, values, count);
     v->size = count;
     fprintf(stderr, "Success\n");
@@ -37,7 +37,7 @@ int fill_vector(void* values, int count, vector* v) {
 int main(int argc, char** argv) {
   const int n = 3;
   // CHECK: [Trace] TypeART Runtime Trace
-  // CHECK: [Trace] Alloc 0x{{.*}} int 4 3
+  // CHECK: [Trace] Alloc 0x{{.*}} int32 4 3
   int int_vals[3] = {1, 2, 3};
   // CHECK: [Trace] Alloc 0x{{.*}} double 8 3
   double d_vals[3] = {1, 2, 3};
