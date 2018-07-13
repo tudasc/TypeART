@@ -36,6 +36,6 @@ void mpi_log(std::string msg) {
       llvm::errs() << "Message from rank " << mRank << ":\n" << msg << '\n';
     }
   } else {
-    llvm::errs() << msg << "\n";
+    llvm::errs() << "Non mpi: " << msg << "\n";
   }
 }

@@ -6,7 +6,7 @@ set(RUNTIME_LIB_SOURCES
 )
 
 if(MPI_LOGGER)
-	list(APPEND RUNTIME_LIB_SOURCES MPILogger.cpp)
+  list(APPEND RUNTIME_LIB_SOURCES MPILogger.cpp)
 endif()
 
 add_library(runtime SHARED
@@ -15,11 +15,14 @@ add_library(runtime SHARED
 
 set(RUNTIME_LIB_DEPS typelib)
 if(MPI_LOGGER)
-	list(APPEND RUNTIME_LIB_DEPS ${MPI_LIBRARIES})
+  list(APPEND RUNTIME_LIB_DEPS ${MPI_LIBRARIES})
+  target_project_compile_definitions(runtime
+    PRIVATE_DEFS MPI_LOGGER=1
+  )
 endif()
 
 target_link_libraries(runtime 
-	${RUNTIME_LIB_DEPS}
+  ${RUNTIME_LIB_DEPS}
 )
 
 target_include_directories(runtime 
@@ -34,7 +37,7 @@ target_include_directories(runtime
   SYSTEM 
   PRIVATE
     ${LLVM_INCLUDE_DIRS}
-		${MPI_C_INCLUDE_PATH}
+    ${MPI_C_INCLUDE_PATH}
 )
 
 target_project_compile_options(runtime)

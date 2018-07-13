@@ -1,7 +1,7 @@
 #include "Runtime.h"
+#include "Logger.h"
 #include "RuntimeInterface.h"
 #include "TypeIO.h"
-#include "Logger.h"
 
 #include <algorithm>
 #include <cassert>
