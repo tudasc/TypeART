@@ -10,6 +10,11 @@ include(llvm-util)
 include(log-util)
 
 set(LOG_LEVEL 3 CACHE STRING "Granularity of logger. 3 ist most verbose, 0 is least.")
+option(MPI_LOGGER "Whether the logger should use MPI." OFF)
+
+if(MPI_LOGGER)
+	find_package(MPI REQUIRED)
+endif()
 
 if(NOT CMAKE_BUILD_TYPE)
 # set default build type
@@ -45,6 +50,7 @@ function(target_project_compile_definitions target)
 
   target_compile_definitions(${target} PRIVATE
     LOG_LEVEL=${LOG_LEVEL}
+		MPI_LOGGER=${MPI_LOGGER}
   )
 
   if(ARG_PRIVATE_DEFS)
