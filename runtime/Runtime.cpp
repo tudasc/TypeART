@@ -424,3 +424,7 @@ typeart_status typeart_resolve_type(int id, typeart_struct_layout* struct_layout
 const char* typeart_get_type_name(int id) {
   return typeart::TypeArtRT::get().getTypeName(id).c_str();
 }
+
+void typeart_get_return_address(const void* addr, const void** retAddr) {
+  return typeart::TypeArtRT::get().getReturnAddress(addr, retAddr);
+}
