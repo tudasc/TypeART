@@ -1,0 +1,46 @@
+; RUN: cat %s | opt -load %pluginpath/analysis/meminstfinderpass.so -load %pluginpath/%pluginname %pluginargs -typeart-alloca -alloca-array-only=false -S 2>&1 | FileCheck %s
+
+; ModuleID = '11_calloc_realloc.c'
+source_filename = "11_calloc_realloc.c"
+target datalayout = "e-m:e-i64:64-f80:128-n8:16:32:64-S128"
+target triple = "x86_64-pc-linux-gnu"
+
+; CHECK:define i32 @main()
+; CHECK: %5 = call noalias i8* @calloc(i64 10, i64 8) #2
+; CHECK-NEXT: %6 = bitcast i8* %5 to double*
+; CHECK-NEXT: call void @__typeart_alloc(i8* %5, i32 6, i64 10, i64 8, i32 0)
+; CHECK: call void @__typeart_free(i8* %8)
+; CHECK-NEXT: %9 = call i8* @realloc(i8* %8, i64 160) #2
+; CHECK-NEXT: %10 = bitcast i8* %9 to double*
+; CHECK-NEXT: call void @__typeart_alloc(i8* %9, i32 6, i64 20, i64 8, i32 0)
+; Function Attrs: noinline nounwind optnone uwtable
+define i32 @main() #0 {
+  %1 = alloca i32, align 4
+  %2 = alloca double*, align 8
+  store i32 0, i32* %1, align 4
+  %3 = call noalias i8* @calloc(i64 10, i64 8) #2
+  %4 = bitcast i8* %3 to double*
+  store double* %4, double** %2, align 8
+  %5 = load double*, double** %2, align 8
+  %6 = bitcast double* %5 to i8*
+  %7 = call i8* @realloc(i8* %6, i64 160) #2
+  %8 = bitcast i8* %7 to double*
+  store double* %8, double** %2, align 8
+  ret i32 0
+}
+
+; Function Attrs: nounwind
+declare noalias i8* @calloc(i64, i64) #1
+
+; Function Attrs: nounwind
+declare i8* @realloc(i8*, i64) #1
+
+attributes #0 = { noinline nounwind optnone uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+fxsr,+mmx,+sse,+sse2,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #1 = { nounwind "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+fxsr,+mmx,+sse,+sse2,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #2 = { nounwind }
+
+!llvm.module.flags = !{!0}
+!llvm.ident = !{!1}
+
+!0 = !{i32 1, !"wchar_size", i32 4}
+!1 = !{!"clang version 6.0.0 (tags/RELEASE_600/final 332839)"}
