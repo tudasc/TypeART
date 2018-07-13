@@ -306,14 +306,26 @@ const std::string& TypeArtRT::getTypeName(int id) const {
   return typeDB.getTypeName(id);
 }
 
-void TypeArtRT::onAlloc(const void* addr, int typeId, size_t count, size_t typeSize, bool isLocal) {
+void TypeArtRT::getReturnAddress(const void* addr, const void** retAddr) {
+  const void* basePtr = findBaseAddress(addr);
+
+  if (basePtr) {
+    auto basePtrInfo = typeMap.find(basePtr)->second;
+    *retAddr = basePtrInfo.debug;
+  } else {
+    *retAddr = nullptr;
+  }
+}
+
+void TypeArtRT::onAlloc(const void* addr, int typeId, size_t count, size_t typeSize, bool isLocal,
+                        const void* retAddr) {
   auto it = typeMap.find(addr);
   if (it != typeMap.end()) {
     const auto info = (*it).second;
     LOG_ERROR("Already exists: " << toString(addr, typeId, count, typeSize, isLocal));
     LOG_ERROR("Data in map is: " << toString(info));
   } else {
-    typeMap[addr] = {addr, typeId, count, typeSize};
+    typeMap[addr] = {addr, typeId, count, typeSize, retAddr};
     auto typeString = typeDB.getTypeName(typeId);
     LOG_TRACE("Alloc " << addr << " " << typeString << " " << typeSize << " " << count << " " << (isLocal ? "S" : "H"));
     if (isLocal) {
@@ -359,14 +371,17 @@ void TypeArtRT::onLeaveScope(size_t alloca_count) {
 }  // namespace typeart
 
 void __typeart_alloc(void* addr, int typeId, size_t count, size_t typeSize, int isLocal) {
-  typeart::TypeArtRT::get().onAlloc(addr, typeId, count, typeSize, isLocal);
+  const void* ret_adr = __builtin_return_address(0);
+  typeart::TypeArtRT::get().onAlloc(addr, typeId, count, typeSize, isLocal, ret_adr);
 }
 
 void __typeart_free(void* addr) {
+  //  const void* ret_adr = __builtin_return_address(0);
   typeart::TypeArtRT::get().onFree(addr);
 }
 
 void __typeart_leave_scope(size_t alloca_count) {
+  //  const void* ret_adr = __builtin_return_address(0);
   typeart::TypeArtRT::get().onLeaveScope(alloca_count);
 }
 

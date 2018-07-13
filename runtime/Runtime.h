@@ -21,6 +21,7 @@ struct PointerInfo {
   int typeId;
   size_t count;
   size_t typeSize;
+  const void* debug;
 };
 
 class TypeArtRT {
@@ -117,6 +118,15 @@ class TypeArtRT {
    */
   TypeArtStatus getStructInfo(int id, const StructTypeInfo** structInfo) const;
 
+  /**
+   * Returns the builtin type at the given address.
+   *
+   * \param[in] addr The address.
+   * \param[out] retAddr The approximate address where the allocation occured.
+   * \return TA_OK, if the type is a builtin, TA_WRONG_KIND otherwise.
+   */
+  void getReturnAddress(const void* addr, const void** retAddr);
+
   // TypeArtStatus resolveType(int id, int* len, typeart::TypeInfo* types[], int* count[], int* offsets[], int* extent);
 
   /**
@@ -128,7 +138,7 @@ class TypeArtRT {
    */
   const std::string& getTypeName(int id) const;
 
-  void onAlloc(const void* addr, int typeID, size_t count, size_t typeSize, bool isLocal);
+  void onAlloc(const void* addr, int typeID, size_t count, size_t typeSize, bool isLocal, const void* retAddr);
 
   void onFree(const void* addr);
 
