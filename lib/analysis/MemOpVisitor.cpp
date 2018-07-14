@@ -85,8 +85,8 @@ void MemOpVisitor::visitFreeLike(llvm::CallInst& ci, MemOpKind) {
 
 void MemOpVisitor::visitAllocaInst(llvm::AllocaInst& ai) {
   //  LOG_DEBUG("Found alloca " << ai);
-
-  listAlloca.insert(&ai);
+  llvm::SmallPtrSet<llvm::CallInst*, 2> lifetimes;
+  listAlloca.push_back({&ai, lifetimes});
 }
 
 void MemOpVisitor::clear() {

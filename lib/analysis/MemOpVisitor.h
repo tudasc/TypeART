@@ -23,6 +23,11 @@ struct MallocData {
   MemOpKind kind;
 };
 
+struct AllocaData {
+  llvm::AllocaInst* alloca{nullptr};
+  llvm::SmallPtrSet<llvm::CallInst*, 2> lifetimes;
+};
+
 struct MemOpVisitor : public llvm::InstVisitor<MemOpVisitor> {
   MemOpVisitor();
   void clear();
@@ -34,7 +39,7 @@ struct MemOpVisitor : public llvm::InstVisitor<MemOpVisitor> {
 
   llvm::SmallVector<MallocData, 8> listMalloc;
   llvm::SmallPtrSet<llvm::CallInst*, 8> listFree;
-  llvm::SmallPtrSet<llvm::AllocaInst*, 8> listAlloca;
+  llvm::SmallVector<AllocaData, 8> listAlloca;
 
  private:
   // clang-format off

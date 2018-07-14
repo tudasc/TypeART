@@ -151,7 +151,9 @@ bool TypeArtPass::runOnFunction(Function& f) {
     return true;
   };
 
-  const auto instrumentAlloca = [&](auto alloca) -> bool {
+  const auto instrumentAlloca = [&](const auto& allocaData) -> bool {
+    auto alloca = allocaData.alloca;
+
     Type* elementType = nullptr;
     unsigned arraySize = 1;
 

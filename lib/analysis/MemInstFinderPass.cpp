@@ -282,16 +282,17 @@ bool MemInstFinderPass::runOnFunction(llvm::Function& f) {
 
   if (ClFilterNonArrayAlloca) {
     auto& allocs = mOpsCollector.listAlloca;
-    for (auto* alloc : allocs) {
-      if (!alloc->getAllocatedType()->isArrayTy()) {
-        allocs.erase(alloc);
-        ++NumFilteredNonArrayAllocs;
-      }
-    }
+    allocs.erase(allocs.begin(), std::remove_if(allocs.begin(), allocs.end(), [&](const auto& data) {
+                   if (!data.alloca->getAllocatedType()->isArrayTy()) {
+                     ++NumFilteredNonArrayAllocs;
+                     return true;
+                   }
+                   return false;
+                 }));
   }
 
   if (ClFilterMallocAllocPair) {
-    auto& alist = mOpsCollector.listAlloca;
+    auto& allocs = mOpsCollector.listAlloca;
     auto& mlist = mOpsCollector.listMalloc;
 
     const auto filterMallocAllocPairing = [&mlist](const auto alloc) {
@@ -315,25 +316,25 @@ bool MemInstFinderPass::runOnFunction(llvm::Function& f) {
       return false;
     };
 
-    for (auto alloc : alist) {
-      LOG_DEBUG("Filtering allocs (used to store a heap alloc pointer!) in function: " << f.getName());
-      if (filterMallocAllocPairing(alloc)) {
-        LOG_DEBUG("Filtering alloc: " << util::dump(*alloc));
-        alist.erase(alloc);
-        ++NumFilteredMallocAllocs;
-      }
-    }
+    allocs.erase(allocs.begin(), std::remove_if(allocs.begin(), allocs.end(), [&](const auto& data) {
+                   if (filterMallocAllocPairing(data.alloca)) {
+                     ++NumFilteredMallocAllocs;
+                     return true;
+                   }
+                   return false;
+                 }));
   }
 
   if (ClCallFilter) {
     auto& allocs = mOpsCollector.listAlloca;
-    for (auto* alloc : allocs) {
-      if (filter(alloc)) {
-        allocs.erase(alloc);
-        ++NumCallFilteredAllocs;
-      }
-    }
-    LOG_DEBUG(allocs.size() << " allocas to instrument : " << util::dump(allocs));
+    allocs.erase(allocs.begin(), std::remove_if(allocs.begin(), allocs.end(), [&](const auto& data) {
+                   if (filter(data.alloca)) {
+                     ++NumCallFilteredAllocs;
+                     return true;
+                   }
+                   return false;
+                 }));
+    //    LOG_DEBUG(allocs.size() << " allocas to instrument : " << util::dump(allocs));
   }
 
   auto& mallocs = mOpsCollector.listMalloc;
@@ -395,7 +396,7 @@ const llvm::SmallVector<MallocData, 8>& MemInstFinderPass::getFunctionMallocs() 
   return mOpsCollector.listMalloc;
 }
 
-const llvm::SmallPtrSet<llvm::AllocaInst*, 8>& MemInstFinderPass::getFunctionAllocs() const {
+const llvm::SmallVector<AllocaData, 8>& MemInstFinderPass::getFunctionAllocs() const {
   return mOpsCollector.listAlloca;
 }
 
