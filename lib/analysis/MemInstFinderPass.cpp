@@ -258,7 +258,7 @@ void MemInstFinderPass::getAnalysisUsage(llvm::AnalysisUsage& info) const {
 }
 
 bool MemInstFinderPass::runOnFunction(llvm::Function& f) {
-  LOG_DEBUG("Running on function: " << f.getName())
+  LOG_ERROR("Running on function: " << f.getName())
   const auto checkAmbigiousMalloc = [](const MallocData& mallocData) {
     auto primaryBitcast = mallocData.primary;
     if (primaryBitcast) {

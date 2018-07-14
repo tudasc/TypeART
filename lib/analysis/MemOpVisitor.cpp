@@ -89,7 +89,7 @@ void MemOpVisitor::visitFreeLike(llvm::CallInst& ci, MemOpKind) {
 
 void MemOpVisitor::visitAllocaInst(llvm::AllocaInst& ai) {
   //  LOG_DEBUG("Found alloca " << ai);
-  llvm::SmallPtrSet<llvm::CallInst*, 2> lifetimes;
+  llvm::SmallVector<llvm::IntrinsicInst*, 2> lifetimes;
 
   llvm::SmallPtrSet<Value*, 16> visited_set;
   llvm::SmallVector<Value*, 16> working_set;
@@ -115,7 +115,7 @@ void MemOpVisitor::visitAllocaInst(llvm::AllocaInst& ai) {
     if (IntrinsicInst* ii = llvm::dyn_cast<IntrinsicInst>(val)) {
       if (ii->getIntrinsicID() == Intrinsic::lifetime_start
           /* || ii->getIntrinsicID() == Intrinsic::lifetime_end*/) {
-        lifetimes.insert(ii);
+        lifetimes.push_back(ii);
       }
       continue;
     } else if (llvm::isa<BitCastInst>(val)) {
