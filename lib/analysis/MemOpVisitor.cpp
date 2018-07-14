@@ -83,10 +83,48 @@ void MemOpVisitor::visitFreeLike(llvm::CallInst& ci, MemOpKind) {
   listFree.insert(&ci);
 }
 
+// void MemOpVisitor::visitIntrinsicInst(llvm::IntrinsicInst& ii) {
+//
+//}
+
 void MemOpVisitor::visitAllocaInst(llvm::AllocaInst& ai) {
   //  LOG_DEBUG("Found alloca " << ai);
   llvm::SmallPtrSet<llvm::CallInst*, 2> lifetimes;
+
+  llvm::SmallPtrSet<Value*, 16> visited_set;
+  llvm::SmallVector<Value*, 16> working_set;
+
+  const auto addToWork = [&visited_set, &working_set](auto vals) {
+    for (auto v : vals) {
+      if (visited_set.find(v) == visited_set.end()) {
+        working_set.push_back(v);
+        visited_set.insert(v);
+      }
+    }
+  };
+
+  const auto peek = [&working_set]() -> Value* {
+    auto user_iter = working_set.end() - 1;
+    working_set.erase(user_iter);
+    return *user_iter;
+  };
+
+  addToWork(ai.users());
+  while (!working_set.empty()) {
+    auto val = peek();
+    if (IntrinsicInst* ii = llvm::dyn_cast<IntrinsicInst>(val)) {
+      if (ii->getIntrinsicID() == Intrinsic::lifetime_start
+          /* || ii->getIntrinsicID() == Intrinsic::lifetime_end*/) {
+        lifetimes.insert(ii);
+      }
+      continue;
+    } else if (llvm::isa<BitCastInst>(val)) {
+      addToWork(val->users());  // lifetimes usually get bitcasts passed
+    }
+  }
+
   listAlloca.push_back({&ai, lifetimes});
+  LOG_ERROR("Alloca: " << util::dump(ai) << " -> lifetime marker: " << util::dump(lifetimes));
 }
 
 void MemOpVisitor::clear() {

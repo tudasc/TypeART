@@ -34,6 +34,7 @@ struct MemOpVisitor : public llvm::InstVisitor<MemOpVisitor> {
   void visitCallInst(llvm::CallInst& ci);
   void visitMallocLike(llvm::CallInst& ci, MemOpKind k);
   void visitFreeLike(llvm::CallInst& ci, MemOpKind k);
+  //  void visitIntrinsicInst(llvm::IntrinsicInst& ii);
   void visitAllocaInst(llvm::AllocaInst& ai);
   virtual ~MemOpVisitor();
 
