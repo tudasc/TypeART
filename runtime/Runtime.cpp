@@ -3,13 +3,13 @@
 #include "RuntimeInterface.h"
 #include "TypeIO.h"
 
+#include "llvm/ADT/Optional.h"
+
 #include <algorithm>
 #include <cassert>
 #include <cstdlib>
 #include <cstring>
 #include <sstream>
-
-#include <llvm/ADT/Optional.h>
 
 namespace typeart {
 
