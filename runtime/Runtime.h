@@ -14,6 +14,11 @@ void __typeart_free(void* addr);
 void __typeart_leave_scope(size_t alloca_count);
 }
 
+namespace llvm {
+template <typename T>
+class Optional;
+}
+
 namespace typeart {
 
 struct PointerInfo {
@@ -161,7 +166,7 @@ class TypeArtRT {
    * Given an address, this method searches for the pointer that corresponds to the start of the allocated block.
    * Returns null if the memory location is not registered as allocated.
    */
-  const void* findBaseAddress(const void* addr) const;
+  llvm::Optional<PointerInfo> findBaseAddress(const void* addr) const;
 
   // Class members
   std::map<const void*, PointerInfo> typeMap;
