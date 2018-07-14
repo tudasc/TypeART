@@ -124,7 +124,7 @@ void MemOpVisitor::visitAllocaInst(llvm::AllocaInst& ai) {
   }
 
   listAlloca.push_back({&ai, lifetimes});
-  LOG_ERROR("Alloca: " << util::dump(ai) << " -> lifetime marker: " << util::dump(lifetimes));
+  //  LOG_DEBUG("Alloca: " << util::dump(ai) << " -> lifetime marker: " << util::dump(lifetimes));
 }
 
 void MemOpVisitor::clear() {

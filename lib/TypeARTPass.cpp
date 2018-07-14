@@ -31,7 +31,7 @@ static cl::opt<bool> ClTypeArtAlloca("typeart-alloca", cl::desc("Track alloca in
                                      cl::init(false));
 static cl::opt<bool> ClTypeArtAllocaLifetime("typeart-lifetime",
                                              cl::desc("Track alloca instructions based on lifetime.start intrinsic."),
-                                             cl::Hidden, cl::init(true));
+                                             cl::Hidden, cl::init(false));
 static cl::opt<std::string> ClTypeFile("typeart-outfile", cl::desc("Location of the generated type file."), cl::Hidden,
                                        cl::init("types.yaml"));
 
@@ -185,7 +185,7 @@ bool TypeArtPass::runOnFunction(Function& f) {
         IRBuilder<> IRB(marker->getNextNode());
 
         auto arrayPtr = marker->getOperand(1);  // IRB.CreateBitOrPointerCast(alloca, tu::getVoidPtrType(c));
-        LOG_ERROR("Using lifetime marker for alloca: " << util::dump(*arrayPtr));
+        LOG_DEBUG("Using lifetime marker for alloca: " << util::dump(*arrayPtr));
         IRB.CreateCall(typeart_alloc.f,
                        ArrayRef<Value*>{arrayPtr, typeIdConst, numElementsConst, typeSizeConst, isLocalConst});
 
@@ -194,7 +194,7 @@ bool TypeArtPass::runOnFunction(Function& f) {
         ++NumFoundAlloca;
         return true;
       }
-      LOG_DEBUG("Too many lifestime.start: " << util::dump(*alloca));
+      LOG_WARNING("Too many lifestime.start: " << util::dump(*alloca));
     }
 
     insertBefore = alloca->getNextNode();
