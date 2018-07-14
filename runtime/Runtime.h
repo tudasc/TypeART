@@ -17,7 +17,7 @@ void __typeart_leave_scope(size_t alloca_count);
 namespace llvm {
 template <typename T>
 class Optional;
-}
+}  // namespace llvm
 
 namespace typeart {
 
