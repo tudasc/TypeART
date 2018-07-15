@@ -7,7 +7,7 @@ extern "C" {
 
 // Type UNKNOWN is used for pointer types, when the underlying type is not specified.
 // In conjunction with kind BUILTIN, UNKNOWN signifies an invalid type.
-typedef enum typeart_builtin_type_t {
+typedef enum typeart_builtin_type_t {  // NOLINT
   TA_INT8 = 0,
   TA_INT16 = 1,
   TA_INT32 = 2,
@@ -30,9 +30,9 @@ typedef enum typeart_builtin_type_t {
   N_BUILTIN_TYPES
 } typeart_builtin_type;
 
-typedef enum typeart_type_kind_t { BUILTIN, STRUCT, POINTER } typeart_type_kind;
+typedef enum typeart_type_kind_t { BUILTIN, STRUCT, POINTER } typeart_type_kind;  // NOLINT
 
-typedef struct typeart_type_info_t {
+typedef struct typeart_type_info_t {  // NOLINT
   typeart_type_kind kind;
   int id;
 } typeart_type_info;

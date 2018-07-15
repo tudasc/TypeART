@@ -13,7 +13,7 @@
 extern "C" {
 #endif
 
-typedef enum typeart_status_t {
+typedef enum typeart_status_t {  // NOLINT
   TA_OK,
   TA_UNKNOWN_ADDRESS,
   TA_BAD_ALIGNMENT,
@@ -22,7 +22,7 @@ typedef enum typeart_status_t {
   TA_INVALID_ID
 } typeart_status;
 
-typedef struct typeart_struct_layout_t {
+typedef struct typeart_struct_layout_t {  // NOLINT
   int id;
   const char* name;
   size_t extent;

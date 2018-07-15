@@ -134,7 +134,7 @@ class CallFilter::FilterImpl {
         working_set_calls.push_back(c);
         // Caveat: below at the end of the loop, we add users of the function call to the search even though it might be
         // a simple "sink" for the alloca we analyse
-      } else if (StoreInst* store = llvm::dyn_cast<StoreInst>(val)) {
+      } else if (auto store = llvm::dyn_cast<StoreInst>(val)) {
         // If we encounter a store, we follow the store target pointer.
         // More inclusive than strictly necessary in some cases.
         LOG_DEBUG("Store found: " << util::dump(*store)
@@ -191,7 +191,7 @@ class CallFilter::FilterImpl {
     for (auto* user : arg->users()) {
       LOG_DEBUG("Looking at arg user " << util::dump(*user));
       // This code is for non mem2reg code (i.e., where the argument is stored to a local alloca):
-      if (StoreInst* store = llvm::dyn_cast<StoreInst>(user)) {
+      if (auto store = llvm::dyn_cast<StoreInst>(user)) {
         // if (auto* alloca = llvm::dyn_cast<AllocaInst>(store->getPointerOperand())) {
         //  LOG_DEBUG("Argument is a store inst and the operand is alloca");
         return filter(store->getPointerOperand());
