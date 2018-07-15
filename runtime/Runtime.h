@@ -22,7 +22,6 @@ class Optional;
 namespace typeart {
 
 struct PointerInfo {
-  const void* addr;
   int typeId;
   size_t count;
   size_t typeSize;
@@ -33,6 +32,8 @@ class TypeArtRT {
  public:
   using TypeArtStatus = typeart_status;
   using Stack = StackWrapper<std::vector<const void*>>;
+  using PointerMap = std::map<const void*, PointerInfo>;
+  using MapEntry = PointerMap::value_type;
 
   static TypeArtRT& get() {
     static TypeArtRT instance;
@@ -175,10 +176,10 @@ class TypeArtRT {
    * Given an address, this method searches for the pointer that corresponds to the start of the allocated block.
    * Returns null if the memory location is not registered as allocated.
    */
-  llvm::Optional<PointerInfo> findBaseAddress(const void* addr) const;
+  llvm::Optional<MapEntry> findBaseAddress(const void* addr) const;
 
   // Class members
-  std::map<const void*, PointerInfo> typeMap;
+  PointerMap typeMap;
   Stack stackVars;
   TypeDB typeDB;
   static std::string defaultTypeFileName;

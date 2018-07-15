@@ -32,8 +32,8 @@ inline static std::string toString(const void* addr, int typeId, size_t count, s
   return s.str();
 }
 
-inline static std::string toString(const PointerInfo& info) {
-  return toString(info.addr, info.typeId, info.count, info.typeSize, -1);
+inline static std::string toString(const void* addr, const PointerInfo& info) {
+  return toString(addr, info.typeId, info.count, info.typeSize, -1);
 }
 
 TypeArtRT::TypeArtRT() {
@@ -77,7 +77,7 @@ void TypeArtRT::printTraceStart() {
   LOG_TRACE("--------------------------------------------------------");
 }
 
-llvm::Optional<PointerInfo> TypeArtRT::findBaseAddress(const void* addr) const {
+llvm::Optional<TypeArtRT::MapEntry> TypeArtRT::findBaseAddress(const void* addr) const {
   if (typeMap.empty() || addr < typeMap.begin()->first) {
     return llvm::None;
   }
@@ -85,15 +85,15 @@ llvm::Optional<PointerInfo> TypeArtRT::findBaseAddress(const void* addr) const {
   auto it = typeMap.lower_bound(addr);
   if (it == typeMap.end()) {
     // No element bigger than base address
-    return {typeMap.rbegin()->second};
+    return {*typeMap.rbegin()};
   }
 
   if (it->first == addr) {
     // Exact match
-    return {it->second};
+    return {*it};
   }
   // Base address
-  return {std::prev(it)->second};
+  return {*std::prev(it)};
 }
 
 size_t TypeArtRT::getMemberIndex(typeart_struct_layout structInfo, size_t offset) const {
@@ -234,8 +234,8 @@ TypeArtRT::TypeArtStatus TypeArtRT::getContainingTypeInfo(const void* addr, type
   auto ptrData = findBaseAddress(addr);
 
   if (ptrData) {
-    const auto& basePtrInfo = ptrData.getValue();
-    auto basePtr = basePtrInfo.addr;
+    const auto& basePtrInfo = ptrData.getValue().second;
+    auto basePtr = ptrData.getValue().first;
 
     //    auto basePtrInfo = typeMap.find(basePtr)->second;
 
@@ -315,7 +315,7 @@ void TypeArtRT::getReturnAddress(const void* addr, const void** retAddr) {
   auto basePtr = findBaseAddress(addr);
 
   if (basePtr) {
-    *retAddr = basePtr.getValue().debug;
+    *retAddr = basePtr.getValue().second.debug;
   } else {
     *retAddr = nullptr;
   }
@@ -327,9 +327,9 @@ void TypeArtRT::onAlloc(const void* addr, int typeId, size_t count, size_t typeS
   if (it != typeMap.end()) {
     const auto info = (*it).second;
     LOG_ERROR("Already exists: " << toString(addr, typeId, count, typeSize, isLocal));
-    LOG_ERROR("Data in map is: " << toString(info));
+    LOG_ERROR("Data in map is: " << toString((*it).first, info));
   } else {
-    typeMap[addr] = {addr, typeId, count, typeSize, retAddr};
+    typeMap[addr] = {typeId, count, typeSize, retAddr};
     auto typeString = typeDB.getTypeName(typeId);
     LOG_TRACE("Alloc " << addr << " " << typeString << " " << typeSize << " " << count << " " << (isLocal ? "S" : "H"));
     if (isLocal) {
@@ -342,7 +342,7 @@ void TypeArtRT::onAlloc(const void* addr, int typeId, size_t count, size_t typeS
 void TypeArtRT::onFree(const void* addr) {
   auto it = typeMap.find(addr);
   if (it != typeMap.end()) {
-    LOG_TRACE("Free " << toString((*it).second));
+    LOG_TRACE("Free " << toString((*it).first, (*it).second));
     typeMap.erase(it);
   } else {
     LOG_ERROR("Free recorded on unregistered address: " << addr);
