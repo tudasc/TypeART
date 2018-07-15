@@ -117,3 +117,20 @@ int MPI_Sendrecv(const void* sendbuf, int sendcount, MPI_Datatype sendtype, int 
   return PMPI_Sendrecv(sendbuf, sendcount, sendtype, dest, sendtag, recvbuf, recvcount, recvtype, source, recvtag, comm,
                        status);
 }
+
+int MPI_Bcast(void* buf, int sendcount, MPI_Datatype sendtype, int root, MPI_Comm comm) {
+  int rank;
+  MPI_Comm_rank(comm, &rank);
+  if( rank == root ) {
+    printf("Analyze Send\n");
+    analyseBuffer(buf, sendcount, sendtype);
+//  analyseBuffer(0, sendcount, sendtype);
+  } else {
+    printf("Analyze Recv\n");
+    analyseBuffer(buf, sendcount, sendtype);
+//  analyseBuffer(0, recvcount, recvtype);
+  }
+  return PMPI_Bcast(buf, sendcount, sendtype, root, comm);
+}
+
+

@@ -56,7 +56,7 @@ all: $(LULESH_EXEC)
 
 lulesh2.0: $(OBJECTS2.0)
 	@echo "Linking"
-	$(CXX) $(OBJECTS2.0) $(LDFLAGS) -lm -L$(RTPATH) -lruntime -o $@
+	$(CXX) $(OBJECTS2.0) $(LDFLAGS) -lm -L$(RTPATH) -ltypeart-rt -o $@
 
 clean:
 	/bin/rm -f *.o *.s *~ $(OBJECTS) $(LULESH_EXEC)

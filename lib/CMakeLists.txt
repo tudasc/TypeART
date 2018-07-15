@@ -17,7 +17,7 @@ make_llvm_module(typeartpass
     meminstfinderpass
   INCLUDE_DIRS
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_SOURCE_DIR}/typelib
+    ${PROJECT_SOURCE_DIR}/typelib
 )
 
 target_project_compile_options(typeartpass)
@@ -38,7 +38,7 @@ install(
 )
 
 configure_package_config_file(
-  ${CMAKE_SOURCE_DIR}/cmake/Config.cmake.in
+  ${PROJECT_SOURCE_DIR}/cmake/Config.cmake.in
   ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
   INSTALL_DESTINATION lib/cmake
 )
