@@ -83,11 +83,54 @@ void MemOpVisitor::visitFreeLike(llvm::CallInst& ci, MemOpKind) {
   listFree.insert(&ci);
 }
 
+// void MemOpVisitor::visitIntrinsicInst(llvm::IntrinsicInst& ii) {
+//
+//}
+
 void MemOpVisitor::visitAllocaInst(llvm::AllocaInst& ai) {
   //  LOG_DEBUG("Found alloca " << ai);
+  llvm::IntrinsicInst* start{nullptr};
+  llvm::IntrinsicInst* end{nullptr};
 
-  listAlloca.insert(&ai);
-}
+  llvm::SmallVector<Value*, 16> working_set;
+
+  const auto addToWork = [&working_set](auto vals) {
+    for (auto v : vals) {
+      working_set.push_back(v);
+    }
+  };
+
+  const auto peek = [&working_set]() -> Value* {
+    auto user_iter = working_set.end() - 1;
+    working_set.erase(user_iter);
+    return *user_iter;
+  };
+
+  addToWork(ai.users());
+  while (!working_set.empty()) {
+    auto val = peek();
+    if (IntrinsicInst* ii = llvm::dyn_cast<IntrinsicInst>(val)) {
+      if (ii->getIntrinsicID() == Intrinsic::lifetime_start) {
+        if (start != nullptr) {
+          LOG_WARNING("Multiple lifetime.start intrinsics found for alloca: " << util::dump(ai));
+          continue;
+        }
+        start = ii;
+      } else if (ii->getIntrinsicID() == Intrinsic::lifetime_end) {
+        if (end != nullptr) {
+          LOG_WARNING("Multiple lifetime.end intrinsics found for alloca: " << util::dump(ai));
+          continue;
+        }
+        end = ii;
+      }
+    } else if (llvm::isa<BitCastInst>(val)) {
+      addToWork(val->users());  // lifetimes usually get bitcasts passed
+    }
+  }
+
+  listAlloca.push_back({&ai, start, end});
+  //  LOG_DEBUG("Alloca: " << util::dump(ai) << " -> lifetime marker: " << util::dump(lifetimes));
+}  // namespace typeart
 
 void MemOpVisitor::clear() {
   listAlloca.clear();

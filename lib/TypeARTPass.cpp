@@ -29,6 +29,9 @@ static cl::opt<bool> ClTypeArtStats("typeart-stats", cl::desc("Show statistics f
                                     cl::init(false));
 static cl::opt<bool> ClTypeArtAlloca("typeart-alloca", cl::desc("Track alloca instructions."), cl::Hidden,
                                      cl::init(false));
+static cl::opt<bool> ClTypeArtAllocaLifetime("typeart-lifetime",
+                                             cl::desc("Track alloca instructions based on lifetime.start intrinsic."),
+                                             cl::Hidden, cl::init(false));
 static cl::opt<std::string> ClTypeFile("typeart-outfile", cl::desc("Location of the generated type file."), cl::Hidden,
                                        cl::init("types.yaml"));
 
@@ -151,7 +154,9 @@ bool TypeArtPass::runOnFunction(Function& f) {
     return true;
   };
 
-  const auto instrumentAlloca = [&](auto alloca) -> bool {
+  const auto instrumentAlloca = [&](const auto& allocaData) -> bool {
+    auto alloca = allocaData.alloca;
+
     Type* elementType = nullptr;
     unsigned arraySize = 1;
 
@@ -163,16 +168,31 @@ bool TypeArtPass::runOnFunction(Function& f) {
       elementType = alloca->getAllocatedType();
     }
 
-    auto insertBefore = alloca->getNextNode();
-
     int typeId = typeManager.getOrRegisterType(elementType, dl);
-
     auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), typeId);
     auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
     auto numElementsConst = ConstantInt::get(tu::getInt64Type(c), arraySize);
     auto isLocalConst = ConstantInt::get(tu::getInt32Type(c), 1);
 
-    IRBuilder<> IRB(insertBefore);
+    if (ClTypeArtAllocaLifetime) {
+      // TODO Using lifetime start (and end) likely cause our counter based stack tracking scheme to fail?
+      auto marker = allocaData.start;
+      if (marker != nullptr) {
+        IRBuilder<> IRB(marker->getNextNode());
+
+        auto arrayPtr = marker->getOperand(1);  // IRB.CreateBitOrPointerCast(alloca, tu::getVoidPtrType(c));
+        // LOG_DEBUG("Using lifetime marker for alloca: " << util::dump(*arrayPtr));
+        IRB.CreateCall(typeart_alloc.f,
+                       ArrayRef<Value*>{arrayPtr, typeIdConst, numElementsConst, typeSizeConst, isLocalConst});
+
+        allocCounts[marker->getParent()]++;
+
+        ++NumFoundAlloca;
+        return true;
+      }
+    }
+
+    IRBuilder<> IRB(alloca->getNextNode());
 
     // Single increment for an alloca:
     //    auto load_counter = IRB.CreateLoad(counter);
@@ -184,8 +204,8 @@ bool TypeArtPass::runOnFunction(Function& f) {
                    ArrayRef<Value*>{arrayPtr, typeIdConst, numElementsConst, typeSizeConst, isLocalConst});
 
     allocCounts[alloca->getParent()]++;
-    ++NumFoundAlloca;
 
+    ++NumFoundAlloca;
     return true;
   };
 

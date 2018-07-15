@@ -52,7 +52,7 @@ class MemInstFinderPass : public llvm::FunctionPass {
   void getAnalysisUsage(llvm::AnalysisUsage&) const override;
   bool doFinalization(llvm::Module&) override;
   const llvm::SmallVector<MallocData, 8>& getFunctionMallocs() const;
-  const llvm::SmallPtrSet<llvm::AllocaInst*, 8>& getFunctionAllocs() const;
+  const llvm::SmallVector<AllocaData, 8>& getFunctionAllocs() const;
   const llvm::SmallPtrSet<llvm::CallInst*, 8>& getFunctionFrees() const;
 };
 
