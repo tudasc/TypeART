@@ -14,29 +14,49 @@
 
 namespace typeart {
 
+enum class MemOpKind { MALLOC, CALLOC, REALLOC, FREE };
+
 struct MallocData {
   llvm::CallInst* call{nullptr};
   llvm::BitCastInst* primary{nullptr};  // Non-null if non (void*) cast exists
   llvm::SmallPtrSet<llvm::BitCastInst*, 4> bitcasts;
+  MemOpKind kind;
+};
+
+struct AllocaData {
+  llvm::AllocaInst* alloca{nullptr};
+  llvm::IntrinsicInst* start{nullptr};
+  llvm::IntrinsicInst* end{nullptr};
+  //  llvm::SmallVector<llvm::IntrinsicInst*, 2> lifetimes;
 };
 
 struct MemOpVisitor : public llvm::InstVisitor<MemOpVisitor> {
   MemOpVisitor();
   void clear();
   void visitCallInst(llvm::CallInst& ci);
-  void visitMallocLike(llvm::CallInst& ci);
-  void visitFreeLike(llvm::CallInst& ci);
+  void visitMallocLike(llvm::CallInst& ci, MemOpKind k);
+  void visitFreeLike(llvm::CallInst& ci, MemOpKind k);
+  //  void visitIntrinsicInst(llvm::IntrinsicInst& ii);
   void visitAllocaInst(llvm::AllocaInst& ai);
   virtual ~MemOpVisitor();
 
   llvm::SmallVector<MallocData, 8> listMalloc;
   llvm::SmallPtrSet<llvm::CallInst*, 8> listFree;
-  llvm::SmallPtrSet<llvm::AllocaInst*, 8> listAlloca;
+  llvm::SmallVector<AllocaData, 8> listAlloca;
 
  private:
-  /** Look up sets for keyword strings */
-  const std::set<std::string> allocFunctions{"malloc", "_Znwm" /*new*/, "_Znam" /*new[]*/};
-  const std::set<std::string> deallocFunctions{"free", "_ZdlPv" /*delete*/, "_ZdaPv" /*delete[]*/};
+  // clang-format off
+  const std::map<std::string, MemOpKind> allocMap{{"malloc", MemOpKind::MALLOC},
+                                                  {"_Znwm", MemOpKind::MALLOC}, /*new*/
+                                                  {"_Znam", MemOpKind::MALLOC}, /*new[]*/
+                                                  {"calloc", MemOpKind::CALLOC},
+                                                  {"realloc", MemOpKind::REALLOC}
+                                                 };
+  const std::map<std::string, MemOpKind> deallocMap{{"free", MemOpKind::FREE},
+                                                    {"_ZdlPv", MemOpKind::FREE}, /*delete*/
+                                                    {"_ZdaPv", MemOpKind::FREE} /*delete[]*/
+                                                   };
+  // clang-format on
 };
 
 }  // namespace typeart

@@ -1,16 +1,28 @@
-set(PROJECT_NAME typeart_runtime)
+set(PROJECT_NAME typeart-rt)
 set(TARGETS_EXPORT_NAME ${PROJECT_NAME}-targets)
 
 set(RUNTIME_LIB_SOURCES
   Runtime.cpp
 )
 
+if(MPI_LOGGER)
+  list(APPEND RUNTIME_LIB_SOURCES MPILogger.cpp)
+endif()
+
 add_library(typeart-rt SHARED
   ${RUNTIME_LIB_SOURCES}
 )
 
+set(RUNTIME_LIB_DEPS typelib)
+if(MPI_LOGGER)
+  list(APPEND RUNTIME_LIB_DEPS ${MPI_LIBRARIES})
+  target_project_compile_definitions(typeart_rt
+    PRIVATE_DEFS MPI_LOGGER=1
+  )
+endif()
+
 target_link_libraries(typeart-rt 
-  typelib
+  ${RUNTIME_LIB_DEPS}
 )
 
 target_include_directories(typeart-rt 
@@ -26,9 +38,11 @@ target_include_directories(typeart-rt
   SYSTEM 
   PRIVATE
     ${LLVM_INCLUDE_DIRS}
+    ${MPI_C_INCLUDE_PATH}
 )
 
 target_project_compile_options(typeart-rt)
+target_project_compile_definitions(typeart-rt)
 target_define_file_basename(typeart-rt)
 
 target_link_libraries(typeart-rt

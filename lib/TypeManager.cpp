@@ -43,31 +43,44 @@ int TypeManager::getOrRegisterType(llvm::Type* type, const llvm::DataLayout& dl)
     case llvm::Type::IntegerTyID:
 
       if (type == Type::getInt8Ty(c)) {
-        return C_CHAR;
+        return TA_INT8;
       } else if (type == Type::getInt16Ty(c)) {
-        return C_SHORT;
+        return TA_INT16;
       } else if (type == Type::getInt32Ty(c)) {
-        return C_INT;
+        return TA_INT32;
       } else if (type == Type::getInt64Ty(c)) {
-        return C_LONG;
+        return TA_INT64;
       } else {
-        return UNKNOWN;
+        return TA_UNKNOWN_TYPE;
       }
     // TODO: Unsigned types are not supported as of now
     case llvm::Type::FloatTyID:
-      return C_FLOAT;
+      return TA_FLOAT;
     case llvm::Type::DoubleTyID:
-      return C_DOUBLE;
+      return TA_DOUBLE;
+    case llvm::Type::FP128TyID:
+      return TA_FP128;
+    case llvm::Type::X86_FP80TyID:
+      return TA_X86_FP80;
+    case llvm::Type::PPC_FP128TyID:
+      return TA_PPC_FP128;
     case llvm::Type::StructTyID:
       return getOrRegisterStruct(dyn_cast<StructType>(type), dl);
     default:
       break;
   }
-  return UNKNOWN;
+  return TA_UNKNOWN_TYPE;
 }
 
 int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLayout& dl) {
-  auto name = type->getStructName();
+  const auto getName = [](auto type) -> std::string {
+    if (type->isLiteral()) {
+      return "LiteralS" + std::to_string(reinterpret_cast<long int>(type));
+    }
+    return type->getStructName();
+  };
+
+  auto name = getName(type);
   // std::cerr << "Looking up struct " << name.str() << std::endl;
   auto it = structMap.find(name);
   if (it != structMap.end()) {
@@ -94,7 +107,7 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
 
   for (uint32_t i = 0; i < n; i++) {
     auto memberType = type->getStructElementType(i);
-    int memberID = UNKNOWN;
+    int memberID = TA_UNKNOWN_TYPE;
     TypeKind kind;
 
     size_t arraySize = 1;

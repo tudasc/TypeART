@@ -89,6 +89,49 @@ inline bool regex_matches(const std::string& regex, const std::string& in, bool 
   return r.match(in);
 }
 
+inline std::string glob2regex(const std::string& glob) {
+  // Handles glob with no error checking:
+  // Choice: '{a,b,c}' eq. (a|b|c)
+  // Any char in bracket: '[abc]' eq. [abc]
+  // Any char: '?' eq. .
+  // Any string: '*' eq. .*
+  std::string glob_reg{"^"};
+  int in_curly{0};
+  for (char c : glob) {
+    switch (c) {
+      case '?':
+        glob_reg += ".";
+        break;
+      case '*':
+        glob_reg += ".*";
+        break;
+      case '{':
+        ++in_curly;
+        glob_reg += "(";
+        break;
+      case '}':
+        if (in_curly > 0) {
+          --in_curly;
+          glob_reg += ")";
+        } else {
+          glob_reg += c;
+        }
+        break;
+      case ',':
+        glob_reg += (in_curly > 0 ? "|" : ",");
+        break;
+      default:
+        if (strchr("()^$|*+.\\", c)) {
+          glob_reg += '\\';
+        }
+        glob_reg += c;
+        break;
+    }
+  }
+  glob_reg += "$";
+  return glob_reg;
+}
+
 }  // namespace util
 }  // namespace typeart
 

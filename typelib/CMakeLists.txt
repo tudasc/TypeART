@@ -26,6 +26,7 @@ target_include_directories(typelib
 )
 
 target_project_compile_options(typelib)
+target_project_compile_definitions(typelib)
 
 make_tidy_check(typelib
   "${TYPE_LIB_SOURCES}"

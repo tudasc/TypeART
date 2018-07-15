@@ -1,7 +1,9 @@
 #include "Runtime.h"
+#include "Logger.h"
 #include "RuntimeInterface.h"
 #include "TypeIO.h"
-#include "support/Logger.h"
+
+#include "llvm/ADT/Optional.h"
 
 #include <algorithm>
 #include <cassert>
@@ -16,6 +18,22 @@ std::string TypeArtRT::defaultTypeFileName{"types.yaml"};
 template <typename T>
 inline const void* addByteOffset(const void* addr, T offset) {
   return static_cast<const void*>(static_cast<const uint8_t*>(addr) + offset);
+}
+
+inline static std::string toString(const void* addr, int typeId, size_t count, size_t typeSize, int isLocal) {
+  std::stringstream s;
+  // clang-format off
+  s << addr
+    << ". typeId: " << typeId
+    << ". count: " << count
+    << ". typeSize " << typeSize
+    << ". local: " << isLocal;
+  // clang-format on
+  return s.str();
+}
+
+inline static std::string toString(const PointerInfo& info) {
+  return toString(info.addr, info.typeId, info.count, info.typeSize, -1);
 }
 
 TypeArtRT::TypeArtRT() {
@@ -59,23 +77,23 @@ void TypeArtRT::printTraceStart() {
   LOG_TRACE("--------------------------------------------------------");
 }
 
-const void* TypeArtRT::findBaseAddress(const void* addr) const {
+llvm::Optional<PointerInfo> TypeArtRT::findBaseAddress(const void* addr) const {
   if (typeMap.empty() || addr < typeMap.begin()->first) {
-    return nullptr;
+    return llvm::None;
   }
 
   auto it = typeMap.lower_bound(addr);
   if (it == typeMap.end()) {
     // No element bigger than base address
-    return typeMap.rbegin()->first;
+    return {typeMap.rbegin()->second};
   }
 
   if (it->first == addr) {
     // Exact match
-    return it->first;
+    return {it->second};
   }
   // Base address
-  return (std::prev(it))->first;
+  return {std::prev(it)->second};
 }
 
 size_t TypeArtRT::getMemberIndex(typeart_struct_layout structInfo, size_t offset) const {
@@ -213,10 +231,13 @@ TypeArtRT::TypeArtStatus TypeArtRT::getTypeInfo(const void* addr, typeart::TypeI
 TypeArtRT::TypeArtStatus TypeArtRT::getContainingTypeInfo(const void* addr, typeart::TypeInfo* type, size_t* count,
                                                           const void** baseAddress, size_t* offset) const {
   // Find the start address of the containing buffer
-  const void* basePtr = findBaseAddress(addr);
+  auto ptrData = findBaseAddress(addr);
 
-  if (basePtr) {
-    auto basePtrInfo = typeMap.find(basePtr)->second;
+  if (ptrData) {
+    const auto& basePtrInfo = ptrData.getValue();
+    auto basePtr = basePtrInfo.addr;
+
+    //    auto basePtrInfo = typeMap.find(basePtr)->second;
 
     // Check for exact match -> no further checks and offsets calculations needed
     if (basePtr == addr) {
@@ -290,17 +311,28 @@ const std::string& TypeArtRT::getTypeName(int id) const {
   return typeDB.getTypeName(id);
 }
 
-void TypeArtRT::onAlloc(const void* addr, int typeId, size_t count, size_t typeSize, bool isLocal) {
+void TypeArtRT::getReturnAddress(const void* addr, const void** retAddr) {
+  auto basePtr = findBaseAddress(addr);
+
+  if (basePtr) {
+    *retAddr = basePtr.getValue().debug;
+  } else {
+    *retAddr = nullptr;
+  }
+}
+
+void TypeArtRT::onAlloc(const void* addr, int typeId, size_t count, size_t typeSize, bool isLocal,
+                        const void* retAddr) {
   auto it = typeMap.find(addr);
   if (it != typeMap.end()) {
-    LOG_ERROR("Alloc recorded with unknown type ID: " << typeId);
-    // TODO: What should the behaviour be here?
+    const auto info = (*it).second;
+    LOG_ERROR("Already exists: " << toString(addr, typeId, count, typeSize, isLocal));
+    LOG_ERROR("Data in map is: " << toString(info));
   } else {
-    typeMap[addr] = {addr, typeId, count, typeSize};
+    typeMap[addr] = {addr, typeId, count, typeSize, retAddr};
     auto typeString = typeDB.getTypeName(typeId);
     LOG_TRACE("Alloc " << addr << " " << typeString << " " << typeSize << " " << count << " " << (isLocal ? "S" : "H"));
     if (isLocal) {
-      //      LOG_TRACE("Alloc is stack");
       //      LOG_TRACE("Alloc is stack " << stackVars.size() << " " << stackVars.container().size());
       stackVars.push_back(addr);
     }
@@ -310,8 +342,8 @@ void TypeArtRT::onAlloc(const void* addr, int typeId, size_t count, size_t typeS
 void TypeArtRT::onFree(const void* addr) {
   auto it = typeMap.find(addr);
   if (it != typeMap.end()) {
+    LOG_TRACE("Free " << toString((*it).second));
     typeMap.erase(it);
-    LOG_TRACE("Free " << addr);
   } else {
     LOG_ERROR("Free recorded on unregistered address: " << addr);
     // TODO: What to do when not found?
@@ -320,17 +352,17 @@ void TypeArtRT::onFree(const void* addr) {
 
 void TypeArtRT::onLeaveScope(size_t alloca_count) {
   if (alloca_count > stackVars.size()) {
-    LOG_ERROR("Stack is smaller than requested de-allocation count!");
+    LOG_ERROR("Stack is smaller than requested de-allocation count. alloca_count: " << alloca_count
+                                                                                    << ". size: " << stackVars.size());
     alloca_count = stackVars.size();
   }
 
   const auto cend = stackVars.cend();
   const auto start_pos = (cend - alloca_count);
-  //  LOG_TRACE("Freeing stack (" << alloca_count << ") from " << std::distance(start_pos, stackVars.cend()) << " until
-  //  "
-  //                              << stackVars.size())
+  LOG_TRACE("Freeing stack (" << alloca_count << ")  " << std::distance(start_pos, stackVars.cend()))
   std::for_each(start_pos, cend, [&](const void* addr) { onFree(addr); });
   stackVars.free(alloca_count);
+  LOG_TRACE("Stack after free: " << stackVars.size());
 
   // FIXME this is an expensive O(n) operation due to using a vector for stackBars,
   // and is strictly speaking, not a necessary operation.
@@ -343,14 +375,17 @@ void TypeArtRT::onLeaveScope(size_t alloca_count) {
 }  // namespace typeart
 
 void __typeart_alloc(void* addr, int typeId, size_t count, size_t typeSize, int isLocal) {
-  typeart::TypeArtRT::get().onAlloc(addr, typeId, count, typeSize, isLocal);
+  const void* ret_adr = __builtin_return_address(0);
+  typeart::TypeArtRT::get().onAlloc(addr, typeId, count, typeSize, isLocal, ret_adr);
 }
 
 void __typeart_free(void* addr) {
+  //  const void* ret_adr = __builtin_return_address(0);
   typeart::TypeArtRT::get().onFree(addr);
 }
 
 void __typeart_leave_scope(size_t alloca_count) {
+  //  const void* ret_adr = __builtin_return_address(0);
   typeart::TypeArtRT::get().onLeaveScope(alloca_count);
 }
 
@@ -392,4 +427,8 @@ typeart_status typeart_resolve_type(int id, typeart_struct_layout* struct_layout
 
 const char* typeart_get_type_name(int id) {
   return typeart::TypeArtRT::get().getTypeName(id).c_str();
+}
+
+void typeart_get_return_address(const void* addr, const void** retAddr) {
+  return typeart::TypeArtRT::get().getReturnAddress(addr, retAddr);
 }

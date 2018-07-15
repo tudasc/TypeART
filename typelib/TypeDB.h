@@ -8,8 +8,8 @@
 #include "TypeInterface.h"
 
 #include <map>
-#include <vector>
 #include <string>
+#include <vector>
 
 namespace typeart {
 
