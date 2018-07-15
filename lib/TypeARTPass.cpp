@@ -181,7 +181,7 @@ bool TypeArtPass::runOnFunction(Function& f) {
         IRBuilder<> IRB(marker->getNextNode());
 
         auto arrayPtr = marker->getOperand(1);  // IRB.CreateBitOrPointerCast(alloca, tu::getVoidPtrType(c));
-        LOG_DEBUG("Using lifetime marker for alloca: " << util::dump(*arrayPtr));
+        // LOG_DEBUG("Using lifetime marker for alloca: " << util::dump(*arrayPtr));
         IRB.CreateCall(typeart_alloc.f,
                        ArrayRef<Value*>{arrayPtr, typeIdConst, numElementsConst, typeSizeConst, isLocalConst});
 
