@@ -25,7 +25,9 @@ struct MallocData {
 
 struct AllocaData {
   llvm::AllocaInst* alloca{nullptr};
-  llvm::SmallVector<llvm::IntrinsicInst*, 2> lifetimes;
+  llvm::IntrinsicInst* start{nullptr};
+  llvm::IntrinsicInst* end{nullptr};
+  //  llvm::SmallVector<llvm::IntrinsicInst*, 2> lifetimes;
 };
 
 struct MemOpVisitor : public llvm::InstVisitor<MemOpVisitor> {

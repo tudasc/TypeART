@@ -174,14 +174,10 @@ bool TypeArtPass::runOnFunction(Function& f) {
     auto numElementsConst = ConstantInt::get(tu::getInt64Type(c), arraySize);
     auto isLocalConst = ConstantInt::get(tu::getInt32Type(c), 1);
 
-    Instruction* insertBefore;
-    const auto& lifetime = allocaData.lifetimes;
-
     if (ClTypeArtAllocaLifetime) {
-      if (lifetime.size() == 1) {
-        // insertBefore = lifetime.begin();
-        // TODO Using lifetime start (and end) likely cause our counter based stack tracking scheme to fail?
-        auto marker = lifetime.front();
+      // TODO Using lifetime start (and end) likely cause our counter based stack tracking scheme to fail?
+      auto marker = allocaData.start;
+      if (marker != nullptr) {
         IRBuilder<> IRB(marker->getNextNode());
 
         auto arrayPtr = marker->getOperand(1);  // IRB.CreateBitOrPointerCast(alloca, tu::getVoidPtrType(c));
@@ -194,11 +190,9 @@ bool TypeArtPass::runOnFunction(Function& f) {
         ++NumFoundAlloca;
         return true;
       }
-      LOG_WARNING("Too many lifestime.start: " << util::dump(*alloca));
     }
 
-    insertBefore = alloca->getNextNode();
-    IRBuilder<> IRB(insertBefore);
+    IRBuilder<> IRB(alloca->getNextNode());
 
     // Single increment for an alloca:
     //    auto load_counter = IRB.CreateLoad(counter);
