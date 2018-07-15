@@ -8,7 +8,7 @@ CLFLAGS = -L$(TYPEART_RUNTIME_DIR) -ltypeart-rt
 CFLAGS = -Xclang -load -Xclang $(TYPEART_PASS_DIR)/analysis/meminstfinderpass.so -Xclang -load -Xclang $(TYPEART_PASS_DIR)/typeartpass.so
 
 
-all: libtool.so 01_ex 02_ex 03_ex toy toy-stack toy-nostack
+all: libtool.so 01_ex 02_ex toy toy-stack toy-nostack
 
 libtool.so: tool.c
 	$(MPICC) -I../runtime/ -I../typelib/  $(CLFLAGS) -shared -fPIC $< -o $@
