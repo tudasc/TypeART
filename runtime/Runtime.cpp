@@ -312,11 +312,10 @@ const std::string& TypeArtRT::getTypeName(int id) const {
 }
 
 void TypeArtRT::getReturnAddress(const void* addr, const void** retAddr) {
-  const void* basePtr = findBaseAddress(addr);
+  auto basePtr = findBaseAddress(addr);
 
   if (basePtr) {
-    auto basePtrInfo = typeMap.find(basePtr)->second;
-    *retAddr = basePtrInfo.debug;
+    *retAddr = basePtr.getValue().debug;
   } else {
     *retAddr = nullptr;
   }
