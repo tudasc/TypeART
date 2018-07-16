@@ -15,12 +15,8 @@ if(${MPI_C_FOUND} AND ${PYTHONINTERP_FOUND})
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
   )
 
-  add_library(interceptor_rt
+  add_library(interceptor_rt SHARED
     ${LIB_SOURCE}
-  )
-
-  target_project_compile_options(interceptor_rt
-    PRIVATE_DEFS MPI_LOGGER=1
   )
 
   target_define_file_basename(interceptor_rt)
