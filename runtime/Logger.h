@@ -30,11 +30,19 @@
 
 void mpi_log(std::string msg);
 #define OO_LOG_LEVEL_MSG(LEVEL_NUM, LEVEL, MSG)                                                      \
-  {                                                                                                  \
+  if ((LEVEL_NUM) <= LOG_LEVEL) {                                                                    \
     std::string s;                                                                                   \
     llvm::raw_string_ostream rso(s);                                                                 \
     rso << (LEVEL) << LOG_BASENAME_FILE << ":" << __func__ << ":" << __LINE__ << ":" << MSG << "\n"; \
     mpi_log(rso.str());                                                                              \
+  }
+
+#define OO_LOG_LEVEL_MSG_BARE(LEVEL_NUM, LEVEL, MSG) \
+  if ((LEVEL_NUM) <= LOG_LEVEL) {                    \
+    std::string s;                                   \
+    llvm::raw_string_ostream rso(s);                 \
+    rso << (LEVEL) << " " << MSG << "\n";            \
+    mpi_log(rso.str());                              \
   }
 
 #else
@@ -45,13 +53,12 @@ void mpi_log(std::string msg);
     llvm::errs() << (LEVEL) << " " << LOG_BASENAME_FILE << ":" << __func__ << ":" << __LINE__ << ": " << MSG << "\n"; /* NOLINT */ \
   }
 
-
-#endif // MPI_LOGGER
-
 #define OO_LOG_LEVEL_MSG_BARE(LEVEL_NUM, LEVEL, MSG) \
   if ((LEVEL_NUM) <= LOG_LEVEL) { \
     llvm::errs() << (LEVEL) << " " << MSG << "\n"; /* NOLINT */ \
   }
+
+#endif // MPI_LOGGER
 
 
 #define LOG_TRACE(MSG) OO_LOG_LEVEL_MSG_BARE(3, "[Trace]", MSG)
