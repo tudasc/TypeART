@@ -73,6 +73,7 @@ int TypeManager::getOrRegisterType(llvm::Type* type, const llvm::DataLayout& dl)
 }
 
 int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLayout& dl) {
+  namespace tu = typeart::util;
   const auto getName = [](auto type) -> std::string {
     if (type->isLiteral()) {
       return "LiteralS" + std::to_string(reinterpret_cast<long int>(type));
@@ -133,7 +134,7 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
       memberID = getOrRegisterType(memberType, dl);
     } else {
       // TODO: Any other types?
-      LOG_ERROR("Encountered unhandled type: " << typeart::util::dump(*memberType));
+      LOG_ERROR("In struct: " << tu::dump(*type) << ": Encountered unhandled type: " << tu::dump(*memberType));
       assert(false && "Encountered unhandled type");
     }
 

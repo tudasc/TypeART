@@ -5,7 +5,7 @@ CC ?= cc
 TYPEART_PASS_DIR = $(BUILDDIR)/lib
 TYPEART_RUNTIME_DIR = $(BUILDDIR)/runtime
 CLFLAGS = -L$(TYPEART_RUNTIME_DIR) -ltypeart-rt
-CFLAGS = -Xclang -load -Xclang $(TYPEART_PASS_DIR)/analysis/meminstfinderpass.so -Xclang -load -Xclang $(TYPEART_PASS_DIR)/typeartpass.so
+CFLAGS = -Xclang -load -Xclang $(TYPEART_PASS_DIR)/analysis/meminstfinderpass.so -Xclang -load -Xclang $(TYPEART_PASS_DIR)/typeartpass.so -mllvm -alloca-array-only=false -mllvm -typeart-alloca
 
 
 all: libtool.so 01_ex 02_ex toy toy-stack toy-nostack
@@ -14,18 +14,18 @@ libtool.so: tool.c
 	$(MPICC) -I../runtime/ -I../typelib/  $(CLFLAGS) -shared -fPIC $< -o $@
 
 01_ex: 01_struct_example.c  
-	$(MPICC) $(CFLAGS) $(CLFLAGS) $< -o $@ -g
+	$(MPICC) $(CFLAGS) $(CLFLAGS) $< -o $@ -O1
 02_ex: 02_broken_struct_example.c
-	$(MPICC) $(CFLAGS) $(CLFLAGS) $< -o $@ -g
+	$(MPICC) $(CFLAGS) $(CLFLAGS) $< -o $@ -O1
 03_ex: 03_array_example.c
-	$(MPICC) $(CFLAGS) $(CLFLAGS) $< -o $@ -g
+	$(MPICC) $(CFLAGS) $(CLFLAGS) $< -o $@ -O1
 
 toy: toy.c  
 	$(MPICC) -I../runtime/ -I../typelib/  $(CFLAGS) $(CLFLAGS) $< -o $@ -g
 
 toy-stack: toy.c  
 	$(MPICC) -I../runtime/ -I../typelib/ -S -emit-llvm $< -o $@.ll -g
-	opt -load $(TYPEART_PASS_DIR)/analysis/meminstfinderpass.so -load $(TYPEART_PASS_DIR)/typeartpass.so -typeart -typeart-alloca < $@.ll -o $@.ll > /dev/null
+	opt -load $(TYPEART_PASS_DIR)/analysis/meminstfinderpass.so -load $(TYPEART_PASS_DIR)/typeartpass.so -typeart -typeart-alloca -alloca-array-only=false < $@.ll -o $@.ll > /dev/null
 	llc $@.ll -o $@.s
 	$(MPICC) $(CLFLAGS) $@.s -o $@  
 
