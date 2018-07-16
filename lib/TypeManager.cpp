@@ -134,7 +134,11 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
       memberID = getOrRegisterType(memberType, dl);
     } else {
       // TODO: Any other types?
-      LOG_ERROR("In struct: " << tu::dump(*type) << ": Encountered unhandled type: " << tu::dump(*memberType));
+      // clang-format off
+      LOG_ERROR("In struct: " << tu::dump(*type)
+                  << ": Encountered unhandled type: " << tu::dump(*memberType)
+                  << " with type id: " << memberType->getTypeID());
+      // clang-format on
       assert(false && "Encountered unhandled type");
     }
 
