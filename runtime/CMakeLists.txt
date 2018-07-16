@@ -16,7 +16,7 @@ add_library(typeart-rt SHARED
 set(RUNTIME_LIB_DEPS typelib)
 if(MPI_LOGGER)
   list(APPEND RUNTIME_LIB_DEPS ${MPI_LIBRARIES})
-  target_project_compile_definitions(typeart_rt
+  target_project_compile_definitions(typeart-rt
     PRIVATE_DEFS MPI_LOGGER=1
   )
 endif()
