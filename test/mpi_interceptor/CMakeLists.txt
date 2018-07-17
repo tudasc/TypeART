@@ -15,29 +15,29 @@ if(${MPI_C_FOUND} AND ${PYTHONINTERP_FOUND})
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
   )
 
-  add_library(interceptor_rt SHARED
+  add_library(interceptor-rt SHARED
     ${LIB_SOURCE}
   )
 
-  target_define_file_basename(interceptor_rt)
+  target_define_file_basename(interceptor-rt)
   
-  target_include_directories(interceptor_rt
+  target_include_directories(interceptor-rt
     PUBLIC
       ${PROJECT_SOURCE_DIR}/runtime
       ${CMAKE_CURRENT_SOURCE_DIR}
   )
   
-  target_include_directories(interceptor_rt
+  target_include_directories(interceptor-rt
     SYSTEM 
     PRIVATE
       ${MPI_C_INCLUDE_PATH}
       ${LLVM_INCLUDE_DIRS}
   )
 
-  target_link_libraries(interceptor_rt
+  target_link_libraries(interceptor-rt
     typeart-rt
     ${MPI_C_LIBRARIES}
   )
 else()
-  message(STATUS "Cannot build mpi interceptor_rt lib. MPI found: " ${MPI_C_FOUND} " and python found: " ${PYTHONINTERP_FOUND})
+  message(STATUS "Cannot build mpi interceptor-rt lib. MPI found: " ${MPI_C_FOUND} " and python found: " ${PYTHONINTERP_FOUND})
 endif()
