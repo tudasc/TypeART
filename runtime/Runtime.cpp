@@ -198,12 +198,12 @@ TypeArtRT::TypeArtStatus TypeArtRT::getTypeInfoInternal(const void* baseAddr, si
 TypeArtRT::TypeArtStatus TypeArtRT::getTypeInfo(const void* addr, typeart::TypeInfo* type, size_t* count) const {
   TypeInfo containingType;
   size_t containingTypeCount;
-  const void* containingTypeAddr;
+  const void* baseAddr;
   size_t internalOffset;
 
   // First, retrieve the containing type
   TypeArtStatus status =
-      getContainingTypeInfo(addr, &containingType, &containingTypeCount, &containingTypeAddr, &internalOffset);
+      getContainingTypeInfo(addr, &containingType, &containingTypeCount, &baseAddr, &internalOffset);
   if (status != TA_OK) {
     return status;
   }
@@ -223,6 +223,7 @@ TypeArtRT::TypeArtStatus TypeArtRT::getTypeInfo(const void* addr, typeart::TypeI
   // Resolve struct recursively
   auto structInfo = typeDB.getStructInfo(containingType.id);
   if (structInfo) {
+    const void* containingTypeAddr = addByteOffset(addr, -internalOffset);
     return getTypeInfoInternal(containingTypeAddr, internalOffset, *structInfo, type, count);
   }
   return TA_INVALID_ID;
@@ -270,7 +271,7 @@ TypeArtRT::TypeArtStatus TypeArtRT::getContainingTypeInfo(const void* addr, type
     // TODO: Ensure that ID is valid
     *type = typeDB.getTypeInfo(basePtrInfo.typeId);
     *count = typeCount;
-    *baseAddress = addByteOffset(basePtr, typeOffset * basePtrInfo.typeSize);
+    *baseAddress = basePtr;//addByteOffset(basePtr, typeOffset * basePtrInfo.typeSize);
     *offset = internalOffset;
     return TA_OK;
   }
