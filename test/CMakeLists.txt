@@ -15,6 +15,10 @@ function(configure_typeart_lit_site_cfg input output)
   configure_file(${input} ${output} @ONLY)
 endfunction()
 
+if(${MPI_INTERCEPT_LIB})
+  add_subdirectory(mpi_interceptor)
+endif()
+
 
 add_format_target(format-tests
   "Formats project test source files"

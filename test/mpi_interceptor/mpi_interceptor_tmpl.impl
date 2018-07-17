@@ -1,0 +1,19 @@
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
+
+#include "InterceptorFunctions.h"
+
+{{fnall fn_name MPI_Init MPI_Init_thread MPI_Pcontrol MPI_Finalize MPI_Wtick MPI_Wtime}}
+{
+const void* ta_ret_adr = __builtin_return_address(0);
+{{applyToType "const void*,MPI_Datatype" ta_check_const_void}}
+{{applyToType "void*" ta_check_void}}
+return P{{fn_name}}({{args}});
+}
+{{endfnall}}
+
+#ifdef  __cplusplus
+}
+#endif

@@ -254,6 +254,7 @@ TypeArtRT::TypeArtStatus TypeArtRT::getContainingTypeInfo(const void* addr, type
 
     // Ensure that the given address is in bounds and points to the start of an element
     if (addr >= blockEnd) {
+      LOG_ERROR("Out of bounds for the lookup: " << toString(addr, basePtrInfo))
       return TA_UNKNOWN_ADDRESS;
     }
 

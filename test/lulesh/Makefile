@@ -1,7 +1,7 @@
 #default build suggestion of MPI + OPENMP with gcc on Livermore machines you might have to change the compiler name
 
 SHELL = /bin/sh
-.SUFFIXES: .cc .o
+.SUFFIXES: .cc .o .ll
 
 LULESH_EXEC = lulesh2.0
 
@@ -9,12 +9,13 @@ MPI_INC = /opt/local/include/openmpi
 MPI_LIB = /opt/local/lib
 
 SERCXX = clang++ -DUSE_MPI=0
-MPICXX = mpig++ -DUSE_MPI=1
-CXX = $(SERCXX)
+MPICXX = OMPI_CXX=clang++ mpic++ -DUSE_MPI=1
+CXX = $(MPICXX)
 
-COMPILE_SCRIPT = ./buildAndApplyPass.sh
-RTPATH = ../../build/runtime
+COMPILE_SCRIPT = $(PWD)/buildAndApplyPass.sh
+TYPEART_RTPATH = ../../build/runtime
 TYPEART_PASS_DIR = ../../build/lib
+LTYPEART_RT= -L$(TYPEART_RTPATH) -ltypeart-rt 
 
 SOURCES2.0 = \
 	lulesh.cc \
@@ -29,7 +30,7 @@ OBJECTS2.0 = $(SOURCES2.0:.cc=.o)
 #LDFLAGS = -g -O3 -fopenmp
 
 #Below are reasonable default flags for a serial build
-CXXFLAGS = -DUSE_MPI=0 -g -O3 -I. -Wall
+CXXFLAGS = -g -O3 -I. -Wall
 LDFLAGS = -g -O3
 CLFLAGS = -Xclang -load -Xclang $(TYPEART_PASS_DIR)/analysis/meminstfinderpass.so -Xclang -load -Xclang $(TYPEART_PASS_DIR)/typeartpass.so -mllvm -alloca-array-only=false -mllvm -typeart-alloca
 
@@ -49,17 +50,17 @@ CLFLAGS = -Xclang -load -Xclang $(TYPEART_PASS_DIR)/analysis/meminstfinderpass.s
 
 .cc.o: lulesh.h
 	@echo "Building $<"
-#	$(COMPILE_SCRIPT) $< $@ $(CXXFLAGS)
+#	$(COMPILE_SCRIPT) $< $@ "$(CXXFLAGS)" "$(CXX)"
 	$(CXX) -c $(CXXFLAGS) $(CLFLAGS) -o $@  $<
 
 all: $(LULESH_EXEC)
 
 lulesh2.0: $(OBJECTS2.0)
 	@echo "Linking"
-	$(CXX) $(OBJECTS2.0) $(LDFLAGS) -lm -L$(RTPATH) -ltypeart-rt -o $@
+	$(CXX) $(OBJECTS2.0) $(LDFLAGS) -lm $(LTYPEART_RT) -o $@
 
 clean:
-	/bin/rm -f *.o *.s *~ $(OBJECTS) $(LULESH_EXEC)
+	/bin/rm -f *.o *.s *~ $(OBJECTS) $(LULESH_EXEC) types.yaml
 	/bin/rm -rf *.dSYM
 
 tar: clean
