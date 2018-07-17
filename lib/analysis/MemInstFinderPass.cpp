@@ -106,12 +106,12 @@ class CallFilter::FilterImpl {
       if (c.isCall()) {
         const auto callee = c.getCalledFunction();
         const bool indirect_call = callee == nullptr;
-        const bool is_decl = callee->isDeclaration();
 
         if (indirect_call) {
           LOG_DEBUG("Found an indirect call, not filtering alloca.");
           return false;  // Indirect calls might contain critical function calls.
         }
+        const bool is_decl = callee->isDeclaration();
         // FIXME the MPI calls are all hitting this branch (obviously)
         if (is_decl) {
           LOG_DEBUG("Found call with declaration only. Call: " << util::dump(*c.getInstruction()));
