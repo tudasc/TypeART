@@ -10,6 +10,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <sstream>
+#include <unordered_map>
 
 namespace typeart {
 
@@ -374,9 +375,88 @@ void TypeArtRT::onLeaveScope(size_t alloca_count) {
   // stackVars.erase(start_pos, cend);
 }
 
+namespace softcounter {
+class AccessRecorder {
+ public:
+  AccessRecorder() = default;
+  AccessRecorder(AccessRecorder& other) = default;
+  AccessRecorder(AccessRecorder&& other) = default;
+
+  ~AccessRecorder() {
+    printStats();
+  }
+
+  void incHeapAlloc() {
+    heapAllocs++;
+  }
+  void incStackAlloc() {
+    stackAllocs++;
+  }
+  void incUsedInRequest(const void* addr) {
+    const auto isIn = [&](const auto p, const auto cont) {
+      return std::find_if(std::begin(cont), std::end(cont), [&](const auto cp) { return cp.first == p; }) !=
+             std::end(seen);
+    };
+    if (!isIn(addr, seen)) {
+      seen[addr] = true;
+    }
+  }
+  void printStats() {
+    std::string s;
+    llvm::raw_string_ostream buf(s);
+    auto estMemConsumption = (heapAllocs + stackAllocs) * estMemPerEntry;
+    buf << "------------\nAlloc Stats from softcounters\n"
+        << "Heap Allocs:\t\t\t" << heapAllocs << "\n"
+        << "Stack Allocs:\t\t\t" << stackAllocs << "\n"
+        << "Distinct Pointers checked:\t" << seen.size() << "\n"
+        << "Estimated mem consumption:\t" << estMemConsumption << " bytes = " << estMemConsumption / 1024 << " kiB\n";
+    LOG_MSG(buf.str());
+  }
+
+  static AccessRecorder& get() {
+    static AccessRecorder instance;
+    return instance;
+  }
+
+ private:
+  const int estMemPerEntry = 36;  // should be the number of bytes required per entry (w/ map key)
+  long long heapAllocs = 0;
+  long long stackAllocs = 0;
+  std::unordered_map<const void*, bool> seen;  // we use this as a set for O(1) access
+};
+
+class NoneRecorder {
+	public:
+  void incHeapAlloc() {
+  }
+  void incStackAlloc() {
+  }
+  void incUsedInRequest(const void* addr) {
+  }
+  void printStats() {
+  }
+
+  static NoneRecorder& get() {
+    static NoneRecorder instance;
+    return instance;
+  }
+};
+}  // namespace softcounter
+
+#if 0
+using Recorder = softcounter::AccessRecorder;
+#else
+using Recorder = softcounter::NoneRecorder;
+#endif
+
 }  // namespace typeart
 
 void __typeart_alloc(void* addr, int typeId, size_t count, size_t typeSize, int isLocal) {
+	if(isLocal) {
+		typeart::Recorder::get().incStackAlloc();
+	} else {
+		typeart::Recorder::get().incHeapAlloc();
+	}
   const void* ret_adr = __builtin_return_address(0);
   typeart::TypeArtRT::get().onAlloc(addr, typeId, count, typeSize, isLocal, ret_adr);
 }
@@ -392,21 +472,25 @@ void __typeart_leave_scope(size_t alloca_count) {
 }
 
 typeart_status typeart_get_builtin_type(const void* addr, typeart::BuiltinType* type) {
+	typeart::Recorder::get().incUsedInRequest(addr);
   return typeart::TypeArtRT::get().getBuiltinInfo(addr, type);
 }
 
 typeart_status typeart_get_type(const void* addr, typeart::TypeInfo* type, size_t* count) {
+	typeart::Recorder::get().incUsedInRequest(addr);
   return typeart::TypeArtRT::get().getTypeInfo(addr, type, count);
 }
 
 typeart_status typeart_get_containing_type(const void* addr, typeart::TypeInfo* type, size_t* count,
                                            const void** base_address, size_t* offset) {
+	typeart::Recorder::get().incUsedInRequest(addr);
   return typeart::TypeArtRT::get().getContainingTypeInfo(addr, type, count, base_address, offset);
 }
 
 typeart_status typeart_get_subtype(const void* base_addr, size_t offset, typeart_struct_layout container_layout,
                                    typeart::TypeInfo* subtype, const void** subtype_base_addr, size_t* subtype_offset,
                                    size_t* subtype_count) {
+	typeart::Recorder::get().incUsedInRequest(base_addr);
   return typeart::TypeArtRT::get().getSubTypeInfo(base_addr, offset, container_layout, subtype, subtype_base_addr,
                                                   subtype_offset, subtype_count);
 }
