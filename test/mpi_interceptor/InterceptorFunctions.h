@@ -34,7 +34,7 @@ int ta_check_exists(const char* mpi_name, const void* called_from, const void* b
   typeart_type_info type;
   size_t count = 0;
   typeart_status typeart_status_v = typeart_get_type(buf, &type, &count);
-  if (typeart_status_v != TA_OK && rank == 0) {
+  if (typeart_status_v != TA_OK) {
     printf("R[%d][Error] Call '%s' buffer %p at loc %p status: %d\n", rank, mpi_name, buf, called_from,
            (int)typeart_status_v);
     ta_print_loc(called_from);

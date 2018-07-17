@@ -28,10 +28,10 @@ if(${MPI_C_FOUND} AND ${PYTHONINTERP_FOUND})
   )
   
   target_include_directories(interceptor_rt
-	SYSTEM 
-	PRIVATE
-	  ${MPI_C_INCLUDE_PATH}
-	  ${LLVM_INCLUDE_DIRS}
+    SYSTEM 
+    PRIVATE
+      ${MPI_C_INCLUDE_PATH}
+      ${LLVM_INCLUDE_DIRS}
   )
 
   target_link_libraries(interceptor_rt
