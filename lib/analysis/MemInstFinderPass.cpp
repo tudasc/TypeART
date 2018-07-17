@@ -39,6 +39,10 @@ static cl::opt<bool> ClCallFilter("call-filter",
                                   cl::desc("Filter alloca instructions that are passed to specific calls."), cl::Hidden,
                                   cl::init(false));
 
+static cl::opt<bool> ClCallFilterDeep("call-filter-deep",
+                                      cl::desc("If the CallFilter matches, we look if the value is passed as a void*."),
+                                      cl::Hidden, cl::init(false));
+
 static cl::opt<bool> ClCallFilterHeap("call-filter-heap",
                                       cl::desc("Filter heap alloc instructions that are passed to specific calls."),
                                       cl::Hidden, cl::init(false));
@@ -80,6 +84,11 @@ class CallFilter::FilterImpl {
       return false;
     }
 
+    const auto match = [&](auto callee) -> bool {
+      const auto name = FilterImpl::getName(callee);
+      return util::regex_matches(call_regex, name);
+    };
+
     llvm::SmallPtrSet<Value*, 16> visited_set;
     llvm::SmallVector<Value*, 16> working_set;
     llvm::SmallVector<CallSite, 8> working_set_calls;
@@ -113,9 +122,10 @@ class CallFilter::FilterImpl {
         const bool indirect_call = callee == nullptr;
 
         if (indirect_call) {
-          LOG_DEBUG("Found an indirect call, not filtering alloca.");
+          LOG_DEBUG("Found an indirect call, not filtering alloca: " << util::dump(*val));
           return false;  // Indirect calls might contain critical function calls.
         }
+
         const bool is_decl = callee->isDeclaration();
         // FIXME the MPI calls are all hitting this branch (obviously)
         if (is_decl) {
@@ -128,11 +138,11 @@ class CallFilter::FilterImpl {
           }
         }
 
-        const auto name = FilterImpl::getName(callee);
-
-        LOG_DEBUG("Found a call. Call: (" << util::dump(*c.getInstruction()) << ") Name: " << name);
-        if (util::regex_matches(call_regex, name)) {
-          LOG_DEBUG("Keeping alloca based on call name filter match");
+        if (match(callee)) {
+          LOG_DEBUG("Found a call. Call: " << util::dump(*c.getInstruction()));
+          if (ClCallFilterDeep && shouldContinue(c, in)) {
+            continue;
+          }
           return false;
         }
 
@@ -208,6 +218,39 @@ class CallFilter::FilterImpl {
       }
     }
     return filter(llvm::dyn_cast<Value>(arg));
+  }
+
+  bool shouldContinue(CallSite c, Value* in) const {
+    LOG_DEBUG("Found a name match, analyzing closer...");
+    const auto is_void_ptr = [](Type* type) {
+      return type->isPointerTy() && type->getPointerElementType()->isIntegerTy(8);
+    };
+    const auto arg_pos = llvm::find_if(c.args(), [&in](const Use& arg_use) -> bool { return arg_use.get() == in; });
+    if (arg_pos == c.arg_end()) {
+      // we had no direct correlation for the arg position
+      // Now checking if void* is passed, if not we can potentially filter!
+      auto count_void_ptr = llvm::count_if(c.args(), [&is_void_ptr](const auto& arg) {
+        const auto type = arg->getType();
+        return is_void_ptr(type);
+      });
+      if (count_void_ptr > 0) {
+        LOG_DEBUG("Call takes a void*, filtering.");
+        return false;
+      }
+      LOG_DEBUG("Call has no void* argument");
+    } else {
+      // We have an arg_pos match
+      const auto argNum = std::distance(c.arg_begin(), arg_pos);
+      Argument& the_arg = *(c.getCalledFunction()->arg_begin() + argNum);
+      auto type = the_arg.getType();
+      if (is_void_ptr(type)) {
+        LOG_DEBUG("Call arg is a void*, filtering.");
+        return false;
+      }
+      LOG_DEBUG("Value* in is not passed as void ptr");
+    }
+    LOG_DEBUG("No filter necessary for this call, continue.");
+    return true;
   }
 
   static inline std::string getName(const Function* f) {
