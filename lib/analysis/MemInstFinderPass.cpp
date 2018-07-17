@@ -131,6 +131,9 @@ class CallFilter::FilterImpl {
         if (is_decl) {
           LOG_DEBUG("Found call with declaration only. Call: " << util::dump(*c.getInstruction()));
           if (c.getIntrinsicID() == Intrinsic::ID::not_intrinsic) {
+            if (ClCallFilterDeep && match(callee) && shouldContinue(c, in)) {
+              continue;
+            }
             return false;
           } else {
             LOG_DEBUG("Call is an intrinsic. Continue analyzing...")
