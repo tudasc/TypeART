@@ -29,5 +29,6 @@ add_format_target(format-sources
 add_subdirectory(lib)
 add_subdirectory(typelib)
 add_subdirectory(runtime)
+add_subdirectory(scripts)
 enable_testing()
 add_subdirectory(test)

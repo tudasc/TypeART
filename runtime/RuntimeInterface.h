@@ -63,9 +63,11 @@ typeart_status typeart_get_type(const void* addr, typeart_type_info* type, size_
  * Unlike in typeart_get_type(), there is no further resolution of subtypes.
  * Instead, additional information about the position of the address within the containing type is returned.
  *
+ * The starting address of the referenced array element can be deduced by computing `(size_t) addr - offset`.
+ *
  * \param[in] addr The address.
  * \param[out] count Number of elements in the containing buffer, not counting elements before the given address.
- * \param[out] base_address The index of the element within the containing buffer.
+ * \param[out] base_address Address of the containing buffer.
  * \param[out] offset The byte offset within that buffer element.
  *
  * \return A status code. For an explanation of errors, refer to typeart_get_type().
