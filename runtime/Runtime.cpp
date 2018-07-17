@@ -203,8 +203,7 @@ TypeArtRT::TypeArtStatus TypeArtRT::getTypeInfo(const void* addr, typeart::TypeI
   size_t internalOffset;
 
   // First, retrieve the containing type
-  TypeArtStatus status =
-      getContainingTypeInfo(addr, &containingType, &containingTypeCount, &baseAddr, &internalOffset);
+  TypeArtStatus status = getContainingTypeInfo(addr, &containingType, &containingTypeCount, &baseAddr, &internalOffset);
   if (status != TA_OK) {
     return status;
   }
@@ -273,7 +272,7 @@ TypeArtRT::TypeArtStatus TypeArtRT::getContainingTypeInfo(const void* addr, type
     // TODO: Ensure that ID is valid
     *type = typeDB.getTypeInfo(basePtrInfo.typeId);
     *count = typeCount;
-    *baseAddress = basePtr;//addByteOffset(basePtr, typeOffset * basePtrInfo.typeSize);
+    *baseAddress = basePtr;  // addByteOffset(basePtr, typeOffset * basePtrInfo.typeSize);
     *offset = internalOffset;
     return TA_OK;
   }
@@ -426,7 +425,7 @@ class AccessRecorder {
 };
 
 class NoneRecorder {
-	public:
+ public:
   void incHeapAlloc() {
   }
   void incStackAlloc() {
@@ -452,11 +451,11 @@ using Recorder = softcounter::NoneRecorder;
 }  // namespace typeart
 
 void __typeart_alloc(void* addr, int typeId, size_t count, size_t typeSize, int isLocal) {
-	if(isLocal) {
-		typeart::Recorder::get().incStackAlloc();
-	} else {
-		typeart::Recorder::get().incHeapAlloc();
-	}
+  if (isLocal) {
+    typeart::Recorder::get().incStackAlloc();
+  } else {
+    typeart::Recorder::get().incHeapAlloc();
+  }
   const void* ret_adr = __builtin_return_address(0);
   typeart::TypeArtRT::get().onAlloc(addr, typeId, count, typeSize, isLocal, ret_adr);
 }
@@ -472,25 +471,25 @@ void __typeart_leave_scope(size_t alloca_count) {
 }
 
 typeart_status typeart_get_builtin_type(const void* addr, typeart::BuiltinType* type) {
-	typeart::Recorder::get().incUsedInRequest(addr);
+  typeart::Recorder::get().incUsedInRequest(addr);
   return typeart::TypeArtRT::get().getBuiltinInfo(addr, type);
 }
 
 typeart_status typeart_get_type(const void* addr, typeart::TypeInfo* type, size_t* count) {
-	typeart::Recorder::get().incUsedInRequest(addr);
+  typeart::Recorder::get().incUsedInRequest(addr);
   return typeart::TypeArtRT::get().getTypeInfo(addr, type, count);
 }
 
 typeart_status typeart_get_containing_type(const void* addr, typeart::TypeInfo* type, size_t* count,
                                            const void** base_address, size_t* offset) {
-	typeart::Recorder::get().incUsedInRequest(addr);
+  typeart::Recorder::get().incUsedInRequest(addr);
   return typeart::TypeArtRT::get().getContainingTypeInfo(addr, type, count, base_address, offset);
 }
 
 typeart_status typeart_get_subtype(const void* base_addr, size_t offset, typeart_struct_layout container_layout,
                                    typeart::TypeInfo* subtype, const void** subtype_base_addr, size_t* subtype_offset,
                                    size_t* subtype_count) {
-	typeart::Recorder::get().incUsedInRequest(base_addr);
+  typeart::Recorder::get().incUsedInRequest(base_addr);
   return typeart::TypeArtRT::get().getSubTypeInfo(base_addr, offset, container_layout, subtype, subtype_base_addr,
                                                   subtype_offset, subtype_count);
 }
