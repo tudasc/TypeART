@@ -60,6 +60,7 @@ namespace filter {
 class CallFilter::FilterImpl {
   const std::string call_regex;
   bool malloc_mode{false};
+  llvm::Function* start_f{nullptr};
 
  public:
   explicit FilterImpl(const std::string& glob) : call_regex(util::glob2regex(glob)) {
@@ -67,6 +68,10 @@ class CallFilter::FilterImpl {
 
   void setMode(bool search_malloc) {
     malloc_mode = search_malloc;
+  }
+
+  void setStartingFunction(llvm::Function* start) {
+    start_f = start;
   }
 
   bool filter(Value* in) const {
@@ -168,6 +173,10 @@ class CallFilter::FilterImpl {
 
     LOG_DEBUG("Analyzing function call " << csite.getCalledFunction()->getName());
 
+    if (csite.getCalledFunction() == start_f) {
+      return true;
+    }
+
     // this only works if we can correlate alloca with argument:
     const auto pos = std::find_if(csite.arg_begin(), csite.arg_end(),
                                   [&in](const Use& arg_use) -> bool { return arg_use.get() == in; });
@@ -219,6 +228,7 @@ CallFilter::CallFilter(const std::string& glob) : fImpl{std::make_unique<FilterI
 bool CallFilter::operator()(AllocaInst* in) {
   LOG_DEBUG("Analyzing value: " << util::dump(*in));
   fImpl->setMode(/*search mallocs = */ false);
+  fImpl->setStartingFunction(in->getParent()->getParent());
   const auto filter_ = fImpl->filter(in);
   if (filter_) {
     LOG_DEBUG("Filtering value: " << util::dump(*in) << "\n");
@@ -231,6 +241,7 @@ bool CallFilter::operator()(AllocaInst* in) {
 bool CallFilter::operator()(CallSite c) {
   auto in = c.getInstruction();
   LOG_DEBUG("Analyzing call: " << util::dump(*in));
+  fImpl->setStartingFunction(in->getParent()->getParent());
   fImpl->setMode(/*search mallocs = */ true);
   const auto filter_ = fImpl->filter(in);
   fImpl->setMode(false);
