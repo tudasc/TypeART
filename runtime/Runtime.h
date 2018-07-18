@@ -26,6 +26,7 @@ struct PointerInfo {
   size_t count;
   size_t typeSize;
   const void* debug;
+  int references;
 };
 
 class TypeArtRT {
