@@ -375,6 +375,16 @@ void TypeArtRT::onLeaveScope(size_t alloca_count) {
 }
 
 namespace softcounter {
+	/**
+	 * Very basic implementation of some couting infrastructure.
+	 * This implementation counts:
+	 * - the number of objects hold maximally in the datastructures for stack and heap.
+	 * - the total number of tracked allocations (counting multiple insertions of the same address as multiple tracked values) for both stack and heap.
+	 * - the number of distinct addresses queried for information
+	 * In addition it estimates (lower-bound) the consumed memory for tracking the type information.
+	 *
+	 * It prints the information during object de-construction.
+	 */
 class AccessRecorder {
  public:
   ~AccessRecorder() {
@@ -392,23 +402,21 @@ class AccessRecorder {
   }
 
 	inline void decHeapAlloc() {
-		if(curHeapAllocs > maxHeapAllocs) {
-			maxHeapAllocs = curHeapAllocs;
-		}
-		curHeapAllocs--;
-	}
+    if (curHeapAllocs > maxHeapAllocs) {
+      maxHeapAllocs = curHeapAllocs;
+    }
+    curHeapAllocs--;
+  }
 
 	inline void decStackAlloc(size_t amount) {
-		if(curStackAllocs > maxStackAllocs) {
-			maxStackAllocs = curStackAllocs;
+    if (curStackAllocs > maxStackAllocs) {
+      maxStackAllocs = curStackAllocs;
 		}
 		curStackAllocs -= amount;
 	}
 
   inline void incUsedInRequest(const void* addr) {
-		const auto isIn = [&](const auto &e, const auto &c) {
-			return c.find(e) != c.end();
-		};
+    const auto isIn = [&](const auto& e, const auto& c) { return c.find(e) != c.end(); };
 
     if (!isIn(addr, seen)) {
       seen.insert(addr);
@@ -439,16 +447,19 @@ class AccessRecorder {
   AccessRecorder(AccessRecorder& other) = default;
   AccessRecorder(AccessRecorder&& other) = default;
 
-  const int estMemPerEntry = sizeof(PointerInfo) + sizeof(void *);  // should be the number of bytes required per entry (w/ map key)
+  const int estMemPerEntry = sizeof(PointerInfo) + sizeof(void *);  // FIXME: How to compute this?
   long long heapAllocs = 0;
   long long stackAllocs = 0;
 	long long maxHeapAllocs = 0;
 	long long maxStackAllocs = 0;
 	long long curHeapAllocs = 0;
 	long long curStackAllocs = 0;
-  std::unordered_set<const void*> seen;  // we use this as a set for O(1) access
+  std::unordered_set<const void*> seen;
 };
 
+/**
+ * Used for no-operations in counter methods when not using softcounters.
+ */
 class NoneRecorder {
  public:
   inline void incHeapAlloc() {
@@ -456,6 +467,10 @@ class NoneRecorder {
   inline void incStackAlloc() {
   }
   inline void incUsedInRequest(const void* addr) {
+  }
+  inline void decHeapAlloc() {
+  }
+  inline void decStackAlloc(size_t amount) {
   }
   inline void printStats() {
   }
