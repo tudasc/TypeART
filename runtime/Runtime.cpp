@@ -10,7 +10,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <sstream>
-#include <unordered_map>
+#include <unordered_set>
 
 namespace typeart {
 
@@ -377,10 +377,6 @@ void TypeArtRT::onLeaveScope(size_t alloca_count) {
 namespace softcounter {
 class AccessRecorder {
  public:
-  AccessRecorder() = default;
-  AccessRecorder(AccessRecorder& other) = default;
-  AccessRecorder(AccessRecorder&& other) = default;
-
   ~AccessRecorder() {
     printStats();
   }
@@ -392,12 +388,17 @@ class AccessRecorder {
     stackAllocs++;
   }
   void incUsedInRequest(const void* addr) {
-    const auto isIn = [&](const auto p, const auto cont) {
+    const auto isIn_ = [&](const auto p, const auto cont) {
       return std::find_if(std::begin(cont), std::end(cont), [&](const auto cp) { return cp.first == p; }) !=
              std::end(seen);
     };
+
+		const auto isIn = [&](const auto e, const auto c) {
+			return c.find(e) != c.end();
+		};
+
     if (!isIn(addr, seen)) {
-      seen[addr] = true;
+      seen.insert(addr);
     }
   }
   void printStats() {
@@ -418,10 +419,14 @@ class AccessRecorder {
   }
 
  private:
+  AccessRecorder() = default;
+  AccessRecorder(AccessRecorder& other) = default;
+  AccessRecorder(AccessRecorder&& other) = default;
+
   const int estMemPerEntry = 36;  // should be the number of bytes required per entry (w/ map key)
   long long heapAllocs = 0;
   long long stackAllocs = 0;
-  std::unordered_map<const void*, bool> seen;  // we use this as a set for O(1) access
+  std::unordered_set<const void*> seen;  // we use this as a set for O(1) access
 };
 
 class NoneRecorder {
@@ -442,7 +447,7 @@ class NoneRecorder {
 };
 }  // namespace softcounter
 
-#if 0
+#if ENABLE_SOFTCOUNTER == 1
 using Recorder = softcounter::AccessRecorder;
 #else
 using Recorder = softcounter::NoneRecorder;
