@@ -21,7 +21,7 @@ if(MPI_LOGGER)
   )
 endif()
 
-if(ENABLE_SOFTCOUNTER)
+if(SOFTCOUNTERS)
 	target_project_compile_definitions(typeart-rt
 		PRIVATE_DEFS ENABLE_SOFTCOUNTER=1
 	)

@@ -381,19 +381,32 @@ class AccessRecorder {
     printStats();
   }
 
-  void incHeapAlloc() {
+  inline void incHeapAlloc() {
     heapAllocs++;
+		curHeapAllocs++;
   }
-  void incStackAlloc() {
-    stackAllocs++;
-  }
-  void incUsedInRequest(const void* addr) {
-    const auto isIn_ = [&](const auto p, const auto cont) {
-      return std::find_if(std::begin(cont), std::end(cont), [&](const auto cp) { return cp.first == p; }) !=
-             std::end(seen);
-    };
 
-		const auto isIn = [&](const auto e, const auto c) {
+  inline void incStackAlloc() {
+    stackAllocs++;
+		curStackAllocs++;
+  }
+
+	inline void decHeapAlloc() {
+		if(curHeapAllocs > maxHeapAllocs) {
+			maxHeapAllocs = curHeapAllocs;
+		}
+		curHeapAllocs--;
+	}
+
+	inline void decStackAlloc(size_t amount) {
+		if(curStackAllocs > maxStackAllocs) {
+			maxStackAllocs = curStackAllocs;
+		}
+		curStackAllocs -= amount;
+	}
+
+  inline void incUsedInRequest(const void* addr) {
+		const auto isIn = [&](const auto &e, const auto &c) {
 			return c.find(e) != c.end();
 		};
 
@@ -401,15 +414,18 @@ class AccessRecorder {
       seen.insert(addr);
     }
   }
+
   void printStats() {
     std::string s;
     llvm::raw_string_ostream buf(s);
     auto estMemConsumption = (heapAllocs + stackAllocs) * estMemPerEntry;
     buf << "------------\nAlloc Stats from softcounters\n"
-        << "Heap Allocs:\t\t\t" << heapAllocs << "\n"
-        << "Stack Allocs:\t\t\t" << stackAllocs << "\n"
+        << "Total Heap Allocs:\t\t" << heapAllocs << "\n"
+        << "Total Stack Allocs:\t\t" << stackAllocs << "\n"
+				<< "Max. Heap Allocs:\t\t" << maxHeapAllocs << "\n"
+				<< "Max. Stack Allocs:\t\t" << maxStackAllocs << "\n"
         << "Distinct Pointers checked:\t" << seen.size() << "\n"
-        << "Estimated mem consumption:\t" << estMemConsumption << " bytes = " << estMemConsumption / 1024 << " kiB\n";
+        << "Estimated mem consumption:\t" << estMemConsumption << " bytes = " << estMemConsumption / 1024.0 << " kiB\n";
     LOG_MSG(buf.str());
   }
 
@@ -423,21 +439,25 @@ class AccessRecorder {
   AccessRecorder(AccessRecorder& other) = default;
   AccessRecorder(AccessRecorder&& other) = default;
 
-  const int estMemPerEntry = 36;  // should be the number of bytes required per entry (w/ map key)
+  const int estMemPerEntry = sizeof(PointerInfo) + sizeof(void *);  // should be the number of bytes required per entry (w/ map key)
   long long heapAllocs = 0;
   long long stackAllocs = 0;
+	long long maxHeapAllocs = 0;
+	long long maxStackAllocs = 0;
+	long long curHeapAllocs = 0;
+	long long curStackAllocs = 0;
   std::unordered_set<const void*> seen;  // we use this as a set for O(1) access
 };
 
 class NoneRecorder {
  public:
-  void incHeapAlloc() {
+  inline void incHeapAlloc() {
   }
-  void incStackAlloc() {
+  inline void incStackAlloc() {
   }
-  void incUsedInRequest(const void* addr) {
+  inline void incUsedInRequest(const void* addr) {
   }
-  void printStats() {
+  inline void printStats() {
   }
 
   static NoneRecorder& get() {
@@ -468,11 +488,13 @@ void __typeart_alloc(void* addr, int typeId, size_t count, size_t typeSize, int 
 void __typeart_free(void* addr) {
   //  const void* ret_adr = __builtin_return_address(0);
   typeart::TypeArtRT::get().onFree(addr);
+	typeart::Recorder::get().decHeapAlloc();
 }
 
 void __typeart_leave_scope(size_t alloca_count) {
   //  const void* ret_adr = __builtin_return_address(0);
   typeart::TypeArtRT::get().onLeaveScope(alloca_count);
+	typeart::Recorder::get().decStackAlloc(alloca_count);
 }
 
 typeart_status typeart_get_builtin_type(const void* addr, typeart::BuiltinType* type) {
