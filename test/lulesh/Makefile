@@ -32,7 +32,7 @@ OBJECTS2.0 = $(SOURCES2.0:.cc=.o)
 #Below are reasonable default flags for a serial build
 CXXFLAGS = -g -O3 -I. -Wall
 LDFLAGS = -g -O3
-CLFLAGS = -Xclang -load -Xclang $(TYPEART_PASS_DIR)/analysis/meminstfinderpass.so -Xclang -load -Xclang $(TYPEART_PASS_DIR)/typeartpass.so -mllvm -alloca-array-only=false -mllvm -typeart-alloca
+CLFLAGS = -Xclang -load -Xclang $(TYPEART_PASS_DIR)/analysis/meminstfinderpass.so -Xclang -load -Xclang $(TYPEART_PASS_DIR)/typeartpass.so -mllvm -alloca-array-only=false -mllvm -typeart-alloca -mllvm -call-filter
 
 #common places you might find silo on the Livermore machines.
 #SILO_INCDIR = /opt/local/include

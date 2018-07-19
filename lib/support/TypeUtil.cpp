@@ -56,13 +56,30 @@ unsigned getScalarSizeInBytes(llvm::Type* t) {
 
 unsigned getArraySizeInBytes(llvm::Type* arrT, const llvm::DataLayout& dl) {
   auto st = dyn_cast<ArrayType>(arrT);
-  Type* underlyingType = st->getElementType();
-  unsigned bytes = getScalarSizeInBytes(underlyingType);
-  bytes *= st->getNumElements();
+  return getTypeSizeInBytes(getArrayElementType(st), dl) * getArrayLengthFlattened(st);
+}
 
-  LOG_DEBUG("Determined number of bytes to allocate: " << bytes);
+/**
+ * \brief Resolves the element type of the given array recursively. Works for multidimensional arrays.
+ */
+llvm::Type* getArrayElementType(llvm::Type* arrT) {
+  while (arrT->isArrayTy()) {
+    arrT = arrT->getArrayElementType();
+  }
+  return arrT;
+}
 
-  return bytes;
+/**
+ * \brief Determines the length of the flattened array.
+ *  TODO: Handle VLAs
+ */
+unsigned getArrayLengthFlattened(llvm::Type* arrT) {
+  unsigned len = 1;
+  while (arrT->isArrayTy()) {
+    len *= arrT->getArrayNumElements();
+    arrT = arrT->getArrayElementType();
+  }
+  return len;
 }
 
 unsigned getStructSizeInBytes(llvm::Type* structT, const llvm::DataLayout& dl) {
@@ -76,6 +93,8 @@ unsigned getPointerSizeInBytes(llvm::Type* ptrT, const llvm::DataLayout& dl) {
 }
 
 unsigned getTypeSizeForArrayAlloc(llvm::AllocaInst* ai, const llvm::DataLayout& dl) {
+  // TODO: Not used at the moment. Integrate VLA check into replacement methods (getArrayLengthFlattened).
+
   auto type = ai->getAllocatedType();
   unsigned bytes;
   if (type->isArrayTy()) {

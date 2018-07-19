@@ -10,8 +10,6 @@
 
 #include <iostream>
 
-namespace tu = typeart::util::type;
-
 namespace typeart {
 
 using namespace llvm;
@@ -107,15 +105,15 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
   const StructLayout* layout = dl.getStructLayout(type);
 
   for (uint32_t i = 0; i < n; i++) {
-    auto memberType = type->getStructElementType(i);
+    llvm::Type* memberType = type->getStructElementType(i);
     int memberID = TA_UNKNOWN_TYPE;
     TypeKind kind;
 
     size_t arraySize = 1;
 
     if (memberType->isArrayTy()) {
-      arraySize = memberType->getArrayNumElements();
-      memberType = memberType->getArrayElementType();
+      arraySize = tu::type::getArrayLengthFlattened(memberType);
+      memberType = tu::type::getArrayElementType(memberType);
     }
 
     if (memberType->isStructTy()) {

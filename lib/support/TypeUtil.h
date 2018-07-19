@@ -25,6 +25,10 @@ unsigned getScalarSizeInBytes(llvm::Type* t);
 
 unsigned getArraySizeInBytes(llvm::Type* arrT, const llvm::DataLayout& dl);
 
+llvm::Type* getArrayElementType(llvm::Type* arrT);
+
+unsigned getArrayLengthFlattened(llvm::Type* arrT);
+
 unsigned getStructSizeInBytes(llvm::Type* structT, const llvm::DataLayout& dl);
 
 unsigned getPointerSizeInBytes(llvm::Type* ptrT, const llvm::DataLayout& dl);
