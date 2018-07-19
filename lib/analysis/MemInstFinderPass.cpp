@@ -417,7 +417,7 @@ bool MemInstFinderPass::runOnFunction(llvm::Function& f) {
 }
 
 bool MemInstFinderPass::doFinalization(llvm::Module&) {
-  auto& out = llvm::outs();
+  auto& out = llvm::errs();
 
   const unsigned max_string{28u};
   const unsigned max_val{5u};
