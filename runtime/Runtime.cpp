@@ -202,8 +202,7 @@ TypeArtRT::TypeArtStatus TypeArtRT::getTypeInfo(const void* addr, typeart::TypeI
   size_t internalOffset;
 
   // First, retrieve the containing type
-  TypeArtStatus status =
-      getContainingTypeInfo(addr, &containingType, &containingTypeCount, &baseAddr, &internalOffset);
+  TypeArtStatus status = getContainingTypeInfo(addr, &containingType, &containingTypeCount, &baseAddr, &internalOffset);
   if (status != TA_OK) {
     return status;
   }
@@ -272,7 +271,7 @@ TypeArtRT::TypeArtStatus TypeArtRT::getContainingTypeInfo(const void* addr, type
     // TODO: Ensure that ID is valid
     *type = typeDB.getTypeInfo(basePtrInfo.typeId);
     *count = typeCount;
-    *baseAddress = basePtr;//addByteOffset(basePtr, typeOffset * basePtrInfo.typeSize);
+    *baseAddress = basePtr;  // addByteOffset(basePtr, typeOffset * basePtrInfo.typeSize);
     *offset = internalOffset;
     return TA_OK;
   }

@@ -27,12 +27,14 @@ int main(int argc, char** argv) {
   // CHECK: [Trace] Alloc 0x{{.*}} unknown 8 42
   int* g[n];
 
-  // CHECK: [TRACE] Alloc 0x{{.*}} int32 4 1764
+  // CHECK: [Trace] Alloc 0x{{.*}} int32 4 1764
   int h[n][n];
 
-  // CHECK: [TRACE] Alloc 0x{{.*}} int32 4 74088
+  // CHECK: [Trace] Alloc 0x{{.*}} int32 4 74088
   int i[n][n][n];
 
+  // CHECK: [Trace] Free 0x{{.*}}
+  // CHECK: [Trace] Free 0x{{.*}}
   // CHECK: [Trace] Free 0x{{.*}}
   // CHECK: [Trace] Free 0x{{.*}}
   // CHECK: [Trace] Free 0x{{.*}}

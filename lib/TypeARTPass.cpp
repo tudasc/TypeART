@@ -157,16 +157,15 @@ bool TypeArtPass::runOnFunction(Function& f) {
   const auto instrumentAlloca = [&](const auto& allocaData) -> bool {
     auto alloca = allocaData.alloca;
 
-    Type* elementType = nullptr;
+    Type* elementType = alloca->getAllocatedType();
     unsigned arraySize = 1;
 
-    unsigned typeSize = tu::getTypeSizeForArrayAlloc(alloca, dl);
-    if (alloca->getAllocatedType()->isArrayTy()) {
-      elementType = alloca->getAllocatedType()->getArrayElementType();
-      arraySize = alloca->getAllocatedType()->getArrayNumElements();
-    } else {
-      elementType = alloca->getAllocatedType();
+    if (elementType->isArrayTy()) {
+      arraySize = tu::getArrayLengthFlattened(elementType);
+      elementType = tu::getArrayElementType(elementType);
     }
+
+    unsigned typeSize = tu::getTypeSizeInBytes(elementType, dl);
 
     int typeId = typeManager.getOrRegisterType(elementType, dl);
     auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), typeId);
