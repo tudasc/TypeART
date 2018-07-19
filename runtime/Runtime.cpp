@@ -178,10 +178,13 @@ TypeArtRT::TypeArtStatus TypeArtRT::getTypeInfoInternal(const void* baseAddr, si
   const void* subTypeBaseAddr;
   size_t subTypeOffset;
   size_t subTypeCount;
+  const StructTypeInfo* structInfo = &containerInfo;
+
+  bool resolve = true;
 
   // Resolve type recursively, until the address matches exactly
-  do {
-    status = getSubTypeInfo(baseAddr, offset, containerInfo, &subType, &subTypeBaseAddr, &subTypeOffset, &subTypeCount);
+  while (resolve) {
+    status = getSubTypeInfo(baseAddr, offset, *structInfo, &subType, &subTypeBaseAddr, &subTypeOffset, &subTypeCount);
 
     if (status != TA_OK) {
       return status;
@@ -189,7 +192,18 @@ TypeArtRT::TypeArtStatus TypeArtRT::getTypeInfoInternal(const void* baseAddr, si
 
     baseAddr = subTypeBaseAddr;
     offset = subTypeOffset;
-  } while (offset != 0);
+
+    // Continue as long as there is a byte offset
+    resolve = offset != 0;
+
+    // Get layout of the nested struct
+    if (resolve) {
+      status = getStructInfo(subType.id, &structInfo);
+      if (status != TA_OK) {
+        return status;
+      }
+    }
+  }
   *type = subType;
   *count = subTypeCount;
   return TA_OK;
