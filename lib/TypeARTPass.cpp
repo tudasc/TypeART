@@ -35,6 +35,8 @@ static cl::opt<bool> ClTypeArtAllocaLifetime("typeart-lifetime",
 static cl::opt<std::string> ClTypeFile("typeart-outfile", cl::desc("Location of the generated type file."), cl::Hidden,
                                        cl::init("types.yaml"));
 
+static cl::opt<bool> ClIgnoreHeap("typeart-no-heap", cl::desc("bla bla"), cl::Hidden, cl::init(false));
+
 // FIXME 1) include bitcasts? 2) disabled by default in LLVM builds (use LLVM_ENABLE_STATS when building)
 // STATISTIC(NumInstrumentedMallocs, "Number of instrumented mallocs");
 // STATISTIC(NumInstrumentedFrees, "Number of instrumented frees");
@@ -208,17 +210,18 @@ bool TypeArtPass::runOnFunction(Function& f) {
     return true;
   };
 
-  // instrument collected calls of bb:
-  for (auto& malloc : listMalloc) {
-    ++NumFoundMallocs;
-    mod |= instrumentMalloc(malloc);
-  }
+  if (ClIgnoreHeap) {
+    // instrument collected calls of bb:
+    for (auto& malloc : listMalloc) {
+      ++NumFoundMallocs;
+      mod |= instrumentMalloc(malloc);
+    }
 
-  for (auto free : listFree) {
-    ++NumFoundFrees;
-    mod |= instrumentFree(free);
+    for (auto free : listFree) {
+      ++NumFoundFrees;
+      mod |= instrumentFree(free);
+    }
   }
-
   if (ClTypeArtAlloca) {
     const bool instrumented_alloca = std::count_if(listAlloca.begin(), listAlloca.end(), instrumentAlloca) > 0;
     mod |= instrumented_alloca;
