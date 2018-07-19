@@ -13,6 +13,131 @@
 #include <unordered_set>
 
 namespace typeart {
+namespace softcounter {
+	/**
+	 * Very basic implementation of some couting infrastructure.
+	 * This implementation counts:
+	 * - the number of objects hold maximally in the datastructures for stack and heap.
+	 * - the total number of tracked allocations (counting multiple insertions of the same address as multiple tracked values) for both stack and heap.
+	 * - the number of distinct addresses queried for information
+	 * In addition it estimates (lower-bound) the consumed memory for tracking the type information.
+	 *
+	 * It prints the information during object de-construction.
+	 */
+class AccessRecorder {
+ public:
+  ~AccessRecorder() {
+    printStats();
+  }
+
+  inline void incHeapAlloc() {
+		curHeapAllocs++;
+    heapAllocs++;
+  }
+
+  inline void incStackAlloc() {
+		curStackAllocs++;
+    stackAllocs++;
+  }
+
+	inline void decHeapAlloc() {
+    if (curHeapAllocs > maxHeapAllocs) {
+      maxHeapAllocs = curHeapAllocs;
+    }
+    curHeapAllocs--;
+  }
+
+	inline void decStackAlloc(size_t amount) {
+    if (curStackAllocs > maxStackAllocs) {
+      maxStackAllocs = curStackAllocs;
+		}
+		curStackAllocs -= amount;
+	}
+
+  inline void incUsedInRequest(const void* addr) {
+    const auto isIn = [&](const auto& e, const auto& c) { return c.find(e) != c.end(); };
+
+    if (!isIn(addr, seen)) {
+      seen.insert(addr);
+    }
+  }
+
+	inline void incAddrReuse() {
+		addrReuses++;
+	}
+
+  void printStats() {
+    std::string s;
+    llvm::raw_string_ostream buf(s);
+    auto estMemConsumption = (maxHeapAllocs + maxStackAllocs) * memPerEntry;
+		estMemConsumption += (maxStackAllocs * memInStack);
+		estMemConsumption += (vectorSize + mapSize);
+    buf << "------------\nAlloc Stats from softcounters\n"
+        << "Total Heap Allocs:\t\t" << heapAllocs << "\n"
+        << "Total Stack Allocs:\t\t" << stackAllocs << "\n"
+				<< "Max. Heap Allocs:\t\t" << maxHeapAllocs << "\n"
+				<< "Max. Stack Allocs:\t\t" << maxStackAllocs << "\n"
+        << "Distinct Pointers checked:\t" << seen.size() << "\n"
+				<< "Addresses re-used:\t\t" << addrReuses << "\n"
+        << "Estimated mem consumption:\t" << estMemConsumption << " bytes = " << estMemConsumption / 1024.0 << " kiB\n"
+				<< "vector overhead: " << vectorSize << " bytes\tmap overhead: " << mapSize << " bytes\n";
+    LOG_MSG(buf.str());
+  }
+
+  static AccessRecorder& get() {
+    static AccessRecorder instance;
+    return instance;
+  }
+
+ private:
+  AccessRecorder() = default;
+  AccessRecorder(AccessRecorder& other) = default;
+  AccessRecorder(AccessRecorder&& other) = default;
+
+  const int memPerEntry = sizeof(PointerInfo) + sizeof(void *);  // Type-map key + value
+	const int memInStack = sizeof(void *); // Stack allocs
+	const int vectorSize = sizeof(TypeArtRT::Stack); // Stack overhead
+	const int mapSize = sizeof(TypeArtRT::PointerMap); // Map overhead
+  long long heapAllocs = 0;
+  long long stackAllocs = 0;
+	long long maxHeapAllocs = 0;
+	long long maxStackAllocs = 0;
+	long long curHeapAllocs = 0;
+	long long curStackAllocs = 0;
+	long long addrReuses = 0;
+  std::unordered_set<const void*> seen;
+};
+
+/**
+ * Used for no-operations in counter methods when not using softcounters.
+ */
+class NoneRecorder {
+ public:
+  inline void incHeapAlloc() {
+  }
+  inline void incStackAlloc() {
+  }
+  inline void incUsedInRequest(const void* addr) {
+  }
+  inline void decHeapAlloc() {
+  }
+  inline void decStackAlloc(size_t amount) {
+  }
+  inline void printStats() {
+  }
+
+  static NoneRecorder& get() {
+    static NoneRecorder instance;
+    return instance;
+  }
+};
+}  // namespace softcounter
+
+#if ENABLE_SOFTCOUNTER == 1
+using Recorder = softcounter::AccessRecorder;
+#else
+using Recorder = softcounter::NoneRecorder;
+#endif
 
 std::string TypeArtRT::defaultTypeFileName{"types.yaml"};
 
@@ -327,6 +452,7 @@ void TypeArtRT::onAlloc(const void* addr, int typeId, size_t count, size_t typeS
                         const void* retAddr) {
   auto it = typeMap.find(addr);
   if (it != typeMap.end()) {
+		typeart::Recorder::get().incAddrReuse();
     const auto info = (*it).second;
     LOG_ERROR("Already exists: " << toString(addr, typeId, count, typeSize, isLocal));
     LOG_ERROR("Data in map is: " << toString((*it).first, info));
@@ -374,119 +500,6 @@ void TypeArtRT::onLeaveScope(size_t alloca_count) {
   // stackVars.erase(start_pos, cend);
 }
 
-namespace softcounter {
-	/**
-	 * Very basic implementation of some couting infrastructure.
-	 * This implementation counts:
-	 * - the number of objects hold maximally in the datastructures for stack and heap.
-	 * - the total number of tracked allocations (counting multiple insertions of the same address as multiple tracked values) for both stack and heap.
-	 * - the number of distinct addresses queried for information
-	 * In addition it estimates (lower-bound) the consumed memory for tracking the type information.
-	 *
-	 * It prints the information during object de-construction.
-	 */
-class AccessRecorder {
- public:
-  ~AccessRecorder() {
-    printStats();
-  }
-
-  inline void incHeapAlloc() {
-    heapAllocs++;
-		curHeapAllocs++;
-  }
-
-  inline void incStackAlloc() {
-    stackAllocs++;
-		curStackAllocs++;
-  }
-
-	inline void decHeapAlloc() {
-    if (curHeapAllocs > maxHeapAllocs) {
-      maxHeapAllocs = curHeapAllocs;
-    }
-    curHeapAllocs--;
-  }
-
-	inline void decStackAlloc(size_t amount) {
-    if (curStackAllocs > maxStackAllocs) {
-      maxStackAllocs = curStackAllocs;
-		}
-		curStackAllocs -= amount;
-	}
-
-  inline void incUsedInRequest(const void* addr) {
-    const auto isIn = [&](const auto& e, const auto& c) { return c.find(e) != c.end(); };
-
-    if (!isIn(addr, seen)) {
-      seen.insert(addr);
-    }
-  }
-
-  void printStats() {
-    std::string s;
-    llvm::raw_string_ostream buf(s);
-    auto estMemConsumption = (heapAllocs + stackAllocs) * estMemPerEntry;
-    buf << "------------\nAlloc Stats from softcounters\n"
-        << "Total Heap Allocs:\t\t" << heapAllocs << "\n"
-        << "Total Stack Allocs:\t\t" << stackAllocs << "\n"
-				<< "Max. Heap Allocs:\t\t" << maxHeapAllocs << "\n"
-				<< "Max. Stack Allocs:\t\t" << maxStackAllocs << "\n"
-        << "Distinct Pointers checked:\t" << seen.size() << "\n"
-        << "Estimated mem consumption:\t" << estMemConsumption << " bytes = " << estMemConsumption / 1024.0 << " kiB\n";
-    LOG_MSG(buf.str());
-  }
-
-  static AccessRecorder& get() {
-    static AccessRecorder instance;
-    return instance;
-  }
-
- private:
-  AccessRecorder() = default;
-  AccessRecorder(AccessRecorder& other) = default;
-  AccessRecorder(AccessRecorder&& other) = default;
-
-  const int estMemPerEntry = sizeof(PointerInfo) + sizeof(void *);  // FIXME: How to compute this?
-  long long heapAllocs = 0;
-  long long stackAllocs = 0;
-	long long maxHeapAllocs = 0;
-	long long maxStackAllocs = 0;
-	long long curHeapAllocs = 0;
-	long long curStackAllocs = 0;
-  std::unordered_set<const void*> seen;
-};
-
-/**
- * Used for no-operations in counter methods when not using softcounters.
- */
-class NoneRecorder {
- public:
-  inline void incHeapAlloc() {
-  }
-  inline void incStackAlloc() {
-  }
-  inline void incUsedInRequest(const void* addr) {
-  }
-  inline void decHeapAlloc() {
-  }
-  inline void decStackAlloc(size_t amount) {
-  }
-  inline void printStats() {
-  }
-
-  static NoneRecorder& get() {
-    static NoneRecorder instance;
-    return instance;
-  }
-};
-}  // namespace softcounter
-
-#if ENABLE_SOFTCOUNTER == 1
-using Recorder = softcounter::AccessRecorder;
-#else
-using Recorder = softcounter::NoneRecorder;
-#endif
 
 }  // namespace typeart
 
