@@ -14,16 +14,18 @@
 
 namespace typeart {
 namespace softcounter {
-	/**
-	 * Very basic implementation of some couting infrastructure.
-	 * This implementation counts:
-	 * - the number of objects hold maximally in the datastructures for stack and heap.
-	 * - the total number of tracked allocations (counting multiple insertions of the same address as multiple tracked values) for both stack and heap.
-	 * - the number of distinct addresses queried for information
-	 * In addition it estimates (lower-bound) the consumed memory for tracking the type information.
-	 *
-	 * It prints the information during object de-construction.
-	 */
+/**
+ * Very basic implementation of some couting infrastructure.
+ * This implementation counts:
+ * - the number of objects hold maximally in the datastructures for stack and heap.
+ * - the total number of tracked allocations (counting multiple insertions of the same address as multiple tracked
+ * values) for both stack and heap.
+ * - the number of distinct addresses queried for information
+ * - the number of addresses re-used (according to our type map)
+ * In addition it estimates (lower-bound) the consumed memory for tracking the type information.
+ *
+ * It prints the information during object de-construction.
+ */
 class AccessRecorder {
  public:
   ~AccessRecorder() {
@@ -31,28 +33,28 @@ class AccessRecorder {
   }
 
   inline void incHeapAlloc() {
-		curHeapAllocs++;
+    curHeapAllocs++;
     heapAllocs++;
   }
 
   inline void incStackAlloc() {
-		curStackAllocs++;
+    curStackAllocs++;
     stackAllocs++;
   }
 
-	inline void decHeapAlloc() {
+  inline void decHeapAlloc() {
     if (curHeapAllocs > maxHeapAllocs) {
       maxHeapAllocs = curHeapAllocs;
     }
     curHeapAllocs--;
   }
 
-	inline void decStackAlloc(size_t amount) {
+  inline void decStackAlloc(size_t amount) {
     if (curStackAllocs > maxStackAllocs) {
       maxStackAllocs = curStackAllocs;
-		}
-		curStackAllocs -= amount;
-	}
+    }
+    curStackAllocs -= amount;
+  }
 
   inline void incUsedInRequest(const void* addr) {
     const auto isIn = [&](const auto& e, const auto& c) { return c.find(e) != c.end(); };
@@ -62,25 +64,25 @@ class AccessRecorder {
     }
   }
 
-	inline void incAddrReuse() {
-		addrReuses++;
-	}
+  inline void incAddrReuse() {
+    addrReuses++;
+  }
 
   void printStats() {
     std::string s;
     llvm::raw_string_ostream buf(s);
     auto estMemConsumption = (maxHeapAllocs + maxStackAllocs) * memPerEntry;
-		estMemConsumption += (maxStackAllocs * memInStack);
-		estMemConsumption += (vectorSize + mapSize);
+    estMemConsumption += (maxStackAllocs * memInStack);
+    estMemConsumption += (vectorSize + mapSize);
     buf << "------------\nAlloc Stats from softcounters\n"
         << "Total Heap Allocs:\t\t" << heapAllocs << "\n"
         << "Total Stack Allocs:\t\t" << stackAllocs << "\n"
-				<< "Max. Heap Allocs:\t\t" << maxHeapAllocs << "\n"
-				<< "Max. Stack Allocs:\t\t" << maxStackAllocs << "\n"
+        << "Max. Heap Allocs:\t\t" << maxHeapAllocs << "\n"
+        << "Max. Stack Allocs:\t\t" << maxStackAllocs << "\n"
         << "Distinct Pointers checked:\t" << seen.size() << "\n"
-				<< "Addresses re-used:\t\t" << addrReuses << "\n"
+        << "Addresses re-used:\t\t" << addrReuses << "\n"
         << "Estimated mem consumption:\t" << estMemConsumption << " bytes = " << estMemConsumption / 1024.0 << " kiB\n"
-				<< "vector overhead: " << vectorSize << " bytes\tmap overhead: " << mapSize << " bytes\n";
+        << "vector overhead: " << vectorSize << " bytes\tmap overhead: " << mapSize << " bytes\n";
     LOG_MSG(buf.str());
   }
 
@@ -94,17 +96,17 @@ class AccessRecorder {
   AccessRecorder(AccessRecorder& other) = default;
   AccessRecorder(AccessRecorder&& other) = default;
 
-  const int memPerEntry = sizeof(PointerInfo) + sizeof(void *);  // Type-map key + value
-	const int memInStack = sizeof(void *); // Stack allocs
-	const int vectorSize = sizeof(TypeArtRT::Stack); // Stack overhead
-	const int mapSize = sizeof(TypeArtRT::PointerMap); // Map overhead
+  const int memPerEntry = sizeof(PointerInfo) + sizeof(void*);  // Type-map key + value
+  const int memInStack = sizeof(void*);                         // Stack allocs
+  const int vectorSize = sizeof(TypeArtRT::Stack);              // Stack overhead
+  const int mapSize = sizeof(TypeArtRT::PointerMap);            // Map overhead
   long long heapAllocs = 0;
   long long stackAllocs = 0;
-	long long maxHeapAllocs = 0;
-	long long maxStackAllocs = 0;
-	long long curHeapAllocs = 0;
-	long long curStackAllocs = 0;
-	long long addrReuses = 0;
+  long long maxHeapAllocs = 0;
+  long long maxStackAllocs = 0;
+  long long curHeapAllocs = 0;
+  long long curStackAllocs = 0;
+  long long addrReuses = 0;
   std::unordered_set<const void*> seen;
 };
 
@@ -122,6 +124,8 @@ class NoneRecorder {
   inline void decHeapAlloc() {
   }
   inline void decStackAlloc(size_t amount) {
+  }
+  inline void incAddrReuse() {
   }
   inline void printStats() {
   }
@@ -452,7 +456,7 @@ void TypeArtRT::onAlloc(const void* addr, int typeId, size_t count, size_t typeS
                         const void* retAddr) {
   auto it = typeMap.find(addr);
   if (it != typeMap.end()) {
-		typeart::Recorder::get().incAddrReuse();
+    typeart::Recorder::get().incAddrReuse();
     const auto info = (*it).second;
     LOG_ERROR("Already exists: " << toString(addr, typeId, count, typeSize, isLocal));
     LOG_ERROR("Data in map is: " << toString((*it).first, info));
@@ -500,7 +504,6 @@ void TypeArtRT::onLeaveScope(size_t alloca_count) {
   // stackVars.erase(start_pos, cend);
 }
 
-
 }  // namespace typeart
 
 void __typeart_alloc(void* addr, int typeId, size_t count, size_t typeSize, int isLocal) {
@@ -516,13 +519,13 @@ void __typeart_alloc(void* addr, int typeId, size_t count, size_t typeSize, int 
 void __typeart_free(void* addr) {
   //  const void* ret_adr = __builtin_return_address(0);
   typeart::TypeArtRT::get().onFree(addr);
-	typeart::Recorder::get().decHeapAlloc();
+  typeart::Recorder::get().decHeapAlloc();
 }
 
 void __typeart_leave_scope(size_t alloca_count) {
   //  const void* ret_adr = __builtin_return_address(0);
   typeart::TypeArtRT::get().onLeaveScope(alloca_count);
-	typeart::Recorder::get().decStackAlloc(alloca_count);
+  typeart::Recorder::get().decStackAlloc(alloca_count);
 }
 
 typeart_status typeart_get_builtin_type(const void* addr, typeart::BuiltinType* type) {
