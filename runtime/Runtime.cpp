@@ -406,7 +406,10 @@ TypeArtRT::TypeArtStatus TypeArtRT::getContainingTypeInfo(const void* addr, type
 
     // Ensure that the given address is in bounds and points to the start of an element
     if (addr >= blockEnd) {
-      LOG_ERROR("Out of bounds for the lookup: " << toString(addr, basePtrInfo))
+      const std::ptrdiff_t offset = static_cast<const uint8_t*>(addr) - static_cast<const uint8_t*>(basePtr);
+      const auto oob_index = (offset / basePtrInfo.typeSize) - basePtrInfo.count + 1;
+      LOG_ERROR("Out of bounds for the lookup: (" << toString(addr, basePtrInfo)
+                                                  << ") #Elements too far: " << oob_index);
       return TA_UNKNOWN_ADDRESS;
     }
 

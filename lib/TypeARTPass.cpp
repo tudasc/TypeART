@@ -27,6 +27,8 @@ static llvm::RegisterPass<typeart::pass::TypeArtPass> msp("typeart", "TypeArt ty
 
 static cl::opt<bool> ClTypeArtStats("typeart-stats", cl::desc("Show statistics for TypeArt type pass."), cl::Hidden,
                                     cl::init(false));
+static cl::opt<bool> ClIgnoreHeap("typeart-no-heap", cl::desc("Ignore heap allocation/free instruction."), cl::Hidden,
+                                  cl::init(false));
 static cl::opt<bool> ClTypeArtAlloca("typeart-alloca", cl::desc("Track alloca instructions."), cl::Hidden,
                                      cl::init(false));
 static cl::opt<bool> ClTypeArtAllocaLifetime("typeart-lifetime",
@@ -34,8 +36,6 @@ static cl::opt<bool> ClTypeArtAllocaLifetime("typeart-lifetime",
                                              cl::Hidden, cl::init(false));
 static cl::opt<std::string> ClTypeFile("typeart-outfile", cl::desc("Location of the generated type file."), cl::Hidden,
                                        cl::init("types.yaml"));
-
-static cl::opt<bool> ClIgnoreHeap("typeart-no-heap", cl::desc("bla bla"), cl::Hidden, cl::init(false));
 
 // FIXME 1) include bitcasts? 2) disabled by default in LLVM builds (use LLVM_ENABLE_STATS when building)
 // STATISTIC(NumInstrumentedMallocs, "Number of instrumented mallocs");

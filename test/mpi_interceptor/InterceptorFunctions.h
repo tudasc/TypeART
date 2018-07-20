@@ -14,18 +14,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int ta_check_exists(const char* mpi_name, const void* called_from, const void* buf);
+int ta_check_exists(const char* mpi_name, const void* called_from, const void* buf, int const_adr);
 void ta_print_loc(const void* call_adr);
 
 void ta_check_const_void(const char* name, const void* called_from, const void* buf, MPI_Datatype dtype) {
-  ta_check_exists(name, called_from, buf);
+  ta_check_exists(name, called_from, buf, 1);
 }
 
 void ta_check_void(const char* name, const void* called_from, const void* buf) {
-  ta_check_exists(name, called_from, buf);
+  ta_check_exists(name, called_from, buf, 0);
 }
 
-int ta_check_exists(const char* mpi_name, const void* called_from, const void* buf) {
+int ta_check_exists(const char* mpi_name, const void* called_from, const void* buf, int const_adr) {
   if (buf == NULL) {
     return -1;
   }
@@ -35,7 +35,7 @@ int ta_check_exists(const char* mpi_name, const void* called_from, const void* b
   size_t count = 0;
   typeart_status typeart_status_v = typeart_get_type(buf, &type, &count);
   if (typeart_status_v != TA_OK) {
-    printf("R[%d][Error] Call '%s' buffer %p at loc %p status: %d\n", rank, mpi_name, buf, called_from,
+    printf("R[%d][Error][%d] Call '%s' buffer %p at loc %p status: %d\n", rank, const_adr, mpi_name, buf, called_from,
            (int)typeart_status_v);
     ta_print_loc(called_from);
     return 0;

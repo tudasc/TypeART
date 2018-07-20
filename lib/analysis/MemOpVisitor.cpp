@@ -67,10 +67,12 @@ void MemOpVisitor::visitMallocLike(llvm::CallInst& ci, MemOpKind k) {
     }
   }
 
-  const auto bitcast_iter =
-      std::find_if(bcasts.begin(), bcasts.end(), [](auto bcast) { return !util::type::isVoidPtr(bcast->getDestTy()); });
-
-  BitCastInst* primaryBitcast = bitcast_iter != bcasts.end() ? *bitcast_iter : nullptr;
+  BitCastInst* primaryBitcast{nullptr};
+  std::for_each(bcasts.begin(), bcasts.end(), [&](auto bcast) {
+    if (!util::type::isVoidPtr(bcast->getDestTy())) {
+      primaryBitcast = bcast;
+    }
+  });
 
   //  LOG_DEBUG("  >> number of bitcasts found: " << bcasts.size());
 
