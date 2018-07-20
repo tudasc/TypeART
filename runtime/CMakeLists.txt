@@ -21,6 +21,12 @@ if(MPI_LOGGER)
   )
 endif()
 
+if(SOFTCOUNTERS)
+	target_project_compile_definitions(typeart-rt
+		PRIVATE_DEFS ENABLE_SOFTCOUNTER=1
+	)
+endif()
+
 target_link_libraries(typeart-rt 
   ${RUNTIME_LIB_DEPS}
 )

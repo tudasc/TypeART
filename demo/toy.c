@@ -75,4 +75,14 @@ int main(int argc, char** argv){
                  0,0, MPI_COMM_SELF, MPI_STATUS_IGNORE);
 
   MPI_Finalize();
+
+#ifdef NOSTACK
+	free(mystruct);
+#else
+#endif
+
+#ifdef NOSTACK
+	free(buffer);
+#else
+#endif
 }

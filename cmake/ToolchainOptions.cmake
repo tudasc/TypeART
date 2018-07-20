@@ -12,6 +12,7 @@ include(log-util)
 set(LOG_LEVEL 3 CACHE STRING "Granularity of logger. 3 ist most verbose, 0 is least.")
 option(MPI_LOGGER "Whether the logger should use MPI." OFF)
 option(MPI_INTERCEPT_LIB "Build MPI interceptor library, requires wrap.py generator file." OFF)
+option(SOFTCOUNTERS "Enable software tracking of #tracked addrs. / #distinct checks / etc." OFF)
 
 if(MPI_LOGGER)
   find_package(MPI REQUIRED)

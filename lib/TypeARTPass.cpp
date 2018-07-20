@@ -210,7 +210,7 @@ bool TypeArtPass::runOnFunction(Function& f) {
     return true;
   };
 
-  if (ClIgnoreHeap) {
+  if (!ClIgnoreHeap) {
     // instrument collected calls of bb:
     for (auto& malloc : listMalloc) {
       ++NumFoundMallocs;
@@ -284,10 +284,19 @@ void TypeArtPass::declareInstrumentationFunctions(Module& m) {
     return;
   }
 
-  const auto make_function = [&m](auto& f_struct, auto f_type) {
+  const auto addOptimizerAttributes = [&](auto& arg) {
+    arg.addAttr(Attribute::NoCapture);
+    arg.addAttr(Attribute::ReadOnly);
+  };
+
+  const auto make_function = [&](auto& f_struct, auto f_type) {
     f_struct.f = m.getOrInsertFunction(f_struct.name, f_type);
     if (auto f = dyn_cast<Function>(f_struct.f)) {
       f->setLinkage(GlobalValue::ExternalLinkage);
+      auto& firstParam = *(f->arg_begin());
+      if (firstParam.getType()->isPointerTy()) {
+        addOptimizerAttributes(firstParam);
+      }
     }
   };
 
