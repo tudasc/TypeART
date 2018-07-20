@@ -308,10 +308,13 @@ TypeArtRT::TypeArtStatus TypeArtRT::getTypeInfoInternal(const void* baseAddr, si
   const void* subTypeBaseAddr;
   size_t subTypeOffset;
   size_t subTypeCount;
+  const StructTypeInfo* structInfo = &containerInfo;
+
+  bool resolve = true;
 
   // Resolve type recursively, until the address matches exactly
-  do {
-    status = getSubTypeInfo(baseAddr, offset, containerInfo, &subType, &subTypeBaseAddr, &subTypeOffset, &subTypeCount);
+  while (resolve) {
+    status = getSubTypeInfo(baseAddr, offset, *structInfo, &subType, &subTypeBaseAddr, &subTypeOffset, &subTypeCount);
 
     if (status != TA_OK) {
       return status;
@@ -319,7 +322,18 @@ TypeArtRT::TypeArtStatus TypeArtRT::getTypeInfoInternal(const void* baseAddr, si
 
     baseAddr = subTypeBaseAddr;
     offset = subTypeOffset;
-  } while (offset != 0);
+
+    // Continue as long as there is a byte offset
+    resolve = offset != 0;
+
+    // Get layout of the nested struct
+    if (resolve) {
+      status = getStructInfo(subType.id, &structInfo);
+      if (status != TA_OK) {
+        return status;
+      }
+    }
+  }
   *type = subType;
   *count = subTypeCount;
   return TA_OK;
@@ -457,17 +471,18 @@ void TypeArtRT::onAlloc(const void* addr, int typeId, size_t count, size_t typeS
   auto it = typeMap.find(addr);
   if (it != typeMap.end()) {
     typeart::Recorder::get().incAddrReuse();
-    const auto info = (*it).second;
-    LOG_ERROR("Already exists: " << toString(addr, typeId, count, typeSize, isLocal));
+    const auto& info = (*it).second;
+    LOG_ERROR("Already exists ("<< retAddr << ", prev=" << info.debug <<"): " << toString(addr, typeId, count, typeSize, isLocal));
     LOG_ERROR("Data in map is: " << toString((*it).first, info));
+    (*it).second.references++;
   } else {
-    typeMap[addr] = {typeId, count, typeSize, retAddr};
+    typeMap[addr] = {typeId, count, typeSize, retAddr, 1};
     auto typeString = typeDB.getTypeName(typeId);
     LOG_TRACE("Alloc " << addr << " " << typeString << " " << typeSize << " " << count << " " << (isLocal ? "S" : "H"));
-    if (isLocal) {
-      //      LOG_TRACE("Alloc is stack " << stackVars.size() << " " << stackVars.container().size());
-      stackVars.push_back(addr);
-    }
+  }
+  if (isLocal) {
+    //      LOG_TRACE("Alloc is stack " << stackVars.size() << " " << stackVars.container().size());
+    stackVars.push_back(addr);
   }
 }
 
@@ -475,7 +490,8 @@ void TypeArtRT::onFree(const void* addr) {
   auto it = typeMap.find(addr);
   if (it != typeMap.end()) {
     LOG_TRACE("Free " << toString((*it).first, (*it).second));
-    typeMap.erase(it);
+    if (--(*it).second.references == 0)
+      typeMap.erase(it);
   } else {
     LOG_ERROR("Free recorded on unregistered address: " << addr);
     // TODO: What to do when not found?
