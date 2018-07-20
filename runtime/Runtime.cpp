@@ -390,8 +390,6 @@ TypeArtRT::TypeArtStatus TypeArtRT::getContainingTypeInfo(const void* addr, type
     const auto& basePtrInfo = ptrData.getValue().second;
     auto basePtr = ptrData.getValue().first;
 
-    //    auto basePtrInfo = typeMap.find(basePtr)->second;
-
     // Check for exact match -> no further checks and offsets calculations needed
     if (basePtr == addr) {
       *type = typeDB.getTypeInfo(basePtrInfo.typeId);
@@ -506,7 +504,6 @@ void TypeArtRT::onFree(const void* addr) {
   auto it = typeMap.find(addr);
   if (it != typeMap.end()) {
     LOG_TRACE("Free " << toString((*it).first, (*it).second));
-    //    if (--(*it).second.references == 0)
     typeMap.erase(it);
   } else {
     LOG_ERROR("Free recorded on unregistered address: " << addr);
@@ -527,13 +524,6 @@ void TypeArtRT::onLeaveScope(size_t alloca_count) {
   std::for_each(start_pos, cend, [&](const void* addr) { onFree(addr); });
   stackVars.free(alloca_count);
   LOG_TRACE("Stack after free: " << stackVars.size());
-
-  // FIXME this is an expensive O(n) operation due to using a vector for stackBars,
-  // and is strictly speaking, not a necessary operation.
-  // Possible fix: use an additional index and set it to the "end" of valid addresses in the vector
-  // for push_back we need to check if the index is then outside of the vector range and use either push_back or
-  // vecAdr[index]
-  // stackVars.erase(start_pos, cend);
 }
 
 }  // namespace typeart
