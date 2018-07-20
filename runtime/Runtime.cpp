@@ -480,21 +480,24 @@ void TypeArtRT::getReturnAddress(const void* addr, const void** retAddr) {
 
 void TypeArtRT::onAlloc(const void* addr, int typeId, size_t count, size_t typeSize, bool isLocal,
                         const void* retAddr) {
-  auto it = typeMap.find(addr);
-  if (it != typeMap.end()) {
-    typeart::Recorder::get().incAddrReuse();
-    const auto& info = (*it).second;
-    LOG_ERROR("Already exists (" << retAddr << ", prev=" << info.debug
-                                 << "): " << toString(addr, typeId, count, typeSize, isLocal));
-    LOG_ERROR("Data in map is: " << toString((*it).first, info));
-    (*it).second.references++;
-  } else {
-    typeMap[addr] = {typeId, count, typeSize, retAddr, 1};
+  auto& def = typeMap[addr];
+
+  if (def.typeId == -1) {
     auto typeString = typeDB.getTypeName(typeId);
     LOG_TRACE("Alloc " << addr << " " << typeString << " " << typeSize << " " << count << " " << (isLocal ? "S" : "H"));
+  } else {
+    typeart::Recorder::get().incAddrReuse();
+    LOG_ERROR("Already exists (" << retAddr << ", prev=" << def.debug
+                                 << "): " << toString(addr, typeId, count, typeSize, isLocal));
+    LOG_ERROR("Data in map is: " << toString(addr, def));
   }
+
+  def.typeId = typeId;
+  def.count = count;
+  def.typeSize = typeSize;
+  def.debug = retAddr;
+
   if (isLocal) {
-    //      LOG_TRACE("Alloc is stack " << stackVars.size() << " " << stackVars.container().size());
     stackVars.push_back(addr);
   }
 }
@@ -503,8 +506,8 @@ void TypeArtRT::onFree(const void* addr) {
   auto it = typeMap.find(addr);
   if (it != typeMap.end()) {
     LOG_TRACE("Free " << toString((*it).first, (*it).second));
-    if (--(*it).second.references == 0)
-      typeMap.erase(it);
+    //    if (--(*it).second.references == 0)
+    typeMap.erase(it);
   } else {
     LOG_ERROR("Free recorded on unregistered address: " << addr);
     // TODO: What to do when not found?

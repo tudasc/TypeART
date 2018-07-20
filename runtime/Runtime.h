@@ -22,11 +22,10 @@ class Optional;
 namespace typeart {
 
 struct PointerInfo {
-  int typeId;
-  size_t count;
-  size_t typeSize;
-  const void* debug;
-  int references;
+  int typeId{-1};
+  size_t count{0};
+  size_t typeSize{0};
+  const void* debug{nullptr};
 };
 
 class TypeArtRT {
