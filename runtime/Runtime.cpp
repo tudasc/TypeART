@@ -10,6 +10,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <sstream>
+#include <string>
 #include <unordered_set>
 
 namespace typeart {
@@ -74,6 +75,13 @@ class AccessRecorder {
     auto estMemConsumption = (maxHeapAllocs + maxStackAllocs) * memPerEntry;
     estMemConsumption += (maxStackAllocs * memInStack);
     estMemConsumption += (vectorSize + mapSize);
+    auto estMemConsumptionKByte = estMemConsumption / 1024.0;
+
+    const auto getStr = [&](const auto memConsKB) {
+      auto memStr = std::to_string(memConsKB);
+      return memStr.substr(0, memStr.find('.') + 2);
+    };
+
     buf << "------------\nAlloc Stats from softcounters\n"
         << "Total Heap Allocs:\t\t" << heapAllocs << "\n"
         << "Total Stack Allocs:\t\t" << stackAllocs << "\n"
@@ -81,7 +89,8 @@ class AccessRecorder {
         << "Max. Stack Allocs:\t\t" << maxStackAllocs << "\n"
         << "Distinct Pointers checked:\t" << seen.size() << "\n"
         << "Addresses re-used:\t\t" << addrReuses << "\n"
-        << "Estimated mem consumption:\t" << estMemConsumption << " bytes = " << estMemConsumption / 1024.0 << " kiB\n"
+        << "Estimated mem consumption:\t" << estMemConsumption << " bytes = " << getStr(estMemConsumptionKByte)
+        << " kiB\n"
         << "vector overhead: " << vectorSize << " bytes\tmap overhead: " << mapSize << " bytes\n";
     LOG_MSG(buf.str());
   }
@@ -472,7 +481,8 @@ void TypeArtRT::onAlloc(const void* addr, int typeId, size_t count, size_t typeS
   if (it != typeMap.end()) {
     typeart::Recorder::get().incAddrReuse();
     const auto& info = (*it).second;
-    LOG_ERROR("Already exists ("<< retAddr << ", prev=" << info.debug <<"): " << toString(addr, typeId, count, typeSize, isLocal));
+    LOG_ERROR("Already exists (" << retAddr << ", prev=" << info.debug
+                                 << "): " << toString(addr, typeId, count, typeSize, isLocal));
     LOG_ERROR("Data in map is: " << toString((*it).first, info));
     (*it).second.references++;
   } else {
