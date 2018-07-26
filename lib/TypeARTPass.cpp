@@ -115,7 +115,6 @@ bool TypeArtPass::runOnFunction(Function& f) {
       auto dstPtrType = primaryBitcast->getDestTy()->getPointerElementType();
       typeSize = tu::getTypeSizeInBytes(dstPtrType, dl);
       typeId = typeManager.getOrRegisterType(dstPtrType, dl);  //(unsigned)dstPtrType->getTypeID();
-      insertBefore = primaryBitcast->getNextNode();
     }
 
     IRBuilder<> IRB(insertBefore);
