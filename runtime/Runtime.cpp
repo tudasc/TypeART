@@ -206,7 +206,7 @@ TypeArtRT::TypeArtRT() {
   }
   LOG_INFO("Recorded types: " << ss.str());
 
-  stackVars.container().reserve(1024);
+  stackVars.reserve(1024);
 
   printTraceStart();
 }
@@ -532,7 +532,7 @@ void TypeArtRT::onLeaveScope(size_t alloca_count) {
   const auto start_pos = (cend - alloca_count);
   LOG_TRACE("Freeing stack (" << alloca_count << ")  " << std::distance(start_pos, stackVars.cend()))
   std::for_each(start_pos, cend, [&](const void* addr) { onFree(addr); });
-  stackVars.free(alloca_count);
+  stackVars.erase(start_pos, cend);
   LOG_TRACE("Stack after free: " << stackVars.size());
 }
 
