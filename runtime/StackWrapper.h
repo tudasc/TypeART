@@ -46,26 +46,26 @@ class StackWrapper {
   }
 
   inline void free(size_type count) {
-    index = index - count;
+    index -= count;
   }
 
-  inline size_type size() {
+  inline size_type size() const {
     return index;
   }
 
-  inline iterator begin() {
+  inline iterator begin() const {
     return c.begin();
   }
 
-  inline iterator end() {
+  inline iterator end() const {
     return c.begin() + index;
   }
 
-  inline const_iterator cbegin() {
+  inline const_iterator cbegin() const {
     return c.cbegin();
   }
 
-  inline const_iterator cend() {
+  inline const_iterator cend() const {
     return c.cbegin() + index;
   }
 

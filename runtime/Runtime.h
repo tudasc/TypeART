@@ -132,7 +132,7 @@ class TypeArtRT {
    * \param[in] addr The address.
    * \param[out] retAddr The approximate address where the allocation occurred, or nullptr.
    */
-  void getReturnAddress(const void* addr, const void** retAddr);
+  void getReturnAddress(const void* addr, const void** retAddr) const;
 
   // TypeArtStatus resolveType(int id, int* len, typeart::TypeInfo* types[], int* count[], int* offsets[], int* extent);
 
@@ -167,7 +167,7 @@ class TypeArtRT {
    */
   size_t getMemberIndex(typeart_struct_layout structInfo, size_t offset) const;
 
-  void printTraceStart();
+  void printTraceStart() const;
 
   /**
    * Loads the type file created by the LLVM pass.
