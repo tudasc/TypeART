@@ -34,20 +34,20 @@ class AccessRecorder {
   }
 
   inline void incHeapAlloc() {
-    curHeapAllocs++;
-    heapAllocs++;
+    ++curHeapAllocs;
+    ++heapAllocs;
   }
 
   inline void incStackAlloc() {
-    curStackAllocs++;
-    stackAllocs++;
+    ++curStackAllocs;
+    ++stackAllocs;
   }
 
   inline void decHeapAlloc() {
     if (curHeapAllocs > maxHeapAllocs) {
       maxHeapAllocs = curHeapAllocs;
     }
-    curHeapAllocs--;
+    --curHeapAllocs;
   }
 
   inline void decStackAlloc(size_t amount) {
@@ -58,18 +58,19 @@ class AccessRecorder {
   }
 
   inline void incUsedInRequest(const void* addr) {
-    const auto isIn = [&](const auto& e, const auto& c) { return c.find(e) != c.end(); };
-
-    if (!isIn(addr, seen)) {
-      seen.insert(addr);
-    }
+    seen.insert(addr);
   }
 
   inline void incAddrReuse() {
-    addrReuses++;
+    ++addrReuses;
   }
 
-  void printStats() {
+  inline void incAddrMissing(const void* addr) {
+    ++addrMissing;
+    missing.insert(addr);
+  }
+
+  void printStats() const {
     std::string s;
     llvm::raw_string_ostream buf(s);
     auto estMemConsumption = (maxHeapAllocs + maxStackAllocs) * memPerEntry;
@@ -89,6 +90,8 @@ class AccessRecorder {
         << "Max. Stack Allocs:\t\t" << maxStackAllocs << "\n"
         << "Distinct Pointers checked:\t" << seen.size() << "\n"
         << "Addresses re-used:\t\t" << addrReuses << "\n"
+        << "Addresses missed:\t\t" << addrMissing << "\n"
+        << "Distinct Addresses missed:\t" << missing.size() << "\n"
         << "Estimated mem consumption:\t" << estMemConsumption << " bytes = " << getStr(estMemConsumptionKByte)
         << " kiB\n"
         << "vector overhead: " << vectorSize << " bytes\tmap overhead: " << mapSize << " bytes\n";
@@ -116,6 +119,8 @@ class AccessRecorder {
   long long curHeapAllocs = 0;
   long long curStackAllocs = 0;
   long long addrReuses = 0;
+  long long addrMissing = 0;
+  std::unordered_set<const void*> missing;
   std::unordered_set<const void*> seen;
 };
 
@@ -128,15 +133,17 @@ class NoneRecorder {
   }
   inline void incStackAlloc() {
   }
-  inline void incUsedInRequest(const void* addr) {
+  inline void incUsedInRequest(const void*) {
   }
   inline void decHeapAlloc() {
   }
-  inline void decStackAlloc(size_t amount) {
+  inline void decStackAlloc(size_t) {
   }
   inline void incAddrReuse() {
   }
-  inline void printStats() {
+  inline void incAddrMissing(const void*) {
+  }
+  inline void printStats() const {
   }
 
   static NoneRecorder& get() {
@@ -209,7 +216,7 @@ bool TypeArtRT::loadTypes(const std::string& file) {
   return cio.load(file);
 }
 
-void TypeArtRT::printTraceStart() {
+void TypeArtRT::printTraceStart() const {
   LOG_TRACE("TypeART Runtime Trace");
   LOG_TRACE("**************************");
   LOG_TRACE("Operation  Address   Type   Size   Count  Stack/Heap");
@@ -357,6 +364,9 @@ TypeArtRT::TypeArtStatus TypeArtRT::getTypeInfo(const void* addr, typeart::TypeI
   // First, retrieve the containing type
   TypeArtStatus status = getContainingTypeInfo(addr, &containingType, &containingTypeCount, &baseAddr, &internalOffset);
   if (status != TA_OK) {
+    if (TA_UNKNOWN_ADDRESS) {
+      typeart::Recorder::get().incAddrMissing(addr);
+    }
     return status;
   }
 
@@ -466,7 +476,7 @@ const std::string& TypeArtRT::getTypeName(int id) const {
   return typeDB.getTypeName(id);
 }
 
-void TypeArtRT::getReturnAddress(const void* addr, const void** retAddr) {
+void TypeArtRT::getReturnAddress(const void* addr, const void** retAddr) const {
   auto basePtr = findBaseAddress(addr);
 
   if (basePtr) {
