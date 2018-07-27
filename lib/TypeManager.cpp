@@ -118,7 +118,7 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
 
     if (memberType->isStructTy()) {
       kind = STRUCT;
-      if (memberType->getStructName() == name) {
+      if (getName(llvm::dyn_cast<StructType>(memberType)) == name) {
         memberID = id;
       } else {
         // TODO: Infinite cycle possible?
