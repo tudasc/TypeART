@@ -86,7 +86,7 @@ typeart_status typeart_get_containing_type(const void* addr, int* type, size_t* 
  * \param[in] baseAddr Pointer to the start of the containing type.
  * \param[in] offset Byte offset within the containing type.
  * \param[in] containerLayout typeart_struct_layout corresponding to the containing type
- * \param[out] subtype typeart_type_info corresponding to the subtype.
+ * \param[out] subtype The type ID corresponding to the subtype.
  * \param[out] subtype_base_addr Pointer to the start of the subtype.
  * \param[out] subtype_offset Byte offset within the subtype.
  * \param[out] subtype_count Number of elements in subarray.

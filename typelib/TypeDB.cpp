@@ -103,15 +103,6 @@ const StructTypeInfo* TypeDB::getStructInfo(int id) const {
   return nullptr;
 }
 
-// TypeInfo TypeDB::getTypeInfo(int id) const {
-//  if (isBuiltinType(id)) {
-//    return TypeInfo{BUILTIN, id};
-//  }
-//  if (isStructType(id)) {
-//    return TypeInfo{STRUCT, id};
-//  }
-//  return InvalidType;
-//}
 
 const std::vector<StructTypeInfo>& TypeDB::getStructList() const {
   return structInfoList;

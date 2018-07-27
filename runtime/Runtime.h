@@ -83,7 +83,7 @@ class TypeArtRT {
    * \param[in] baseAddr Pointer to the start of the containing type.
    * \param[in] offset Byte offset within the containing type.
    * \param[in] containerInfo typeart_struct_layout corresponding to the containing type
-   * \param[out] subType TypeInfo corresponding to the subtype.
+   * \param[out] subType Type ID corresponding to the subtype.
    * \param[out] subTypeBaseAddr Pointer to the start of the subtype.
    * \param[out] subTypeOffset Byte offset within the subtype.
    * \param[out] subTypeCount Number of elements in subarray.
