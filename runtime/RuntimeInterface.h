@@ -28,11 +28,13 @@ typedef struct typeart_struct_layout_t {  // NOLINT
   size_t extent;
   size_t len;
   const size_t* offsets;
-  const typeart_type_info* member_types;
+  const int* member_types;
   const size_t* count;
 } typeart_struct_layout;
 
 /**
+ * \deprecated{Use typeart_get_type instead and check the returned type}
+ *
  * Returns the builtin type at the given address.
  *
  * \param[in] addr The address.
@@ -56,7 +58,7 @@ typeart_status typeart_get_builtin_type(const void* addr, typeart_builtin_type* 
  *  - TA_BAD_ALIGNMENT: The given address does not line up with the start of the atomic type at that location.
  *  - TA_INVALID_ID: Encountered unregistered ID during lookup.
  */
-typeart_status typeart_get_type(const void* addr, typeart_type_info* type, size_t* count);
+typeart_status typeart_get_type(const void* addr, int* type, size_t* count);
 
 /**
  * Determines the outermost type and array element count at the given address.
@@ -73,7 +75,7 @@ typeart_status typeart_get_type(const void* addr, typeart_type_info* type, size_
  * \return A status code. For an explanation of errors, refer to typeart_get_type().
  *
  */
-typeart_status typeart_get_containing_type(const void* addr, typeart_type_info* type, size_t* count,
+typeart_status typeart_get_containing_type(const void* addr, int* type, size_t* count,
                                            const void** base_address, size_t* offset);
 
 /**
@@ -95,7 +97,7 @@ typeart_status typeart_get_containing_type(const void* addr, typeart_type_info* 
  *  - TA_BAD_OFFSET: The provided offset is invalid.
  */
 typeart_status typeart_get_subtype(const void* base_addr, size_t offset, typeart_struct_layout container_layout,
-                                   typeart_type_info* subtype, const void** subtype_base_addr, size_t* subtype_offset,
+                                   int* subtype, const void** subtype_base_addr, size_t* subtype_offset,
                                    size_t* subtype_count);
 
 /**

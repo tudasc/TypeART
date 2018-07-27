@@ -110,7 +110,7 @@ int main(int argc, char** argv) {
   // CHECK: [Trace] Free 0x{{.*}}
   performTypeChecks<double>(n, TA_DOUBLE);
 
-  // CHECK: [Trace] Alloc 0x{{.*}} unknown 8 42
+  // CHECK: [Trace] Alloc 0x{{.*}} pointer 8 42
   // CHECK: Error: Unknown address
   // CHECK: Ok
   // CHECK: Ok
@@ -122,7 +122,7 @@ int main(int argc, char** argv) {
   // CHECK: Error: Bad alignment
   // CHECK: Ok
   // CHECK: [Trace] Free 0x{{.*}}
-  performTypeChecks<int*>(n, TA_UNKNOWN_TYPE);
+  performTypeChecks<int*>(n, TA_PTR);
 
   return 0;
 }

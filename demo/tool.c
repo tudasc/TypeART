@@ -41,29 +41,26 @@ void analyseBuffer(const void* buf, int count, MPI_Datatype type) {
 
     printf("Basetype(%s, addr=%p, size=%i , count=%i)\n", type_name, buf, size, count);
 
-    typeart_type_info type_info;
+    int type_id;
     size_t count_check;
-    typeart_status status = typeart_get_type(buf, &type_info, &count_check);
+    typeart_status status = typeart_get_type(buf, &type_id, &count_check);
 
     if (status == TA_OK) {
       // If the address corresponds to a struct, fetch the type of the first member
-      while (type_info.kind == STRUCT) {
+      while (type_id >= TA_NUM_RESERVED_IDS) {
         typeart_struct_layout struct_layout;
-        typeart_resolve_type(type_info.id, &struct_layout);
-        type_info = struct_layout.member_types[0];
+        typeart_resolve_type(type_id, &struct_layout);
+        type_id = struct_layout.member_types[0];
       }
 
       // fprintf(stderr, "Type id=%d, name=%s\n", type_info.id, typeart_get_type_name(type_info.id));
 
-      if (isCompatible(type, type_info.id)) {
+      if (isCompatible(type, type_id)) {
         // printf("Types are compatible\n");
       } else {
-        const char* recorded_name = typeart_get_type_name(type_info.id);
-        if (type_info.kind == POINTER) {
-          recorded_name = "Pointer";
-        }
+        const char* recorded_name = typeart_get_type_name(type_id);
 
-        fprintf(stdout, "Error: Incompatible buffer of type %d (%s) - expected %s instead\n", type_info.id,
+        fprintf(stdout, "Error: Incompatible buffer of type %d (%s) - expected %s instead\n", type_id,
                 recorded_name, type_name);
       }
 
