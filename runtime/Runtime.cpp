@@ -267,7 +267,7 @@ TypeArtRT::TypeArtStatus TypeArtRT::getSubTypeInfo(const void* baseAddr, size_t 
   size_t memberIndex = getMemberIndex(containerInfo, offset);
 
   int memberType = containerInfo.member_types[memberIndex];
-  //assert((memberType.kind == STRUCT || memberType.kind == BUILTIN || memberType.kind == POINTER) &&
+  // assert((memberType.kind == STRUCT || memberType.kind == BUILTIN || memberType.kind == POINTER) &&
   //       "Type kind typeart be either STRUCT, BUILTIN or POINTER");
 
   size_t baseOffset = containerInfo.offsets[memberIndex];
@@ -569,8 +569,8 @@ typeart_status typeart_get_type(const void* addr, int* type, size_t* count) {
   return typeart::TypeArtRT::get().getTypeInfo(addr, type, count);
 }
 
-typeart_status typeart_get_containing_type(const void* addr, int* type, size_t* count,
-                                           const void** base_address, size_t* offset) {
+typeart_status typeart_get_containing_type(const void* addr, int* type, size_t* count, const void** base_address,
+                                           size_t* offset) {
   typeart::Recorder::get().incUsedInRequest(addr);
   return typeart::TypeArtRT::get().getContainingTypeInfo(addr, type, count, base_address, offset);
 }

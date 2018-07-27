@@ -75,8 +75,8 @@ typeart_status typeart_get_type(const void* addr, int* type, size_t* count);
  * \return A status code. For an explanation of errors, refer to typeart_get_type().
  *
  */
-typeart_status typeart_get_containing_type(const void* addr, int* type, size_t* count,
-                                           const void** base_address, size_t* offset);
+typeart_status typeart_get_containing_type(const void* addr, int* type, size_t* count, const void** base_address,
+                                           size_t* offset);
 
 /**
  * Determines the subtype at the given offset w.r.t. a base address and a corresponding containing type.

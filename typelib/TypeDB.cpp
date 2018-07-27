@@ -13,11 +13,14 @@ std::string TypeDB::BuiltinNames[] = {"int8",   "int16",    "int32",       "int6
                                       "double", "float128", "x86_float80", "ppc_float128", "pointer"};
 
 // TODO: Builtin ID changes lead to wrong type sizes/names
-size_t TypeDB::BuiltinSizes[] = {1,  2, 4, 8, 2, 4, 8, 16,
+size_t TypeDB::BuiltinSizes[] = {1,  2,
+                                 4,  8,
+                                 2,  4,
+                                 8,  16,
                                  16,  // TODO: Always correct?
                                  16, sizeof(void*)};
 
-//TypeInfo TypeDB::InvalidType = TypeInfo{BUILTIN, TA_UNKNOWN_TYPE};
+// TypeInfo TypeDB::InvalidType = TypeInfo{BUILTIN, TA_UNKNOWN_TYPE};
 
 std::string TypeDB::UnknownStructName{"UnknownStruct"};
 
@@ -100,7 +103,7 @@ const StructTypeInfo* TypeDB::getStructInfo(int id) const {
   return nullptr;
 }
 
-//TypeInfo TypeDB::getTypeInfo(int id) const {
+// TypeInfo TypeDB::getTypeInfo(int id) const {
 //  if (isBuiltinType(id)) {
 //    return TypeInfo{BUILTIN, id};
 //  }
