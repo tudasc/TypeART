@@ -5,7 +5,6 @@
 extern "C" {
 #endif
 
-
 typedef enum typeart_builtin_type_t {  // NOLINT
   TA_INT8 = 0,
   TA_INT16 = 1,
@@ -32,7 +31,6 @@ typedef enum typeart_builtin_type_t {  // NOLINT
   TA_UNKNOWN_TYPE = 255,
   TA_NUM_RESERVED_IDS = TA_UNKNOWN_TYPE + 1
 } typeart_builtin_type;
-
 
 #ifdef __cplusplus
 }

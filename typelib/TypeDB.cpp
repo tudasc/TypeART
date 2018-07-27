@@ -103,7 +103,6 @@ const StructTypeInfo* TypeDB::getStructInfo(int id) const {
   return nullptr;
 }
 
-
 const std::vector<StructTypeInfo>& TypeDB::getStructList() const {
   return structInfoList;
 }
