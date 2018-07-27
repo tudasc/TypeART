@@ -2,7 +2,6 @@
 #define RUNTIME_RUNTIME_H_
 
 #include "RuntimeInterface.h"
-#include "StackWrapper.h"
 #include "TypeDB.h"
 
 #include <map>
@@ -31,7 +30,7 @@ struct PointerInfo {
 class TypeArtRT {
  public:
   using TypeArtStatus = typeart_status;
-  using Stack = StackWrapper<std::vector<const void*>>;
+  using Stack = std::vector<const void*>;
   using PointerMap = std::map<const void*, PointerInfo>;
   using MapEntry = PointerMap::value_type;
 
