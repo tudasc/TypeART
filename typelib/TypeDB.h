@@ -7,8 +7,8 @@
 
 #include "TypeInterface.h"
 
-#include <map>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace typeart {
@@ -61,7 +61,7 @@ class TypeDB {
 
  private:
   std::vector<StructTypeInfo> structInfoList;
-  std::map<int, int> id2Idx;
+  std::unordered_map<int, int> id2Idx;
 };
 }  // namespace typeart
 

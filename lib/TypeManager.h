@@ -6,6 +6,8 @@
 #include <TypeDB.h>
 #include <llvm/IR/DataLayout.h>
 
+#include <map>
+
 namespace typeart {
 
 class TypeManager {
