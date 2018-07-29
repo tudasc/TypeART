@@ -65,7 +65,7 @@ class CallFilter::FilterImpl {
   const std::string call_regex;
   bool malloc_mode{false};
   llvm::Function* start_f{nullptr};
-
+  int depth{0};
  public:
   explicit FilterImpl(const std::string& glob) : call_regex(util::glob2regex(glob)) {
   }
@@ -76,13 +76,16 @@ class CallFilter::FilterImpl {
 
   void setStartingFunction(llvm::Function* start) {
     start_f = start;
+    depth = 0;
   }
 
-  bool filter(Value* in) const {
+  bool filter(Value* in) {
     if (in == nullptr) {
       LOG_DEBUG("Called with nullptr");
       return false;
     }
+    if(depth == 15)
+      return false;
 
     const auto match = [&](auto callee) -> bool {
       const auto name = FilterImpl::getName(callee);
@@ -170,12 +173,12 @@ class CallFilter::FilterImpl {
       // cont. our search
       addToWork(val->users());
     }
-
+    ++depth;
     return std::all_of(working_set_calls.begin(), working_set_calls.end(), [&](CallSite c) { return filter(c, in); });
   }
 
  private:
-  bool filter(CallSite& csite, Value* in) const {
+  bool filter(CallSite& csite, Value* in) {
     const auto analyse_arg = [&](auto& csite, auto argNum) -> bool {
       Argument& the_arg = *(csite.getCalledFunction()->arg_begin() + argNum);
       LOG_DEBUG("Calling filter with inst of argument: " << util::dump(the_arg));
@@ -209,7 +212,7 @@ class CallFilter::FilterImpl {
     return true;
   }
 
-  bool filter(Argument* arg) const {
+  bool filter(Argument* arg) {
     for (auto* user : arg->users()) {
       LOG_DEBUG("Looking at arg user " << util::dump(*user));
       // This code is for non mem2reg code (i.e., where the argument is stored to a local alloca):

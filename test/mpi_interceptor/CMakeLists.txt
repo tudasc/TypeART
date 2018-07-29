@@ -38,6 +38,13 @@ if(${MPI_C_FOUND} AND ${PYTHONINTERP_FOUND})
     typeart-rt
     ${MPI_C_LIBRARIES}
   )
+
+  install(
+    TARGETS interceptor-rt
+    EXPORT ${TARGETS_EXPORT_NAME}
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib/static
+  )
 else()
   message(STATUS "Cannot build mpi interceptor-rt lib. MPI found: " ${MPI_C_FOUND} " and python found: " ${PYTHONINTERP_FOUND})
 endif()
