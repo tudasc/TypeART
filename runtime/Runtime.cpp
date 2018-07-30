@@ -187,7 +187,8 @@ inline static std::string toString(const void* addr, int typeId, size_t count, s
 }
 
 inline static std::string toString(const void* addr, const PointerInfo& info) {
-  return toString(addr, info.typeId, info.count, info.typeSize, -1);
+  auto typeSize = TypeArtRT::get().getTypeSize(info.typeId);
+  return toString(addr, info.typeId, info.count, typeSize, -1);
 }
 
 TypeArtRT::TypeArtRT() {
@@ -409,6 +410,8 @@ TypeArtRT::TypeArtStatus TypeArtRT::getContainingTypeInfo(const void* addr, type
     const auto& basePtrInfo = ptrData.getValue().second;
     auto basePtr = ptrData.getValue().first;
 
+    size_t typeSize = getTypeSize(basePtrInfo.typeId);
+
     // Check for exact match -> no further checks and offsets calculations needed
     if (basePtr == addr) {
       *type = typeDB.getTypeInfo(basePtrInfo.typeId);
@@ -419,12 +422,12 @@ TypeArtRT::TypeArtStatus TypeArtRT::getContainingTypeInfo(const void* addr, type
     }
 
     // The address points inside a known array
-    const void* blockEnd = addByteOffset(basePtr, basePtrInfo.count * basePtrInfo.typeSize);
+    const void* blockEnd = addByteOffset(basePtr, basePtrInfo.count * typeSize);
 
     // Ensure that the given address is in bounds and points to the start of an element
     if (addr >= blockEnd) {
       const std::ptrdiff_t offset = static_cast<const uint8_t*>(addr) - static_cast<const uint8_t*>(basePtr);
-      const auto oob_index = (offset / basePtrInfo.typeSize) - basePtrInfo.count + 1;
+      const auto oob_index = (offset / typeSize) - basePtrInfo.count + 1;
       LOG_ERROR("Out of bounds for the lookup: (" << toString(addr, basePtrInfo)
                                                   << ") #Elements too far: " << oob_index);
       return TA_UNKNOWN_ADDRESS;
@@ -434,10 +437,10 @@ TypeArtRT::TypeArtStatus TypeArtRT::getContainingTypeInfo(const void* addr, type
     size_t addrDif = reinterpret_cast<size_t>(addr) - reinterpret_cast<size_t>(basePtr);
 
     // Offset of the pointer w.r.t. the start of the containing type
-    size_t internalOffset = addrDif % basePtrInfo.typeSize;
+    size_t internalOffset = addrDif % typeSize;
 
     // Array index
-    size_t typeOffset = addrDif / basePtrInfo.typeSize;
+    size_t typeOffset = addrDif / typeSize;
     size_t typeCount = basePtrInfo.count - typeOffset;
 
     // Retrieve and return type information
@@ -485,6 +488,15 @@ const std::string& TypeArtRT::getTypeName(int id) const {
   return typeDB.getTypeName(id);
 }
 
+size_t TypeArtRT::getTypeSize(int id) const {
+  auto type = typeDB.getTypeInfo(id);
+  auto size = typeDB.getTypeSize(type);
+  if (size == 0 && id == TA_UNKNOWN_TYPE) {
+    size = sizeof(void*);  // FIXME: This is super hacky, but will be fixed after type kind elimination
+  }
+  return size;
+}
+
 void TypeArtRT::getReturnAddress(const void* addr, const void** retAddr) const {
   auto basePtr = findBaseAddress(addr);
 
@@ -511,7 +523,6 @@ void TypeArtRT::onAlloc(const void* addr, int typeId, size_t count, size_t typeS
 
   def.typeId = typeId;
   def.count = count;
-  def.typeSize = typeSize;
   def.debug = retAddr;
 
   if (isLocal) {
