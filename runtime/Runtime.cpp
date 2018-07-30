@@ -84,13 +84,13 @@ class AccessRecorder {
     };
 
     buf << "------------\nAlloc Stats from softcounters\n"
-        << "Total Heap Allocs:\t\t" << heapAllocs << "\n"
-        << "Total Stack Allocs:\t\t" << stackAllocs << "\n"
+        << "Total Calls .onAlloc [heap]:\t" << heapAllocs << "\n"
+        << "Total Calls .onAlloc [stack]:\t" << stackAllocs << "\n"
         << "Max. Heap Allocs:\t\t" << maxHeapAllocs << "\n"
         << "Max. Stack Allocs:\t\t" << maxStackAllocs << "\n"
-        << "Distinct Pointers checked:\t" << seen.size() << "\n"
         << "Addresses re-used:\t\t" << addrReuses << "\n"
         << "Addresses missed:\t\t" << addrMissing << "\n"
+        << "Distinct Addresses checked:\t" << seen.size() << "\n"
         << "Distinct Addresses missed:\t" << missing.size() << "\n"
         << "Estimated mem consumption:\t" << estMemConsumption << " bytes = " << getStr(estMemConsumptionKByte)
         << " kiB\n"

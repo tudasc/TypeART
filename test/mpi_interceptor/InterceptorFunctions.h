@@ -26,11 +26,13 @@ void ta_check_void(const char* name, const void* called_from, const void* buf) {
 }
 
 int ta_check_exists(const char* mpi_name, const void* called_from, const void* buf, int const_adr) {
-  if (buf == NULL) {
-    return -1;
-  }
   int rank = 0;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  if (buf == NULL) {
+    printf("R[%d][Error][%d] Call '%s' buffer NULL\n", rank, const_adr, mpi_name); 
+    ta_print_loc(called_from);
+    return -1;
+  }
   typeart_type_info type;
   size_t count = 0;
   typeart_status typeart_status_v = typeart_get_type(buf, &type, &count);
