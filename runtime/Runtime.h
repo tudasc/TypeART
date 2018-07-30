@@ -23,7 +23,6 @@ namespace typeart {
 struct PointerInfo {
   int typeId{-1};
   size_t count{0};
-  size_t typeSize{0};
   const void* debug{nullptr};
 };
 
@@ -143,6 +142,8 @@ class TypeArtRT {
    * \return The name of the type.
    */
   const std::string& getTypeName(int id) const;
+
+  size_t getTypeSize(int id) const;
 
   void onAlloc(const void* addr, int typeID, size_t count, size_t typeSize, bool isLocal, const void* retAddr);
 
