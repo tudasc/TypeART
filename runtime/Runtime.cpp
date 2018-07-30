@@ -65,6 +65,10 @@ class AccessRecorder {
     ++addrReuses;
   }
 
+  inline void incAddrChecked() {
+    ++addrChecked;
+  }
+
   inline void incAddrMissing(const void* addr) {
     ++addrMissing;
     missing.insert(addr);
@@ -91,6 +95,7 @@ class AccessRecorder {
         << "Addresses re-used:\t\t" << addrReuses << "\n"
         << "Addresses missed:\t\t" << addrMissing << "\n"
         << "Distinct Addresses checked:\t" << seen.size() << "\n"
+        << "Addresses checked:\t\t" << addrChecked << "\n"
         << "Distinct Addresses missed:\t" << missing.size() << "\n"
         << "Estimated mem consumption:\t" << estMemConsumption << " bytes = " << getStr(estMemConsumptionKByte)
         << " kiB\n"
@@ -120,6 +125,7 @@ class AccessRecorder {
   long long curStackAllocs = 0;
   long long addrReuses = 0;
   long long addrMissing = 0;
+  long long addrChecked = 0;
   std::unordered_set<const void*> missing;
   std::unordered_set<const void*> seen;
 };
@@ -142,6 +148,8 @@ class NoneRecorder {
   inline void incAddrReuse() {
   }
   inline void incAddrMissing(const void*) {
+  }
+  inline void incAddrChecked() {
   }
   inline void printStats() const {
   }
@@ -363,6 +371,7 @@ TypeArtRT::TypeArtStatus TypeArtRT::getTypeInfo(const void* addr, typeart::TypeI
 
   // First, retrieve the containing type
   TypeArtStatus status = getContainingTypeInfo(addr, &containingType, &containingTypeCount, &baseAddr, &internalOffset);
+  typeart::Recorder::get().incAddrChecked();
   if (status != TA_OK) {
     if (TA_UNKNOWN_ADDRESS) {
       typeart::Recorder::get().incAddrMissing(addr);
