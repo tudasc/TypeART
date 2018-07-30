@@ -483,11 +483,10 @@ size_t TypeArtRT::getTypeSize(int id) const {
   auto type = typeDB.getTypeInfo(id);
   auto size = typeDB.getTypeSize(type);
   if (size == 0 && id == TA_UNKNOWN_TYPE) {
-    size = sizeof(void*); // FIXME: This is super hacky, but will be fixed after type kind elimination
+    size = sizeof(void*);  // FIXME: This is super hacky, but will be fixed after type kind elimination
   }
   return size;
 }
-
 
 void TypeArtRT::getReturnAddress(const void* addr, const void** retAddr) const {
   auto basePtr = findBaseAddress(addr);
