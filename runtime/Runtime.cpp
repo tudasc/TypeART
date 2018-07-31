@@ -58,15 +58,12 @@ class AccessRecorder {
   }
 
   inline void incUsedInRequest(const void* addr) {
+    ++addrChecked;
     seen.insert(addr);
   }
 
   inline void incAddrReuse() {
     ++addrReuses;
-  }
-
-  inline void incAddrChecked() {
-    ++addrChecked;
   }
 
   inline void incAddrMissing(const void* addr) {
@@ -148,8 +145,6 @@ class NoneRecorder {
   inline void incAddrReuse() {
   }
   inline void incAddrMissing(const void*) {
-  }
-  inline void incAddrChecked() {
   }
   inline void printStats() const {
   }
@@ -372,7 +367,6 @@ TypeArtRT::TypeArtStatus TypeArtRT::getTypeInfo(const void* addr, typeart::TypeI
 
   // First, retrieve the containing type
   TypeArtStatus status = getContainingTypeInfo(addr, &containingType, &containingTypeCount, &baseAddr, &internalOffset);
-  typeart::Recorder::get().incAddrChecked();
   if (status != TA_OK) {
     if (TA_UNKNOWN_ADDRESS) {
       typeart::Recorder::get().incAddrMissing(addr);
@@ -581,7 +575,6 @@ void __typeart_leave_scope(size_t alloca_count) {
 }
 
 typeart_status typeart_get_builtin_type(const void* addr, typeart::BuiltinType* type) {
-  typeart::Recorder::get().incUsedInRequest(addr);
   return typeart::TypeArtRT::get().getBuiltinInfo(addr, type);
 }
 
@@ -592,14 +585,12 @@ typeart_status typeart_get_type(const void* addr, typeart::TypeInfo* type, size_
 
 typeart_status typeart_get_containing_type(const void* addr, typeart::TypeInfo* type, size_t* count,
                                            const void** base_address, size_t* offset) {
-  typeart::Recorder::get().incUsedInRequest(addr);
   return typeart::TypeArtRT::get().getContainingTypeInfo(addr, type, count, base_address, offset);
 }
 
 typeart_status typeart_get_subtype(const void* base_addr, size_t offset, typeart_struct_layout container_layout,
                                    typeart::TypeInfo* subtype, const void** subtype_base_addr, size_t* subtype_offset,
                                    size_t* subtype_count) {
-  typeart::Recorder::get().incUsedInRequest(base_addr);
   return typeart::TypeArtRT::get().getSubTypeInfo(base_addr, offset, container_layout, subtype, subtype_base_addr,
                                                   subtype_offset, subtype_count);
 }
