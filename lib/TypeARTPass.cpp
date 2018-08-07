@@ -94,7 +94,14 @@ bool TypeArtPass::doInitialization(Module& m) {
 
   for (auto& global : m.getGlobalList()) {
     LOG_DEBUG(util::dump(global));
-    // TODO: Filtering
+
+    if (global.getName().startswith("llvm.")) {
+      LOG_DEBUG("Detected LLVM global " << global.getName() << " - skipping...");
+      continue;
+    }
+
+    // TODO: Better filtering
+
     auto type = global.getValueType();
 
     unsigned arraySize = 1;
