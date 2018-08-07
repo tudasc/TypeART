@@ -27,6 +27,29 @@ if(SOFTCOUNTERS)
 	)
 endif()
 
+if(USE_BTREE)
+  include(ExternalProject)
+  ExternalProject_Add(
+      cpp-btree
+      GIT_REPOSITORY https://github.com/ahueck/cpp-btree.git
+      PREFIX ${CMAKE_CURRENT_BINARY_DIR}/cpp-btree
+      CONFIGURE_COMMAND ""
+      BUILD_COMMAND ""
+      INSTALL_COMMAND ""
+      TEST_COMMAND ""
+  )
+  
+  ExternalProject_Get_Property(cpp-btree SOURCE_DIR)
+  set(cppbtree_INCLUDE_DIR ${SOURCE_DIR})
+  
+  target_include_directories(typeart-rt PRIVATE 
+    ${cppbtree_INCLUDE_DIR}
+  ) 
+  target_project_compile_definitions(typeart-rt
+    PRIVATE_DEFS USE_BTREE
+  )
+endif()
+
 target_link_libraries(typeart-rt 
   ${RUNTIME_LIB_DEPS}
 )
@@ -59,7 +82,6 @@ target_link_libraries(typeart-rt
 make_tidy_check(typeart-rt
   "${RUNTIME_LIB_SOURCES}"
 )
-
 
 install(
   TARGETS typeart-rt

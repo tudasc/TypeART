@@ -13,6 +13,10 @@
 #include <string>
 #include <unordered_set>
 
+#ifdef USE_BTREE
+using namespace btree;
+#endif
+
 namespace typeart {
 namespace softcounter {
 /**

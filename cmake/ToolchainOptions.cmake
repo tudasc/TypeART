@@ -13,6 +13,7 @@ set(LOG_LEVEL 3 CACHE STRING "Granularity of logger. 3 ist most verbose, 0 is le
 option(MPI_LOGGER "Whether the logger should use MPI." OFF)
 option(MPI_INTERCEPT_LIB "Build MPI interceptor library, requires wrap.py generator file." OFF)
 option(SOFTCOUNTERS "Enable software tracking of #tracked addrs. / #distinct checks / etc." OFF)
+option(USE_BTREE "Enable usage of btree-backed map instead of std::map for the runtime." OFF)
 
 if(MPI_LOGGER)
   find_package(MPI REQUIRED)
