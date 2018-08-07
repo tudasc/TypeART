@@ -109,6 +109,14 @@ bool TypeArtPass::doInitialization(Module& m) {
       arraySize = tu::getArrayLengthFlattened(type);
       type = tu::getArrayElementType(type);
     }
+
+    if (auto structType = dyn_cast<StructType>(type)) {
+        if (structType->isOpaque()) {
+          LOG_ERROR("Encountered opaque struct " << type->getStructName() << " - skipping...");
+          continue;
+        }
+    }
+
     int typeId = typeManager.getOrRegisterType(type, dl);
     unsigned typeSize = tu::getTypeSizeInBytes(type, dl);
 
