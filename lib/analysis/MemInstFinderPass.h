@@ -48,6 +48,7 @@ class MemInstFinderPass : public llvm::FunctionPass {
  public:
   static char ID;
   MemInstFinderPass();
+  bool doInitialization(llvm::Module&) override;
   bool runOnFunction(llvm::Function&) override;
   void getAnalysisUsage(llvm::AnalysisUsage&) const override;
   bool doFinalization(llvm::Module&) override;

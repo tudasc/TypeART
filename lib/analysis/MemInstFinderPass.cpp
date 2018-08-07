@@ -66,6 +66,7 @@ class CallFilter::FilterImpl {
   bool malloc_mode{false};
   llvm::Function* start_f{nullptr};
   int depth{0};
+
  public:
   explicit FilterImpl(const std::string& glob) : call_regex(util::glob2regex(glob)) {
   }
@@ -84,7 +85,7 @@ class CallFilter::FilterImpl {
       LOG_DEBUG("Called with nullptr");
       return false;
     }
-    if(depth == 15)
+    if (depth == 15)
       return false;
 
     const auto match = [&](auto callee) -> bool {
@@ -315,6 +316,11 @@ MemInstFinderPass::MemInstFinderPass() : llvm::FunctionPass(ID), mOpsCollector()
 
 void MemInstFinderPass::getAnalysisUsage(llvm::AnalysisUsage& info) const {
   info.setPreservesAll();
+}
+
+bool MemInstFinderPass::doInitialization(llvm::Module& module) {
+  // TODO: Needed?
+  return false;
 }
 
 bool MemInstFinderPass::runOnFunction(llvm::Function& f) {

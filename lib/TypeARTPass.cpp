@@ -11,7 +11,9 @@
 #include "llvm/IR/Module.h"
 #include "llvm/Support/Format.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
+#include "llvm/Transforms/Utils/CtorUtils.h"
 #include "llvm/Transforms/Utils/EscapeEnumerator.h"
+#include "llvm/Transforms/Utils/ModuleUtils.h"
 
 #include <iostream>
 #include <sstream>
@@ -72,9 +74,52 @@ bool TypeArtPass::doInitialization(Module& m) {
    * Also scan the LLVM module for type definitions and add them to our type list.
    */
 
-  //  declareInstrumentationFunctions(m);
+  declareInstrumentationFunctions(m);
 
   propagateTypeInformation(m);
+
+  // Find globals
+  LOG_DEBUG("Collecting global variables in module " << m.getSourceFileName() << "...");
+  DataLayout dl(&m);
+
+  auto& c = m.getContext();
+
+  auto ctorFunctionName = "__typeart_init_module_" + m.getSourceFileName();
+
+  FunctionType* ctorType = FunctionType::get(llvm::Type::getVoidTy(c), false);
+  Function* ctorFunction = Function::Create(ctorType, Function::PrivateLinkage, ctorFunctionName, &m);
+
+  BasicBlock* entry = BasicBlock::Create(c, "entry", ctorFunction);
+  IRBuilder<> IRB(entry);
+
+  for (auto& global : m.getGlobalList()) {
+    LOG_DEBUG(util::dump(global));
+    // TODO: Filtering
+    auto type = global.getValueType();
+
+    unsigned arraySize = 1;
+    if (type->isArrayTy()) {
+      arraySize = tu::getArrayLengthFlattened(type);
+      type = tu::getArrayElementType(type);
+    }
+    int typeId = typeManager.getOrRegisterType(type, dl);
+    unsigned typeSize = tu::getTypeSizeInBytes(type, dl);
+
+    auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), typeId);
+    auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
+    auto numElementsConst = ConstantInt::get(tu::getInt64Type(c), arraySize);
+    auto isLocalConst = ConstantInt::get(tu::getInt32Type(c), 0);
+
+    auto globalPtr = IRB.CreateBitOrPointerCast(&global, tu::getVoidPtrType(c));
+
+    LOG_DEBUG(util::dump(*globalPtr));
+
+    IRB.CreateCall(typeart_alloc.f,
+                   ArrayRef<Value*>{globalPtr, typeIdConst, numElementsConst, typeSizeConst, isLocalConst});
+  }
+  IRB.CreateRetVoid();
+
+  llvm::appendToGlobalCtors(m, ctorFunction, 0, nullptr);
 
   return true;
 }
