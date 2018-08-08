@@ -324,10 +324,10 @@ bool MemInstFinderPass::doInitialization(llvm::Module& module) {
 }
 
 bool MemInstFinderPass::runOnFunction(llvm::Function& f) {
-    // Ignore our own functions
-    if (f.getName().startswith("__typeart")) {
-        return false;
-    }
+  // Ignore our own functions
+  if (f.getName().startswith("__typeart")) {
+    return false;
+  }
 
   LOG_DEBUG("Running on function: " << f.getName())
 

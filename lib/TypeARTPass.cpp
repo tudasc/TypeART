@@ -56,6 +56,207 @@ char TypeArtPass::ID = 0;
 
 // std::unique_ptr<TypeMapping> TypeArtPass::typeMapping = std::make_unique<SimpleTypeMapping>();
 
+class FilterImpl {
+  const std::string call_regex;
+  bool malloc_mode{false};
+  int depth{0};
+
+ public:
+  explicit FilterImpl(const std::string& glob) : call_regex(util::glob2regex(glob)) {
+  }
+
+  void setMode(bool search_malloc) {
+    malloc_mode = search_malloc;
+  }
+
+  bool filter(Value* in) {
+    if (in == nullptr) {
+      LOG_DEBUG("Called with nullptr");
+      return false;
+    }
+    if (depth == 15)
+      return false;
+
+    const auto match = [&](auto callee) -> bool {
+      const auto name = FilterImpl::getName(callee);
+      return util::regex_matches(call_regex, name);
+    };
+
+    llvm::SmallPtrSet<Value*, 16> visited_set;
+    llvm::SmallVector<Value*, 16> working_set;
+    llvm::SmallVector<CallSite, 8> working_set_calls;
+
+    const auto addToWork = [&visited_set, &working_set](auto vals) {
+      for (auto v : vals) {
+        if (visited_set.find(v) == visited_set.end()) {
+          working_set.push_back(v);
+          visited_set.insert(v);
+        }
+      }
+    };
+
+    const auto peek = [&working_set]() -> Value* {
+      auto user_iter = working_set.end() - 1;
+      working_set.erase(user_iter);
+      return *user_iter;
+    };
+
+    // Seed working set with users of value (e.g., our AllocaInst)
+    addToWork(in->users());
+
+    // Search through all users of users of .... (e.g., our AllocaInst)
+    while (!working_set.empty()) {
+      auto val = peek();
+
+      // If we encounter a callsite, we want to analyze later, or quit in case we have a regex match
+      CallSite c(val);
+      if (c.isCall()) {
+        const auto callee = c.getCalledFunction();
+        const bool indirect_call = callee == nullptr;
+
+        if (indirect_call) {
+          LOG_DEBUG("Found an indirect call, not filtering alloca: " << util::dump(*val));
+          return false;  // Indirect calls might contain critical function calls.
+        }
+
+        const bool is_decl = callee->isDeclaration();
+        // FIXME the MPI calls are all hitting this branch (obviously)
+        if (is_decl) {
+          LOG_DEBUG("Found call with declaration only. Call: " << util::dump(*c.getInstruction()));
+          if (c.getIntrinsicID() == Intrinsic::ID::not_intrinsic) {
+            if (match(callee) && shouldContinue(c, in)) {
+              continue;
+            }
+            return false;
+          } else {
+            LOG_DEBUG("Call is an intrinsic. Continue analyzing...")
+            continue;
+          }
+        }
+
+        if (match(callee)) {
+          LOG_DEBUG("Found a call. Call: " << util::dump(*c.getInstruction()));
+          if (shouldContinue(c, in)) {
+            continue;
+          }
+          return false;
+        }
+
+        working_set_calls.push_back(c);
+        // Caveat: below at the end of the loop, we add users of the function call to the search even though it might be
+        // a simple "sink" for the alloca we analyse
+      } else if (auto store = llvm::dyn_cast<StoreInst>(val)) {
+        // If we encounter a store, we follow the store target pointer.
+        // More inclusive than strictly necessary in some cases.
+        LOG_DEBUG("Store found: " << util::dump(*store)
+                                  << " Store target has users: " << util::dump(store->getPointerOperand()->users()));
+        auto store_target = store->getPointerOperand();
+        // FIXME here we check store operand, if target is another alloca, we already track that?:
+        // Note: if we apply this to malloc filtering, this might become problematic?
+        if (!malloc_mode && llvm::isa<AllocaInst>(store_target)) {
+          LOG_DEBUG("Target is alloca, skipping!");
+        } else {
+          addToWork(store_target->users());
+        }
+        continue;
+      }
+      // cont. our search
+      addToWork(val->users());
+    }
+    ++depth;
+    return std::all_of(working_set_calls.begin(), working_set_calls.end(), [&](CallSite c) { return filter(c, in); });
+  }
+
+ private:
+  bool filter(CallSite& csite, Value* in) {
+    const auto analyse_arg = [&](auto& csite, auto argNum) -> bool {
+      Argument& the_arg = *(csite.getCalledFunction()->arg_begin() + argNum);
+      LOG_DEBUG("Calling filter with inst of argument: " << util::dump(the_arg));
+      const bool filter_arg = filter(&the_arg);
+      LOG_DEBUG("Should filter? : " << filter_arg);
+      return filter_arg;
+    };
+
+    LOG_DEBUG("Analyzing function call " << csite.getCalledFunction()->getName());
+
+    // this only works if we can correlate alloca with argument:
+    const auto pos = std::find_if(csite.arg_begin(), csite.arg_end(),
+                                  [&in](const Use& arg_use) -> bool { return arg_use.get() == in; });
+    // auto pos = csite.arg_end();
+    if (pos != csite.arg_end()) {
+      const auto argNum = std::distance(csite.arg_begin(), pos);
+      LOG_DEBUG("Found exact position: " << argNum);
+      return analyse_arg(csite, argNum);
+    } else {
+      LOG_DEBUG("Analyze all args, cannot correlate alloca with arg.");
+      return std::all_of(csite.arg_begin(), csite.arg_end(), [&csite, &analyse_arg](const Use& arg_use) {
+        auto argNum = csite.getArgumentNo(&arg_use);
+        return analyse_arg(csite, argNum);
+      });
+    }
+
+    return true;
+  }
+
+  bool filter(Argument* arg) {
+    for (auto* user : arg->users()) {
+      LOG_DEBUG("Looking at arg user " << util::dump(*user));
+      // This code is for non mem2reg code (i.e., where the argument is stored to a local alloca):
+      if (auto store = llvm::dyn_cast<StoreInst>(user)) {
+        // if (auto* alloca = llvm::dyn_cast<AllocaInst>(store->getPointerOperand())) {
+        //  LOG_DEBUG("Argument is a store inst and the operand is alloca");
+        return filter(store->getPointerOperand());
+        // }
+      }
+    }
+    return filter(llvm::dyn_cast<Value>(arg));
+  }
+
+  bool shouldContinue(CallSite c, Value* in) const {
+    LOG_DEBUG("Found a name match, analyzing closer...");
+    const auto is_void_ptr = [](Type* type) {
+      return type->isPointerTy() && type->getPointerElementType()->isIntegerTy(8);
+    };
+    const auto arg_pos = llvm::find_if(c.args(), [&in](const Use& arg_use) -> bool { return arg_use.get() == in; });
+    if (arg_pos == c.arg_end()) {
+      // we had no direct correlation for the arg position
+      // Now checking if void* is passed, if not we can potentially filter!
+      auto count_void_ptr = llvm::count_if(c.args(), [&is_void_ptr](const auto& arg) {
+        const auto type = arg->getType();
+        return is_void_ptr(type);
+      });
+      if (count_void_ptr > 0) {
+        LOG_DEBUG("Call takes a void*, filtering.");
+        return false;
+      }
+      LOG_DEBUG("Call has no void* argument");
+    } else {
+      // We have an arg_pos match
+      const auto argNum = std::distance(c.arg_begin(), arg_pos);
+      Argument& the_arg = *(c.getCalledFunction()->arg_begin() + argNum);
+      auto type = the_arg.getType();
+      if (is_void_ptr(type)) {
+        LOG_DEBUG("Call arg is a void*, filtering.");
+        return false;
+      }
+      LOG_DEBUG("Value* in is not passed as void ptr");
+    }
+    LOG_DEBUG("No filter necessary for this call, continue.");
+    return true;
+  }
+
+  static inline std::string getName(const Function* f) {
+    auto name = f->getName();
+    // FIXME figure out if we need to demangle, i.e., source is .c or .cpp
+    const auto f_name = util::demangle(name);
+    if (f_name != "") {
+      name = f_name;
+    }
+
+    return name;
+  }
+};
+
 TypeArtPass::TypeArtPass() : llvm::FunctionPass(ID), typeManager(ClTypeFile.getValue()) {
   assert(!ClTypeFile.empty() && "Default type file not set");
 }
@@ -74,97 +275,92 @@ bool TypeArtPass::doInitialization(Module& m) {
    * Also scan the LLVM module for type definitions and add them to our type list.
    */
 
-  declareInstrumentationFunctions(m);
-
   propagateTypeInformation(m);
 
-  // Find globals
-  LOG_DEBUG("Collecting global variables in module " << m.getSourceFileName() << "...");
-  DataLayout dl(&m);
+  if (!ClIgnoreHeap) {
+    declareInstrumentationFunctions(m);
 
-  auto& c = m.getContext();
+    // Find globals
+    LOG_DEBUG("Collecting global variables in module " << m.getSourceFileName() << "...");
+    DataLayout dl(&m);
 
-  const auto shouldInstrumentGlobal = [&](GlobalVariable& g) -> bool {
-    if (g.getName().startswith("llvm.")) {
-      // LOG_DEBUG("Detected LLVM global " << global.getName() << " - skipping...");
-      return false;
-    }
+    auto& c = m.getContext();
 
-    // TODO: Filter based on linkage types? (see address sanitizer)
-
-    Type* t = g.getValueType();
-    if (!t->isSized()) {
-      return false;
-    }
-
-    if (t->isArrayTy()) {
-      t = t->getArrayElementType();
-    }
-    if (auto structType = dyn_cast<StructType>(t)) {
-      if (structType->isOpaque()) {
-        LOG_DEBUG("Encountered opaque struct " << t->getStructName() << " - skipping...");
+    const auto shouldInstrumentGlobal = [&](GlobalVariable& g) -> bool {
+      if (g.getName().startswith("llvm.")) {
+        // LOG_DEBUG("Detected LLVM global " << global.getName() << " - skipping...");
         return false;
       }
+
+      // TODO: Filter based on linkage types? (see address sanitizer)
+
+      Type* t = g.getValueType();
+      if (!t->isSized()) {
+        return false;
+      }
+
+      if (t->isArrayTy()) {
+        t = t->getArrayElementType();
+      }
+      if (auto structType = dyn_cast<StructType>(t)) {
+        if (structType->isOpaque()) {
+          LOG_DEBUG("Encountered opaque struct " << t->getStructName() << " - skipping...");
+          return false;
+        }
+      }
+
+      FilterImpl filter("MPI_*");
+      return !filter.filter(&g);
+    };
+
+    const auto instrumentGlobal = [&](auto* global, auto& IRB) {
+      auto type = global->getValueType();
+
+      unsigned numElements = 1;
+      if (type->isArrayTy()) {
+        numElements = tu::getArrayLengthFlattened(type);
+        type = tu::getArrayElementType(type);
+      }
+
+      int typeId = typeManager.getOrRegisterType(type, dl);
+      unsigned typeSize = tu::getTypeSizeInBytes(type, dl);
+
+      auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), typeId);
+      auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
+      auto numElementsConst = ConstantInt::get(tu::getInt64Type(c), numElements);
+      auto isLocalConst = ConstantInt::get(tu::getInt32Type(c), 0);
+
+      auto globalPtr = IRB.CreateBitOrPointerCast(global, tu::getVoidPtrType(c));
+
+      LOG_DEBUG("Instrumenting global variable: " << util::dump(*globalPtr));
+
+      IRB.CreateCall(typeart_alloc.f,
+                     ArrayRef<Value*>{globalPtr, typeIdConst, numElementsConst, typeSizeConst, isLocalConst});
+    };
+
+    SmallVector<GlobalVariable*, 8> globalsList;
+    std::for_each(m.global_begin(), m.global_end(), [&](auto& global) {
+      if (shouldInstrumentGlobal(global)) {
+        globalsList.push_back(&global);
+      }
+    });
+
+    if (!globalsList.empty()) {
+      auto ctorFunctionName = "__typeart_init_module_" + m.getSourceFileName();
+
+      FunctionType* ctorType = FunctionType::get(llvm::Type::getVoidTy(c), false);
+      Function* ctorFunction = Function::Create(ctorType, Function::PrivateLinkage, ctorFunctionName, &m);
+
+      BasicBlock* entry = BasicBlock::Create(c, "entry", ctorFunction);
+      IRBuilder<> IRB(entry);
+
+      using namespace std::placeholders;
+      std::for_each(globalsList.begin(), globalsList.end(), std::bind(instrumentGlobal, _1, std::ref(IRB)));
+
+      IRB.CreateRetVoid();
+
+      llvm::appendToGlobalCtors(m, ctorFunction, 0, nullptr);
     }
-
-    // TODO: Filtering based on usage in MPI context
-//    for (auto* user : g.users()) {
-//      if (auto callInst = dyn_cast<CallInst>(user)) {
-//        if (callInst->getCalledFunction()->getName().startswith("MPI"))
-//          return true;
-//      }
-//    }
-
-    return true;
-  };
-
-  const auto instrumentGlobal = [&](auto* global, auto& IRB) {
-    auto type = global->getValueType();
-
-    unsigned numElements = 1;
-    if (type->isArrayTy()) {
-      numElements = tu::getArrayLengthFlattened(type);
-      type = tu::getArrayElementType(type);
-    }
-
-    int typeId = typeManager.getOrRegisterType(type, dl);
-    unsigned typeSize = tu::getTypeSizeInBytes(type, dl);
-
-    auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), typeId);
-    auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
-    auto numElementsConst = ConstantInt::get(tu::getInt64Type(c), numElements);
-    auto isLocalConst = ConstantInt::get(tu::getInt32Type(c), 0);
-
-    auto globalPtr = IRB.CreateBitOrPointerCast(global, tu::getVoidPtrType(c));
-
-    LOG_DEBUG("Instrumenting global variable: " << util::dump(*globalPtr));
-
-    IRB.CreateCall(typeart_alloc.f,
-                   ArrayRef<Value*>{globalPtr, typeIdConst, numElementsConst, typeSizeConst, isLocalConst});
-  };
-
-  SmallVector<GlobalVariable*, 8> globalsList;
-  std::for_each(m.global_begin(), m.global_end(), [&](auto& global) {
-    if (shouldInstrumentGlobal(global)) {
-      globalsList.push_back(&global);
-    }
-  });
-
-  if (!globalsList.empty()) {
-    auto ctorFunctionName = "__typeart_init_module_" + m.getSourceFileName();
-
-    FunctionType* ctorType = FunctionType::get(llvm::Type::getVoidTy(c), false);
-    Function* ctorFunction = Function::Create(ctorType, Function::PrivateLinkage, ctorFunctionName, &m);
-
-    BasicBlock* entry = BasicBlock::Create(c, "entry", ctorFunction);
-    IRBuilder<> IRB(entry);
-
-    using namespace std::placeholders;
-    std::for_each(globalsList.begin(), globalsList.end(), std::bind(instrumentGlobal, _1, std::ref(IRB)));
-
-    IRB.CreateRetVoid();
-
-    llvm::appendToGlobalCtors(m, ctorFunction, 0, nullptr);
   }
 
   return true;
