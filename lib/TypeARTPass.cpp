@@ -84,37 +84,49 @@ bool TypeArtPass::doInitialization(Module& m) {
 
   auto& c = m.getContext();
 
-  auto ctorFunctionName = "__typeart_init_module_" + m.getSourceFileName();
-
-  FunctionType* ctorType = FunctionType::get(llvm::Type::getVoidTy(c), false);
-  Function* ctorFunction = Function::Create(ctorType, Function::PrivateLinkage, ctorFunctionName, &m);
-
-  BasicBlock* entry = BasicBlock::Create(c, "entry", ctorFunction);
-  IRBuilder<> IRB(entry);
-
-  for (auto& global : m.getGlobalList()) {
-    LOG_DEBUG(util::dump(global));
-
-    if (global.getName().startswith("llvm.")) {
-      LOG_DEBUG("Detected LLVM global " << global.getName() << " - skipping...");
-      continue;
+  const auto shouldInstrumentGlobal = [&](GlobalVariable& g) -> bool {
+    if (g.getName().startswith("llvm.")) {
+      // LOG_DEBUG("Detected LLVM global " << global.getName() << " - skipping...");
+      return false;
+    }
+    if (g.getLinkage() != GlobalVariable::ExternalLinkage && g.getLinkage() != GlobalVariable::PrivateLinkage &&
+        g.getLinkage() != GlobalVariable::InternalLinkage) {
+      return false;
     }
 
-    // TODO: Better filtering
+    Type* t = g.getValueType();
+    if (!t->isSized()) {
+      return false;
+    }
 
-    auto type = global.getValueType();
+    if (t->isArrayTy()) {
+      t = t->getArrayElementType();
+    }
+    if (auto structType = dyn_cast<StructType>(t)) {
+      if (structType->isOpaque()) {
+        LOG_DEBUG("Encountered opaque struct " << t->getStructName() << " - skipping...");
+        return false;
+      }
+    }
 
-    unsigned arraySize = 1;
+    // TODO: Make this prettier/more robust
+    for (auto* user : g.users()) {
+      if (auto callInst = dyn_cast<CallInst>(user)) {
+        if (callInst->getCalledFunction()->getName().startswith("MPI"))
+          return true;
+      }
+    }
+
+    return false;
+  };
+
+  const auto instrumentGlobal = [&](auto* global, auto& IRB) {
+    auto type = global->getValueType();
+
+    unsigned numElements = 1;
     if (type->isArrayTy()) {
-      arraySize = tu::getArrayLengthFlattened(type);
+      numElements = tu::getArrayLengthFlattened(type);
       type = tu::getArrayElementType(type);
-    }
-
-    if (auto structType = dyn_cast<StructType>(type)) {
-        if (structType->isOpaque()) {
-          LOG_ERROR("Encountered opaque struct " << type->getStructName() << " - skipping...");
-          continue;
-        }
     }
 
     int typeId = typeManager.getOrRegisterType(type, dl);
@@ -122,25 +134,51 @@ bool TypeArtPass::doInitialization(Module& m) {
 
     auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), typeId);
     auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
-    auto numElementsConst = ConstantInt::get(tu::getInt64Type(c), arraySize);
+    auto numElementsConst = ConstantInt::get(tu::getInt64Type(c), numElements);
     auto isLocalConst = ConstantInt::get(tu::getInt32Type(c), 0);
 
-    auto globalPtr = IRB.CreateBitOrPointerCast(&global, tu::getVoidPtrType(c));
+    auto globalPtr = IRB.CreateBitOrPointerCast(global, tu::getVoidPtrType(c));
 
-    LOG_DEBUG(util::dump(*globalPtr));
+    LOG_DEBUG("Found global used in MPI context: " << util::dump(*globalPtr));
 
     IRB.CreateCall(typeart_alloc.f,
                    ArrayRef<Value*>{globalPtr, typeIdConst, numElementsConst, typeSizeConst, isLocalConst});
-  }
-  IRB.CreateRetVoid();
+  };
 
-  llvm::appendToGlobalCtors(m, ctorFunction, 0, nullptr);
+  SmallVector<GlobalVariable*, 8> globalsList;
+  std::for_each(m.global_begin(), m.global_end(), [&](auto& global) {
+    if (!shouldInstrumentGlobal(global)) {
+      globalsList.push_back(&global);
+    }
+  });
+
+  if (!globalsList.empty()) {
+    auto ctorFunctionName = "__typeart_init_module_" + m.getSourceFileName();
+
+    FunctionType* ctorType = FunctionType::get(llvm::Type::getVoidTy(c), false);
+    Function* ctorFunction = Function::Create(ctorType, Function::PrivateLinkage, ctorFunctionName, &m);
+
+    BasicBlock* entry = BasicBlock::Create(c, "entry", ctorFunction);
+    IRBuilder<> IRB(entry);
+
+    using namespace std::placeholders;
+    std::for_each(globalsList.begin(), globalsList.end(), std::bind(instrumentGlobal, _1, std::ref(IRB)));
+
+    IRB.CreateRetVoid();
+
+    llvm::appendToGlobalCtors(m, ctorFunction, 0, nullptr);
+  }
 
   return true;
 }
 
 bool TypeArtPass::runOnFunction(Function& f) {
   using namespace typeart;
+
+  // Ignore our own functions
+  if (f.getName().startswith("__typeart")) {
+    return false;
+  }
 
   LOG_DEBUG("Running on function: " << f.getName())
 
