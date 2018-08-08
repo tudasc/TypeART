@@ -154,7 +154,7 @@ class TypeArtRT {
 
   size_t getTypeSize(int id) const;
 
-  void onAlloc(const void* addr, int typeID, size_t count, size_t typeSize, bool isLocal, const void* retAddr);
+  void onAlloc(const void* addr, int typeID, size_t count, size_t typeSize, int isLocal, const void* retAddr);
 
   void onFree(const void* addr);
 

@@ -328,7 +328,7 @@ bool TypeArtPass::doInitialization(Module& m) {
       auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), typeId);
       auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
       auto numElementsConst = ConstantInt::get(tu::getInt64Type(c), numElements);
-      auto isLocalConst = ConstantInt::get(tu::getInt32Type(c), 0);
+      auto isLocalConst = ConstantInt::get(tu::getInt32Type(c), 2);
 
       auto globalPtr = IRB.CreateBitOrPointerCast(global, tu::getVoidPtrType(c));
 

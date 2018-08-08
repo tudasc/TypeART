@@ -505,13 +505,13 @@ void TypeArtRT::getReturnAddress(const void* addr, const void** retAddr) const {
   }
 }
 
-void TypeArtRT::onAlloc(const void* addr, int typeId, size_t count, size_t typeSize, bool isLocal,
-                        const void* retAddr) {
+void TypeArtRT::onAlloc(const void* addr, int typeId, size_t count, size_t typeSize, int isLocal, const void* retAddr) {
   auto& def = typeMap[addr];
 
   if (def.typeId == -1) {
     auto typeString = typeDB.getTypeName(typeId);
-    LOG_TRACE("Alloc " << addr << " " << typeString << " " << typeSize << " " << count << " " << (isLocal ? "S" : "H"));
+    LOG_TRACE("Alloc " << addr << " " << typeString << " " << typeSize << " " << count << " "
+                       << (isLocal == 1 ? "S" : isLocal == 0 ? "H" : "G"));
   } else {
     typeart::Recorder::get().incAddrReuse();
     LOG_ERROR("Already exists (" << retAddr << ", prev=" << def.debug
@@ -523,7 +523,7 @@ void TypeArtRT::onAlloc(const void* addr, int typeId, size_t count, size_t typeS
   def.count = count;
   def.debug = retAddr;
 
-  if (isLocal) {
+  if (isLocal == 1) {
     stackVars.push_back(addr);
   }
 }
