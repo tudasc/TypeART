@@ -13,6 +13,10 @@
 #include <string>
 #include <unordered_set>
 
+#ifdef USE_BTREE
+using namespace btree;
+#endif
+
 namespace typeart {
 namespace softcounter {
 /**
@@ -58,6 +62,7 @@ class AccessRecorder {
   }
 
   inline void incUsedInRequest(const void* addr) {
+    ++addrChecked;
     seen.insert(addr);
   }
 
@@ -91,6 +96,7 @@ class AccessRecorder {
         << "Addresses re-used:\t\t" << addrReuses << "\n"
         << "Addresses missed:\t\t" << addrMissing << "\n"
         << "Distinct Addresses checked:\t" << seen.size() << "\n"
+        << "Addresses checked:\t\t" << addrChecked << "\n"
         << "Distinct Addresses missed:\t" << missing.size() << "\n"
         << "Estimated mem consumption:\t" << estMemConsumption << " bytes = " << getStr(estMemConsumptionKByte)
         << " kiB\n"
@@ -120,6 +126,7 @@ class AccessRecorder {
   long long curStackAllocs = 0;
   long long addrReuses = 0;
   long long addrMissing = 0;
+  long long addrChecked = 0;
   std::unordered_set<const void*> missing;
   std::unordered_set<const void*> seen;
 };
@@ -572,7 +579,6 @@ void __typeart_leave_scope(size_t alloca_count) {
 }
 
 typeart_status typeart_get_builtin_type(const void* addr, typeart::BuiltinType* type) {
-  typeart::Recorder::get().incUsedInRequest(addr);
   return typeart::TypeArtRT::get().getBuiltinInfo(addr, type);
 }
 
@@ -583,14 +589,12 @@ typeart_status typeart_get_type(const void* addr, typeart::TypeInfo* type, size_
 
 typeart_status typeart_get_containing_type(const void* addr, typeart::TypeInfo* type, size_t* count,
                                            const void** base_address, size_t* offset) {
-  typeart::Recorder::get().incUsedInRequest(addr);
   return typeart::TypeArtRT::get().getContainingTypeInfo(addr, type, count, base_address, offset);
 }
 
 typeart_status typeart_get_subtype(const void* base_addr, size_t offset, typeart_struct_layout container_layout,
                                    typeart::TypeInfo* subtype, const void** subtype_base_addr, size_t* subtype_offset,
                                    size_t* subtype_count) {
-  typeart::Recorder::get().incUsedInRequest(base_addr);
   return typeart::TypeArtRT::get().getSubTypeInfo(base_addr, offset, container_layout, subtype, subtype_base_addr,
                                                   subtype_offset, subtype_count);
 }

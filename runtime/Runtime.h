@@ -4,7 +4,12 @@
 #include "RuntimeInterface.h"
 #include "TypeDB.h"
 
+#ifdef USE_BTREE
+#include "btree_map.h"
+#else
 #include <map>
+#endif
+
 #include <vector>
 
 extern "C" {
@@ -30,7 +35,11 @@ class TypeArtRT {
  public:
   using TypeArtStatus = typeart_status;
   using Stack = std::vector<const void*>;
+#ifdef USE_BTREE
+  using PointerMap = btree::btree_map<const void*, PointerInfo>;
+#else
   using PointerMap = std::map<const void*, PointerInfo>;
+#endif
   using MapEntry = PointerMap::value_type;
 
   static TypeArtRT& get() {
