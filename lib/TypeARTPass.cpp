@@ -89,11 +89,8 @@ bool TypeArtPass::doInitialization(Module& m) {
       // LOG_DEBUG("Detected LLVM global " << global.getName() << " - skipping...");
       return false;
     }
-    if (g.getLinkage() != GlobalVariable::ExternalLinkage && g.getLinkage() != GlobalVariable::PrivateLinkage &&
-        g.getLinkage() != GlobalVariable::InternalLinkage) {
-      LOG_DEBUG("Global " << g.getName() << " filtered: Linkage is " << g.getLinkage());
-      return false;
-    }
+
+    // TODO: Filter based on linkage types? (see address sanitizer)
 
     Type* t = g.getValueType();
     if (!t->isSized()) {
@@ -110,17 +107,15 @@ bool TypeArtPass::doInitialization(Module& m) {
       }
     }
 
-    // TODO: Filtering
-#if 0
-    for (auto* user : g.users()) {
-      if (auto callInst = dyn_cast<CallInst>(user)) {
-        if (callInst->getCalledFunction()->getName().startswith("MPI"))
-          return true;
-      }
-    }
-#endif
+    // TODO: Filtering based on usage in MPI context
+//    for (auto* user : g.users()) {
+//      if (auto callInst = dyn_cast<CallInst>(user)) {
+//        if (callInst->getCalledFunction()->getName().startswith("MPI"))
+//          return true;
+//      }
+//    }
 
-    return false;
+    return true;
   };
 
   const auto instrumentGlobal = [&](auto* global, auto& IRB) {
@@ -142,7 +137,7 @@ bool TypeArtPass::doInitialization(Module& m) {
 
     auto globalPtr = IRB.CreateBitOrPointerCast(global, tu::getVoidPtrType(c));
 
-    LOG_DEBUG("Found global used in MPI context: " << util::dump(*globalPtr));
+    LOG_DEBUG("Instrumenting global variable: " << util::dump(*globalPtr));
 
     IRB.CreateCall(typeart_alloc.f,
                    ArrayRef<Value*>{globalPtr, typeIdConst, numElementsConst, typeSizeConst, isLocalConst});
