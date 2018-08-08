@@ -277,7 +277,7 @@ bool TypeArtPass::doInitialization(Module& m) {
 
   propagateTypeInformation(m);
 
-  if (!ClIgnoreHeap) {
+  if (!ClIgnoreHeap.getValue()) {
     declareInstrumentationFunctions(m);
 
     // Find globals
@@ -292,9 +292,12 @@ bool TypeArtPass::doInitialization(Module& m) {
         return false;
       }
 
-      // TODO: Filter based on linkage types? (see address sanitizer)
+        if (g.getLinkage() == GlobalValue::ExternalLinkage || g.getLinkage() == GlobalValue::PrivateLinkage) {
+            return false;
+        }
 
-      Type* t = g.getValueType();
+
+        Type* t = g.getValueType();
       if (!t->isSized()) {
         return false;
       }

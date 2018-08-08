@@ -47,6 +47,10 @@ class AccessRecorder {
     ++stackAllocs;
   }
 
+  inline void incGlobalAlloc() {
+      ++globalAllocs;
+  }
+
   inline void decHeapAlloc() {
     if (curHeapAllocs > maxHeapAllocs) {
       maxHeapAllocs = curHeapAllocs;
@@ -91,6 +95,7 @@ class AccessRecorder {
     buf << "------------\nAlloc Stats from softcounters\n"
         << "Total Calls .onAlloc [heap]:\t" << heapAllocs << "\n"
         << "Total Calls .onAlloc [stack]:\t" << stackAllocs << "\n"
+        << "Total Calls .onAlloc [global]:\t" << globalAllocs << "\n"
         << "Max. Heap Allocs:\t\t" << maxHeapAllocs << "\n"
         << "Max. Stack Allocs:\t\t" << maxStackAllocs << "\n"
         << "Addresses re-used:\t\t" << addrReuses << "\n"
@@ -120,6 +125,7 @@ class AccessRecorder {
   const int mapSize = sizeof(TypeArtRT::PointerMap);            // Map overhead
   long long heapAllocs = 0;
   long long stackAllocs = 0;
+  long long globalAllocs = 0;
   long long maxHeapAllocs = 0;
   long long maxStackAllocs = 0;
   long long curHeapAllocs = 0;
@@ -139,6 +145,8 @@ class NoneRecorder {
   inline void incHeapAlloc() {
   }
   inline void incStackAlloc() {
+  }
+  inline void incGlobalAlloc() {
   }
   inline void incUsedInRequest(const void*) {
   }
@@ -173,14 +181,14 @@ inline const void* addByteOffset(const void* addr, T offset) {
   return static_cast<const void*>(static_cast<const uint8_t*>(addr) + offset);
 }
 
-inline static std::string toString(const void* addr, int typeId, size_t count, size_t typeSize, int isLocal) {
+inline static std::string toString(const void* addr, int typeId, size_t count, size_t typeSize, int memRegion) {
   std::stringstream s;
   // clang-format off
   s << addr
     << ". typeId: " << typeId
     << ". count: " << count
     << ". typeSize " << typeSize
-    << ". local: " << isLocal;
+    << ". memRegion: " << memRegion;
   // clang-format on
   return s.str();
 }
@@ -227,8 +235,8 @@ bool TypeArtRT::loadTypes(const std::string& file) {
 void TypeArtRT::printTraceStart() const {
   LOG_TRACE("TypeART Runtime Trace");
   LOG_TRACE("**************************");
-  LOG_TRACE("Operation  Address   Type   Size   Count  Stack/Heap");
-  LOG_TRACE("--------------------------------------------------------");
+  LOG_TRACE("Operation  Address   Type   Size   Count  Stack/Heap/Global");
+  LOG_TRACE("-----------------------------------------------------------");
 }
 
 llvm::Optional<TypeArtRT::MapEntry> TypeArtRT::findBaseAddress(const void* addr) const {
@@ -505,17 +513,17 @@ void TypeArtRT::getReturnAddress(const void* addr, const void** retAddr) const {
   }
 }
 
-void TypeArtRT::onAlloc(const void* addr, int typeId, size_t count, size_t typeSize, int isLocal, const void* retAddr) {
+void TypeArtRT::onAlloc(const void* addr, int typeId, size_t count, size_t typeSize, int memRegion, const void* retAddr) {
   auto& def = typeMap[addr];
 
   if (def.typeId == -1) {
     auto typeString = typeDB.getTypeName(typeId);
     LOG_TRACE("Alloc " << addr << " " << typeString << " " << typeSize << " " << count << " "
-                       << (isLocal == 1 ? "S" : isLocal == 0 ? "H" : "G"));
+                       << (memRegion == MEM_STACK ? "S" : memRegion == MEM_HEAP ? "H" : "G"));
   } else {
     typeart::Recorder::get().incAddrReuse();
     LOG_ERROR("Already exists (" << retAddr << ", prev=" << def.debug
-                                 << "): " << toString(addr, typeId, count, typeSize, isLocal));
+                                 << "): " << toString(addr, typeId, count, typeSize, memRegion));
     LOG_ERROR("Data in map is: " << toString(addr, def));
   }
 
@@ -523,7 +531,7 @@ void TypeArtRT::onAlloc(const void* addr, int typeId, size_t count, size_t typeS
   def.count = count;
   def.debug = retAddr;
 
-  if (isLocal == 1) {
+  if (memRegion == MEM_STACK) {
     stackVars.push_back(addr);
   }
 }
@@ -556,14 +564,20 @@ void TypeArtRT::onLeaveScope(size_t alloca_count) {
 
 }  // namespace typeart
 
-void __typeart_alloc(void* addr, int typeId, size_t count, size_t typeSize, int isLocal) {
-  if (isLocal) {
-    typeart::Recorder::get().incStackAlloc();
-  } else {
-    typeart::Recorder::get().incHeapAlloc();
+void __typeart_alloc(void* addr, int typeId, size_t count, size_t typeSize, int memRegion) {
+  switch(memRegion) {
+      case typeart::MEM_HEAP:
+        typeart::Recorder::get().incHeapAlloc();
+        break;
+        case typeart::MEM_STACK:
+          typeart::Recorder::get().incStackAlloc();
+          break;
+      case typeart::MEM_GLOBAL:
+        typeart::Recorder::get().incGlobalAlloc();
+        break;
   }
   const void* ret_adr = __builtin_return_address(0);
-  typeart::TypeArtRT::get().onAlloc(addr, typeId, count, typeSize, isLocal, ret_adr);
+  typeart::TypeArtRT::get().onAlloc(addr, typeId, count, typeSize, memRegion, ret_adr);
 }
 
 void __typeart_free(void* addr) {
