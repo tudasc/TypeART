@@ -147,7 +147,7 @@ bool TypeArtPass::doInitialization(Module& m) {
 
   SmallVector<GlobalVariable*, 8> globalsList;
   std::for_each(m.global_begin(), m.global_end(), [&](auto& global) {
-    if (!shouldInstrumentGlobal(global)) {
+    if (shouldInstrumentGlobal(global)) {
       globalsList.push_back(&global);
     }
   });
