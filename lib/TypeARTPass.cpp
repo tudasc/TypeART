@@ -91,6 +91,7 @@ bool TypeArtPass::doInitialization(Module& m) {
     }
     if (g.getLinkage() != GlobalVariable::ExternalLinkage && g.getLinkage() != GlobalVariable::PrivateLinkage &&
         g.getLinkage() != GlobalVariable::InternalLinkage) {
+      LOG_DEBUG("Global " << g.getName() << " filtered: Linkage is " << g.getLinkage());
       return false;
     }
 
@@ -109,13 +110,15 @@ bool TypeArtPass::doInitialization(Module& m) {
       }
     }
 
-    // TODO: Make this prettier/more robust
+    // TODO: Filtering
+#if 0
     for (auto* user : g.users()) {
       if (auto callInst = dyn_cast<CallInst>(user)) {
         if (callInst->getCalledFunction()->getName().startswith("MPI"))
           return true;
       }
     }
+#endif
 
     return false;
   };
