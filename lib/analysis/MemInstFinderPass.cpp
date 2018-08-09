@@ -372,7 +372,7 @@ bool MemInstFinderPass::runOnModule(Module& m) {
         globals.end());
 
     globals.erase(llvm::remove_if(globals, [&](const auto g) { return filter(g); }), globals.end());
-    NumFilteredGlobals += NumDetectedGlobals - globals.size();
+    NumFilteredGlobals = NumDetectedGlobals - globals.size();
   }
 
   return llvm::count_if(m.functions(), [&](auto& f) { return runOnFunc(f); }) > 0;
@@ -520,8 +520,8 @@ bool MemInstFinderPass::doFinalization(llvm::Module&) {
   out << line;
   out << "Global Memory\n";
   out << line;
-  out << make_format("Global", NumDetectedGlobals.getValue());
-  out << make_format("Global Filtered", NumFilteredGlobals.getValue());
+  out << make_format("Global", double(NumDetectedGlobals.getValue()));
+  out << make_format("Global Filtered", double(NumFilteredGlobals.getValue()));
   out << make_format(
       "% global call filtered",
       (double(NumFilteredGlobals.getValue()) / std::max(1.0, double(NumDetectedGlobals.getValue()))) * 100.0);
