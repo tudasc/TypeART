@@ -18,7 +18,7 @@ class AnalysisUsage;
 namespace typeart {
 namespace pass {
 
-class TypeArtPass : public llvm::FunctionPass {
+class TypeArtPass : public llvm::ModulePass {
  private:
   struct TypeArtFunc {
     const std::string name{""};
@@ -43,9 +43,8 @@ class TypeArtPass : public llvm::FunctionPass {
 
   /* Run once per module */
   bool doInitialization(llvm::Module&) override;
-  /* Runs on every basic block */
-  bool runOnFunction(llvm::Function&) override;
-  /* Run once per module */
+  bool runOnModule(llvm::Module&) override;
+  bool runOnFunc(llvm::Function&);
   bool doFinalization(llvm::Module&) override;
 
   void getAnalysisUsage(llvm::AnalysisUsage&) const override;

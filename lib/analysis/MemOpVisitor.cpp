@@ -14,10 +14,16 @@
 #include <algorithm>
 
 namespace typeart {
-
+namespace finder {
 using namespace llvm;
 
 MemOpVisitor::MemOpVisitor() = default;
+
+void MemOpVisitor::visitModuleGlobals(Module& m) {
+  for (auto& g : m.globals()) {
+    listGlobals.push_back(&g);
+  }
+}
 
 void MemOpVisitor::visitCallInst(llvm::CallInst& ci) {
   const auto isInSet = [&](const auto& fMap) -> llvm::Optional<MemOpKind> {
@@ -38,7 +44,6 @@ void MemOpVisitor::visitCallInst(llvm::CallInst& ci) {
   if (auto val = isInSet(allocMap)) {
     visitMallocLike(ci, val.getValue());
   } else if (auto val = isInSet(deallocMap)) {
-    visitFreeLike(ci, val.getValue());
   }
 }
 
@@ -142,4 +147,5 @@ void MemOpVisitor::clear() {
 
 MemOpVisitor::~MemOpVisitor() = default;
 
+}  // namespace finder
 }  // namespace typeart

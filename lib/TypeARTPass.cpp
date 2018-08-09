@@ -257,7 +257,7 @@ class FilterImpl {
   }
 };
 
-TypeArtPass::TypeArtPass() : llvm::FunctionPass(ID), typeManager(ClTypeFile.getValue()) {
+TypeArtPass::TypeArtPass() : llvm::ModulePass(ID), typeManager(ClTypeFile.getValue()) {
   assert(!ClTypeFile.empty() && "Default type file not set");
 }
 
@@ -277,44 +277,17 @@ bool TypeArtPass::doInitialization(Module& m) {
 
   propagateTypeInformation(m);
 
+  return true;
+}
+
+bool TypeArtPass::runOnModule(Module& m) {
+  bool globalInstro{false};
   if (!ClIgnoreHeap.getValue()) {
     declareInstrumentationFunctions(m);
 
-    // Find globals
-    LOG_DEBUG("Collecting global variables in module " << m.getSourceFileName() << "...");
     DataLayout dl(&m);
 
     auto& c = m.getContext();
-
-    const auto shouldInstrumentGlobal = [&](GlobalVariable& g) -> bool {
-      if (g.getName().startswith("llvm.")) {
-        // LOG_DEBUG("Detected LLVM global " << global.getName() << " - skipping...");
-        return false;
-      }
-
-        if (g.getLinkage() == GlobalValue::ExternalLinkage || g.getLinkage() == GlobalValue::PrivateLinkage) {
-            return false;
-        }
-
-
-        Type* t = g.getValueType();
-      if (!t->isSized()) {
-        return false;
-      }
-
-      if (t->isArrayTy()) {
-        t = t->getArrayElementType();
-      }
-      if (auto structType = dyn_cast<StructType>(t)) {
-        if (structType->isOpaque()) {
-          LOG_DEBUG("Encountered opaque struct " << t->getStructName() << " - skipping...");
-          return false;
-        }
-      }
-
-      FilterImpl filter("MPI_*");
-      return !filter.filter(&g);
-    };
 
     const auto instrumentGlobal = [&](auto* global, auto& IRB) {
       auto type = global->getValueType();
@@ -339,37 +312,35 @@ bool TypeArtPass::doInitialization(Module& m) {
 
       IRB.CreateCall(typeart_alloc.f,
                      ArrayRef<Value*>{globalPtr, typeIdConst, numElementsConst, typeSizeConst, isLocalConst});
+      return true;
     };
 
-    SmallVector<GlobalVariable*, 8> globalsList;
-    std::for_each(m.global_begin(), m.global_end(), [&](auto& global) {
-      if (shouldInstrumentGlobal(global)) {
-        globalsList.push_back(&global);
-      }
-    });
-
-    if (!globalsList.empty()) {
+    const auto makeCtorFunc = [&]() -> IRBuilder<> {
       auto ctorFunctionName = "__typeart_init_module_" + m.getSourceFileName();
 
       FunctionType* ctorType = FunctionType::get(llvm::Type::getVoidTy(c), false);
       Function* ctorFunction = Function::Create(ctorType, Function::PrivateLinkage, ctorFunctionName, &m);
 
       BasicBlock* entry = BasicBlock::Create(c, "entry", ctorFunction);
-      IRBuilder<> IRB(entry);
-
-      using namespace std::placeholders;
-      std::for_each(globalsList.begin(), globalsList.end(), std::bind(instrumentGlobal, _1, std::ref(IRB)));
-
-      IRB.CreateRetVoid();
 
       llvm::appendToGlobalCtors(m, ctorFunction, 0, nullptr);
+
+      IRBuilder<> IRB(entry);
+      return IRB;
+    };
+
+    const auto& globalsList = getAnalysis<MemInstFinderPass>().getModuleGlobals();
+    if (!globalsList.empty()) {
+      auto IRB = makeCtorFunc();
+      globalInstro = llvm::count_if(globalsList, [&](auto g) { return instrumentGlobal(g, IRB); }) > 0;
+      IRB.CreateRetVoid();
     }
   }
 
-  return true;
+  return llvm::count_if(m.functions(), [&](auto& f) { return runOnFunc(f); }) > 0 || globalInstro;
 }
 
-bool TypeArtPass::runOnFunction(Function& f) {
+bool TypeArtPass::runOnFunc(Function& f) {
   using namespace typeart;
 
   // Ignore our own functions
@@ -389,9 +360,10 @@ bool TypeArtPass::runOnFunction(Function& f) {
 
   llvm::SmallDenseMap<BasicBlock*, size_t> allocCounts;
 
-  const auto& listMalloc = getAnalysis<MemInstFinderPass>().getFunctionMallocs();
-  const auto& listAlloca = getAnalysis<MemInstFinderPass>().getFunctionAllocs();
-  const auto& listFree = getAnalysis<MemInstFinderPass>().getFunctionFrees();
+  const auto& fData = getAnalysis<MemInstFinderPass>().getFunctionData(&f);
+  const auto& listMalloc = fData.listMalloc;
+  const auto& listAlloca = fData.listAlloca;
+  const auto& listFree = fData.listFree;
 
   const auto instrumentMalloc = [&](const auto& malloc) -> bool {
     const auto mallocInst = malloc.call;

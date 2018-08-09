@@ -15,7 +15,6 @@
 namespace typeart {
 
 enum class MemOpKind { MALLOC, CALLOC, REALLOC, FREE };
-
 struct MallocData {
   llvm::CallInst* call{nullptr};
   llvm::BitCastInst* primary{nullptr};  // Non-null if non (void*) cast exists
@@ -30,9 +29,12 @@ struct AllocaData {
   //  llvm::SmallVector<llvm::IntrinsicInst*, 2> lifetimes;
 };
 
+namespace finder {
+
 struct MemOpVisitor : public llvm::InstVisitor<MemOpVisitor> {
   MemOpVisitor();
   void clear();
+  void visitModuleGlobals(llvm::Module& m);
   void visitCallInst(llvm::CallInst& ci);
   void visitMallocLike(llvm::CallInst& ci, MemOpKind k);
   void visitFreeLike(llvm::CallInst& ci, MemOpKind k);
@@ -40,6 +42,7 @@ struct MemOpVisitor : public llvm::InstVisitor<MemOpVisitor> {
   void visitAllocaInst(llvm::AllocaInst& ai);
   virtual ~MemOpVisitor();
 
+  llvm::SmallVector<llvm::GlobalValue*, 8> listGlobals;
   llvm::SmallVector<MallocData, 8> listMalloc;
   llvm::SmallPtrSet<llvm::CallInst*, 8> listFree;
   llvm::SmallVector<AllocaData, 8> listAlloca;
@@ -59,6 +62,7 @@ struct MemOpVisitor : public llvm::InstVisitor<MemOpVisitor> {
   // clang-format on
 };
 
+}  // namespace finder
 }  // namespace typeart
 
 #endif /* LIB_MEMOPVISITOR_H_ */
