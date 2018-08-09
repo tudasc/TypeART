@@ -44,6 +44,7 @@ void MemOpVisitor::visitCallInst(llvm::CallInst& ci) {
   if (auto val = isInSet(allocMap)) {
     visitMallocLike(ci, val.getValue());
   } else if (auto val = isInSet(deallocMap)) {
+    visitFreeLike(ci, val.getValue());
   }
 }
 

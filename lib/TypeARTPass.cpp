@@ -343,8 +343,11 @@ bool TypeArtPass::runOnModule(Module& m) {
 bool TypeArtPass::runOnFunc(Function& f) {
   using namespace typeart;
 
-  // Ignore our own functions
-  if (f.getName().startswith("__typeart")) {
+  if (f.getName().startswith("__typeart") || f.isDeclaration()) {
+    return false;
+  }
+
+  if (!getAnalysis<MemInstFinderPass>().hasFunctionData(&f)) {
     return false;
   }
 

@@ -61,6 +61,7 @@ class MemInstFinderPass : public llvm::ModulePass {
   bool runOnFunc(llvm::Function&);
   void getAnalysisUsage(llvm::AnalysisUsage&) const override;
   bool doFinalization(llvm::Module&) override;
+  bool hasFunctionData(llvm::Function*) const;
   const FunctionData& getFunctionData(llvm::Function*) const;
   const llvm::SmallVector<llvm::GlobalValue*, 8>& getModuleGlobals() const;
 };

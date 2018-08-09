@@ -47,7 +47,7 @@ static cl::opt<const char*> ClCallFilterGlob("call-filter-str", cl::desc("Filter
                                              cl::Hidden, cl::init("MPI_*"));
 
 static cl::opt<bool> ClFilterGlobal("filter-globals", cl::desc("Filter globals of a module."), cl::Hidden,
-                                    cl::init(true));
+                                    cl::init(false));
 
 STATISTIC(NumDetectedHeap, "Number of detected heap allocs");
 STATISTIC(NumFilteredDetectedHeap, "Number of filtered heap allocs");
@@ -379,8 +379,7 @@ bool MemInstFinderPass::runOnModule(Module& m) {
 }
 
 bool MemInstFinderPass::runOnFunc(llvm::Function& f) {
-  // Ignore our own functions
-  if (f.getName().startswith("__typeart")) {
+  if (f.getName().startswith("__typeart") || f.isDeclaration()) {
     return false;
   }
 
@@ -478,6 +477,7 @@ bool MemInstFinderPass::runOnFunc(llvm::Function& f) {
 
   FunctionData d{mOpsCollector.listMalloc, mOpsCollector.listFree, mOpsCollector.listAlloca};
   functionMap[&f] = d;
+
   mOpsCollector.clear();
 
   return false;
@@ -530,10 +530,16 @@ bool MemInstFinderPass::doFinalization(llvm::Module&) {
   return false;
 }
 
+bool MemInstFinderPass::hasFunctionData(Function* f) const {
+  auto iter = functionMap.find(f);
+  return iter != functionMap.end();
+}
+
 const FunctionData& MemInstFinderPass::getFunctionData(Function* f) const {
   auto iter = functionMap.find(f);
   return iter->second;
 }
+
 const llvm::SmallVector<llvm::GlobalValue*, 8>& MemInstFinderPass::getModuleGlobals() const {
   return mOpsCollector.listGlobals;
 }
