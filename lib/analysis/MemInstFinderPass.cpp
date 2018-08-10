@@ -47,7 +47,7 @@ static cl::opt<const char*> ClCallFilterGlob("call-filter-str", cl::desc("Filter
                                              cl::Hidden, cl::init("MPI_*"));
 
 static cl::opt<bool> ClFilterGlobal("filter-globals", cl::desc("Filter globals of a module."), cl::Hidden,
-                                    cl::init(false));
+                                    cl::init(true));
 
 STATISTIC(NumDetectedHeap, "Number of detected heap allocs");
 STATISTIC(NumFilteredDetectedHeap, "Number of filtered heap allocs");
@@ -325,50 +325,58 @@ bool MemInstFinderPass::runOnModule(Module& m) {
   NumDetectedGlobals += globals.size();
   if (ClFilterGlobal) {
     globals.erase(
-        llvm::remove_if(globals,
-                        [&](const auto g) {
-                          if (g->getName().startswith("llvm.")) {
-                            return true;
-                          }
+        llvm::remove_if(
+            globals,
+            [&](const auto g) {
+              const auto name = g->getName();
+              if (name.startswith("llvm.") || name.startswith("__llvm_gcov") || name.startswith("__llvm_gcda")) {
+                // 2nd and 3rd check: Check if the global is private gcov data.
+                return true;
+              }
 
-                          //              if (!g->hasInitializer()) {
-                          //                return true;
-                          //              }
-                          //              if (g->hasSection()) {
-                          //                StringRef Section = g->getSection();
-                          //
-                          //                // Globals from llvm.metadata aren't emitted, do not instrument them.
-                          //                if (Section == "llvm.metadata") {
-                          //                  return true;
-                          //                }
-                          //                // Do not instrument globals from special LLVM sections.
-                          //                if (Section.find("__llvm") != StringRef::npos || Section.find("__LLVM") !=
-                          //                StringRef::npos) {
-                          //                  return true;
-                          //                }
-                          //              }
+              //              if (!g->hasInitializer()) {
+              //                return true;
+              //              }
 
-                          if (g->getLinkage() == GlobalValue::ExternalLinkage ||
-                              g->getLinkage() == GlobalValue::PrivateLinkage) {
-                            return true;
-                          }
+              if (g->hasSection()) {
+                StringRef Section = g->getSection();
 
-                          Type* t = g->getValueType();
-                          if (!t->isSized()) {
-                            return true;
-                          }
+                // Globals from llvm.metadata aren't emitted, do not instrument them.
+                if (Section == "llvm.metadata") {
+                  return true;
+                }
+                // Do not instrument globals from special LLVM sections.
+                if (Section.find("__llvm") != StringRef::npos || Section.find("__LLVM") != StringRef::npos) {
+                  return true;
+                }
+                // Check if the global is in the PGO counters section.
+                //                auto OF = Triple(m.getTargetTriple()).getObjectFormat();
+                //                if (Section.endswith(getInstrProfSectionName(IPSK_cnts, OF,
+                //                /*AddSegmentInfo=*/false))) {
+                //                  return true;
+                //                }
+              }
 
-                          if (t->isArrayTy()) {
-                            t = t->getArrayElementType();
-                          }
-                          if (auto structType = dyn_cast<StructType>(t)) {
-                            if (structType->isOpaque()) {
-                              LOG_DEBUG("Encountered opaque struct " << t->getStructName() << " - skipping...");
-                              return true;
-                            }
-                          }
-                          return false;
-                        }),
+              if (g->getLinkage() == GlobalValue::ExternalLinkage || g->getLinkage() == GlobalValue::PrivateLinkage) {
+                return true;
+              }
+
+              Type* t = g->getValueType();
+              if (!t->isSized()) {
+                return true;
+              }
+
+              if (t->isArrayTy()) {
+                t = t->getArrayElementType();
+              }
+              if (auto structType = dyn_cast<StructType>(t)) {
+                if (structType->isOpaque()) {
+                  LOG_DEBUG("Encountered opaque struct " << t->getStructName() << " - skipping...");
+                  return true;
+                }
+              }
+              return false;
+            }),
         globals.end());
 
     globals.erase(llvm::remove_if(globals, [&](const auto g) { return filter(g); }), globals.end());
@@ -376,7 +384,7 @@ bool MemInstFinderPass::runOnModule(Module& m) {
   }
 
   return llvm::count_if(m.functions(), [&](auto& f) { return runOnFunc(f); }) > 0;
-}
+}  // namespace typeart
 
 bool MemInstFinderPass::runOnFunc(llvm::Function& f) {
   if (f.getName().startswith("__typeart") || f.isDeclaration()) {
