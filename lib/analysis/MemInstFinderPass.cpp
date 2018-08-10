@@ -324,7 +324,7 @@ bool MemInstFinderPass::runOnModule(Module& m) {
   mOpsCollector.visitModuleGlobals(m);
   auto& globals = mOpsCollector.listGlobals;
   NumDetectedGlobals += globals.size();
-  if (ClFilterGlobal) {
+  if (ClFilterGlobal && !ClFilterNonArrayAlloca) {
     globals.erase(
         llvm::remove_if(
             globals,
