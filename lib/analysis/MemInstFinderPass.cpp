@@ -57,6 +57,7 @@ STATISTIC(NumFilteredMallocAllocs, "Number of  filtered  malloc-related allocs")
 STATISTIC(NumFilteredNonArrayAllocs, "Number of call filtered allocs");
 STATISTIC(NumDetectedGlobals, "Number of detected globals");
 STATISTIC(NumFilteredGlobals, "Number of filtered globals");
+STATISTIC(NumCallFilteredGlobals, "Number of filtered globals");
 
 namespace typeart {
 
@@ -334,6 +335,14 @@ bool MemInstFinderPass::runOnModule(Module& m) {
                 return true;
               }
 
+              if (g->hasInitializer()) {
+                auto* ini = g->getInitializer();
+                StringRef ini_name = util::dump(*ini);
+
+                if (ini_name.contains("std::ios_base::Init")) {
+                  return true;
+                }
+              }
               //              if (!g->hasInitializer()) {
               //                return true;
               //              }
@@ -379,15 +388,20 @@ bool MemInstFinderPass::runOnModule(Module& m) {
             }),
         globals.end());
 
+    const auto beforeCallFilter = globals.size();
+    NumFilteredGlobals = NumDetectedGlobals - beforeCallFilter;
+
     globals.erase(llvm::remove_if(globals, [&](const auto g) { return filter(g); }), globals.end());
-    NumFilteredGlobals = NumDetectedGlobals - globals.size();
+
+    NumCallFilteredGlobals = beforeCallFilter - globals.size();
+    NumFilteredGlobals += NumCallFilteredGlobals;
   }
 
   return llvm::count_if(m.functions(), [&](auto& f) { return runOnFunc(f); }) > 0;
 }  // namespace typeart
 
 bool MemInstFinderPass::runOnFunc(llvm::Function& f) {
-  if (f.getName().startswith("__typeart") || f.isDeclaration()) {
+  if (f.isDeclaration() || f.getName().startswith("__typeart")) {
     return false;
   }
 
@@ -529,9 +543,13 @@ bool MemInstFinderPass::doFinalization(llvm::Module&) {
   out << "Global Memory\n";
   out << line;
   out << make_format("Global", double(NumDetectedGlobals.getValue()));
-  out << make_format("Global Filtered", double(NumFilteredGlobals.getValue()));
+  out << make_format("Global total filtered", double(NumFilteredGlobals.getValue()));
+  out << make_format("Global Call Filtered", double(NumCallFilteredGlobals.getValue()));
   out << make_format(
       "% global call filtered",
+      (double(NumCallFilteredGlobals.getValue()) / std::max(1.0, double(NumDetectedGlobals.getValue()))) * 100.0);
+  out << make_format(
+      "% global filtered",
       (double(NumFilteredGlobals.getValue()) / std::max(1.0, double(NumDetectedGlobals.getValue()))) * 100.0);
   out << line;
   out.flush();
@@ -548,7 +566,7 @@ const FunctionData& MemInstFinderPass::getFunctionData(Function* f) const {
   return iter->second;
 }
 
-const llvm::SmallVector<llvm::GlobalValue*, 8>& MemInstFinderPass::getModuleGlobals() const {
+const llvm::SmallVector<llvm::GlobalVariable*, 8>& MemInstFinderPass::getModuleGlobals() const {
   return mOpsCollector.listGlobals;
 }
 

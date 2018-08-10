@@ -63,7 +63,7 @@ class MemInstFinderPass : public llvm::ModulePass {
   bool doFinalization(llvm::Module&) override;
   bool hasFunctionData(llvm::Function*) const;
   const FunctionData& getFunctionData(llvm::Function*) const;
-  const llvm::SmallVector<llvm::GlobalValue*, 8>& getModuleGlobals() const;
+  const llvm::SmallVector<llvm::GlobalVariable*, 8>& getModuleGlobals() const;
 };
 
 }  // namespace typeart

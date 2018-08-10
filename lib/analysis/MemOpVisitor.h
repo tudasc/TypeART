@@ -42,7 +42,7 @@ struct MemOpVisitor : public llvm::InstVisitor<MemOpVisitor> {
   void visitAllocaInst(llvm::AllocaInst& ai);
   virtual ~MemOpVisitor();
 
-  llvm::SmallVector<llvm::GlobalValue*, 8> listGlobals;
+  llvm::SmallVector<llvm::GlobalVariable*, 8> listGlobals;
   llvm::SmallVector<MallocData, 8> listMalloc;
   llvm::SmallPtrSet<llvm::CallInst*, 8> listFree;
   llvm::SmallVector<AllocaData, 8> listAlloca;

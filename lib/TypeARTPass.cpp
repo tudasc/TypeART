@@ -39,12 +39,10 @@ static cl::opt<bool> ClTypeArtAllocaLifetime("typeart-lifetime",
 static cl::opt<std::string> ClTypeFile("typeart-outfile", cl::desc("Location of the generated type file."), cl::Hidden,
                                        cl::init("types.yaml"));
 
-// FIXME 1) include bitcasts? 2) disabled by default in LLVM builds (use LLVM_ENABLE_STATS when building)
-// STATISTIC(NumInstrumentedMallocs, "Number of instrumented mallocs");
-// STATISTIC(NumInstrumentedFrees, "Number of instrumented frees");
-STATISTIC(NumFoundMallocs, "Number of detected mallocs");
-STATISTIC(NumFoundFrees, "Number of detected frees");
-STATISTIC(NumFoundAlloca, "Number of detected (stack) allocas");
+STATISTIC(NumInstrumentedMallocs, "Number of instrumented mallocs");
+STATISTIC(NumInstrumentedFrees, "Number of instrumented frees");
+STATISTIC(NumInstrumentedAlloca, "Number of instrumented (stack) allocas");
+STATISTIC(NumInstrumentedGlobal, "Number of instrumented globals");
 
 namespace tu = typeart::util::type;
 
@@ -332,7 +330,9 @@ bool TypeArtPass::runOnModule(Module& m) {
     const auto& globalsList = getAnalysis<MemInstFinderPass>().getModuleGlobals();
     if (!globalsList.empty()) {
       auto IRB = makeCtorFunc();
-      globalInstro = llvm::count_if(globalsList, [&](auto g) { return instrumentGlobal(g, IRB); }) > 0;
+      auto instrGlobalCount = llvm::count_if(globalsList, [&](auto g) { return instrumentGlobal(g, IRB); });
+      NumInstrumentedGlobal = instrGlobalCount;
+      globalInstro = instrGlobalCount > 0;
       IRB.CreateRetVoid();
     }
   }
@@ -343,7 +343,7 @@ bool TypeArtPass::runOnModule(Module& m) {
 bool TypeArtPass::runOnFunc(Function& f) {
   using namespace typeart;
 
-  if (f.getName().startswith("__typeart") || f.isDeclaration()) {
+  if (f.isDeclaration() || f.getName().startswith("__typeart")) {
     return false;
   }
 
@@ -457,7 +457,7 @@ bool TypeArtPass::runOnFunc(Function& f) {
 
         allocCounts[marker->getParent()]++;
 
-        ++NumFoundAlloca;
+        ++NumInstrumentedAlloca;
         return true;
       }
     }
@@ -475,19 +475,19 @@ bool TypeArtPass::runOnFunc(Function& f) {
 
     allocCounts[alloca->getParent()]++;
 
-    ++NumFoundAlloca;
+    ++NumInstrumentedAlloca;
     return true;
   };
 
   if (!ClIgnoreHeap) {
     // instrument collected calls of bb:
     for (auto& malloc : listMalloc) {
-      ++NumFoundMallocs;
+      ++NumInstrumentedMallocs;
       mod |= instrumentMalloc(malloc);
     }
 
     for (auto free : listFree) {
-      ++NumFoundFrees;
+      ++NumInstrumentedFrees;
       mod |= instrumentFree(free);
     }
   }
@@ -524,7 +524,7 @@ bool TypeArtPass::runOnFunc(Function& f) {
       }
     }
   } else {
-    NumFoundAlloca += listAlloca.size();
+    NumInstrumentedAlloca += listAlloca.size();
   }
 
   return mod;
@@ -612,12 +612,16 @@ void TypeArtPass::printStats(llvm::raw_ostream& out) {
   out << line;
   out << "Heap Memory\n";
   out << line;
-  out << make_format("Malloc", NumFoundMallocs.getValue());
-  out << make_format("Free", NumFoundFrees.getValue());
+  out << make_format("Malloc", NumInstrumentedMallocs.getValue());
+  out << make_format("Free", NumInstrumentedFrees.getValue());
   out << line;
   out << "Stack Memory\n";
   out << line;
-  out << make_format("Alloca", NumFoundAlloca.getValue());
+  out << make_format("Alloca", NumInstrumentedAlloca.getValue());
+  out << line;
+  out << "Global Memory\n";
+  out << line;
+  out << make_format("Global", NumInstrumentedGlobal.getValue());
   out << line;
   out.flush();
 }
