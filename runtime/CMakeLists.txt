@@ -59,8 +59,6 @@ target_include_directories(typeart-rt
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/runtime>
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/typelib>
     $<INSTALL_INTERFACE:include>
-  PRIVATE
-    ${PROJECT_SOURCE_DIR}/lib # For the logger
 )
 
 target_include_directories(typeart-rt
@@ -70,7 +68,10 @@ target_include_directories(typeart-rt
     ${MPI_C_INCLUDE_PATH}
 )
 
-target_project_compile_options(typeart-rt)
+target_project_compile_options(typeart-rt
+  LOG_LEVEL=${LOG_LEVEL_RT}  
+)
+
 target_project_compile_definitions(typeart-rt)
 target_define_file_basename(typeart-rt)
 

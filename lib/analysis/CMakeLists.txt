@@ -11,7 +11,17 @@ make_llvm_module(meminstfinderpass
 )
 
 target_project_compile_options(meminstfinderpass)
-target_project_compile_definitions(meminstfinderpass)
+target_project_compile_definitions(meminstfinderpas
+  ARG_PRIVATE_DEFS
+    LOG_LEVEL=${LOG_LEVEL}
+)
+
+if(SHOW_STATS)
+  target_project_compile_definitions(typeartpass
+    ARG_PRIVATE_DEFS
+      LLVM_ENABLE_STATS
+  )
+endif()
 
 install(
   TARGETS meminstfinderpass

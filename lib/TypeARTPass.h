@@ -26,9 +26,9 @@ class TypeArtPass : public llvm::ModulePass {
   };
 
   TypeArtFunc typeart_alloc{"__typeart_alloc"};
-
+  TypeArtFunc typeart_alloc_global{"__typeart_alloc_global"};
+  TypeArtFunc typeart_alloc_stack{"__typeart_alloc_stack"};
   TypeArtFunc typeart_free{"__typeart_free"};
-
   TypeArtFunc typeart_leave_scope{"__typeart_leave_scope"};
 
   TypeManager typeManager;

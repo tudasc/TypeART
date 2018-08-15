@@ -107,7 +107,7 @@ bool TypeArtPass::runOnModule(Module& m) {
 
       LOG_DEBUG("Instrumenting global variable: " << util::dump(*global));
 
-      IRB.CreateCall(typeart_alloc.f,
+      IRB.CreateCall(typeart_alloc_global.f,
                      ArrayRef<Value*>{globalPtr, typeIdConst, numElementsConst, typeSizeConst, isLocalConst});
       return true;
     };
@@ -208,9 +208,7 @@ bool TypeArtPass::runOnFunc(Function& f) {
       return false;
     }
 
-    auto isLocalConst = ConstantInt::get(tu::getInt32Type(c), 0);
-    IRB.CreateCall(typeart_alloc.f,
-                   ArrayRef<Value*>{mallocInst, typeIdConst, elementCount, typeSizeConst, isLocalConst});
+    IRB.CreateCall(typeart_alloc.f, ArrayRef<Value*>{mallocInst, typeIdConst, elementCount, typeSizeConst});
 
     return true;
   };
@@ -251,8 +249,7 @@ bool TypeArtPass::runOnFunc(Function& f) {
 
         auto arrayPtr = marker->getOperand(1);  // IRB.CreateBitOrPointerCast(alloca, tu::getVoidPtrType(c));
         // LOG_DEBUG("Using lifetime marker for alloca: " << util::dump(*arrayPtr));
-        IRB.CreateCall(typeart_alloc.f,
-                       ArrayRef<Value*>{arrayPtr, typeIdConst, numElementsConst, typeSizeConst, isLocalConst});
+        IRB.CreateCall(typeart_alloc_stack.f, ArrayRef<Value*>{arrayPtr, typeIdConst, numElementsConst, typeSizeConst});
 
         allocCounts[marker->getParent()]++;
 
@@ -348,7 +345,8 @@ bool TypeArtPass::doFinalization(Module&) {
 
 void TypeArtPass::declareInstrumentationFunctions(Module& m) {
   // Remove this return if problems come up during compilation
-  if (typeart_alloc.f != nullptr && typeart_free.f != nullptr && typeart_leave_scope.f != nullptr) {
+  if (typeart_alloc_global.f != nullptr && typeart_alloc_stack.f != nullptr && typeart_alloc.f != nullptr &&
+      typeart_free.f != nullptr && typeart_leave_scope.f != nullptr) {
     return;
   }
 
@@ -369,14 +367,15 @@ void TypeArtPass::declareInstrumentationFunctions(Module& m) {
   };
 
   auto& c = m.getContext();
-  Type* alloc_arg_types[] = {tu::getVoidPtrType(c), tu::getInt32Type(c), tu::getInt64Type(c), tu::getInt64Type(c),
-                             tu::getInt32Type(c)};
+  Type* alloc_arg_types[] = {tu::getVoidPtrType(c), tu::getInt32Type(c), tu::getInt64Type(c), tu::getInt64Type(c)};
   Type* free_arg_types[] = {tu::getVoidPtrType(c)};
+  Type* leavescope_arg_types[] = {tu::getInt64Type(c)};
 
   make_function(typeart_alloc, FunctionType::get(Type::getVoidTy(c), alloc_arg_types, false));
+  make_function(typeart_alloc_stack, FunctionType::get(Type::getVoidTy(c), alloc_arg_types, false));
+  make_function(typeart_alloc_global, FunctionType::get(Type::getVoidTy(c), alloc_arg_types, false));
   make_function(typeart_free, FunctionType::get(Type::getVoidTy(c), free_arg_types, false));
-  make_function(typeart_leave_scope,
-                FunctionType::get(Type::getVoidTy(c), ArrayRef<Type*>{tu::getInt64Type(c)}, false));
+  make_function(typeart_leave_scope, FunctionType::get(Type::getVoidTy(c), leavescope_arg_types, false));
 }
 
 void TypeArtPass::propagateTypeInformation(Module&) {

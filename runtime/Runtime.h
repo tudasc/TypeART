@@ -13,7 +13,9 @@
 #include <vector>
 
 extern "C" {
-void __typeart_alloc(void* addr, int typeId, size_t count, size_t typeSize, int memRegion);
+void __typeart_alloc(void* addr, int typeId, size_t count, size_t typeSize);
+void __typeart_alloc_stack(void* addr, int typeId, size_t count, size_t typeSize);
+void __typeart_alloc_global(void* addr, int typeId, size_t count, size_t typeSize);
 void __typeart_free(void* addr);
 void __typeart_leave_scope(size_t alloca_count);
 }
@@ -25,20 +27,13 @@ class Optional;
 
 namespace typeart {
 
-enum MemRegion
-{
- MEM_HEAP = 0,
- MEM_STACK = 1,
- MEM_GLOBAL = 2
-};
-
-struct PointerInfo {
+struct PointerInfo final {
   int typeId{-1};
   size_t count{0};
   const void* debug{nullptr};
 };
 
-class TypeArtRT {
+class TypeArtRT final {
  public:
   using TypeArtStatus = typeart_status;
   using Stack = std::vector<const void*>;
@@ -161,7 +156,11 @@ class TypeArtRT {
 
   size_t getTypeSize(int id) const;
 
-  void onAlloc(const void* addr, int typeID, size_t count, size_t typeSize, int isLocal, const void* retAddr);
+  void onAlloc(const void* addr, int typeID, size_t count, size_t typeSize, const void* retAddr);
+
+  void onAllocStack(const void* addr, int typeID, size_t count, size_t typeSize, const void* retAddr);
+
+  void onAllocGlobal(const void* addr, int typeID, size_t count, size_t typeSize, const void* retAddr);
 
   void onFree(const void* addr);
 
@@ -189,6 +188,9 @@ class TypeArtRT {
    * Loads the type file created by the LLVM pass.
    */
   bool loadTypes(const std::string& file);
+
+  inline void doAlloc(const void* addr, int typeID, size_t count, size_t typeSize, const void* retAddr,
+                      const char reg = 'H');
 
   /**
    * Given an address, this method searches for the pointer that corresponds to the start of the allocated block.
