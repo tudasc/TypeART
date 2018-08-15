@@ -68,8 +68,9 @@ target_include_directories(typeart-rt
     ${MPI_C_INCLUDE_PATH}
 )
 
-target_project_compile_options(typeart-rt
-  LOG_LEVEL=${LOG_LEVEL_RT}  
+target_project_compile_definitions(typeart-rt
+  PRIVATE_DEFS
+    LOG_LEVEL=${LOG_LEVEL_RT}
 )
 
 target_project_compile_definitions(typeart-rt)

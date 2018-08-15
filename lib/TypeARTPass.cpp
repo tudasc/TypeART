@@ -101,14 +101,12 @@ bool TypeArtPass::runOnModule(Module& m) {
       auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), typeId);
       auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
       auto numElementsConst = ConstantInt::get(tu::getInt64Type(c), numElements);
-      auto isLocalConst = ConstantInt::get(tu::getInt32Type(c), 2);
 
       auto globalPtr = IRB.CreateBitOrPointerCast(global, tu::getVoidPtrType(c));
 
       LOG_DEBUG("Instrumenting global variable: " << util::dump(*global));
 
-      IRB.CreateCall(typeart_alloc_global.f,
-                     ArrayRef<Value*>{globalPtr, typeIdConst, numElementsConst, typeSizeConst, isLocalConst});
+      IRB.CreateCall(typeart_alloc_global.f, ArrayRef<Value*>{globalPtr, typeIdConst, numElementsConst, typeSizeConst});
       return true;
     };
 
@@ -239,7 +237,6 @@ bool TypeArtPass::runOnFunc(Function& f) {
     auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), typeId);
     auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
     auto numElementsConst = ConstantInt::get(tu::getInt64Type(c), arraySize);
-    auto isLocalConst = ConstantInt::get(tu::getInt32Type(c), 1);
 
     if (ClTypeArtAllocaLifetime) {
       // TODO Using lifetime start (and end) likely cause our counter based stack tracking scheme to fail?
@@ -266,8 +263,7 @@ bool TypeArtPass::runOnFunc(Function& f) {
     //    IRB.CreateStore(increment_counter, counter);
 
     auto arrayPtr = IRB.CreateBitOrPointerCast(alloca, tu::getVoidPtrType(c));
-    IRB.CreateCall(typeart_alloc.f,
-                   ArrayRef<Value*>{arrayPtr, typeIdConst, numElementsConst, typeSizeConst, isLocalConst});
+    IRB.CreateCall(typeart_alloc_stack.f, ArrayRef<Value*>{arrayPtr, typeIdConst, numElementsConst, typeSizeConst});
 
     allocCounts[alloca->getParent()]++;
 
