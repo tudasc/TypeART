@@ -14,9 +14,11 @@
 #include <memory>
 
 namespace llvm {
+class Module;
 class Function;
 class AllocaInst;
 class CallSite;
+class GlobalValue;
 }  // namespace llvm
 
 namespace typeart {
@@ -31,8 +33,8 @@ class CallFilter {
   explicit CallFilter(const std::string& glob);
   CallFilter(const CallFilter&) = delete;
   CallFilter(CallFilter&&) = default;
-  bool operator()(llvm::AllocaInst* in);
-  bool operator()(llvm::CallSite in);
+  bool operator()(llvm::AllocaInst*);
+  bool operator()(llvm::GlobalValue*);
   CallFilter& operator=(CallFilter&&) noexcept;
   CallFilter& operator=(const CallFilter&) = delete;
   virtual ~CallFilter();
@@ -40,20 +42,28 @@ class CallFilter {
 
 }  // namespace filter
 
-class MemInstFinderPass : public llvm::FunctionPass {
+struct FunctionData {
+  llvm::SmallVector<MallocData, 8> listMalloc;
+  llvm::SmallPtrSet<llvm::CallInst*, 8> listFree;
+  llvm::SmallVector<AllocaData, 8> listAlloca;
+};
+
+class MemInstFinderPass : public llvm::ModulePass {
  private:
-  MemOpVisitor mOpsCollector;
+  finder::MemOpVisitor mOpsCollector;
   filter::CallFilter filter;
+  llvm::DenseMap<llvm::Function*, FunctionData> functionMap;
 
  public:
   static char ID;
   MemInstFinderPass();
-  bool runOnFunction(llvm::Function&) override;
+  bool runOnModule(llvm::Module&) override;
+  bool runOnFunc(llvm::Function&);
   void getAnalysisUsage(llvm::AnalysisUsage&) const override;
   bool doFinalization(llvm::Module&) override;
-  const llvm::SmallVector<MallocData, 8>& getFunctionMallocs() const;
-  const llvm::SmallVector<AllocaData, 8>& getFunctionAllocs() const;
-  const llvm::SmallPtrSet<llvm::CallInst*, 8>& getFunctionFrees() const;
+  bool hasFunctionData(llvm::Function*) const;
+  const FunctionData& getFunctionData(llvm::Function*) const;
+  const llvm::SmallVector<llvm::GlobalVariable*, 8>& getModuleGlobals() const;
 };
 
 }  // namespace typeart
