@@ -333,8 +333,9 @@ bool TypeArtPass::doFinalization(Module&) {
   } else {
     LOG_ERROR("Failed writing type config to " << ClTypeFile.getValue());
   }
-  if (ClTypeArtStats) {
-    printStats(llvm::errs());
+  if (ClTypeArtStats && AreStatisticsEnabled()) {
+    auto& out = llvm::errs();
+    printStats(out);
   }
   return false;
 }

@@ -11,7 +11,7 @@ inline std::vector<int> getRanks() {
   if (rStr == nullptr) {
     ranks.push_back(0);
     return ranks;
-  } else if (rStr == "all") {
+  } else if (strncmp(rStr, "all", 3) == 0) {
     return {};
   }
 

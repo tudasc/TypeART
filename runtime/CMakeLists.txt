@@ -19,6 +19,12 @@ if(MPI_LOGGER)
   target_project_compile_definitions(typeart-rt
     PRIVATE_DEFS MPI_LOGGER=1
   )
+  
+  target_include_directories(typeart-rt
+    SYSTEM 
+    PRIVATE
+      ${MPI_C_INCLUDE_PATH}
+  )
 endif()
 
 if(SOFTCOUNTERS)
@@ -65,7 +71,6 @@ target_include_directories(typeart-rt
   SYSTEM 
   PRIVATE
     ${LLVM_INCLUDE_DIRS}
-    ${MPI_C_INCLUDE_PATH}
 )
 
 target_project_compile_definitions(typeart-rt

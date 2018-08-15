@@ -265,7 +265,7 @@ size_t TypeArtRT::getMemberIndex(typeart_struct_layout structInfo, size_t offset
 
   size_t i = 0;
   while (i < n - 1 && offset >= structInfo.offsets[i + 1]) {
-    i++;
+    ++i;
   }
   return i;
 }
