@@ -283,8 +283,6 @@ TypeArtRT::TypeArtStatus TypeArtRT::getSubTypeInfo(const void* baseAddr, size_t 
   size_t memberIndex = getMemberIndex(containerInfo, offset);
 
   int memberType = containerInfo.member_types[memberIndex];
-  // assert((memberType.kind == STRUCT || memberType.kind == BUILTIN || memberType.kind == POINTER) &&
-  //       "Type kind typeart be either STRUCT, BUILTIN or POINTER");
 
   size_t baseOffset = containerInfo.offsets[memberIndex];
   assert(offset >= baseOffset && "Invalid offset values");

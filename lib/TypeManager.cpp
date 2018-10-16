@@ -124,10 +124,7 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
         // TODO: Infinite cycle possible?
         memberID = getOrRegisterType(memberType, dl);
       }
-    } /*else if (memberType->isPointerTy()) {
-      memberID = TA_PTR;
-    }*/
-    else if (memberType->isSingleValueType() || memberType->isPointerTy()) {
+    } else if (memberType->isSingleValueType() || memberType->isPointerTy()) {
       memberID = getOrRegisterType(memberType, dl);
     } else {
       // TODO: Any other types?
