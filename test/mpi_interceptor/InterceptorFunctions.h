@@ -29,7 +29,7 @@ int ta_check_exists(const char* mpi_name, const void* called_from, const void* b
   int rank = 0;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   if (buf == NULL) {
-    printf("R[%d][Error][%d] Call '%s' buffer NULL\n", rank, const_adr, mpi_name); 
+    printf("R[%d][Error][%d] Call '%s' buffer NULL\n", rank, const_adr, mpi_name);
     ta_print_loc(called_from);
     return -1;
   }
@@ -51,17 +51,17 @@ void ta_print_loc(const void* call_adr) {
     return;
   }
 
-  char cmd_buf[512];
+  char cmd_buf[512] = {0};
   snprintf(cmd_buf, sizeof(cmd_buf), "addr2line -e %s -f %p", exe, call_adr);
 
   FILE* fp = popen(cmd_buf, "r");
   if (fp) {
-    char read_buf[512];
+    char read_buf[512] = {0};
     while (fgets(read_buf, sizeof(read_buf), fp)) {
       printf("    %s", read_buf);
     }
   }
-  fclose(fp);
+  pclose(fp);
 }
 
 #endif /* TEST_MPI_INTERCEPTOR_INTERCEPTORFUNCTIONS_H_ */

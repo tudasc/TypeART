@@ -4,20 +4,22 @@
 #include <cstdlib>
 #include <vector>
 
-auto getRanks() {
-  auto rStr = std::getenv("TYPEART_MPI_LOG");
+inline std::vector<int> getRanks() {
+  const auto rStr = std::getenv("TYPEART_MPI_LOG");
 
   std::vector<int> ranks;
   if (rStr == nullptr) {
     ranks.push_back(0);
     return ranks;
+  } else if (strncmp(rStr, "all", 3) == 0) {
+    return {};
   }
 
   ranks.push_back(std::atoi(rStr));
   return ranks;
 }
 
-void mpi_log(std::string msg) {
+void mpi_log(const std::string& msg) {
   int initFlag = 0;
   int finiFlag = 0;
   MPI_Initialized(&initFlag);
@@ -26,9 +28,12 @@ void mpi_log(std::string msg) {
   if (initFlag && !finiFlag) {
     int mRank;
     MPI_Comm_rank(MPI_COMM_WORLD, &mRank);
-    auto outputRanks = getRanks();
+    const auto outputRanks = getRanks();
 
     const auto isIn = [&](int r) {
+      if (outputRanks.empty()) {
+        return true;
+      }
       return std::find(std::begin(outputRanks), std::end(outputRanks), r) != std::end(outputRanks);
     };
 

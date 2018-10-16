@@ -48,7 +48,7 @@ class AccessRecorder {
   }
 
   inline void incGlobalAlloc() {
-      ++globalAllocs;
+    ++globalAllocs;
   }
 
   inline void decHeapAlloc() {
@@ -181,21 +181,20 @@ inline const void* addByteOffset(const void* addr, T offset) {
   return static_cast<const void*>(static_cast<const uint8_t*>(addr) + offset);
 }
 
-inline static std::string toString(const void* addr, int typeId, size_t count, size_t typeSize, int memRegion) {
+inline static std::string toString(const void* addr, int typeId, size_t count, size_t typeSize) {
   std::stringstream s;
   // clang-format off
   s << addr
     << ". typeId: " << typeId
     << ". count: " << count
-    << ". typeSize " << typeSize
-    << ". memRegion: " << memRegion;
+    << ". typeSize " << typeSize;
   // clang-format on
   return s.str();
 }
 
 inline static std::string toString(const void* addr, const PointerInfo& info) {
   auto typeSize = TypeArtRT::get().getTypeSize(info.typeId);
-  return toString(addr, info.typeId, info.count, typeSize, -1);
+  return toString(addr, info.typeId, info.count, typeSize);
 }
 
 TypeArtRT::TypeArtRT() {
@@ -266,7 +265,7 @@ size_t TypeArtRT::getMemberIndex(typeart_struct_layout structInfo, size_t offset
 
   size_t i = 0;
   while (i < n - 1 && offset >= structInfo.offsets[i + 1]) {
-    i++;
+    ++i;
   }
   return i;
 }
@@ -504,27 +503,35 @@ void TypeArtRT::getReturnAddress(const void* addr, const void** retAddr) const {
   }
 }
 
-void TypeArtRT::onAlloc(const void* addr, int typeId, size_t count, size_t typeSize, int memRegion, const void* retAddr) {
+void TypeArtRT::doAlloc(const void* addr, int typeId, size_t count, size_t typeSize, const void* retAddr,
+                        const char reg) {
   auto& def = typeMap[addr];
 
   if (def.typeId == -1) {
-    auto typeString = typeDB.getTypeName(typeId);
-    LOG_TRACE("Alloc " << addr << " " << typeString << " " << typeSize << " " << count << " "
-                       << (memRegion == MEM_STACK ? "S" : memRegion == MEM_HEAP ? "H" : "G"));
+    LOG_TRACE("Alloc " << addr << " " << typeDB.getTypeName(typeId) << " " << typeSize << " " << count << " " << reg);
   } else {
     typeart::Recorder::get().incAddrReuse();
     LOG_ERROR("Already exists (" << retAddr << ", prev=" << def.debug
-                                 << "): " << toString(addr, typeId, count, typeSize, memRegion));
+                                 << "): " << toString(addr, typeId, count, typeSize));
     LOG_ERROR("Data in map is: " << toString(addr, def));
   }
 
   def.typeId = typeId;
   def.count = count;
   def.debug = retAddr;
+}
 
-  if (memRegion == MEM_STACK) {
-    stackVars.push_back(addr);
-  }
+void TypeArtRT::onAlloc(const void* addr, int typeId, size_t count, size_t typeSize, const void* retAddr) {
+  doAlloc(addr, typeId, count, typeSize, retAddr);
+}
+
+void TypeArtRT::onAllocStack(const void* addr, int typeId, size_t count, size_t typeSize, const void* retAddr) {
+  doAlloc(addr, typeId, count, typeSize, retAddr, 'S');
+  stackVars.push_back(addr);
+}
+
+void TypeArtRT::onAllocGlobal(const void* addr, int typeId, size_t count, size_t typeSize, const void* retAddr) {
+  doAlloc(addr, typeId, count, typeSize, retAddr, 'G');
 }
 
 void TypeArtRT::onFree(const void* addr) {
@@ -555,20 +562,19 @@ void TypeArtRT::onLeaveScope(size_t alloca_count) {
 
 }  // namespace typeart
 
-void __typeart_alloc(void* addr, int typeId, size_t count, size_t typeSize, int memRegion) {
-  switch(memRegion) {
-      case typeart::MEM_HEAP:
-        typeart::Recorder::get().incHeapAlloc();
-        break;
-        case typeart::MEM_STACK:
-          typeart::Recorder::get().incStackAlloc();
-          break;
-      case typeart::MEM_GLOBAL:
-        typeart::Recorder::get().incGlobalAlloc();
-        break;
-  }
-  const void* ret_adr = __builtin_return_address(0);
-  typeart::TypeArtRT::get().onAlloc(addr, typeId, count, typeSize, memRegion, ret_adr);
+void __typeart_alloc(void* addr, int typeId, size_t count, size_t typeSize) {
+  const void* retAddr = __builtin_return_address(0);
+  typeart::TypeArtRT::get().onAlloc(addr, typeId, count, typeSize, retAddr);
+}
+
+void __typeart_alloc_stack(void* addr, int typeId, size_t count, size_t typeSize) {
+  const void* retAddr = __builtin_return_address(0);
+  typeart::TypeArtRT::get().onAllocStack(addr, typeId, count, typeSize, retAddr);
+}
+
+void __typeart_alloc_global(void* addr, int typeId, size_t count, size_t typeSize) {
+  const void* retAddr = __builtin_return_address(0);
+  typeart::TypeArtRT::get().onAllocGlobal(addr, typeId, count, typeSize, retAddr);
 }
 
 void __typeart_free(void* addr) {
@@ -615,7 +621,6 @@ typeart_status typeart_resolve_type(int id, typeart_struct_layout* struct_layout
     struct_layout->offsets = &structInfo->offsets[0];
     struct_layout->member_types = &structInfo->memberTypes[0];
     struct_layout->count = &structInfo->arraySizes[0];
-    return TA_OK;
   }
   return status;
 }

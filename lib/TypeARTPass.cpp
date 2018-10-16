@@ -33,9 +33,7 @@ static cl::opt<bool> ClIgnoreHeap("typeart-no-heap", cl::desc("Ignore heap alloc
                                   cl::init(false));
 static cl::opt<bool> ClTypeArtAlloca("typeart-alloca", cl::desc("Track alloca instructions."), cl::Hidden,
                                      cl::init(false));
-static cl::opt<bool> ClTypeArtAllocaLifetime("typeart-lifetime",
-                                             cl::desc("Track alloca instructions based on lifetime.start intrinsic."),
-                                             cl::Hidden, cl::init(false));
+
 static cl::opt<std::string> ClTypeFile("typeart-outfile", cl::desc("Location of the generated type file."), cl::Hidden,
                                        cl::init("types.yaml"));
 
@@ -56,6 +54,7 @@ char TypeArtPass::ID = 0;
 
 TypeArtPass::TypeArtPass() : llvm::ModulePass(ID), typeManager(ClTypeFile.getValue()) {
   assert(!ClTypeFile.empty() && "Default type file not set");
+  EnableStatistics();
 }
 
 void TypeArtPass::getAnalysisUsage(llvm::AnalysisUsage& info) const {
@@ -101,14 +100,12 @@ bool TypeArtPass::runOnModule(Module& m) {
       auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), typeId);
       auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
       auto numElementsConst = ConstantInt::get(tu::getInt64Type(c), numElements);
-      auto isLocalConst = ConstantInt::get(tu::getInt32Type(c), 2);
 
       auto globalPtr = IRB.CreateBitOrPointerCast(global, tu::getVoidPtrType(c));
 
       LOG_DEBUG("Instrumenting global variable: " << util::dump(*global));
 
-      IRB.CreateCall(typeart_alloc.f,
-                     ArrayRef<Value*>{globalPtr, typeIdConst, numElementsConst, typeSizeConst, isLocalConst});
+      IRB.CreateCall(typeart_alloc_global.f, ArrayRef<Value*>{globalPtr, typeIdConst, numElementsConst, typeSizeConst});
       return true;
     };
 
@@ -208,9 +205,7 @@ bool TypeArtPass::runOnFunc(Function& f) {
       return false;
     }
 
-    auto isLocalConst = ConstantInt::get(tu::getInt32Type(c), 0);
-    IRB.CreateCall(typeart_alloc.f,
-                   ArrayRef<Value*>{mallocInst, typeIdConst, elementCount, typeSizeConst, isLocalConst});
+    IRB.CreateCall(typeart_alloc.f, ArrayRef<Value*>{mallocInst, typeIdConst, elementCount, typeSizeConst});
 
     return true;
   };
@@ -256,7 +251,6 @@ bool TypeArtPass::runOnFunc(Function& f) {
 
     auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), typeId);
     auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
-    auto isLocalConst = ConstantInt::get(tu::getInt32Type(c), 1);
 
     IRBuilder<> IRB(alloca->getNextNode());
 
@@ -266,8 +260,8 @@ bool TypeArtPass::runOnFunc(Function& f) {
     //    IRB.CreateStore(increment_counter, counter);
 
     auto arrayPtr = IRB.CreateBitOrPointerCast(alloca, tu::getVoidPtrType(c));
-    IRB.CreateCall(typeart_alloc.f,
-                   ArrayRef<Value*>{arrayPtr, typeIdConst, numElementsVal, typeSizeConst, isLocalConst});
+    IRB.CreateCall(typeart_alloc_stack.f,
+                   ArrayRef<Value*>{arrayPtr, typeIdConst, numElementsVal, typeSizeConst});
 
     allocCounts[alloca->getParent()]++;
 
@@ -337,15 +331,17 @@ bool TypeArtPass::doFinalization(Module&) {
   } else {
     LOG_ERROR("Failed writing type config to " << ClTypeFile.getValue());
   }
-  if (ClTypeArtStats) {
-    printStats(llvm::errs());
+  if (ClTypeArtStats && AreStatisticsEnabled()) {
+    auto& out = llvm::errs();
+    printStats(out);
   }
   return false;
 }
 
 void TypeArtPass::declareInstrumentationFunctions(Module& m) {
   // Remove this return if problems come up during compilation
-  if (typeart_alloc.f != nullptr && typeart_free.f != nullptr && typeart_leave_scope.f != nullptr) {
+  if (typeart_alloc_global.f != nullptr && typeart_alloc_stack.f != nullptr && typeart_alloc.f != nullptr &&
+      typeart_free.f != nullptr && typeart_leave_scope.f != nullptr) {
     return;
   }
 
@@ -366,14 +362,15 @@ void TypeArtPass::declareInstrumentationFunctions(Module& m) {
   };
 
   auto& c = m.getContext();
-  Type* alloc_arg_types[] = {tu::getVoidPtrType(c), tu::getInt32Type(c), tu::getInt64Type(c), tu::getInt64Type(c),
-                             tu::getInt32Type(c)};
+  Type* alloc_arg_types[] = {tu::getVoidPtrType(c), tu::getInt32Type(c), tu::getInt64Type(c), tu::getInt64Type(c)};
   Type* free_arg_types[] = {tu::getVoidPtrType(c)};
+  Type* leavescope_arg_types[] = {tu::getInt64Type(c)};
 
   make_function(typeart_alloc, FunctionType::get(Type::getVoidTy(c), alloc_arg_types, false));
+  make_function(typeart_alloc_stack, FunctionType::get(Type::getVoidTy(c), alloc_arg_types, false));
+  make_function(typeart_alloc_global, FunctionType::get(Type::getVoidTy(c), alloc_arg_types, false));
   make_function(typeart_free, FunctionType::get(Type::getVoidTy(c), free_arg_types, false));
-  make_function(typeart_leave_scope,
-                FunctionType::get(Type::getVoidTy(c), ArrayRef<Type*>{tu::getInt64Type(c)}, false));
+  make_function(typeart_leave_scope, FunctionType::get(Type::getVoidTy(c), leavescope_arg_types, false));
 }
 
 void TypeArtPass::propagateTypeInformation(Module&) {
