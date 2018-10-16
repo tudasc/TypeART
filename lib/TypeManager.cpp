@@ -113,6 +113,7 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
     size_t arraySize = 1;
 
     if (memberType->isArrayTy()) {
+      // Note that clang does not allow VLAs inside of structs (GCC does)
       arraySize = tu::type::getArrayLengthFlattened(memberType);
       memberType = tu::type::getArrayElementType(memberType);
     }

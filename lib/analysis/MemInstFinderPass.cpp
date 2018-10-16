@@ -431,7 +431,7 @@ bool MemInstFinderPass::runOnFunc(llvm::Function& f) {
     auto& allocs = mOpsCollector.listAlloca;
     allocs.erase(llvm::remove_if(allocs,
                                  [&](const auto& data) {
-                                   if (!data.alloca->getAllocatedType()->isArrayTy()) {
+                                   if (!data.alloca->getAllocatedType()->isArrayTy() && data.arraySize == 1) {
                                      ++NumFilteredNonArrayAllocs;
                                      return true;
                                    }

@@ -1,0 +1,13 @@
+// clang-format off
+// RUN: clang -S -emit-llvm %s -o - | opt -load %pluginpath/analysis/meminstfinderpass.so -load %pluginpath/%pluginname %pluginargs -S 2>&1 | FileCheck %s
+// clang-format on
+void test(int n) {
+    int a[n];
+    int b[n][n];
+    int c[5][n];
+}
+
+// CHECK-NOT: Encountered unhandled type
+// CHECK: Malloc{{[ ]*}}:{{[ ]*}}0
+// CHECK: Free{{[ ]*}}:{{[ ]*}}0
+// CHECK: Alloca{{[ ]*}}:{{[ ]*}}3
