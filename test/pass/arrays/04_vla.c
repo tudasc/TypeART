@@ -3,12 +3,11 @@
 // clang-format on
 void test(int n) {
     int a[n];
-//    int b[n][n];
-//    int c[n][m];
-//    int d[n][m][n];
+    int b[n][n];
+    int c[5][n];
 }
 
 // CHECK-NOT: Encountered unhandled type
 // CHECK: Malloc{{[ ]*}}:{{[ ]*}}0
 // CHECK: Free{{[ ]*}}:{{[ ]*}}0
-// CHECK: Alloca{{[ ]*}}:{{[ ]*}}1
+// CHECK: Alloca{{[ ]*}}:{{[ ]*}}3
