@@ -4,7 +4,7 @@
 
 // Note: This test assumes standard alignment on a 64bit system. Non-standard alignment may lead to failure.
 
-//typedef enum typeart_builtin_type_t {  // NOLINT
+// typedef enum typeart_builtin_type_t {  // NOLINT
 //    TA_INT8 = 0,
 //    TA_INT16 = 1,
 //    TA_INT32 = 2,

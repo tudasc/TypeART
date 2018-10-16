@@ -220,7 +220,6 @@ bool TypeArtPass::runOnFunc(Function& f) {
   };
 
   const auto instrumentAlloca = [&](const auto& allocaData) -> bool {
-
     auto alloca = allocaData.alloca;
     int arraySize = allocaData.arraySize;
 
@@ -238,13 +237,12 @@ bool TypeArtPass::runOnFunc(Function& f) {
       // This should not happen in generated IR code
       assert(!elementType->isArrayTy() && "VLAs of array types are currently not supported.");
     } else {
-      if (elementType->isArrayTy()){
+      if (elementType->isArrayTy()) {
         arraySize = arraySize * tu::getArrayLengthFlattened(elementType);
         elementType = tu::getArrayElementType(elementType);
       }
       numElementsVal = ConstantInt::get(tu::getInt64Type(c), arraySize);
     }
-
 
     unsigned typeSize = tu::getTypeSizeInBytes(elementType, dl);
     int typeId = typeManager.getOrRegisterType(elementType, dl);
@@ -260,8 +258,7 @@ bool TypeArtPass::runOnFunc(Function& f) {
     //    IRB.CreateStore(increment_counter, counter);
 
     auto arrayPtr = IRB.CreateBitOrPointerCast(alloca, tu::getVoidPtrType(c));
-    IRB.CreateCall(typeart_alloc_stack.f,
-                   ArrayRef<Value*>{arrayPtr, typeIdConst, numElementsVal, typeSizeConst});
+    IRB.CreateCall(typeart_alloc_stack.f, ArrayRef<Value*>{arrayPtr, typeIdConst, numElementsVal, typeSizeConst});
 
     allocCounts[alloca->getParent()]++;
 

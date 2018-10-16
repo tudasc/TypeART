@@ -9,9 +9,7 @@ void f(int n) {
 }
 
 int main(int argc, char** argv) {
-
   // CHECK: [Trace] TypeART Runtime Trace
-
 
   // CHECK: [Trace] Alloc 0x{{.*}} int8 1 2
   // CHECK: [Trace] Alloc 0x{{.*}} int8 1 4

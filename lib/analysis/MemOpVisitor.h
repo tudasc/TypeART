@@ -24,7 +24,7 @@ struct MallocData {
 
 struct AllocaData {
   llvm::AllocaInst* alloca{nullptr};
-  int arraySize; // Number of allocated elements (negative value for VLAs)
+  int arraySize;  // Number of allocated elements (negative value for VLAs)
 };
 
 namespace finder {
