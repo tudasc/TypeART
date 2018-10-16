@@ -69,7 +69,7 @@ class TypeArtRT {
    *  - TA_BAD_ALIGNMENT: The given address does not line up with the start of the atomic type at that location.
    *  - TA_INVALID_ID: Encountered unregistered ID during lookup.
    */
-  TypeArtStatus getTypeInfo(const void* addr, typeart::TypeInfo* type, size_t* count) const;
+  TypeArtStatus getTypeInfo(const void* addr, int* type, size_t* count) const;
 
   /**
    * Determines the outermost type and array element count at the given address.
@@ -86,8 +86,8 @@ class TypeArtRT {
    * \return A status code. For an explanation of errors, refer to getTypeInfo().
    *
    */
-  TypeArtStatus getContainingTypeInfo(const void* addr, typeart::TypeInfo* type, size_t* count,
-                                      const void** baseAddress, size_t* offset) const;
+  TypeArtStatus getContainingTypeInfo(const void* addr, int* type, size_t* count, const void** baseAddress,
+                                      size_t* offset) const;
 
   /**
    * Determines the subtype at the given offset w.r.t. a base address and a corresponding containing type.
@@ -97,7 +97,7 @@ class TypeArtRT {
    * \param[in] baseAddr Pointer to the start of the containing type.
    * \param[in] offset Byte offset within the containing type.
    * \param[in] containerInfo typeart_struct_layout corresponding to the containing type
-   * \param[out] subType TypeInfo corresponding to the subtype.
+   * \param[out] subType Type ID corresponding to the subtype.
    * \param[out] subTypeBaseAddr Pointer to the start of the subtype.
    * \param[out] subTypeOffset Byte offset within the subtype.
    * \param[out] subTypeCount Number of elements in subarray.
@@ -107,16 +107,14 @@ class TypeArtRT {
    *  - TA_BAD_ALIGNMENT: Address corresponds to location inside an atomic type or padding.
    *  - TA_BAD_OFFSET: The provided offset is invalid.
    */
-  TypeArtStatus getSubTypeInfo(const void* baseAddr, size_t offset, typeart_struct_layout containerInfo,
-                               typeart::TypeInfo* subType, const void** subTypeBaseAddr, size_t* subTypeOffset,
-                               size_t* subTypeCount) const;
+  TypeArtStatus getSubTypeInfo(const void* baseAddr, size_t offset, typeart_struct_layout containerInfo, int* subType,
+                               const void** subTypeBaseAddr, size_t* subTypeOffset, size_t* subTypeCount) const;
 
   /**
    * Wrapper function using StructTypeInfo.
    */
-  TypeArtStatus getSubTypeInfo(const void* baseAddr, size_t offset, const StructTypeInfo& containerInfo,
-                               typeart::TypeInfo* subType, const void** subTypeBaseAddr, size_t* subTypeOffset,
-                               size_t* subTypeCount) const;
+  TypeArtStatus getSubTypeInfo(const void* baseAddr, size_t offset, const StructTypeInfo& containerInfo, int* subType,
+                               const void** subTypeBaseAddr, size_t* subTypeOffset, size_t* subTypeCount) const;
 
   /**
    * Returns the builtin type at the given address.
@@ -174,7 +172,7 @@ class TypeArtRT {
    * If a given address points inside a known struct, this method is used to recursively resolve the exact member type.
    */
   TypeArtStatus getTypeInfoInternal(const void* baseAddr, size_t offset, const StructTypeInfo& containingType,
-                                    typeart::TypeInfo* type, size_t* count) const;
+                                    int* type, size_t* count) const;
 
   /**
    * Finds the struct member corresponding to the given byte offset.

@@ -34,7 +34,7 @@ int main(int argc, char** argv) {
   // CHECK: [Trace] Alloc 0x{{.*}} double 8 42
   double f[n];
 
-  // CHECK: [Trace] Alloc 0x{{.*}} unknown 8 42
+  // CHECK: [Trace] Alloc 0x{{.*}} pointer 8 42
   int* g[n];
 
   // CHECK: [Trace] Alloc 0x{{.*}} double 8 10

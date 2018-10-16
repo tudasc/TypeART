@@ -17,24 +17,24 @@
 
 using namespace llvm::yaml;
 
-template <>
-struct llvm::yaml::ScalarEnumerationTraits<typeart_type_kind_t> {
-  static void enumeration(IO& io, typeart_type_kind_t& value) {
-    io.enumCase(value, "builtin", BUILTIN);
-    io.enumCase(value, "struct", STRUCT);
-    io.enumCase(value, "pointer", POINTER);
-  }
-};
-
-template <>
-struct llvm::yaml::MappingTraits<typeart_type_info_t> {
-  static void mapping(IO& io, typeart_type_info_t& info) {
-    io.mapRequired("id", info.id);
-    io.mapRequired("kind", info.kind);
-  }
-};
-
-LLVM_YAML_IS_SEQUENCE_VECTOR(typeart_type_info_t)
+// template <>
+// struct llvm::yaml::ScalarEnumerationTraits<typeart_type_kind_t> {
+//  static void enumeration(IO& io, typeart_type_kind_t& value) {
+//    io.enumCase(value, "builtin", BUILTIN);
+//    io.enumCase(value, "struct", STRUCT);
+//    io.enumCase(value, "pointer", POINTER);
+//  }
+//};
+//
+// template <>
+// struct llvm::yaml::MappingTraits<typeart_type_info_t> {
+//  static void mapping(IO& io, typeart_type_info_t& info) {
+//    io.mapRequired("id", info.id);
+//    io.mapRequired("kind", info.kind);
+//  }
+//};
+//
+// LLVM_YAML_IS_SEQUENCE_VECTOR(typeart_type_info_t)
 
 template <>
 struct llvm::yaml::MappingTraits<typeart::StructTypeInfo> {

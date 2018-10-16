@@ -62,6 +62,8 @@ int TypeManager::getOrRegisterType(llvm::Type* type, const llvm::DataLayout& dl)
       return TA_X86_FP80;
     case llvm::Type::PPC_FP128TyID:
       return TA_PPC_FP128;
+    case llvm::Type::PointerTyID:
+      return TA_PTR;
     case llvm::Type::StructTyID:
       return getOrRegisterStruct(dyn_cast<StructType>(type), dl);
     default:
@@ -93,21 +95,20 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
   //}
 
   // Get next ID and register struct
-  int id = N_BUILTIN_TYPES + structCount;
+  int id = TA_NUM_RESERVED_IDS + structCount;
   structCount++;
 
   size_t n = type->getStructNumElements();
 
   std::vector<size_t> offsets;
   std::vector<size_t> arraySizes;
-  std::vector<TypeInfo> memberTypeInfo;
+  std::vector<int> memberTypeIDs;
 
   const StructLayout* layout = dl.getStructLayout(type);
 
   for (uint32_t i = 0; i < n; i++) {
     llvm::Type* memberType = type->getStructElementType(i);
     int memberID = TA_UNKNOWN_TYPE;
-    TypeKind kind;
 
     size_t arraySize = 1;
 
@@ -117,18 +118,16 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
     }
 
     if (memberType->isStructTy()) {
-      kind = STRUCT;
       if (getName(llvm::dyn_cast<StructType>(memberType)) == name) {
         memberID = id;
       } else {
         // TODO: Infinite cycle possible?
         memberID = getOrRegisterType(memberType, dl);
       }
-    } else if (memberType->isPointerTy()) {
-      kind = POINTER;
-      // TODO: Do we need a type ID for pointers?
-    } else if (memberType->isSingleValueType()) {
-      kind = BUILTIN;
+    } /*else if (memberType->isPointerTy()) {
+      memberID = TA_PTR;
+    }*/
+    else if (memberType->isSingleValueType() || memberType->isPointerTy()) {
       memberID = getOrRegisterType(memberType, dl);
     } else {
       // TODO: Any other types?
@@ -143,12 +142,12 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
     size_t offset = layout->getElementOffset(i);
     offsets.push_back(offset);
     arraySizes.push_back(arraySize);
-    memberTypeInfo.push_back({kind, memberID});
+    memberTypeIDs.push_back(memberID);
   }
 
   size_t numBytes = layout->getSizeInBytes();
 
-  StructTypeInfo structInfo{id, name, numBytes, n, offsets, memberTypeInfo, arraySizes};
+  StructTypeInfo structInfo{id, name, numBytes, n, offsets, memberTypeIDs, arraySizes};
   typeDB.registerStruct(structInfo);
 
   structMap.insert({name, id});
