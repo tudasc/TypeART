@@ -225,41 +225,38 @@ bool TypeArtPass::runOnFunc(Function& f) {
   };
 
   const auto instrumentAlloca = [&](const auto& allocaData) -> bool {
+
     auto alloca = allocaData.alloca;
+    int arraySize = allocaData.arraySize;
+
+    bool vla = arraySize < 0;
 
     Type* elementType = alloca->getAllocatedType();
-    unsigned arraySize = 1;
 
-    if (elementType->isArrayTy()) {
-      arraySize = tu::getArrayLengthFlattened(elementType);
-      elementType = tu::getArrayElementType(elementType);
+    // The length can be specified statically through the array type or as a separate argument.
+    // Both cases are handled here.
+
+    Value* numElementsVal = nullptr;
+    if (vla) {
+      numElementsVal = alloca->getArraySize();
+
+      // This should not happen in generated IR code
+      assert(!elementType->isArrayTy() && "VLAs of array types are currently not supported.");
+    } else {
+      if (elementType->isArrayTy()){
+        arraySize = arraySize * tu::getArrayLengthFlattened(elementType);
+        elementType = tu::getArrayElementType(elementType);
+      }
+      numElementsVal = ConstantInt::get(tu::getInt64Type(c), arraySize);
     }
+
 
     unsigned typeSize = tu::getTypeSizeInBytes(elementType, dl);
-
     int typeId = typeManager.getOrRegisterType(elementType, dl);
+
     auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), typeId);
     auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
-    auto numElementsConst = ConstantInt::get(tu::getInt64Type(c), arraySize);
     auto isLocalConst = ConstantInt::get(tu::getInt32Type(c), 1);
-
-    if (ClTypeArtAllocaLifetime) {
-      // TODO Using lifetime start (and end) likely cause our counter based stack tracking scheme to fail?
-      auto marker = allocaData.start;
-      if (marker != nullptr) {
-        IRBuilder<> IRB(marker->getNextNode());
-
-        auto arrayPtr = marker->getOperand(1);  // IRB.CreateBitOrPointerCast(alloca, tu::getVoidPtrType(c));
-        // LOG_DEBUG("Using lifetime marker for alloca: " << util::dump(*arrayPtr));
-        IRB.CreateCall(typeart_alloc.f,
-                       ArrayRef<Value*>{arrayPtr, typeIdConst, numElementsConst, typeSizeConst, isLocalConst});
-
-        allocCounts[marker->getParent()]++;
-
-        ++NumInstrumentedAlloca;
-        return true;
-      }
-    }
 
     IRBuilder<> IRB(alloca->getNextNode());
 
@@ -270,7 +267,7 @@ bool TypeArtPass::runOnFunc(Function& f) {
 
     auto arrayPtr = IRB.CreateBitOrPointerCast(alloca, tu::getVoidPtrType(c));
     IRB.CreateCall(typeart_alloc.f,
-                   ArrayRef<Value*>{arrayPtr, typeIdConst, numElementsConst, typeSizeConst, isLocalConst});
+                   ArrayRef<Value*>{arrayPtr, typeIdConst, numElementsVal, typeSizeConst, isLocalConst});
 
     allocCounts[alloca->getParent()]++;
 
