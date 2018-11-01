@@ -17,6 +17,26 @@
 int ta_check_exists(const char* mpi_name, const void* called_from, const void* buf, int const_adr);
 void ta_print_loc(const void* call_adr);
 
+
+void ta_check_send(const char* name, const void* called_from, const void* sendbuf, int count, MPI_Datatype dtype) {
+  ta_check_exists(name, called_from, sendbuf, 1);
+}
+
+void ta_check_recv(const char* name, const void* called_from, void* recvbuf, int count, MPI_Datatype dtype) {
+  ta_check_exists(name, called_from, recvbuf, 0);
+}
+
+void ta_check_send_and_recv(const char* name, const void* called_from, const void* sendbuf, int sendcount, MPI_Datatype sendtype, void* recvbuf, int recvcount, MPI_Datatype recvtype) {
+  ta_check_send(name, called_from, sendbuf, sendcount, sendtype);
+  ta_check_recv(name, called_from, recvbuf, recvcount, recvtype);
+}
+
+void ta_unsupported_mpi_call(const char* name, const void* called_from) {
+  fprintf(stderr, "[Error] The MPI function %s is currently not checked by TypeArt", name);
+  ta_print_loc(called_from);
+  exit(0);
+}
+
 void ta_check_const_void(const char* name, const void* called_from, const void* buf, MPI_Datatype dtype) {
   ta_check_exists(name, called_from, buf, 1);
 }
