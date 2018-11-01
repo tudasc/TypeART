@@ -14,16 +14,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int ta_check_exists(const char* mpi_name, const void* called_from, const void* buf, int const_adr);
+int ta_check_buffer(const char* mpi_name, const void* called_from, const void* buf, int mpi_count, int const_adr);
 void ta_print_loc(const void* call_adr);
 
 
 void ta_check_send(const char* name, const void* called_from, const void* sendbuf, int count, MPI_Datatype dtype) {
-  ta_check_exists(name, called_from, sendbuf, 1);
+  ta_check_buffer(name, called_from, sendbuf, count, 1);
 }
 
 void ta_check_recv(const char* name, const void* called_from, void* recvbuf, int count, MPI_Datatype dtype) {
-  ta_check_exists(name, called_from, recvbuf, 0);
+  ta_check_buffer(name, called_from, recvbuf, count, 0);
 }
 
 void ta_check_send_and_recv(const char* name, const void* called_from, const void* sendbuf, int sendcount, MPI_Datatype sendtype, void* recvbuf, int recvcount, MPI_Datatype recvtype) {
@@ -37,15 +37,18 @@ void ta_unsupported_mpi_call(const char* name, const void* called_from) {
   exit(0);
 }
 
-void ta_check_const_void(const char* name, const void* called_from, const void* buf, MPI_Datatype dtype) {
-  ta_check_exists(name, called_from, buf, 1);
-}
+//void ta_check_const_void(const char* name, const void* called_from, const void* buf, MPI_Datatype dtype) {
+//  ta_check_buffer(name, called_from, buf, 1);
+//}
+//
+//void ta_check_void(const char* name, const void* called_from, const void* buf) {
+//  ta_check_buffer(name, called_from, buf, 0);
+//}
 
-void ta_check_void(const char* name, const void* called_from, const void* buf) {
-  ta_check_exists(name, called_from, buf, 0);
-}
-
-int ta_check_exists(const char* mpi_name, const void* called_from, const void* buf, int const_adr) {
+int ta_check_buffer(const char *mpi_name, const void *called_from, const void *buf, int mpi_count, int const_adr) {
+  if (mpi_count == 0) {
+    return 1;
+  }
   int rank = 0;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   if (buf == NULL) {
@@ -59,6 +62,11 @@ int ta_check_exists(const char* mpi_name, const void* called_from, const void* b
   if (typeart_status_v != TA_OK) {
     printf("R[%d][Error][%d] Call '%s' buffer %p at loc %p status: %d\n", rank, const_adr, mpi_name, buf, called_from,
            (int)typeart_status_v);
+    ta_print_loc(called_from);
+    return 0;
+  }
+  if (mpi_count > count) {
+    printf("R[%d][Error][%d] Call '%s' buffer %p too small\n", rank, const_adr, mpi_name, buf);
     ta_print_loc(called_from);
     return 0;
   }
