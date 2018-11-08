@@ -45,6 +45,25 @@ void ta_unsupported_mpi_call(const char* name, const void* called_from) {
 //  ta_check_buffer(name, called_from, buf, 0);
 //}
 
+const char* ta_get_error_message(typeart_status status) {
+  switch(status) {
+      case TA_OK:
+        return "No errors";
+      case TA_UNKNOWN_ADDRESS:
+        return "Buffer not registered";
+      case TA_BAD_ALIGNMENT:
+        return "Buffer access is not aligned correctly";
+      case TA_BAD_OFFSET:
+        return "Error in offset computation";
+      case TA_WRONG_KIND:
+        return "Wrong type kind";
+      case TA_INVALID_ID:
+        return "Invalid type ID";
+      default:
+        return "Invalid error code";
+  }
+}
+
 int ta_check_buffer(const char *mpi_name, const void *called_from, const void *buf, int mpi_count, int const_adr) {
   if (mpi_count == 0) {
     return 1;
@@ -60,15 +79,16 @@ int ta_check_buffer(const char *mpi_name, const void *called_from, const void *b
   size_t count = 0;
   typeart_status typeart_status_v = typeart_get_type(buf, &type, &count);
   if (typeart_status_v != TA_OK) {
-    printf("R[%d][Error][%d] Call '%s' buffer %p at loc %p status: %d\n", rank, const_adr, mpi_name, buf, called_from,
-           (int)typeart_status_v);
+    const char* msg = ta_get_error_message(typeart_status_v);
+    printf("R[%d][Error][%d] Call '%s' buffer %p at loc %p status: %s\n", rank, const_adr, mpi_name, buf, called_from, msg);
     ta_print_loc(called_from);
     return 0;
   }
   if (mpi_count > count) {
-    printf("R[%d][Error][%d] Call '%s' buffer %p too small\n", rank, const_adr, mpi_name, buf);
-    ta_print_loc(called_from);
-    return 0;
+  //  printf("R[%d][Error][%d] Call '%s' buffer %p too small\n", rank, const_adr, mpi_name, buf);
+  //  printf("The buffer can only hold %d elements (%d required)\n", (int) count, (int) mpi_count);
+  //  ta_print_loc(called_from);
+  //  return 0;
   }
   return 1;
 }
