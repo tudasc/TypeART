@@ -13,7 +13,7 @@
 #include <vector>
 
 extern "C" {
-void __typeart_alloc(void* addr, int typeId, size_t count, size_t typeSize, int isLocal);
+void __typeart_alloc(void* addr, int typeId, size_t count, size_t typeSize, int memRegion);
 void __typeart_free(void* addr);
 void __typeart_leave_scope(size_t alloca_count);
 }
@@ -24,6 +24,13 @@ class Optional;
 }  // namespace llvm
 
 namespace typeart {
+
+enum MemRegion
+{
+ MEM_HEAP = 0,
+ MEM_STACK = 1,
+ MEM_GLOBAL = 2
+};
 
 struct PointerInfo {
   int typeId{-1};
@@ -154,7 +161,7 @@ class TypeArtRT {
 
   size_t getTypeSize(int id) const;
 
-  void onAlloc(const void* addr, int typeID, size_t count, size_t typeSize, bool isLocal, const void* retAddr);
+  void onAlloc(const void* addr, int typeID, size_t count, size_t typeSize, int isLocal, const void* retAddr);
 
   void onFree(const void* addr);
 
