@@ -200,7 +200,7 @@ inline static std::string toString(const void* addr, const PointerInfo& info) {
 TypeArtRT::TypeArtRT() {
   // Try to load types from specified file first.
   // Then look at default location.
-  const char* typeFile = std::getenv("TYPE_FILE");
+  const char* typeFile = std::getenv("TA_TYPE_FILE");
   if (typeFile) {
     if (!loadTypes(typeFile)) {
       LOG_ERROR("Failed to load recorded types from " << typeFile);
@@ -210,7 +210,7 @@ TypeArtRT::TypeArtRT() {
     if (!loadTypes(defaultTypeFileName)) {
       LOG_ERROR("No type file with default name \""
                 << defaultTypeFileName
-                << "\" in current directory. To specify a different file, edit the TYPE_FILE environment variable.");
+                << "\" in current directory. To specify a different file, edit the TA_TYPE_FILE environment variable.");
       std::exit(EXIT_FAILURE);  // TODO: Error handling
     }
   }
@@ -446,7 +446,6 @@ TypeArtRT::TypeArtStatus TypeArtRT::getContainingTypeInfo(const void* addr, int*
     size_t typeCount = basePtrInfo.count - typeOffset;
 
     // Retrieve and return type information
-    // TODO: Ensure that ID is valid
     *type = basePtrInfo.typeId;
     *count = typeCount;
     *baseAddress = basePtr;  // addByteOffset(basePtr, typeOffset * basePtrInfo.typeSize);
@@ -511,9 +510,11 @@ void TypeArtRT::doAlloc(const void* addr, int typeId, size_t count, size_t typeS
     LOG_TRACE("Alloc " << addr << " " << typeDB.getTypeName(typeId) << " " << typeSize << " " << count << " " << reg);
   } else {
     typeart::Recorder::get().incAddrReuse();
-    LOG_ERROR("Already exists (" << retAddr << ", prev=" << def.debug
-                                 << "): " << toString(addr, typeId, count, typeSize));
-    LOG_ERROR("Data in map is: " << toString(addr, def));
+    if (reg == 'G' || reg == 'H') {
+        LOG_ERROR("Already exists (" << retAddr << ", prev=" << def.debug
+                                     << "): " << toString(addr, typeId, count, typeSize));
+        LOG_ERROR("Data in map is: " << toString(addr, def));
+    }
   }
 
   def.typeId = typeId;
@@ -541,7 +542,6 @@ void TypeArtRT::onFree(const void* addr) {
     typeMap.erase(it);
   } else {
     LOG_ERROR("Free recorded on unregistered address: " << addr);
-    // TODO: What to do when not found?
   }
 }
 
