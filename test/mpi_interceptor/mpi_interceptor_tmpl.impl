@@ -25,6 +25,9 @@ extern "C" {
              MPI_Ssend
              MPI_Ssend_init
 
+             MPI_Accumulate
+             MPI_Raccumulate
+
              MPI_File_iread
              MPI_File_iread_at
              MPI_File_iread_shared
@@ -55,6 +58,8 @@ return P{{fn_name}}({{args}});
              MPI_Bcast
              MPI_Ibcast
 
+             MPI_Sendrecv_replace
+
              MPI_File_iwrite
              MPI_File_iwrite_at
              MPI_File_iwrite_shared
@@ -75,7 +80,7 @@ return P{{fn_name}}({{args}});
 }
 {{endfn}}
 
-// Send/Recv functions (1 buffer, 1 count)
+// Send/Recv functions (2 buffers, 1 or 2 count)
 {{fn fn_name MPI_Allgather
 
              MPI_Allreduce
@@ -98,6 +103,23 @@ return P{{fn_name}}({{args}});
              MPI_Scan
              MPI_Scatter
              MPI_Sendrecv
+
+             MPI_Allgatherv
+             MPI_Alltoallv
+             MPI_Gatherv
+             MPI_Iallgatherv
+             MPI_Ialltoallv
+             MPI_Igatherv
+             MPI_Ineighbor_allgatherv
+             MPI_Ineighbor_alltoallv
+             MPI_Iscatterv
+             MPI_Neighbor_allgatherv
+             MPI_Neighbor_alltoallv
+             MPI_Scatterv
+             MPI_Reduce_scatter
+             MPI_Reduce_scatter_block
+             MPI_Ireduce_scatter
+             MPI_Ireduce_scatter_block
              }}
 {
 const void* ta_ret_adr = __builtin_return_address(0);
@@ -108,29 +130,12 @@ return P{{fn_name}}({{args}});
 
 
 // Unsupported functions
-{{fn fn_name MPI_Alltoallv
-             MPI_Alltoallw
-             MPI_Gatherv
-             MPI_Iallgatherv
-             MPI_Ialltoallv
-             MPI_Ialltoallw
-             MPI_Igatherv
-             MPI_Ineighbor_allgatherv
-             MPI_Ineighbor_alltoallv
-             MPI_Ineighbor_alltoallw
-             MPI_Allgatherv
-             MPI_Iscatterv
-             MPI_Neighbor_allgatherv
-             MPI_Neighbor_alltoallv
-             MPI_Neighbor_alltoallw
-             MPI_Scatterv
-             MPI_Reduce_scatter
-             MPI_Reduce_scatter_block
-             MPI_Ireduce_scatter
-             MPI_Ireduce_scatter_block
-             MPI_Raccumulate
-             MPI_Sendrecv_replace
+{{fn fn_name
 
+             MPI_Alltoallw
+             MPI_Ialltoallw
+             MPI_Ineighbor_alltoallw
+             MPI_Neighbor_alltoallw
 
 }}
 {

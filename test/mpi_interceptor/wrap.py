@@ -1358,8 +1358,13 @@ class TypeArtTypeApplier:
         count_args = []
         count_matcher = re.compile('.*count.*')
         for arg in self.decl.args:
-            if arg.cType() == 'int' and count_matcher.match(arg.name) is not None:
-                count_args.append(arg)
+            if count_matcher.match(arg.name) is not None:
+                if arg.cType() == 'int':
+                    count_args.append((arg, False))
+                elif arg.cType() == 'const int[]' or arg.cType() == 'const int*':
+                    count_args.append((arg, True))
+                else:
+                    print("Unknown count argument: ", arg.cType())
         return count_args
 
     def _find_buffer_args(self):
@@ -1400,7 +1405,7 @@ class TypeArtTypeApplier:
                 raise RuntimeError('%s: Number of count args < 1: %d' % (self.decl.name, len(count_args)))
             if len(type_args) < 1:
                 raise RuntimeError('%s: Number of type args < 1: %d' % (self.decl.name, len(type_args)))
-            callargs += [buffer_args[0][0].name, count_args[0].name, type_args[0].name]
+            callargs += [buffer_args[0][0].name, count_args[0][0].name, type_args[0].name]
         elif op_type == 'recv':
             if len(buffer_args) != 1:
                 raise RuntimeError('%s: Number of buffer args != 1: %d' % (self.decl.name, len(buffer_args)))
@@ -1408,7 +1413,7 @@ class TypeArtTypeApplier:
                 raise RuntimeError('%s: Number of count args < 1: %d' % (self.decl.name, len(count_args)))
             if len(type_args) < 1:
                 raise RuntimeError('%s: Number of type args < 1: %d' % (self.decl.name, len(type_args)))
-            callargs += [buffer_args[0][0].name, count_args[0].name, type_args[0].name]
+            callargs += [buffer_args[0][0].name, count_args[0][0].name, type_args[0].name]
         elif op_type == 'sendrecv':
             if len(buffer_args) != 2:
                 raise RuntimeError('%s: Number of buffer args != 1: %d' % (self.decl.name, len(buffer_args)))
@@ -1422,7 +1427,17 @@ class TypeArtTypeApplier:
             if len(type_args) == 1:
                 type_args.append(type_args[0])
 
-            callargs += [buffer_args[0][0].name, count_args[0].name, type_args[0].name, buffer_args[1][0].name, count_args[1].name, type_args[1].name]
+
+            # TODO: Figure out how to properly handle count vectors
+            send_count = count_args[0][0].name
+            if count_args[0][1]:
+                send_count = '1'
+
+            recv_count = count_args[1][0].name
+            if count_args[1][1]:
+                recv_count = '1'
+
+            callargs += [buffer_args[0][0].name, send_count, type_args[0].name, buffer_args[1][0].name, recv_count, type_args[1].name]
         else:
             return
 

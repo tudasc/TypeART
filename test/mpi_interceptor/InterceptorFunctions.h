@@ -85,6 +85,8 @@ int ta_check_buffer(const char *mpi_name, const void *called_from, const void *b
     return 0;
   }
   if (mpi_count > count) {
+      // TODO: Count check not really sensible without taking the MPI type into account
+
   //  printf("R[%d][Error][%d] Call '%s' buffer %p too small\n", rank, const_adr, mpi_name, buf);
   //  printf("The buffer can only hold %d elements (%d required)\n", (int) count, (int) mpi_count);
   //  ta_print_loc(called_from);
