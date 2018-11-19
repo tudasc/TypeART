@@ -71,7 +71,7 @@ int ta_check_buffer(const char *mpi_name, const void *called_from, const void *b
   int rank = 0;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   if (buf == NULL) {
-    printf("R[%d][Error][%d] Call '%s' buffer NULL\n", rank, const_adr, mpi_name); 
+    printf("R[%d][Error][%d] %s: buffer %p is NULL\n", rank, const_adr, mpi_name, buf);
     ta_print_loc(called_from);
     return -1;
   }
@@ -80,7 +80,7 @@ int ta_check_buffer(const char *mpi_name, const void *called_from, const void *b
   typeart_status typeart_status_v = typeart_get_type(buf, &type, &count);
   if (typeart_status_v != TA_OK) {
     const char* msg = ta_get_error_message(typeart_status_v);
-    printf("R[%d][Error][%d] Call '%s' buffer %p at loc %p status: %s\n", rank, const_adr, mpi_name, buf, called_from, msg);
+    printf("R[%d][Error][%d] %s: buffer %p at loc %p - %s\n", rank, const_adr, mpi_name, buf, called_from, msg);
     ta_print_loc(called_from);
     return 0;
   }
