@@ -17,6 +17,9 @@
 using namespace btree;
 #endif
 
+#define RECURSION_GUARD_BEGIN(x) if (x) return; x = true
+#define RECURSION_GUARD_END(x) x = false
+
 namespace typeart {
 namespace softcounter {
 /**
@@ -523,19 +526,26 @@ void TypeArtRT::doAlloc(const void* addr, int typeId, size_t count, size_t typeS
 }
 
 void TypeArtRT::onAlloc(const void* addr, int typeId, size_t count, size_t typeSize, const void* retAddr) {
+  RECURSION_GUARD_BEGIN(runtimeScope);
   doAlloc(addr, typeId, count, typeSize, retAddr);
+  RECURSION_GUARD_END(runtimeScope);
 }
 
 void TypeArtRT::onAllocStack(const void* addr, int typeId, size_t count, size_t typeSize, const void* retAddr) {
+  RECURSION_GUARD_BEGIN(runtimeScope);
   doAlloc(addr, typeId, count, typeSize, retAddr, 'S');
   stackVars.push_back(addr);
+  RECURSION_GUARD_END(runtimeScope);
 }
 
 void TypeArtRT::onAllocGlobal(const void* addr, int typeId, size_t count, size_t typeSize, const void* retAddr) {
+  RECURSION_GUARD_BEGIN(runtimeScope);
   doAlloc(addr, typeId, count, typeSize, retAddr, 'G');
+  RECURSION_GUARD_END(runtimeScope);
 }
 
 void TypeArtRT::onFree(const void* addr) {
+  RECURSION_GUARD_BEGIN(runtimeScope);
   auto it = typeMap.find(addr);
   if (it != typeMap.end()) {
     LOG_TRACE("Free " << toString((*it).first, (*it).second));
@@ -543,9 +553,11 @@ void TypeArtRT::onFree(const void* addr) {
   } else {
     LOG_ERROR("Free recorded on unregistered address: " << addr);
   }
+  RECURSION_GUARD_END(runtimeScope);
 }
 
 void TypeArtRT::onLeaveScope(size_t alloca_count) {
+  RECURSION_GUARD_BEGIN(runtimeScope);
   if (alloca_count > stackVars.size()) {
     LOG_ERROR("Stack is smaller than requested de-allocation count. alloca_count: " << alloca_count
                                                                                     << ". size: " << stackVars.size());
@@ -558,6 +570,7 @@ void TypeArtRT::onLeaveScope(size_t alloca_count) {
   std::for_each(start_pos, cend, [&](const void* addr) { onFree(addr); });
   stackVars.erase(start_pos, cend);
   LOG_TRACE("Stack after free: " << stackVars.size());
+  RECURSION_GUARD_END(runtimeScope);
 }
 
 }  // namespace typeart

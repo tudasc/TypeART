@@ -200,6 +200,11 @@ class TypeArtRT final {
   PointerMap typeMap;
   Stack stackVars;
   TypeDB typeDB;
+
+  /**
+   * Set to true during alloc/free handling as to allow to detect tracking of memory operations from within the runtime lib
+   */
+  bool runtimeScope{false};
   static std::string defaultTypeFileName;
 };
 
