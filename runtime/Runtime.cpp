@@ -17,8 +17,8 @@
 using namespace btree;
 #endif
 
-#define RECURSION_GUARD_BEGIN(x) if (x) return; x = true
-#define RECURSION_GUARD_END(x) x = false
+#define RUNTIME_GUARD_BEGIN if (typeart::typeart_rt_scope) return; typeart::typeart_rt_scope = true
+#define RUNTIME_GUARD_END typeart::typeart_rt_scope = false
 
 namespace typeart {
 namespace softcounter {
@@ -526,26 +526,19 @@ void TypeArtRT::doAlloc(const void* addr, int typeId, size_t count, size_t typeS
 }
 
 void TypeArtRT::onAlloc(const void* addr, int typeId, size_t count, size_t typeSize, const void* retAddr) {
-  RECURSION_GUARD_BEGIN(runtimeScope);
   doAlloc(addr, typeId, count, typeSize, retAddr);
-  RECURSION_GUARD_END(runtimeScope);
 }
 
 void TypeArtRT::onAllocStack(const void* addr, int typeId, size_t count, size_t typeSize, const void* retAddr) {
-  RECURSION_GUARD_BEGIN(runtimeScope);
   doAlloc(addr, typeId, count, typeSize, retAddr, 'S');
   stackVars.push_back(addr);
-  RECURSION_GUARD_END(runtimeScope);
 }
 
 void TypeArtRT::onAllocGlobal(const void* addr, int typeId, size_t count, size_t typeSize, const void* retAddr) {
-  RECURSION_GUARD_BEGIN(runtimeScope);
   doAlloc(addr, typeId, count, typeSize, retAddr, 'G');
-  RECURSION_GUARD_END(runtimeScope);
 }
 
 void TypeArtRT::onFree(const void* addr) {
-  RECURSION_GUARD_BEGIN(runtimeScope);
   auto it = typeMap.find(addr);
   if (it != typeMap.end()) {
     LOG_TRACE("Free " << toString((*it).first, (*it).second));
@@ -553,11 +546,9 @@ void TypeArtRT::onFree(const void* addr) {
   } else {
     LOG_ERROR("Free recorded on unregistered address: " << addr);
   }
-  RECURSION_GUARD_END(runtimeScope);
 }
 
 void TypeArtRT::onLeaveScope(size_t alloca_count) {
-  RECURSION_GUARD_BEGIN(runtimeScope);
   if (alloca_count > stackVars.size()) {
     LOG_ERROR("Stack is smaller than requested de-allocation count. alloca_count: " << alloca_count
                                                                                     << ". size: " << stackVars.size());
@@ -570,36 +561,45 @@ void TypeArtRT::onLeaveScope(size_t alloca_count) {
   std::for_each(start_pos, cend, [&](const void* addr) { onFree(addr); });
   stackVars.erase(start_pos, cend);
   LOG_TRACE("Stack after free: " << stackVars.size());
-  RECURSION_GUARD_END(runtimeScope);
 }
 
 }  // namespace typeart
 
 void __typeart_alloc(void* addr, int typeId, size_t count, size_t typeSize) {
+  RUNTIME_GUARD_BEGIN;
   const void* retAddr = __builtin_return_address(0);
   typeart::TypeArtRT::get().onAlloc(addr, typeId, count, typeSize, retAddr);
+  RUNTIME_GUARD_END;
 }
 
 void __typeart_alloc_stack(void* addr, int typeId, size_t count, size_t typeSize) {
+  RUNTIME_GUARD_BEGIN;
   const void* retAddr = __builtin_return_address(0);
   typeart::TypeArtRT::get().onAllocStack(addr, typeId, count, typeSize, retAddr);
+  RUNTIME_GUARD_END;
 }
 
 void __typeart_alloc_global(void* addr, int typeId, size_t count, size_t typeSize) {
+  RUNTIME_GUARD_BEGIN;
   const void* retAddr = __builtin_return_address(0);
   typeart::TypeArtRT::get().onAllocGlobal(addr, typeId, count, typeSize, retAddr);
+  RUNTIME_GUARD_END;
 }
 
 void __typeart_free(void* addr) {
+  RUNTIME_GUARD_BEGIN;
   //  const void* ret_adr = __builtin_return_address(0);
   typeart::TypeArtRT::get().onFree(addr);
   typeart::Recorder::get().decHeapAlloc();
+  RUNTIME_GUARD_END;
 }
 
 void __typeart_leave_scope(size_t alloca_count) {
+  RUNTIME_GUARD_BEGIN;
   //  const void* ret_adr = __builtin_return_address(0);
   typeart::TypeArtRT::get().onLeaveScope(alloca_count);
   typeart::Recorder::get().decStackAlloc(alloca_count);
+  RUNTIME_GUARD_END;
 }
 
 typeart_status typeart_get_builtin_type(const void* addr, typeart::BuiltinType* type) {
