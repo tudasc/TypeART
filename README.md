@@ -1,6 +1,8 @@
-# llvm-must-support
+# TypeART
 
-Repository for the prototype implementation of an LLVM pass plus runtime, which implements type tracking to help MUST validate the correct use of MPI calls.
+TypeART is a compiler plugin + runtime to gather and track type information for every allocation site relevant to Message Passing Interface (MPI) API function calls.
+Together with the MUST dynamic MPI checker this enables a user to check the correct construction and usage of MPI built-in,  as well as user-defined types.
+More information can be found [here](https://sc18.supercomputing.org/proceedings/workshops/workshop_pages/ws_corr102.html).
 
 ## LLVM pass
 - malloc/free instrumentation to keep track of active pointers
