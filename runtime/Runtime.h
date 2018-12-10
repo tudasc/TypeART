@@ -13,9 +13,9 @@
 #include <vector>
 
 extern "C" {
-void __typeart_alloc(void* addr, int typeId, size_t count, size_t typeSize);
-void __typeart_alloc_stack(void* addr, int typeId, size_t count, size_t typeSize);
-void __typeart_alloc_global(void* addr, int typeId, size_t count, size_t typeSize);
+void __typeart_alloc(void* addr, int typeId, size_t count);
+void __typeart_alloc_stack(void* addr, int typeId, size_t count);
+void __typeart_alloc_global(void* addr, int typeId, size_t count);
 void __typeart_free(void* addr);
 void __typeart_leave_scope(size_t alloca_count);
 }
@@ -154,11 +154,11 @@ class TypeArtRT final {
 
   size_t getTypeSize(int id) const;
 
-  void onAlloc(const void* addr, int typeID, size_t count, size_t typeSize, const void* retAddr);
+  void onAlloc(const void* addr, int typeID, size_t count, const void* retAddr);
 
-  void onAllocStack(const void* addr, int typeID, size_t count, size_t typeSize, const void* retAddr);
+  void onAllocStack(const void* addr, int typeID, size_t count, const void* retAddr);
 
-  void onAllocGlobal(const void* addr, int typeID, size_t count, size_t typeSize, const void* retAddr);
+  void onAllocGlobal(const void* addr, int typeID, size_t count, const void* retAddr);
 
   void onFree(const void* addr);
 
@@ -187,7 +187,7 @@ class TypeArtRT final {
    */
   bool loadTypes(const std::string& file);
 
-  inline void doAlloc(const void* addr, int typeID, size_t count, size_t typeSize, const void* retAddr,
+  inline void doAlloc(const void* addr, int typeID, size_t count, const void* retAddr,
                       const char reg = 'H');
 
   /**

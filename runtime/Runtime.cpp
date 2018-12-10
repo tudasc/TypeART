@@ -503,16 +503,16 @@ void TypeArtRT::getReturnAddress(const void* addr, const void** retAddr) const {
   }
 }
 
-void TypeArtRT::doAlloc(const void* addr, int typeId, size_t count, size_t typeSize, const void* retAddr,
+void TypeArtRT::doAlloc(const void* addr, int typeId, size_t count, const void* retAddr,
                         const char reg) {
   auto& def = typeMap[addr];
 
   if (def.typeId == -1) {
-    LOG_TRACE("Alloc " << addr << " " << typeDB.getTypeName(typeId) << " " << typeSize << " " << count << " " << reg);
+    LOG_TRACE("Alloc " << addr << " " << typeDB.getTypeName(typeId) << " " << typeDB.getTypeSize(typeId) << " " << count << " " << reg);
   } else {
     typeart::Recorder::get().incAddrReuse();
     LOG_ERROR("Already exists (" << retAddr << ", prev=" << def.debug
-                                 << "): " << toString(addr, typeId, count, typeSize));
+                                 << "): " << toString(addr, typeId, count, typeDB.getTypeSize(typeId)));
     LOG_ERROR("Data in map is: " << toString(addr, def));
   }
 
@@ -521,17 +521,17 @@ void TypeArtRT::doAlloc(const void* addr, int typeId, size_t count, size_t typeS
   def.debug = retAddr;
 }
 
-void TypeArtRT::onAlloc(const void* addr, int typeId, size_t count, size_t typeSize, const void* retAddr) {
-  doAlloc(addr, typeId, count, typeSize, retAddr);
+void TypeArtRT::onAlloc(const void* addr, int typeId, size_t count, const void* retAddr) {
+  doAlloc(addr, typeId, count, retAddr);
 }
 
-void TypeArtRT::onAllocStack(const void* addr, int typeId, size_t count, size_t typeSize, const void* retAddr) {
-  doAlloc(addr, typeId, count, typeSize, retAddr, 'S');
+void TypeArtRT::onAllocStack(const void* addr, int typeId, size_t count, const void* retAddr) {
+  doAlloc(addr, typeId, count, retAddr, 'S');
   stackVars.push_back(addr);
 }
 
-void TypeArtRT::onAllocGlobal(const void* addr, int typeId, size_t count, size_t typeSize, const void* retAddr) {
-  doAlloc(addr, typeId, count, typeSize, retAddr, 'G');
+void TypeArtRT::onAllocGlobal(const void* addr, int typeId, size_t count, const void* retAddr) {
+  doAlloc(addr, typeId, count, retAddr, 'G');
 }
 
 void TypeArtRT::onFree(const void* addr) {
@@ -562,19 +562,19 @@ void TypeArtRT::onLeaveScope(size_t alloca_count) {
 
 }  // namespace typeart
 
-void __typeart_alloc(void* addr, int typeId, size_t count, size_t typeSize) {
+void __typeart_alloc(void* addr, int typeId, size_t count) {
   const void* retAddr = __builtin_return_address(0);
-  typeart::TypeArtRT::get().onAlloc(addr, typeId, count, typeSize, retAddr);
+  typeart::TypeArtRT::get().onAlloc(addr, typeId, count, retAddr);
 }
 
-void __typeart_alloc_stack(void* addr, int typeId, size_t count, size_t typeSize) {
+void __typeart_alloc_stack(void* addr, int typeId, size_t count) {
   const void* retAddr = __builtin_return_address(0);
-  typeart::TypeArtRT::get().onAllocStack(addr, typeId, count, typeSize, retAddr);
+  typeart::TypeArtRT::get().onAllocStack(addr, typeId, count, retAddr);
 }
 
-void __typeart_alloc_global(void* addr, int typeId, size_t count, size_t typeSize) {
+void __typeart_alloc_global(void* addr, int typeId, size_t count) {
   const void* retAddr = __builtin_return_address(0);
-  typeart::TypeArtRT::get().onAllocGlobal(addr, typeId, count, typeSize, retAddr);
+  typeart::TypeArtRT::get().onAllocGlobal(addr, typeId, count, retAddr);
 }
 
 void __typeart_free(void* addr) {
