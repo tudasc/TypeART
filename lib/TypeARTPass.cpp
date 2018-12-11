@@ -95,17 +95,17 @@ bool TypeArtPass::runOnModule(Module& m) {
       }
 
       int typeId = typeManager.getOrRegisterType(type, dl);
-      unsigned typeSize = tu::getTypeSizeInBytes(type, dl);
+      //unsigned typeSize = tu::getTypeSizeInBytes(type, dl);
 
       auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), typeId);
-      auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
+      //auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
       auto numElementsConst = ConstantInt::get(tu::getInt64Type(c), numElements);
 
       auto globalPtr = IRB.CreateBitOrPointerCast(global, tu::getVoidPtrType(c));
 
       LOG_DEBUG("Instrumenting global variable: " << util::dump(*global));
 
-      IRB.CreateCall(typeart_alloc_global.f, ArrayRef<Value*>{globalPtr, typeIdConst, numElementsConst, typeSizeConst});
+      IRB.CreateCall(typeart_alloc_global.f, ArrayRef<Value*>{globalPtr, typeIdConst, numElementsConst});
       return true;
     };
 
@@ -205,7 +205,7 @@ bool TypeArtPass::runOnFunc(Function& f) {
       return false;
     }
 
-    IRB.CreateCall(typeart_alloc.f, ArrayRef<Value*>{mallocInst, typeIdConst, elementCount, typeSizeConst});
+    IRB.CreateCall(typeart_alloc.f, ArrayRef<Value*>{mallocInst, typeIdConst, elementCount});
 
     return true;
   };
@@ -244,11 +244,11 @@ bool TypeArtPass::runOnFunc(Function& f) {
       numElementsVal = ConstantInt::get(tu::getInt64Type(c), arraySize);
     }
 
-    unsigned typeSize = tu::getTypeSizeInBytes(elementType, dl);
+    //unsigned typeSize = tu::getTypeSizeInBytes(elementType, dl);
     int typeId = typeManager.getOrRegisterType(elementType, dl);
 
     auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), typeId);
-    auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
+    //auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
 
     IRBuilder<> IRB(alloca->getNextNode());
 
@@ -258,7 +258,7 @@ bool TypeArtPass::runOnFunc(Function& f) {
     //    IRB.CreateStore(increment_counter, counter);
 
     auto arrayPtr = IRB.CreateBitOrPointerCast(alloca, tu::getVoidPtrType(c));
-    IRB.CreateCall(typeart_alloc_stack.f, ArrayRef<Value*>{arrayPtr, typeIdConst, numElementsVal, typeSizeConst});
+    IRB.CreateCall(typeart_alloc_stack.f, ArrayRef<Value*>{arrayPtr, typeIdConst, numElementsVal});
 
     allocCounts[alloca->getParent()]++;
 
@@ -359,7 +359,7 @@ void TypeArtPass::declareInstrumentationFunctions(Module& m) {
   };
 
   auto& c = m.getContext();
-  Type* alloc_arg_types[] = {tu::getVoidPtrType(c), tu::getInt32Type(c), tu::getInt64Type(c), tu::getInt64Type(c)};
+  Type* alloc_arg_types[] = {tu::getVoidPtrType(c), tu::getInt32Type(c), tu::getInt64Type(c)};
   Type* free_arg_types[] = {tu::getVoidPtrType(c)};
   Type* leavescope_arg_types[] = {tu::getInt64Type(c)};
 
