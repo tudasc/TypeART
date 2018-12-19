@@ -95,10 +95,10 @@ bool TypeArtPass::runOnModule(Module& m) {
       }
 
       int typeId = typeManager.getOrRegisterType(type, dl);
-      //unsigned typeSize = tu::getTypeSizeInBytes(type, dl);
+      // unsigned typeSize = tu::getTypeSizeInBytes(type, dl);
 
       auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), typeId);
-      //auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
+      // auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
       auto numElementsConst = ConstantInt::get(tu::getInt64Type(c), numElements);
 
       auto globalPtr = IRB.CreateBitOrPointerCast(global, tu::getVoidPtrType(c));
@@ -172,6 +172,11 @@ bool TypeArtPass::runOnFunc(Function& f) {
     auto mallocArg = mallocInst->getOperand(0);
     int typeId = typeManager.getOrRegisterType(mallocInst->getType()->getPointerElementType(),
                                                dl);  // retrieveTypeID(tu::getVoidType(c));
+    if (typeId == TA_UNKNOWN_TYPE) {
+      LOG_ERROR("Unknown allocated type. Not instrumenting. " << util::dump(*mallocInst));
+      return false;
+    }
+
     // Number of bytes per element, 1 for void*
     unsigned typeSize = tu::getTypeSizeInBytes(mallocInst->getType()->getPointerElementType(), dl);
     auto insertBefore = mallocInst->getNextNode();
@@ -179,6 +184,14 @@ bool TypeArtPass::runOnFunc(Function& f) {
     // Use the first cast as the determining type (if there is any)
     if (primaryBitcast) {
       auto dstPtrType = primaryBitcast->getDestTy()->getPointerElementType();
+
+      // Vector types, e.g. <2 x float>, are treated like static arrays
+      if (dstPtrType->isVectorTy()) {
+        dstPtrType = dstPtrType->getVectorElementType();
+        // Should never happen, as vectors are first class types.
+        assert(!dstPtrType->isAggregateType() && "Unexpected vector type encountered: vector of aggregate type.");
+      }
+
       typeSize = tu::getTypeSizeInBytes(dstPtrType, dl);
       typeId = typeManager.getOrRegisterType(dstPtrType, dl);  //(unsigned)dstPtrType->getTypeID();
     }
@@ -244,13 +257,33 @@ bool TypeArtPass::runOnFunc(Function& f) {
       numElementsVal = ConstantInt::get(tu::getInt64Type(c), arraySize);
     }
 
-    //unsigned typeSize = tu::getTypeSizeInBytes(elementType, dl);
+    IRBuilder<> IRB(alloca->getNextNode());
+
+    // Vector types, e.g. <2 x float>, are treated like static arrays
+    if (elementType->isVectorTy()) {
+      unsigned int vectorBytes = dl.getTypeAllocSize(elementType);
+      unsigned int vectorSize = elementType->getVectorNumElements();
+
+      // FIXME: Consider alignment of vector types, e.g. <3 x double> allocates 32 bytes, not 24!
+
+      elementType = elementType->getVectorElementType();
+      // Should never happen, as vectors are first class types.
+      assert(!elementType->isAggregateType() && "Unexpected vector type encountered: vector of aggregate type.");
+      // Cast to int64 to avoid type mismatches
+      auto numElements64 = IRB.CreateIntCast(numElementsVal, tu::getInt64Type(c), false);
+      // Multiply by number of vector elements
+      numElementsVal = IRB.CreateMul(numElements64, ConstantInt::get(tu::getInt64Type(c), vectorSize));
+    }
+
+    // unsigned typeSize = tu::getTypeSizeInBytes(elementType, dl);
     int typeId = typeManager.getOrRegisterType(elementType, dl);
 
-    auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), typeId);
-    //auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
+    if (typeId == TA_UNKNOWN_TYPE) {
+      LOG_ERROR("Type is not supported: " << util::dump(*elementType));
+    }
 
-    IRBuilder<> IRB(alloca->getNextNode());
+    auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), typeId);
+    // auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
 
     // Single increment for an alloca:
     //    auto load_counter = IRB.CreateLoad(counter);

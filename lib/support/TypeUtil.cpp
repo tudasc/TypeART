@@ -45,6 +45,8 @@ unsigned getTypeSizeInBytes(llvm::Type* t, const llvm::DataLayout& dl) {
     bytes = getStructSizeInBytes(t, dl);
   } else if (t->isPointerTy()) {
     bytes = getPointerSizeInBytes(t, dl);
+  } else if (t->isVectorTy()) {
+    bytes = getVectorSizeInBytes(t, dl);
   }
 
   return bytes;
@@ -57,6 +59,11 @@ unsigned getScalarSizeInBytes(llvm::Type* t) {
 unsigned getArraySizeInBytes(llvm::Type* arrT, const llvm::DataLayout& dl) {
   auto st = dyn_cast<ArrayType>(arrT);
   return getTypeSizeInBytes(getArrayElementType(st), dl) * getArrayLengthFlattened(st);
+}
+
+unsigned getVectorSizeInBytes(llvm::Type* vectorT, const llvm::DataLayout& dl) {
+  auto vt = dyn_cast<VectorType>(vectorT);
+  return getTypeSizeInBytes(vt->getVectorElementType(), dl) * vt->getVectorNumElements();
 }
 
 /**
