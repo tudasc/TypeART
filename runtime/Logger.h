@@ -28,7 +28,7 @@
 
 #if MPI_LOGGER
 
-void mpi_log(std::string msg);
+void mpi_log(const std::string& msg);
 #define OO_LOG_LEVEL_MSG(LEVEL_NUM, LEVEL, MSG)                                                      \
   if ((LEVEL_NUM) <= LOG_LEVEL) {                                                                    \
     std::string s;                                                                                   \
