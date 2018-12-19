@@ -502,18 +502,23 @@ void TypeArtRT::getReturnAddress(const void* addr, const void** retAddr) const {
   }
 }
 
-void TypeArtRT::doAlloc(const void* addr, int typeId, size_t count, const void* retAddr,
-                        const char reg) {
+void TypeArtRT::doAlloc(const void* addr, int typeId, size_t count, const void* retAddr, const char reg) {
+  if (!typeDB.isValid(typeId)) {
+    LOG_ERROR("Allocation of unknown type (id=" << typeId << ") recorded at " << addr << " [" << reg
+                                                << "], called from " << retAddr);
+  }
+
   auto& def = typeMap[addr];
 
   if (def.typeId == -1) {
-    LOG_TRACE("Alloc " << addr << " " << typeDB.getTypeName(typeId) << " " << typeDB.getTypeSize(typeId) << " " << count << " " << reg);
+    LOG_TRACE("Alloc " << addr << " " << typeDB.getTypeName(typeId) << " " << typeDB.getTypeSize(typeId) << " " << count
+                       << " " << reg);
   } else {
     typeart::Recorder::get().incAddrReuse();
     if (reg == 'G' || reg == 'H') {
-        LOG_ERROR("Already exists (" << retAddr << ", prev=" << def.debug
-                                     << "): " << toString(addr, typeId, count, typeDB.getTypeSize(typeId)));
-        LOG_ERROR("Data in map is: " << toString(addr, def));
+      LOG_ERROR("Already exists (" << retAddr << ", prev=" << def.debug
+                                   << "): " << toString(addr, typeId, count, typeDB.getTypeSize(typeId)));
+      LOG_ERROR("Data in map is: " << toString(addr, def));
     }
   }
 
