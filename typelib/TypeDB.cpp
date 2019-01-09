@@ -44,6 +44,19 @@ bool TypeDB::isStructType(int id) const {
   return id >= TA_NUM_RESERVED_IDS;
 }
 
+bool TypeDB::isUserDefinedType(int id) const
+{
+  auto structInfo = getStructInfo(id);
+  return structInfo && (structInfo->flags & TA_USER_DEF);
+}
+
+bool TypeDB::isVectorType(int id) const
+{
+  auto structInfo = getStructInfo(id);
+  return structInfo && (structInfo->flags & TA_VEC);
+}
+
+
 bool TypeDB::isValid(int id) const {
   if (isBuiltinType(id)) {
     return true;

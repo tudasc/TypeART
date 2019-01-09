@@ -23,6 +23,7 @@ struct StructTypeInfo {
   std::vector<size_t> offsets;
   std::vector<int> memberTypes;
   std::vector<size_t> arraySizes;
+  int flags;
 };
 
 class TypeDB {
@@ -40,6 +41,10 @@ class TypeDB {
   bool isBuiltinType(int id) const;
 
   bool isStructType(int id) const;
+
+  bool isUserDefinedType(int id) const;
+
+  bool isVectorType(int id) const;
 
   const std::string& getTypeName(int id) const;
 

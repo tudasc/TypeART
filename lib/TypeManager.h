@@ -22,6 +22,9 @@ class TypeManager {
 
  private:
   int getOrRegisterStruct(llvm::StructType* type, const llvm::DataLayout& dl);
+  int getOrRegisterVector(llvm::VectorType* type, const llvm::DataLayout& dl);
+
+  int reserveNextId();
 
   // TypeInfo getTypeInfo(llvm::Type* type);
 

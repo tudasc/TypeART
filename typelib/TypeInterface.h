@@ -32,6 +32,11 @@ typedef enum typeart_builtin_type_t {  // NOLINT
   TA_NUM_RESERVED_IDS = TA_UNKNOWN_TYPE + 1
 } typeart_builtin_type;
 
+typedef enum typeart_struct_flags_t {
+    TA_USER_DEF = 0,
+    TA_VEC = 1
+} typeart_struct_flags;
+
 #ifdef __cplusplus
 }
 #endif
