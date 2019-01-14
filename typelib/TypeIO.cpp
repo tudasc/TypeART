@@ -46,6 +46,7 @@ struct llvm::yaml::MappingTraits<typeart::StructTypeInfo> {
     io.mapRequired("offsets", info.offsets);
     io.mapRequired("types", info.memberTypes);
     io.mapRequired("sizes", info.arraySizes);
+    io.mapRequired("flags", info.flags);
   }
 };
 

@@ -46,12 +46,12 @@ bool TypeDB::isStructType(int id) const {
 
 bool TypeDB::isUserDefinedType(int id) const {
   auto structInfo = getStructInfo(id);
-  return structInfo && (structInfo->flags & TA_USER_DEF);
+  return structInfo && (structInfo->flags & static_cast<int>(TA_USER_DEF));
 }
 
 bool TypeDB::isVectorType(int id) const {
   auto structInfo = getStructInfo(id);
-  return structInfo && (structInfo->flags & TA_VEC);
+  return structInfo && (structInfo->flags & static_cast<int>(TA_VEC));
 }
 
 bool TypeDB::isValid(int id) const {

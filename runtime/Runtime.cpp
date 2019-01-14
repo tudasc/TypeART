@@ -540,12 +540,13 @@ void TypeArtRT::onAllocGlobal(const void* addr, int typeId, size_t count, const 
   doAlloc(addr, typeId, count, retAddr, 'G');
 }
 
+template <bool isStack>
 void TypeArtRT::onFree(const void* addr) {
   auto it = typeMap.find(addr);
   if (it != typeMap.end()) {
     LOG_TRACE("Free " << toString((*it).first, (*it).second));
     typeMap.erase(it);
-  } else {
+  } else if (!isStack) {
     LOG_ERROR("Free recorded on unregistered address: " << addr);
   }
 }
@@ -560,7 +561,7 @@ void TypeArtRT::onLeaveScope(size_t alloca_count) {
   const auto cend = stackVars.cend();
   const auto start_pos = (cend - alloca_count);
   LOG_TRACE("Freeing stack (" << alloca_count << ")  " << std::distance(start_pos, stackVars.cend()))
-  std::for_each(start_pos, cend, [&](const void* addr) { onFree(addr); });
+  std::for_each(start_pos, cend, [&](const void* addr) { onFree<true>(addr); });
   stackVars.erase(start_pos, cend);
   LOG_TRACE("Stack after free: " << stackVars.size());
 }
@@ -584,7 +585,7 @@ void __typeart_alloc_global(void* addr, int typeId, size_t count) {
 
 void __typeart_free(void* addr) {
   //  const void* ret_adr = __builtin_return_address(0);
-  typeart::TypeArtRT::get().onFree(addr);
+  typeart::TypeArtRT::get().onFree<false>(addr);
   typeart::Recorder::get().decHeapAlloc();
 }
 
@@ -605,7 +606,8 @@ typeart_status typeart_get_type(const void* addr, int* type, size_t* count) {
 
 typeart_status typeart_get_containing_type(const void* addr, int* type, size_t* count, const void** base_address,
                                            size_t* offset) {
-  return typeart::TypeArtRT::get().getContainingTypeInfo(addr, type, count, base_address, offset);
+q:
+  q return typeart::TypeArtRT::get().getContainingTypeInfo(addr, type, count, base_address, offset);
 }
 
 typeart_status typeart_get_subtype(const void* base_addr, size_t offset, typeart_struct_layout container_layout,

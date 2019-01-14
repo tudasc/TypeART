@@ -3,6 +3,7 @@
 //
 
 #include "TypeManager.h"
+#include "../typelib/TypeInterface.h"
 #include "TypeIO.h"
 #include "support/Logger.h"
 #include "support/TypeUtil.h"
@@ -144,7 +145,6 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
   auto it = structMap.find(name);
   if (it != structMap.end()) {
     if (!typeDB.isUserDefinedType(it->second)) {
-      LOG_ERROR("Flags: " << typeDB.getStructInfo(it->second)->flags);
       LOG_ERROR("Expected user defined struct type: " << name);
       return TA_UNKNOWN_TYPE;
     }

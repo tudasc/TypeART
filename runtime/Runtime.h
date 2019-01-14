@@ -160,6 +160,7 @@ class TypeArtRT final {
 
   void onAllocGlobal(const void* addr, int typeID, size_t count, const void* retAddr);
 
+  template <bool isStack>
   void onFree(const void* addr);
 
   void onLeaveScope(size_t alloca_count);
