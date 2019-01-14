@@ -62,8 +62,10 @@ unsigned getArraySizeInBytes(llvm::Type* arrT, const llvm::DataLayout& dl) {
 }
 
 unsigned getVectorSizeInBytes(llvm::Type* vectorT, const llvm::DataLayout& dl) {
+  // TODO: Most of these utility functions can be eliminated with the use of getTypeAllocSize() and getTypeStoreSize()
   auto vt = dyn_cast<VectorType>(vectorT);
-  return getTypeSizeInBytes(vt->getVectorElementType(), dl) * vt->getVectorNumElements();
+  return dl.getTypeAllocSize(vectorT);
+  // return getTypeSizeInBytes(vt->getVectorElementType(), dl) * vt->getVectorNumElements();
 }
 
 /**

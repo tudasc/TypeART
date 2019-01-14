@@ -9,7 +9,7 @@ void test() {
 }
 
 // CHECK-NOT Type is not supported: <2 x float>
-// CHECK: %vf = alloca <2 x float>, align 8
+// CHECK: alloca <2 x float>, align 8
 // CHECK: Malloc{{[ ]*}}:{{[ ]*}}0
 // CHECK: Free{{[ ]*}}:{{[ ]*}}0
 // CHECK: Alloca{{[ ]*}}:{{[ ]*}}1

@@ -185,12 +185,13 @@ bool TypeArtPass::runOnFunc(Function& f) {
     if (primaryBitcast) {
       auto dstPtrType = primaryBitcast->getDestTy()->getPointerElementType();
 
+      /*
       // Vector types, e.g. <2 x float>, are treated like static arrays
       if (dstPtrType->isVectorTy()) {
         dstPtrType = dstPtrType->getVectorElementType();
         // Should never happen, as vectors are first class types.
         assert(!dstPtrType->isAggregateType() && "Unexpected vector type encountered: vector of aggregate type.");
-      }
+      }*/
 
       typeSize = tu::getTypeSizeInBytes(dstPtrType, dl);
       typeId = typeManager.getOrRegisterType(dstPtrType, dl);  //(unsigned)dstPtrType->getTypeID();
@@ -259,6 +260,7 @@ bool TypeArtPass::runOnFunc(Function& f) {
 
     IRBuilder<> IRB(alloca->getNextNode());
 
+    /*
     // Vector types, e.g. <2 x float>, are treated like static arrays
     if (elementType->isVectorTy()) {
       unsigned int vectorBytes = dl.getTypeAllocSize(elementType);
@@ -274,6 +276,7 @@ bool TypeArtPass::runOnFunc(Function& f) {
       // Multiply by number of vector elements
       numElementsVal = IRB.CreateMul(numElements64, ConstantInt::get(tu::getInt64Type(c), vectorSize));
     }
+     */
 
     // unsigned typeSize = tu::getTypeSizeInBytes(elementType, dl);
     int typeId = typeManager.getOrRegisterType(elementType, dl);

@@ -64,7 +64,7 @@ int TypeManager::getOrRegisterType(llvm::Type* type, const llvm::DataLayout& dl)
       return TA_PPC_FP128;
     case llvm::Type::PointerTyID:
       return TA_PTR;
-      case llvm::Type::VectorTyID:
+    case llvm::Type::VectorTyID:
       return getOrRegisterVector(dyn_cast<VectorType>(type), dl);
     case llvm::Type::StructTyID:
       return getOrRegisterStruct(dyn_cast<StructType>(type), dl);
@@ -74,8 +74,7 @@ int TypeManager::getOrRegisterType(llvm::Type* type, const llvm::DataLayout& dl)
   return TA_UNKNOWN_TYPE;
 }
 
-int TypeManager::getOrRegisterVector(llvm::VectorType* type, const llvm::DataLayout& dl)
-{
+int TypeManager::getOrRegisterVector(llvm::VectorType* type, const llvm::DataLayout& dl) {
   namespace tu = typeart::util;
 
   size_t vectorBytes = dl.getTypeAllocSize(type);
@@ -88,14 +87,14 @@ int TypeManager::getOrRegisterVector(llvm::VectorType* type, const llvm::DataLay
 
   int elementId = getOrRegisterType(elementType, dl);
   if (elementId == TA_UNKNOWN_TYPE) {
-    LOG_ERROR("Encountered vector of unknown type" << util::dump(type));
+    LOG_ERROR("Encountered vector of unknown type" << util::dump(*type));
     return elementId;
   }
   auto elementName = typeDB.getTypeName(elementId);
-  auto name = "vec:" + std::to_string(vectorSize) + "x" + elementName;
+  auto name = "vec" + std::to_string(vectorSize) + ":" + elementName;
 
-  // To avoid problems with padding bytes due to alignment, vector types are represented as structs rather than static arrays.
-  // They are given special names and are marked with a TA_VEC flag to avoid confusion.
+  // To avoid problems with padding bytes due to alignment, vector types are represented as structs rather than static
+  // arrays. They are given special names and are marked with a TA_VEC flag to avoid confusion.
 
   // Look up name
   auto it = structMap.find(name);
@@ -129,6 +128,7 @@ int TypeManager::getOrRegisterVector(llvm::VectorType* type, const llvm::DataLay
   StructTypeInfo vecTypeInfo{id, name, vectorBytes, memberTypeIDs.size(), offsets, memberTypeIDs, arraySizes, TA_VEC};
   typeDB.registerStruct(vecTypeInfo);
   structMap.insert({name, id});
+  return id;
 }
 
 int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLayout& dl) {
@@ -143,8 +143,12 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
   auto name = getName(type);
   auto it = structMap.find(name);
   if (it != structMap.end()) {
+    if (!typeDB.isUserDefinedType(it->second)) {
+      LOG_ERROR("Flags: " << typeDB.getStructInfo(it->second)->flags);
+      LOG_ERROR("Expected user defined struct type: " << name);
+      return TA_UNKNOWN_TYPE;
+    }
     return it->second;
-    // TODO: Check if user defined
   }
 
   // Get next ID and register struct
@@ -195,15 +199,14 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
 
   size_t numBytes = layout->getSizeInBytes();
 
-  StructTypeInfo structInfo{id, name, numBytes, n, offsets, memberTypeIDs, arraySizes};
+  StructTypeInfo structInfo{id, name, numBytes, n, offsets, memberTypeIDs, arraySizes, TA_USER_DEF};
   typeDB.registerStruct(structInfo);
 
   structMap.insert({name, id});
   return id;
 }
 
-int TypeManager::reserveNextId()
-{
+int TypeManager::reserveNextId() {
   int id = TA_NUM_RESERVED_IDS + structCount;
   structCount++;
   return id;
