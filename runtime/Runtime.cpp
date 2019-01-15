@@ -544,17 +544,21 @@ void TypeArtRT::onAllocGlobal(const void* addr, int typeId, size_t count, const 
 }
 
 template <bool isStack>
-void TypeArtRT::onFree(const void* addr) {
+void TypeArtRT::onFree(const void* addr, const void* retAddr) {
+  if (!isStack && addr == 0x0) {
+    LOG_INFO("Recorded free on nullptr, called from " << retAddr);
+    return;
+  }
   auto it = typeMap.find(addr);
   if (it != typeMap.end()) {
     LOG_TRACE("Free " << toString((*it).first, (*it).second));
     typeMap.erase(it);
   } else if (!isStack) {
-    LOG_ERROR("Free recorded on unregistered address: " << addr);
+    LOG_ERROR("Free recorded on unregistered address " << addr << ", called from " << retAddr);
   }
 }
 
-void TypeArtRT::onLeaveScope(size_t alloca_count) {
+void TypeArtRT::onLeaveScope(size_t alloca_count, const void* retAddr) {
   if (alloca_count > stackVars.size()) {
     LOG_ERROR("Stack is smaller than requested de-allocation count. alloca_count: " << alloca_count
                                                                                     << ". size: " << stackVars.size());
@@ -564,7 +568,7 @@ void TypeArtRT::onLeaveScope(size_t alloca_count) {
   const auto cend = stackVars.cend();
   const auto start_pos = (cend - alloca_count);
   LOG_TRACE("Freeing stack (" << alloca_count << ")  " << std::distance(start_pos, stackVars.cend()))
-  std::for_each(start_pos, cend, [&](const void* addr) { onFree<true>(addr); });
+  std::for_each(start_pos, cend, [&](const void* addr) { onFree<true>(addr, retAddr); });
   stackVars.erase(start_pos, cend);
   LOG_TRACE("Stack after free: " << stackVars.size());
 }
@@ -594,16 +598,16 @@ void __typeart_alloc_global(void* addr, int typeId, size_t count) {
 
 void __typeart_free(void* addr) {
   RUNTIME_GUARD_BEGIN;
-  //  const void* ret_adr = __builtin_return_address(0);
-  typeart::TypeArtRT::get().onFree<false>(addr);
+  const void* retAddr = __builtin_return_address(0);
+  typeart::TypeArtRT::get().onFree<false>(addr, retAddr);
   typeart::Recorder::get().decHeapAlloc();
   RUNTIME_GUARD_END;
 }
 
 void __typeart_leave_scope(size_t alloca_count) {
   RUNTIME_GUARD_BEGIN;
-  //  const void* ret_adr = __builtin_return_address(0);
-  typeart::TypeArtRT::get().onLeaveScope(alloca_count);
+  const void* retAddr = __builtin_return_address(0);
+  typeart::TypeArtRT::get().onLeaveScope(alloca_count, retAddr);
   typeart::Recorder::get().decStackAlloc(alloca_count);
   RUNTIME_GUARD_END;
 }

@@ -14,6 +14,8 @@
 #include "llvm/Transforms/Utils/CtorUtils.h"
 #include "llvm/Transforms/Utils/EscapeEnumerator.h"
 #include "llvm/Transforms/Utils/ModuleUtils.h"
+#include "../runtime/RuntimeInterface.h"
+#include "../typelib/TypeInterface.h"
 
 #include <iostream>
 #include <sstream>
@@ -185,16 +187,21 @@ bool TypeArtPass::runOnFunc(Function& f) {
     if (primaryBitcast) {
       auto dstPtrType = primaryBitcast->getDestTy()->getPointerElementType();
 
-      /*
-      // Vector types, e.g. <2 x float>, are treated like static arrays
-      if (dstPtrType->isVectorTy()) {
-        dstPtrType = dstPtrType->getVectorElementType();
-        // Should never happen, as vectors are first class types.
-        assert(!dstPtrType->isAggregateType() && "Unexpected vector type encountered: vector of aggregate type.");
-      }*/
-
       typeSize = tu::getTypeSizeInBytes(dstPtrType, dl);
+
+      // Resolve arrays
+      // TODO: Write tests for this case
+      if (dstPtrType->isArrayTy()) {
+        dstPtrType = tu::getArrayElementType(dstPtrType);
+      }
+
       typeId = typeManager.getOrRegisterType(dstPtrType, dl);  //(unsigned)dstPtrType->getTypeID();
+      if (typeId == TA_UNKNOWN_TYPE) {
+        LOG_ERROR("Target type of casted allocation is unknown. Not instrumenting. " << util::dump(*mallocInst));
+        LOG_ERROR("Cast: " << util::dump(*primaryBitcast));
+        LOG_ERROR("Target type: " << util::dump(*dstPtrType));
+        return false;
+      }
     }
 
     IRBuilder<> IRB(insertBefore);
@@ -260,23 +267,6 @@ bool TypeArtPass::runOnFunc(Function& f) {
 
     IRBuilder<> IRB(alloca->getNextNode());
 
-    /*
-    // Vector types, e.g. <2 x float>, are treated like static arrays
-    if (elementType->isVectorTy()) {
-      unsigned int vectorBytes = dl.getTypeAllocSize(elementType);
-      unsigned int vectorSize = elementType->getVectorNumElements();
-
-      // FIXME: Consider alignment of vector types, e.g. <3 x double> allocates 32 bytes, not 24!
-
-      elementType = elementType->getVectorElementType();
-      // Should never happen, as vectors are first class types.
-      assert(!elementType->isAggregateType() && "Unexpected vector type encountered: vector of aggregate type.");
-      // Cast to int64 to avoid type mismatches
-      auto numElements64 = IRB.CreateIntCast(numElementsVal, tu::getInt64Type(c), false);
-      // Multiply by number of vector elements
-      numElementsVal = IRB.CreateMul(numElements64, ConstantInt::get(tu::getInt64Type(c), vectorSize));
-    }
-     */
 
     // unsigned typeSize = tu::getTypeSizeInBytes(elementType, dl);
     int typeId = typeManager.getOrRegisterType(elementType, dl);
