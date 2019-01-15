@@ -17,6 +17,9 @@
 using namespace btree;
 #endif
 
+#define RUNTIME_GUARD_BEGIN if (typeart::typeart_rt_scope) return; typeart::typeart_rt_scope = true
+#define RUNTIME_GUARD_END typeart::typeart_rt_scope = false
+
 namespace typeart {
 namespace softcounter {
 /**
@@ -569,30 +572,40 @@ void TypeArtRT::onLeaveScope(size_t alloca_count) {
 }  // namespace typeart
 
 void __typeart_alloc(void* addr, int typeId, size_t count) {
+  RUNTIME_GUARD_BEGIN;
   const void* retAddr = __builtin_return_address(0);
   typeart::TypeArtRT::get().onAlloc(addr, typeId, count, retAddr);
+  RUNTIME_GUARD_END;
 }
 
 void __typeart_alloc_stack(void* addr, int typeId, size_t count) {
+  RUNTIME_GUARD_BEGIN;
   const void* retAddr = __builtin_return_address(0);
   typeart::TypeArtRT::get().onAllocStack(addr, typeId, count, retAddr);
+  RUNTIME_GUARD_END;
 }
 
 void __typeart_alloc_global(void* addr, int typeId, size_t count) {
+  RUNTIME_GUARD_BEGIN;
   const void* retAddr = __builtin_return_address(0);
   typeart::TypeArtRT::get().onAllocGlobal(addr, typeId, count, retAddr);
+  RUNTIME_GUARD_END;
 }
 
 void __typeart_free(void* addr) {
+  RUNTIME_GUARD_BEGIN;
   //  const void* ret_adr = __builtin_return_address(0);
   typeart::TypeArtRT::get().onFree<false>(addr);
   typeart::Recorder::get().decHeapAlloc();
+  RUNTIME_GUARD_END;
 }
 
 void __typeart_leave_scope(size_t alloca_count) {
+  RUNTIME_GUARD_BEGIN;
   //  const void* ret_adr = __builtin_return_address(0);
   typeart::TypeArtRT::get().onLeaveScope(alloca_count);
   typeart::Recorder::get().decStackAlloc(alloca_count);
+  RUNTIME_GUARD_END;
 }
 
 typeart_status typeart_get_builtin_type(const void* addr, typeart::BuiltinType* type) {
