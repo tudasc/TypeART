@@ -606,8 +606,7 @@ typeart_status typeart_get_type(const void* addr, int* type, size_t* count) {
 
 typeart_status typeart_get_containing_type(const void* addr, int* type, size_t* count, const void** base_address,
                                            size_t* offset) {
-q:
-  q return typeart::TypeArtRT::get().getContainingTypeInfo(addr, type, count, base_address, offset);
+  return typeart::TypeArtRT::get().getContainingTypeInfo(addr, type, count, base_address, offset);
 }
 
 typeart_status typeart_get_subtype(const void* base_addr, size_t offset, typeart_struct_layout container_layout,
