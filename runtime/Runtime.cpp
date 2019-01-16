@@ -185,10 +185,11 @@ inline const void* addByteOffset(const void* addr, T offset) {
 }
 
 inline static std::string toString(const void* addr, int typeId, size_t count, size_t typeSize) {
-  std::stringstream s;
+
+    std::stringstream s;
   // clang-format off
-  s << addr
-    << ". typeId: " << typeId
+  s << "addr: " << addr
+    << ". typeId: " << typeId << " (" << TypeArtRT::get().getTypeName(typeId) << ")"
     << ". count: " << count
     << ". typeSize " << typeSize;
   // clang-format on
