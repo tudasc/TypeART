@@ -512,15 +512,19 @@ void TypeArtRT::doAlloc(const void* addr, int typeId, size_t count, const void* 
                                                 << "], called from " << retAddr);
   }
 
+  // Calling malloc with size 0 may return a nullptr or some address that can not be written to.
+  // In the second case, the allocation is tracked anyway so that onFree() does not report an error.
+  // On the other hand, an allocation on address 0x0 with size > 0 is an actual error.
   if (count == 0) {
       LOG_WARNING("Zero-size allocation (id=" << typeId << ") recorded at " << addr << " [" << reg
                           << "], called from " << retAddr);
-      return;
-  }
 
-  if (addr == nullptr) {
+      if (addr == nullptr)
+          return;
+  } else if (addr == nullptr) {
       LOG_ERROR("Nullptr allocation (id=" << typeId << ") recorded at " << addr << " [" << reg
                         << "], called from " << retAddr);
+      return;
   }
 
   auto& def = typeMap[addr];
