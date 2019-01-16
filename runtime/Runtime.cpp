@@ -511,6 +511,17 @@ void TypeArtRT::doAlloc(const void* addr, int typeId, size_t count, const void* 
                                                 << "], called from " << retAddr);
   }
 
+  if (count == 0) {
+      LOG_WARNING("Zero-size allocation (id=" << typeId << ") recorded at " << addr << " [" << reg
+                          << "], called from " << retAddr);
+      return;
+  }
+
+  if (addr == nullptr) {
+      LOG_ERROR("Nullptr allocation (id=" << typeId << ") recorded at " << addr << " [" << reg
+                        << "], called from " << retAddr);
+  }
+
   auto& def = typeMap[addr];
 
   if (def.typeId == -1) {
@@ -545,7 +556,7 @@ void TypeArtRT::onAllocGlobal(const void* addr, int typeId, size_t count, const 
 
 template <bool isStack>
 void TypeArtRT::onFree(const void* addr, const void* retAddr) {
-  if (!isStack && addr == 0x0) {
+  if (!isStack && addr == nullptr) {
     LOG_INFO("Recorded free on nullptr, called from " << retAddr);
     return;
   }
