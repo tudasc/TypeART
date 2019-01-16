@@ -188,7 +188,7 @@ inline static std::string toString(const void* addr, int typeId, size_t count, s
 
     std::stringstream s;
   // clang-format off
-  s << "addr: " << addr
+  s << addr
     << ". typeId: " << typeId << " (" << TypeArtRT::get().getTypeName(typeId) << ")"
     << ". count: " << count
     << ". typeSize " << typeSize;
