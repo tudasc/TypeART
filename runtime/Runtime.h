@@ -166,9 +166,10 @@ class TypeArtRT final {
 
   void onAllocGlobal(const void* addr, int typeID, size_t count, const void* retAddr);
 
-  void onFree(const void* addr);
+  template <bool isStack>
+  void onFree(const void* addr, const void* retAddr);
 
-  void onLeaveScope(size_t alloca_count);
+  void onLeaveScope(size_t alloca_count, const void* retAddr);
 
  private:
   TypeArtRT();
@@ -193,8 +194,7 @@ class TypeArtRT final {
    */
   bool loadTypes(const std::string& file);
 
-  inline void doAlloc(const void* addr, int typeID, size_t count, const void* retAddr,
-                      const char reg = 'H');
+  inline void doAlloc(const void* addr, int typeID, size_t count, const void* retAddr, const char reg = 'H');
 
   /**
    * Given an address, this method searches for the pointer that corresponds to the start of the allocated block.

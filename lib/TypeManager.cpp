@@ -3,6 +3,7 @@
 //
 
 #include "TypeManager.h"
+#include "../typelib/TypeInterface.h"
 #include "TypeIO.h"
 #include "support/Logger.h"
 #include "support/TypeUtil.h"
@@ -64,12 +65,71 @@ int TypeManager::getOrRegisterType(llvm::Type* type, const llvm::DataLayout& dl)
       return TA_PPC_FP128;
     case llvm::Type::PointerTyID:
       return TA_PTR;
+    case llvm::Type::VectorTyID:
+      return getOrRegisterVector(dyn_cast<VectorType>(type), dl);
     case llvm::Type::StructTyID:
       return getOrRegisterStruct(dyn_cast<StructType>(type), dl);
     default:
       break;
   }
   return TA_UNKNOWN_TYPE;
+}
+
+int TypeManager::getOrRegisterVector(llvm::VectorType* type, const llvm::DataLayout& dl) {
+  namespace tu = typeart::util;
+
+  size_t vectorBytes = dl.getTypeAllocSize(type);
+  size_t vectorSize = type->getVectorNumElements();
+
+  auto elementType = type->getVectorElementType();
+
+  // Should never happen, as vectors are first class types.
+  assert(!elementType->isAggregateType() && "Unexpected vector type encountered: vector of aggregate type.");
+
+  int elementId = getOrRegisterType(elementType, dl);
+  if (elementId == TA_UNKNOWN_TYPE) {
+    LOG_ERROR("Encountered vector of unknown type" << util::dump(*type));
+    return elementId;
+  }
+  auto elementName = typeDB.getTypeName(elementId);
+  auto name = "vec" + std::to_string(vectorSize) + ":" + elementName;
+
+  // To avoid problems with padding bytes due to alignment, vector types are represented as structs rather than static
+  // arrays. They are given special names and are marked with a TA_VEC flag to avoid confusion.
+
+  // Look up name
+  auto it = structMap.find(name);
+  if (it != structMap.end()) {
+    if (!typeDB.isVectorType(it->second)) {
+      LOG_ERROR("Expected vector type: " << name);
+      return TA_UNKNOWN_TYPE;
+    }
+    return it->second;
+  }
+
+  // Type is not registered - reserve new ID and create struct info object
+
+  int id = reserveNextId();
+
+  std::vector<int> memberTypeIDs{elementId};
+  std::vector<size_t> arraySizes{vectorSize};
+  std::vector<size_t> offsets{0};
+
+  size_t elementSize = tu::type::getTypeSizeInBytes(elementType, dl);
+  size_t usableBytes = vectorSize * elementSize;
+
+  // Add padding bytes explicitly
+  if (vectorBytes > usableBytes) {
+    size_t padding = vectorBytes - usableBytes;
+    memberTypeIDs.push_back(TA_INT8);
+    arraySizes.push_back(padding);
+    offsets.push_back(usableBytes);
+  }
+
+  StructTypeInfo vecTypeInfo{id, name, vectorBytes, memberTypeIDs.size(), offsets, memberTypeIDs, arraySizes, TA_VEC};
+  typeDB.registerStruct(vecTypeInfo);
+  structMap.insert({name, id});
+  return id;
 }
 
 int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLayout& dl) {
@@ -82,21 +142,17 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
   };
 
   auto name = getName(type);
-  // std::cerr << "Looking up struct " << name.str() << std::endl;
   auto it = structMap.find(name);
   if (it != structMap.end()) {
-    // std::cerr << "Found!" << std::endl;
+    if (!typeDB.isUserDefinedType(it->second)) {
+      LOG_ERROR("Expected user defined struct type: " << name);
+      return TA_UNKNOWN_TYPE;
+    }
     return it->second;
   }
 
-  // std::cerr << "Registered structs: " << std::endl;
-  // for (auto info : typeDB.getStructList()) {
-  //  std::cerr << info.name <<", " << info.id << std::endl;
-  //}
-
   // Get next ID and register struct
-  int id = TA_NUM_RESERVED_IDS + structCount;
-  structCount++;
+  int id = reserveNextId();
 
   size_t n = type->getStructNumElements();
 
@@ -122,13 +178,11 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
       if (getName(llvm::dyn_cast<StructType>(memberType)) == name) {
         memberID = id;
       } else {
-        // TODO: Infinite cycle possible?
         memberID = getOrRegisterType(memberType, dl);
       }
     } else if (memberType->isSingleValueType() || memberType->isPointerTy()) {
       memberID = getOrRegisterType(memberType, dl);
     } else {
-      // TODO: Any other types?
       // clang-format off
       LOG_ERROR("In struct: " << tu::dump(*type)
                   << ": Encountered unhandled type: " << tu::dump(*memberType)
@@ -145,10 +199,17 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
 
   size_t numBytes = layout->getSizeInBytes();
 
-  StructTypeInfo structInfo{id, name, numBytes, n, offsets, memberTypeIDs, arraySizes};
+  StructTypeInfo structInfo{id, name, numBytes, n, offsets, memberTypeIDs, arraySizes, TA_USER_DEF};
   typeDB.registerStruct(structInfo);
 
   structMap.insert({name, id});
   return id;
 }
+
+int TypeManager::reserveNextId() {
+  int id = TA_NUM_RESERVED_IDS + structCount;
+  structCount++;
+  return id;
+}
+
 }  // namespace typeart

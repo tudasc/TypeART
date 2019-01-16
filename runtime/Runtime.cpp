@@ -185,10 +185,11 @@ inline const void* addByteOffset(const void* addr, T offset) {
 }
 
 inline static std::string toString(const void* addr, int typeId, size_t count, size_t typeSize) {
-  std::stringstream s;
+
+    std::stringstream s;
   // clang-format off
   s << addr
-    << ". typeId: " << typeId
+    << ". typeId: " << typeId << " (" << TypeArtRT::get().getTypeName(typeId) << ")"
     << ". count: " << count
     << ". typeSize " << typeSize;
   // clang-format on
@@ -505,18 +506,38 @@ void TypeArtRT::getReturnAddress(const void* addr, const void** retAddr) const {
   }
 }
 
-void TypeArtRT::doAlloc(const void* addr, int typeId, size_t count, const void* retAddr,
-                        const char reg) {
+void TypeArtRT::doAlloc(const void* addr, int typeId, size_t count, const void* retAddr, const char reg) {
+  if (!typeDB.isValid(typeId)) {
+    LOG_ERROR("Allocation of unknown type (id=" << typeId << ") recorded at " << addr << " [" << reg
+                                                << "], called from " << retAddr);
+  }
+
+  // Calling malloc with size 0 may return a nullptr or some address that can not be written to.
+  // In the second case, the allocation is tracked anyway so that onFree() does not report an error.
+  // On the other hand, an allocation on address 0x0 with size > 0 is an actual error.
+  if (count == 0) {
+      LOG_WARNING("Zero-size allocation (id=" << typeId << ") recorded at " << addr << " [" << reg
+                          << "], called from " << retAddr);
+
+      if (addr == nullptr)
+          return;
+  } else if (addr == nullptr) {
+      LOG_ERROR("Nullptr allocation (id=" << typeId << ") recorded at " << addr << " [" << reg
+                        << "], called from " << retAddr);
+      return;
+  }
+
   auto& def = typeMap[addr];
 
   if (def.typeId == -1) {
-    LOG_TRACE("Alloc " << addr << " " << typeDB.getTypeName(typeId) << " " << typeDB.getTypeSize(typeId) << " " << count << " " << reg);
+    LOG_TRACE("Alloc " << addr << " " << typeDB.getTypeName(typeId) << " " << typeDB.getTypeSize(typeId) << " " << count
+                       << " " << reg);
   } else {
     typeart::Recorder::get().incAddrReuse();
     if (reg == 'G' || reg == 'H') {
-        LOG_ERROR("Already exists (" << retAddr << ", prev=" << def.debug
-                                     << "): " << toString(addr, typeId, count, typeDB.getTypeSize(typeId)));
-        LOG_ERROR("Data in map is: " << toString(addr, def));
+      LOG_ERROR("Already exists (" << retAddr << ", prev=" << def.debug
+                                   << "): " << toString(addr, typeId, count, typeDB.getTypeSize(typeId)));
+      LOG_ERROR("Data in map is: " << toString(addr, def));
     }
   }
 
@@ -538,17 +559,22 @@ void TypeArtRT::onAllocGlobal(const void* addr, int typeId, size_t count, const 
   doAlloc(addr, typeId, count, retAddr, 'G');
 }
 
-void TypeArtRT::onFree(const void* addr) {
+template <bool isStack>
+void TypeArtRT::onFree(const void* addr, const void* retAddr) {
+  if (!isStack && addr == nullptr) {
+    LOG_INFO("Recorded free on nullptr, called from " << retAddr);
+    return;
+  }
   auto it = typeMap.find(addr);
   if (it != typeMap.end()) {
     LOG_TRACE("Free " << toString((*it).first, (*it).second));
     typeMap.erase(it);
-  } else {
-    LOG_ERROR("Free recorded on unregistered address: " << addr);
+  } else if (!isStack) {
+    LOG_ERROR("Free recorded on unregistered address " << addr << ", called from " << retAddr);
   }
 }
 
-void TypeArtRT::onLeaveScope(size_t alloca_count) {
+void TypeArtRT::onLeaveScope(size_t alloca_count, const void* retAddr) {
   if (alloca_count > stackVars.size()) {
     LOG_ERROR("Stack is smaller than requested de-allocation count. alloca_count: " << alloca_count
                                                                                     << ". size: " << stackVars.size());
@@ -558,7 +584,7 @@ void TypeArtRT::onLeaveScope(size_t alloca_count) {
   const auto cend = stackVars.cend();
   const auto start_pos = (cend - alloca_count);
   LOG_TRACE("Freeing stack (" << alloca_count << ")  " << std::distance(start_pos, stackVars.cend()))
-  std::for_each(start_pos, cend, [&](const void* addr) { onFree(addr); });
+  std::for_each(start_pos, cend, [&](const void* addr) { onFree<true>(addr, retAddr); });
   stackVars.erase(start_pos, cend);
   LOG_TRACE("Stack after free: " << stackVars.size());
 }
@@ -588,16 +614,16 @@ void __typeart_alloc_global(void* addr, int typeId, size_t count) {
 
 void __typeart_free(void* addr) {
   RUNTIME_GUARD_BEGIN;
-  //  const void* ret_adr = __builtin_return_address(0);
-  typeart::TypeArtRT::get().onFree(addr);
+  const void* retAddr = __builtin_return_address(0);
+  typeart::TypeArtRT::get().onFree<false>(addr, retAddr);
   typeart::Recorder::get().decHeapAlloc();
   RUNTIME_GUARD_END;
 }
 
 void __typeart_leave_scope(size_t alloca_count) {
   RUNTIME_GUARD_BEGIN;
-  //  const void* ret_adr = __builtin_return_address(0);
-  typeart::TypeArtRT::get().onLeaveScope(alloca_count);
+  const void* retAddr = __builtin_return_address(0);
+  typeart::TypeArtRT::get().onLeaveScope(alloca_count, retAddr);
   typeart::Recorder::get().decStackAlloc(alloca_count);
   RUNTIME_GUARD_END;
 }

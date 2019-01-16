@@ -14,6 +14,8 @@
 #include "llvm/Transforms/Utils/CtorUtils.h"
 #include "llvm/Transforms/Utils/EscapeEnumerator.h"
 #include "llvm/Transforms/Utils/ModuleUtils.h"
+#include "../runtime/RuntimeInterface.h"
+#include "../typelib/TypeInterface.h"
 
 #include <iostream>
 #include <sstream>
@@ -95,10 +97,10 @@ bool TypeArtPass::runOnModule(Module& m) {
       }
 
       int typeId = typeManager.getOrRegisterType(type, dl);
-      //unsigned typeSize = tu::getTypeSizeInBytes(type, dl);
+      // unsigned typeSize = tu::getTypeSizeInBytes(type, dl);
 
       auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), typeId);
-      //auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
+      // auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
       auto numElementsConst = ConstantInt::get(tu::getInt64Type(c), numElements);
 
       auto globalPtr = IRB.CreateBitOrPointerCast(global, tu::getVoidPtrType(c));
@@ -172,6 +174,11 @@ bool TypeArtPass::runOnFunc(Function& f) {
     auto mallocArg = mallocInst->getOperand(0);
     int typeId = typeManager.getOrRegisterType(mallocInst->getType()->getPointerElementType(),
                                                dl);  // retrieveTypeID(tu::getVoidType(c));
+    if (typeId == TA_UNKNOWN_TYPE) {
+      LOG_ERROR("Unknown allocated type. Not instrumenting. " << util::dump(*mallocInst));
+      return false;
+    }
+
     // Number of bytes per element, 1 for void*
     unsigned typeSize = tu::getTypeSizeInBytes(mallocInst->getType()->getPointerElementType(), dl);
     auto insertBefore = mallocInst->getNextNode();
@@ -179,8 +186,22 @@ bool TypeArtPass::runOnFunc(Function& f) {
     // Use the first cast as the determining type (if there is any)
     if (primaryBitcast) {
       auto dstPtrType = primaryBitcast->getDestTy()->getPointerElementType();
+
       typeSize = tu::getTypeSizeInBytes(dstPtrType, dl);
+
+      // Resolve arrays
+      // TODO: Write tests for this case
+      if (dstPtrType->isArrayTy()) {
+        dstPtrType = tu::getArrayElementType(dstPtrType);
+      }
+
       typeId = typeManager.getOrRegisterType(dstPtrType, dl);  //(unsigned)dstPtrType->getTypeID();
+      if (typeId == TA_UNKNOWN_TYPE) {
+        LOG_ERROR("Target type of casted allocation is unknown. Not instrumenting. " << util::dump(*mallocInst));
+        LOG_ERROR("Cast: " << util::dump(*primaryBitcast));
+        LOG_ERROR("Target type: " << util::dump(*dstPtrType));
+        return false;
+      }
     }
 
     IRBuilder<> IRB(insertBefore);
@@ -244,13 +265,18 @@ bool TypeArtPass::runOnFunc(Function& f) {
       numElementsVal = ConstantInt::get(tu::getInt64Type(c), arraySize);
     }
 
-    //unsigned typeSize = tu::getTypeSizeInBytes(elementType, dl);
+    IRBuilder<> IRB(alloca->getNextNode());
+
+
+    // unsigned typeSize = tu::getTypeSizeInBytes(elementType, dl);
     int typeId = typeManager.getOrRegisterType(elementType, dl);
 
-    auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), typeId);
-    //auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
+    if (typeId == TA_UNKNOWN_TYPE) {
+      LOG_ERROR("Type is not supported: " << util::dump(*elementType));
+    }
 
-    IRBuilder<> IRB(alloca->getNextNode());
+    auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), typeId);
+    // auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
 
     // Single increment for an alloca:
     //    auto load_counter = IRB.CreateLoad(counter);

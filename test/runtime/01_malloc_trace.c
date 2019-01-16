@@ -34,7 +34,7 @@ int main(int argc, char** argv) {
   // CHECK: [Trace] Alloc 0x{{.*}} double 8 42
   double* f = malloc(n * sizeof(double));
   // CHECK: [Trace] Free 0x{{.*}}
-  free(e);
+  free(f);
 
   return 0;
 }
