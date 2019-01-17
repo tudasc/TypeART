@@ -1,22 +1,28 @@
 # TypeART
 
-TypeART is a compiler plugin + runtime to gather and track type information for every allocation site relevant to Message Passing Interface (MPI) API function calls.
-Together with the [MUST dynamic MPI checker](https://doc.itc.rwth-aachen.de/display/CCP/Project+MUST) this enables a user to check the correct construction and usage of MPI built-in, as well as user-defined types.
-A brief summary is given in a subsequent section and more information can be found [in our paper](https://sc18.supercomputing.org/proceedings/workshops/workshop_pages/ws_corr102.html).
+TypeART is a type and memory allocation tracking sanitizer.
+Itconsists of a LLVM compiler pass and a corresponding runtime to track relevant memory allocation information during the execution of a target program.
+It instruments heap, stack and global variable allocations with a callback to our runtime. 
+The callback consists of the runtime memory pointer value, what type (built-ins, user-defined structs etc.) and extent of the value.
+This allows users of our runtime to query detailed type information behind arbritary memory locations, as long as they are mapped.
+
+### Use Case: MUST - A dynamic MPI correctness checker
+TypeART is used in conjunction with [MUST](https://doc.itc.rwth-aachen.de/display/CCP/Project+MUST) to track memory (de-)allocation relevant to MPI communication.
+Thus, MUST can check for type compatibility between the type-less communication buffer and the declared MPI datatype at all phases of the MPI communication, namely message assembly, message transfer and message disassembly into the receiving buffer.
+A brief summary is given in a subsequent section and more information can be found in our publication:
+[Compiler-aided type tracking for correctness checking of MPI applications](http://conferences.computer.org/scw/2018/pdfs/Correctness2018-4a8nikwzUlkPjw1TP5zWZt/3eQuPpEOKXTkjmMgQI3L3T/5g7rbAUBoYPUZJ6duKhpL4.pdf).
 
 ## Software dependencies
-TypeART requires [LLVM](https://llvm.org) in version 6.0 and CMake >= 3.5.
-The runtime optionally uses Google's BTree implementation that is downloaded during the build process.
+TypeART requires [LLVM](https://llvm.org) version 6.0 and CMake version >= 3.5.
 
-## Building TypeART
+#### Building TypeART
 TypeART uses CMake to build.
 ```{.sh}
 $> git clone https://github.com/jplehr/TypeART.git
 $> cd TypeART
-$> mkdir build
+$> mkdir build && cd build
 $> cmake ..
-$> make -j
-$> make install
+$> cmake --build .
 ```
 
 ## Using TypeART
@@ -47,13 +53,3 @@ Calls to the ```malloc``` function are typically call instructions followed by a
 %1 = tail call i8* @malloc(i64 168)
 %2 = bitcast i8* %1 to i32*
 ~~~
-
-
-### structs
-As far as I see it, we would only be interested in struct **definitions** not declarations, as we cannot generate useful information from declarations on their own.
-
-
-## Runtime
-- maintain map of neccessary information
-  + I think currently that's: [ptr_value, type_encoding, count, type_elem_size]
-- provide access function taking a pointer and returning a type encoding, e.g. *must_type_enc_t getType(std::intptr_t p)*
