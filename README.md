@@ -1,7 +1,7 @@
 # TypeART
 
 TypeART is a type and memory allocation tracking sanitizer.
-Itconsists of a LLVM compiler pass and a corresponding runtime to track relevant memory allocation information during the execution of a target program.
+It consists of a LLVM compiler pass and a corresponding runtime to track relevant memory allocation information during the execution of a target program.
 It instruments heap, stack and global variable allocations with a callback to our runtime. 
 The callback consists of the runtime memory pointer value, what type (built-ins, user-defined structs etc.) and extent of the value.
 This allows users of our runtime to query detailed type information behind arbritary memory locations, as long as they are mapped.
@@ -16,7 +16,7 @@ A brief summary is given in a subsequent section and more information can be fou
 TypeART requires [LLVM](https://llvm.org) version 6.0 and CMake version >= 3.5.
 
 #### Building TypeART
-TypeART uses CMake to build.
+TypeART uses CMake to build, cf. [TravisCI build file](.travis.yaml) for a complete recipe to build.
 ```{.sh}
 $> git clone https://github.com/jplehr/TypeART.git
 $> cd TypeART
