@@ -22,14 +22,14 @@
 #define LOG_BASENAME_FILE __FILE__
 #endif
 
-// clang-format off
-#define OO_LOG_LEVEL_MSG(LEVEL_NUM, LEVEL, MSG) \
-  if ((LEVEL_NUM) <= LOG_LEVEL) { \
-    llvm::errs() << (LEVEL) << " " << LOG_BASENAME_FILE << ":" << __func__ << ":" << __LINE__ << ": " << MSG << "\n"; /* NOLINT */ \
+#define OO_LOG_LEVEL_MSG(LEVEL_NUM, LEVEL, MSG)                                                              \
+  if ((LEVEL_NUM) <= LOG_LEVEL) {                                                                            \
+    llvm::errs() << (LEVEL) << " " << LOG_BASENAME_FILE << ":" << __func__ << ":" << __LINE__ << ": " << MSG \
+                 << "\n"; /* NOLINT */                                                                       \
   }
 
-#define OO_LOG_LEVEL_MSG_BARE(LEVEL_NUM, LEVEL, MSG) \
-  if ((LEVEL_NUM) <= LOG_LEVEL) { \
+#define OO_LOG_LEVEL_MSG_BARE(LEVEL_NUM, LEVEL, MSG)            \
+  if ((LEVEL_NUM) <= LOG_LEVEL) {                               \
     llvm::errs() << (LEVEL) << " " << MSG << "\n"; /* NOLINT */ \
   }
 
@@ -40,6 +40,5 @@
 #define LOG_ERROR(MSG) OO_LOG_LEVEL_MSG(1, "[Error]", MSG)
 #define LOG_FATAL(MSG) OO_LOG_LEVEL_MSG(0, "[Fatal]", MSG)
 #define LOG_MSG(MSG) llvm::errs() << MSG << "\n"; /* NOLINT */
-// clang-format on
 
 #endif /* LIB_LOGGER_H_ */
