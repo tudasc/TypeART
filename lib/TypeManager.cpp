@@ -3,8 +3,8 @@
 //
 
 #include "TypeManager.h"
-#include "../typelib/TypeInterface.h"
 #include "TypeIO.h"
+#include "TypeInterface.h"
 #include "support/Logger.h"
 #include "support/TypeUtil.h"
 #include "support/Util.h"

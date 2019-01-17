@@ -77,10 +77,13 @@ inline std::string dump(const Val& s) {
 }
 
 template <typename String>
-inline String demangle(String s) {
-  //  static char buffer[1024];
-  //  size_t n = 1024;
-  return String(llvm::itaniumDemangle(s.data(), nullptr, nullptr, nullptr));
+inline std::string demangle(String&& s) {
+  std::string name = s;
+  auto demangle = llvm::itaniumDemangle(name.data(), nullptr, nullptr, nullptr);
+  if (demangle && std::string(demangle) != "") {
+    return std::string(demangle);
+  }
+  return name;
 }
 
 inline bool regex_matches(const std::string& regex, const std::string& in, bool case_sensitive = false) {

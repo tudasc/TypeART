@@ -8,7 +8,6 @@
 #include "MemOpVisitor.h"
 #include "support/Logger.h"
 #include "support/TypeUtil.h"
-
 #include "support/Util.h"
 
 #include <algorithm>

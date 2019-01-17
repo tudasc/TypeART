@@ -27,12 +27,6 @@ class Optional;
 
 namespace typeart {
 
-/**
- * Ensures that memory tracking functions do not come from within the runtime.
- * TODO: Problematic with respect to future thread safety considerations (also, globals are ugly)
- */
-bool typeart_rt_scope{false};
-
 struct PointerInfo final {
   int typeId{-1};
   size_t count{0};

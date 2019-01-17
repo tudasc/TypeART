@@ -17,7 +17,19 @@
 using namespace btree;
 #endif
 
-#define RUNTIME_GUARD_BEGIN if (typeart::typeart_rt_scope) return; typeart::typeart_rt_scope = true
+namespace typeart {
+/**
+ * Ensures that memory tracking functions do not come from within the runtime.
+ * TODO: Problematic with respect to future thread safety considerations (also, globals are ugly)
+ */
+static bool typeart_rt_scope{false};
+}  // namespace typeart
+
+#define RUNTIME_GUARD_BEGIN        \
+  if (typeart::typeart_rt_scope) { \
+    return;                        \
+  }                                \
+  typeart::typeart_rt_scope = true
 #define RUNTIME_GUARD_END typeart::typeart_rt_scope = false
 
 namespace typeart {
@@ -185,8 +197,7 @@ inline const void* addByteOffset(const void* addr, T offset) {
 }
 
 inline static std::string toString(const void* addr, int typeId, size_t count, size_t typeSize) {
-
-    std::stringstream s;
+  std::stringstream s;
   // clang-format off
   s << addr
     << ". typeId: " << typeId << " (" << TypeArtRT::get().getTypeName(typeId) << ")"
@@ -516,15 +527,15 @@ void TypeArtRT::doAlloc(const void* addr, int typeId, size_t count, const void* 
   // In the second case, the allocation is tracked anyway so that onFree() does not report an error.
   // On the other hand, an allocation on address 0x0 with size > 0 is an actual error.
   if (count == 0) {
-      LOG_WARNING("Zero-size allocation (id=" << typeId << ") recorded at " << addr << " [" << reg
-                          << "], called from " << retAddr);
+    LOG_WARNING("Zero-size allocation (id=" << typeId << ") recorded at " << addr << " [" << reg << "], called from "
+                                            << retAddr);
 
-      if (addr == nullptr)
-          return;
-  } else if (addr == nullptr) {
-      LOG_ERROR("Nullptr allocation (id=" << typeId << ") recorded at " << addr << " [" << reg
-                        << "], called from " << retAddr);
+    if (addr == nullptr)
       return;
+  } else if (addr == nullptr) {
+    LOG_ERROR("Nullptr allocation (id=" << typeId << ") recorded at " << addr << " [" << reg << "], called from "
+                                        << retAddr);
+    return;
   }
 
   auto& def = typeMap[addr];

@@ -18,6 +18,7 @@ make_llvm_module(typeartpass
   INCLUDE_DIRS
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${PROJECT_SOURCE_DIR}/typelib
+    ${PROJECT_SOURCE_DIR}/runtime
 )
 
 target_project_compile_options(typeartpass)

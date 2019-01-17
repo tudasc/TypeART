@@ -1,10 +1,10 @@
 #ifndef LLVM_MUST_SUPPORT_TYPEMANAGER_H
 #define LLVM_MUST_SUPPORT_TYPEMANAGER_H
 
-#include <llvm/IR/Type.h>
+#include "TypeDB.h"
 
-#include <TypeDB.h>
 #include <llvm/IR/DataLayout.h>
+#include <llvm/IR/Type.h>
 
 #include <map>
 
@@ -22,17 +22,14 @@ class TypeManager {
 
  private:
   int getOrRegisterStruct(llvm::StructType* type, const llvm::DataLayout& dl);
+
   int getOrRegisterVector(llvm::VectorType* type, const llvm::DataLayout& dl);
 
   int reserveNextId();
 
-  // TypeInfo getTypeInfo(llvm::Type* type);
-
   std::string file;
-
   TypeDB typeDB;
   std::map<std::string, int> structMap;
-
   size_t structCount;
 };
 }  // namespace typeart

@@ -1,5 +1,7 @@
 #include "TypeARTPass.h"
+#include "RuntimeInterface.h"
 #include "TypeIO.h"
+#include "TypeInterface.h"
 #include "analysis/MemInstFinderPass.h"
 #include "support/Logger.h"
 #include "support/TypeUtil.h"
@@ -14,8 +16,6 @@
 #include "llvm/Transforms/Utils/CtorUtils.h"
 #include "llvm/Transforms/Utils/EscapeEnumerator.h"
 #include "llvm/Transforms/Utils/ModuleUtils.h"
-#include "../runtime/RuntimeInterface.h"
-#include "../typelib/TypeInterface.h"
 
 #include <iostream>
 #include <sstream>
@@ -266,7 +266,6 @@ bool TypeArtPass::runOnFunc(Function& f) {
     }
 
     IRBuilder<> IRB(alloca->getNextNode());
-
 
     // unsigned typeSize = tu::getTypeSizeInBytes(elementType, dl);
     int typeId = typeManager.getOrRegisterType(elementType, dl);
