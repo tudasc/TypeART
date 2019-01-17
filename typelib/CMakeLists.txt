@@ -26,7 +26,10 @@ target_include_directories(typelib
 )
 
 target_project_compile_options(typelib)
-target_project_compile_definitions(typelib)
+target_project_compile_definitions(typelib
+  ARG_PRIVATE_DEFS
+    LOG_LEVEL=${LOG_LEVEL}
+)
 
 make_tidy_check(typelib
   "${TYPE_LIB_SOURCES}"

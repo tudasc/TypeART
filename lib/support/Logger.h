@@ -39,7 +39,7 @@
 #define LOG_WARNING(MSG) OO_LOG_LEVEL_MSG(1, "[Warning]", MSG)
 #define LOG_ERROR(MSG) OO_LOG_LEVEL_MSG(1, "[Error]", MSG)
 #define LOG_FATAL(MSG) OO_LOG_LEVEL_MSG(0, "[Fatal]", MSG)
-#define LOG_MSG(MSG) llvm::outs() << MSG << "\n"; /* NOLINT */
+#define LOG_MSG(MSG) llvm::errs() << MSG << "\n"; /* NOLINT */
 // clang-format on
 
 #endif /* LIB_LOGGER_H_ */

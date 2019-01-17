@@ -9,7 +9,9 @@ include(clang-format)
 include(llvm-util)
 include(log-util)
 
-set(LOG_LEVEL 3 CACHE STRING "Granularity of logger. 3 ist most verbose, 0 is least.")
+set(LOG_LEVEL 3 CACHE STRING "Granularity of LLVM pass logger. 3 ist most verbose, 0 is least.")
+set(LOG_LEVEL_RT 3 CACHE STRING "Granularity of runtime logger. 3 ist most verbose, 0 is least.")
+option(SHOW_STATS "Passes show the statistics vars." ON)
 option(MPI_LOGGER "Whether the logger should use MPI." OFF)
 option(MPI_INTERCEPT_LIB "Build MPI interceptor library, requires wrap.py generator file." OFF)
 option(SOFTCOUNTERS "Enable software tracking of #tracked addrs. / #distinct checks / etc." OFF)
@@ -50,10 +52,6 @@ endfunction()
 
 function(target_project_compile_definitions target)
   cmake_parse_arguments(ARG "" "" "PRIVATE_DEFS;PUBLIC_DEFS" ${ARGN})
-
-  target_compile_definitions(${target} PRIVATE
-    LOG_LEVEL=${LOG_LEVEL}
-  )
 
   if(ARG_PRIVATE_DEFS)
     target_compile_definitions(${target} PRIVATE

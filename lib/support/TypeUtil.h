@@ -25,6 +25,8 @@ unsigned getScalarSizeInBytes(llvm::Type* t);
 
 unsigned getArraySizeInBytes(llvm::Type* arrT, const llvm::DataLayout& dl);
 
+unsigned getVectorSizeInBytes(llvm::Type* vectorT, const llvm::DataLayout& dl);
+
 llvm::Type* getArrayElementType(llvm::Type* arrT);
 
 unsigned getArrayLengthFlattened(llvm::Type* arrT);

@@ -7,26 +7,26 @@
 #include "../../runtime/RuntimeInterface.h"
 
 int get_struct_id(int index) {
-    return N_BUILTIN_TYPES + index;
+    return TA_NUM_RESERVED_IDS + index;
 }
 
 void check(void* addr, int id, int expected_count, int resolveStructs) {
-    typeart_type_info type_info;
+    int id_result;
     size_t count_check;
-    typeart_status status = typeart_get_type(addr, &type_info, &count_check);
+    typeart_status status = typeart_get_type(addr, &id_result, &count_check);
     if (status == TA_OK) {
         if (resolveStructs) {
             // If the address corresponds to a struct, fetch the type of the first member
-            while (type_info.kind == STRUCT) {
+            while (id_result >= TA_NUM_RESERVED_IDS) {
 
                 typeart_struct_layout struct_layout;
-                typeart_resolve_type(type_info.id, &struct_layout);
-                type_info = struct_layout.member_types[0];
+                typeart_resolve_type(id_result, &struct_layout);
+                id_result = struct_layout.member_types[0];
                 count_check = struct_layout.count[0];
             }
         }
 
-        if (type_info.id == id) {
+        if (id_result == id) {
             if (count_check != expected_count) {
                 fprintf(stderr, "Error: Count mismatch (%zu)\n", count_check);
             } else {
@@ -52,14 +52,14 @@ void check(void* addr, int id, int expected_count, int resolveStructs) {
 }
 
 void check_struct(void* addr, const char* name, int expected_count) {
-    typeart_type_info type_info;
+    int id;
     size_t count_check;
-    typeart_status status = typeart_get_type(addr, &type_info, &count_check);
+    typeart_status status = typeart_get_type(addr, &id, &count_check);
     if (status == TA_OK) {
-        if (type_info.kind == STRUCT) {
+        if (id >= TA_NUM_RESERVED_IDS) {
             typeart_struct_layout struct_layout;
-            typeart_resolve_type(type_info.id, &struct_layout);
-            if (strcmp(typeart_get_type_name(type_info.id), struct_layout.name) != 0) {
+            typeart_resolve_type(id, &struct_layout);
+            if (strcmp(typeart_get_type_name(id), struct_layout.name) != 0) {
                 fprintf(stderr, "Error: Name mismatch\n");
             } else if (expected_count != count_check) {
                 fprintf(stderr, "Error: Count mismatch (%zu)\n", count_check);

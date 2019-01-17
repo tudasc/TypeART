@@ -13,9 +13,7 @@
 
 namespace typeart {
 
-using TypeInfo = typeart_type_info;
 using BuiltinType = typeart_builtin_type;
-using TypeKind = typeart_type_kind;
 
 struct StructTypeInfo {
   int id;
@@ -23,8 +21,9 @@ struct StructTypeInfo {
   size_t extent;
   size_t numMembers;
   std::vector<size_t> offsets;
-  std::vector<TypeInfo> memberTypes;
+  std::vector<int> memberTypes;
   std::vector<size_t> arraySizes;
+  int flags;
 };
 
 class TypeDB {
@@ -37,26 +36,27 @@ class TypeDB {
 
   bool isValid(int id) const;
 
+  bool isReservedType(int id) const;
+
   bool isBuiltinType(int id) const;
 
   bool isStructType(int id) const;
+
+  bool isUserDefinedType(int id) const;
+
+  bool isVectorType(int id) const;
 
   const std::string& getTypeName(int id) const;
 
   const StructTypeInfo* getStructInfo(int id) const;
 
-  TypeInfo getTypeInfo(int id) const;
-
-  // size_t getBuiltinTypeSize(int id) const;
-
-  size_t getTypeSize(const TypeInfo& typeInfo) const;
+  size_t getTypeSize(int id) const;
 
   const std::vector<StructTypeInfo>& getStructList() const;
 
   static std::string BuiltinNames[];
   static size_t BuiltinSizes[];
 
-  static TypeInfo InvalidType;
   static std::string UnknownStructName;
 
  private:

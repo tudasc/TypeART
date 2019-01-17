@@ -76,11 +76,11 @@ int main(int argc, char** argv) {
   // CHECK: Ok
   check(d, TA_INT8, 1, 1);
   // CHECK: Ok
-  check(&d->b, TA_UNKNOWN_TYPE, 1, 1);
+  check(&d->b, TA_PTR, 1, 1);
   // CHECK: Bad alignment
-  check(((uint8_t*)d) + 12, TA_UNKNOWN_TYPE, 1, 1);
+  check(((uint8_t*)d) + 12, TA_PTR, 1, 1);
   // CHECK: Ok
-  check(&d->d, TA_UNKNOWN_TYPE, 1, 1);
+  check(&d->d, TA_PTR, 1, 1);
   // CHECK: Error: Unknown address
   check(d + 1, get_struct_id(3), 1, 0);
   // CHECK: [Trace] Free 0x{{.*}}
@@ -97,7 +97,7 @@ int main(int argc, char** argv) {
   // CHECK: Ok
   check(((uint8_t*)e) + 16, TA_DOUBLE, 2, 1);
   // CHECK: Ok
-  check(&e->c, TA_UNKNOWN_TYPE, 1, 1);
+  check(&e->c, TA_PTR, 1, 1);
   // CHECK: Error: Unknown address
   check(e + 1, get_struct_id(4), 1, 0);
   // CHECK: [Trace] Free 0x{{.*}}

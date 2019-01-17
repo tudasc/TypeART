@@ -21,7 +21,17 @@ make_llvm_module(typeartpass
 )
 
 target_project_compile_options(typeartpass)
-target_project_compile_definitions(typeartpass)
+target_project_compile_definitions(typeartpass
+  PRIVATE_DEFS
+    LOG_LEVEL=${LOG_LEVEL}
+)
+
+if(SHOW_STATS)
+  target_project_compile_definitions(typeartpass
+    PRIVATE_DEFS 
+      LLVM_ENABLE_STATS
+  )
+endif()
 
 install(
   TARGETS typeartpass

@@ -89,8 +89,10 @@ class CallFilter::FilterImpl {
       LOG_DEBUG("Called with nullptr");
       return false;
     }
-    if (depth == 15)
+
+    if (depth == 15) {
       return false;
+    }
 
     const auto match = [&](auto callee) -> bool {
       const auto name = FilterImpl::getName(callee);
@@ -431,7 +433,7 @@ bool MemInstFinderPass::runOnFunc(llvm::Function& f) {
     auto& allocs = mOpsCollector.listAlloca;
     allocs.erase(llvm::remove_if(allocs,
                                  [&](const auto& data) {
-                                   if (!data.alloca->getAllocatedType()->isArrayTy()) {
+                                   if (!data.alloca->getAllocatedType()->isArrayTy() && data.arraySize == 1) {
                                      ++NumFilteredNonArrayAllocs;
                                      return true;
                                    }
@@ -506,8 +508,14 @@ bool MemInstFinderPass::runOnFunc(llvm::Function& f) {
 }  // namespace typeart
 
 bool MemInstFinderPass::doFinalization(llvm::Module&) {
-  auto& out = llvm::errs();
+  if (AreStatisticsEnabled()) {
+    auto& out = llvm::errs();
+    printStats(out);
+  }
+  return false;
+}
 
+void MemInstFinderPass::printStats(llvm::raw_ostream& out) {
   const unsigned max_string{28u};
   const unsigned max_val{5u};
   std::string line(42, '-');
@@ -553,7 +561,6 @@ bool MemInstFinderPass::doFinalization(llvm::Module&) {
       (double(NumFilteredGlobals.getValue()) / std::max(1.0, double(NumDetectedGlobals.getValue()))) * 100.0);
   out << line;
   out.flush();
-  return false;
 }
 
 bool MemInstFinderPass::hasFunctionData(Function* f) const {

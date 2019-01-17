@@ -56,6 +56,7 @@ class MemInstFinderPass : public llvm::ModulePass {
 
  public:
   static char ID;
+
   MemInstFinderPass();
   bool runOnModule(llvm::Module&) override;
   bool runOnFunc(llvm::Function&);
@@ -64,6 +65,9 @@ class MemInstFinderPass : public llvm::ModulePass {
   bool hasFunctionData(llvm::Function*) const;
   const FunctionData& getFunctionData(llvm::Function*) const;
   const llvm::SmallVector<llvm::GlobalVariable*, 8>& getModuleGlobals() const;
+
+ private:
+  void printStats(llvm::raw_ostream&);
 };
 
 }  // namespace typeart

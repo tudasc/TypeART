@@ -15,9 +15,9 @@ int main(int argc, char** argv) {
   // CHECK: Ok
   check(a, get_struct_id(0), 1, 0);
   // CHECK: Ok
-  check(a, TA_UNKNOWN_TYPE, 1, 1);
+  check(a, TA_PTR, 1, 1);
   // CHECK: Ok
-  check(&a->b, TA_UNKNOWN_TYPE, 1, 1);
+  check(&a->b, TA_PTR, 1, 1);
   // CHECK: Error: Unknown address
   check(a + 1, get_struct_id(0), 1, 0);
   // CHECK: [Trace] Free 0x{{.*}}
@@ -34,9 +34,9 @@ int main(int argc, char** argv) {
   // CHECK: Ok
   check(&b->b, get_struct_id(0), 1, 0);
   // CHECK: Ok
-  check(&b->b, TA_UNKNOWN_TYPE, 1, 1);
+  check(&b->b, TA_PTR, 1, 1);
   // CHECK: Ok
-  check(&b->c, TA_UNKNOWN_TYPE, 1, 1);
+  check(&b->c, TA_PTR, 1, 1);
   // CHECK: Error: Unknown address
   check(b + 1, TA_INT32, 1, 1);
   // CHECK: [Trace] Free 0x{{.*}}
@@ -55,7 +55,7 @@ int main(int argc, char** argv) {
   // CHECK: Ok
   check(&c->b[1], get_struct_id(1), 1, 0);
   // CHECK: Ok
-  check(&c->c, TA_UNKNOWN_TYPE, 3, 1);
+  check(&c->c, TA_PTR, 3, 1);
   // CHECK: Error: Unknown address
   check(c + 1, TA_INT32, 1, 1);
   // CHECK: [Trace] Free 0x{{.*}}
