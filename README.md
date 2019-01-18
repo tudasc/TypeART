@@ -21,16 +21,16 @@ TypeART uses CMake to build, cf. [TravisCI build file](.travis.yaml) for a compl
 $> git clone https://github.com/jplehr/TypeART.git
 $> cd TypeART
 $> mkdir build && cd build
-$> cmake ..
-$> cmake --build .
+$> cmake .. -DCMAKE_INSTALL_PREFIX=*your path*
+$> cmake --build . --target install
 ```
 
 ## Using TypeART
-TypeART can be applied to a source file by invoking the script ```applyPass.sh```:
-```{.sh}
-$> scripts/applyPass.sh target.cpp /path/to/plugin
-```
-The tool uses ```/tmp``` to store temporary files.
+Making use of TypeART consists of two phases: 
+  1. Compile and instrument the target code with our LLVM passes, and, 
+  2. execute the target program with a runtime library (based on the TypeART runtime) to accept the callbacks from the instrumented code and actually do some useful analysis.
+
+To that end, the interface [RuntimeInterface.h](runtime/RuntimeInterface.h) can be used to query type information during the target code execution.
 
 
 ## LLVM pass
