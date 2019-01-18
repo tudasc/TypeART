@@ -32,6 +32,10 @@ Making use of TypeART consists of two phases:
 
 To that end, the interface [RuntimeInterface.h](runtime/RuntimeInterface.h) can be used to query type information during the target code execution.
 
+#### Example: MPI Demo
+The folder [demo](demo) contains an example of MPI related type errors that can be detected using TypeART.
+The code is compiled with our instrumentation, and executed by preloading the MPI related check library implemented in [tool.c](demo/tool.c), which is linked against the TypeART runtime and uses the aforementioned query interface.
+It overloads the required MPI calls and checks that the passed `void* buffer` is correct.
 
 ## LLVM pass
 The necessary allocation sites and type information are extracted in LLVM passes.
