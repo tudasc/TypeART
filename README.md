@@ -18,7 +18,7 @@ A brief summary is given in a subsequent section and more information can be fou
     <td>Hück, Alexander and Lehr, Jan-Patrick and Kreutzer, Sebastian and Protze, Joachim and Terboven, Christian and Bischof, Christian and Müller, Matthias S.
     <a href=http://conferences.computer.org/scw/2018/pdfs/Correctness2018-4a8nikwzUlkPjw1TP5zWZt/3eQuPpEOKXTkjmMgQI3L3T/5g7rbAUBoYPUZJ6duKhpL4.pdf>
     Compiler-aided type tracking for correctness checking of MPI applications</a>.
-    In <i>2nd International Workshop on Software Correctness for HPC Applications (Correctness)<i>,
+    In <i>2nd International Workshop on Software Correctness for HPC Applications (Correctness)</i>,
     pages 51–58. IEEE, 2018.</td>
 </tr>
 <tr>
@@ -26,7 +26,7 @@ A brief summary is given in a subsequent section and more information can be fou
     <td>Hilbrich, Tobias and Protze, Joachim and Schulz, Martin and de Supinski, Bronis R. and Müller, Matthias S.
     <a href=http://dx.doi.org/10.3233/SPR-130368>
     MPI Runtime Error Detection with MUST: Advances in Deadlock Detection</a>.
-    In <i>Scientific Programming<i>, vol. 21, no. 3-4,
+    In <i>Scientific Programming</i>, vol. 21, no. 3-4,
     pages 109–121, 2013.</td>
 </tr>
 </table>
