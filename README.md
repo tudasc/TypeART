@@ -1,16 +1,35 @@
 # TypeART
 
-TypeART is a type and memory allocation tracking sanitizer.
+TypeART \[[TA18](#ref-typeart-2018)\] is a type and memory allocation tracking sanitizer.
 It consists of a LLVM compiler pass and a corresponding runtime to track relevant memory allocation information during the execution of a target program.
 It instruments heap, stack and global variable allocations with a callback to our runtime. 
 The callback consists of the runtime memory pointer value, what type (built-ins, user-defined structs etc.) and extent of the value.
 This allows users of our runtime to query detailed type information behind arbritary memory locations, as long as they are mapped.
 
 ### Use Case: MUST - A dynamic MPI correctness checker
-TypeART is used in conjunction with [MUST](https://doc.itc.rwth-aachen.de/display/CCP/Project+MUST) to track memory (de-)allocation relevant to MPI communication.
+TypeART is used in conjunction with MUST \[[MU13](#ref-must-2013)\] to track memory (de-)allocation relevant to MPI communication.
 Thus, MUST can check for type compatibility between the type-less communication buffer and the declared MPI datatype at all phases of the MPI communication, namely message assembly, message transfer and message disassembly into the receiving buffer.
 A brief summary is given in a subsequent section and more information can be found in our publication:
-[Compiler-aided type tracking for correctness checking of MPI applications](http://conferences.computer.org/scw/2018/pdfs/Correctness2018-4a8nikwzUlkPjw1TP5zWZt/3eQuPpEOKXTkjmMgQI3L3T/5g7rbAUBoYPUZJ6duKhpL4.pdf).
+
+#### References
+<table style="border:0px">
+<tr>
+    <td valign="top"><a name="ref-typeart-2018"></a>[TA18]</td>
+    <td>Hück, Alexander and Lehr, Jan-Patrick and Kreutzer, Sebastian and Protze, Joachim and Terboven, Christian and Bischof, Christian and Müller, Matthias S.
+    <a href=http://conferences.computer.org/scw/2018/pdfs/Correctness2018-4a8nikwzUlkPjw1TP5zWZt/3eQuPpEOKXTkjmMgQI3L3T/5g7rbAUBoYPUZJ6duKhpL4.pdf>
+    Compiler-aided type tracking for correctness checking of MPI applications</a>.
+    In <i>2nd International Workshop on Software Correctness for HPC Applications (Correctness)<i>,
+    pages 51–58. IEEE, 2018.</td>
+</tr>
+<tr>
+    <td valign="top"><a name="ref-must-2013"></a>[MU13]</td>
+    <td>Hilbrich, Tobias and Protze, Joachim and Schulz, Martin and de Supinski, Bronis R. and Müller, Matthias S.
+    <a href=http://dx.doi.org/10.3233/SPR-130368>
+    MPI Runtime Error Detection with MUST: Advances in Deadlock Detection</a>.
+    In <i>Scientific Programming<i>, vol. 21, no. 3-4,
+    pages 109–121, 2013.</td>
+</tr>
+</table>
 
 ## Software dependencies
 TypeART requires [LLVM](https://llvm.org) version 6.0 and CMake version >= 3.5.
@@ -24,6 +43,12 @@ $> mkdir build && cd build
 $> cmake .. -DCMAKE_INSTALL_PREFIX=*your path*
 $> cmake --build . --target install
 ```
+#### CMake Configuration: Options for users
+- `SOFTCOUNTERS` (default: **off**) : Enable runtime tracking of #tracked addrs. / #distinct checks / etc.
+- `USE_BTREE` (default: **on**) : Enable usage of btree-backed map instead of std::map for the runtime, typically resulting in higher performance. 
+
+
+
 
 ## Using TypeART
 Making use of TypeART consists of two phases: 
