@@ -38,12 +38,14 @@ struct MemOpVisitor : public llvm::InstVisitor<MemOpVisitor> {
   void visitFreeLike(llvm::CallInst& ci, MemOpKind k);
   //  void visitIntrinsicInst(llvm::IntrinsicInst& ii);
   void visitAllocaInst(llvm::AllocaInst& ai);
+  void visitTypeAssert(llvm::CallInst& ci);
   virtual ~MemOpVisitor();
 
   llvm::SmallVector<llvm::GlobalVariable*, 8> listGlobals;
   llvm::SmallVector<MallocData, 8> listMalloc;
   llvm::SmallPtrSet<llvm::CallInst*, 8> listFree;
   llvm::SmallVector<AllocaData, 8> listAlloca;
+  llvm::SmallPtrSet<llvm::CallInst*, 8> listAssert;
 
  private:
   // clang-format off
@@ -57,6 +59,7 @@ struct MemOpVisitor : public llvm::InstVisitor<MemOpVisitor> {
                                                     {"_ZdlPv", MemOpKind::FREE}, /*delete*/
                                                     {"_ZdaPv", MemOpKind::FREE} /*delete[]*/
                                                    };
+  const std::string assertFuncName{"__typeart_assert_type_stub"};
   // clang-format on
 };
 

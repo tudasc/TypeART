@@ -165,6 +165,7 @@ bool TypeArtPass::runOnFunc(Function& f) {
   const auto& listMalloc = fData.listMalloc;
   const auto& listAlloca = fData.listAlloca;
   const auto& listFree = fData.listFree;
+  const auto& listAssert = fData.listAssert;
 
   const auto instrumentMalloc = [&](const auto& malloc) -> bool {
     const auto mallocInst = malloc.call;
@@ -291,6 +292,43 @@ bool TypeArtPass::runOnFunc(Function& f) {
     return true;
   };
 
+  const auto processTypeAssert = [&](CallInst* ci) -> bool {
+    auto bufferArg = ci->getArgOperand(0);
+    auto typeArg = ci->getArgOperand(1);
+
+    if (!bufferArg->getType()->isPointerTy()) {
+      LOG_ERROR("First argument to __typeart_assert_type must be a pointer to the target buffer");
+      return false;
+    }
+
+    auto typePtr = typeArg->getType();
+    if (!typePtr->isPointerTy()) {
+      LOG_ERROR("Second argument to __typeart_assert_type must be a pointer of the expected type");
+      return false;
+    }
+    // TODO: Move to analysis
+    if (auto ptrCast = dyn_cast<BitCastInst>(typeArg)) {
+      typePtr = ptrCast->getSrcTy();
+    }
+
+    auto type = typePtr->getPointerElementType();
+    int typeId = typeManager.getOrRegisterType(type, dl);
+    if (typeId == TA_UNKNOWN_TYPE) {
+      LOG_ERROR("Type is not supported: " << util::dump(*type));
+      return false;
+    }
+
+    // Create call to actual assert function
+    IRBuilder<> IRB(ci->getNextNode());
+    auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), typeId);
+    IRB.CreateCall(typeart_assert_type.f, ArrayRef<Value*>{bufferArg, typeIdConst});
+
+    // Delete call to stub function
+    ci->eraseFromParent();
+    LOG_DEBUG("Resolved assert (id=" << typeId << ")");
+    return true;
+  };
+
   if (!ClIgnoreHeap) {
     // instrument collected calls of bb:
     for (auto& malloc : listMalloc) {
@@ -338,6 +376,9 @@ bool TypeArtPass::runOnFunc(Function& f) {
   } else {
     NumInstrumentedAlloca += listAlloca.size();
   }
+  for (auto assertCall : listAssert) {
+    mod |= processTypeAssert(assertCall);
+  }
 
   return mod;
 }  // namespace pass
@@ -363,7 +404,7 @@ bool TypeArtPass::doFinalization(Module&) {
 void TypeArtPass::declareInstrumentationFunctions(Module& m) {
   // Remove this return if problems come up during compilation
   if (typeart_alloc_global.f != nullptr && typeart_alloc_stack.f != nullptr && typeart_alloc.f != nullptr &&
-      typeart_free.f != nullptr && typeart_leave_scope.f != nullptr) {
+      typeart_free.f != nullptr && typeart_leave_scope.f != nullptr && typeart_assert_type.f != nullptr) {
     return;
   }
 
@@ -387,12 +428,14 @@ void TypeArtPass::declareInstrumentationFunctions(Module& m) {
   Type* alloc_arg_types[] = {tu::getVoidPtrType(c), tu::getInt32Type(c), tu::getInt64Type(c)};
   Type* free_arg_types[] = {tu::getVoidPtrType(c)};
   Type* leavescope_arg_types[] = {tu::getInt64Type(c)};
+  Type* assert_arg_types[] = {tu::getVoidPtrType(c), tu::getInt32Type(c)};
 
   make_function(typeart_alloc, FunctionType::get(Type::getVoidTy(c), alloc_arg_types, false));
   make_function(typeart_alloc_stack, FunctionType::get(Type::getVoidTy(c), alloc_arg_types, false));
   make_function(typeart_alloc_global, FunctionType::get(Type::getVoidTy(c), alloc_arg_types, false));
   make_function(typeart_free, FunctionType::get(Type::getVoidTy(c), free_arg_types, false));
   make_function(typeart_leave_scope, FunctionType::get(Type::getVoidTy(c), leavescope_arg_types, false));
+  make_function(typeart_assert_type, FunctionType::get(Type::getVoidTy(c), assert_arg_types, false));
 }
 
 void TypeArtPass::propagateTypeInformation(Module&) {

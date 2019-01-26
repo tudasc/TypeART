@@ -499,7 +499,7 @@ bool MemInstFinderPass::runOnFunc(llvm::Function& f) {
     checkAmbigiousMalloc(mallocData);
   }
 
-  FunctionData d{mOpsCollector.listMalloc, mOpsCollector.listFree, mOpsCollector.listAlloca};
+  FunctionData d{mOpsCollector.listMalloc, mOpsCollector.listFree, mOpsCollector.listAlloca, mOpsCollector.listAssert};
   functionMap[&f] = d;
 
   mOpsCollector.clear();

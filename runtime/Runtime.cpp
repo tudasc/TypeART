@@ -32,6 +32,7 @@ static bool typeart_rt_scope{false};
   typeart::typeart_rt_scope = true
 #define RUNTIME_GUARD_END typeart::typeart_rt_scope = false
 
+
 namespace typeart {
 namespace softcounter {
 /**
@@ -680,5 +681,41 @@ const char* typeart_get_type_name(int id) {
 }
 
 void typeart_get_return_address(const void* addr, const void** retAddr) {
-  return typeart::TypeArtRT::get().getReturnAddress(addr, retAddr);
+  typeart::TypeArtRT::get().getReturnAddress(addr, retAddr);
+}
+
+void __typeart_assert_type_stub(const void* addr, const void* typePtr) {
+  LOG_FATAL("Unresolved call to __typeart_assert_type_stub. Something went wrong during the instrumentation pass.");
+  exit(EXIT_FAILURE);
+}
+
+void __typeart_assert_type(void* addr, int typeId) {
+  // TODO: Add line, file info
+  const auto fail = [&](std::string msg) -> void {
+    LOG_FATAL("Assert failed: " << msg);
+    exit(EXIT_FAILURE);
+  };
+  int actualTypeId{TA_UNKNOWN_TYPE};
+  size_t count{0};
+  auto status = typeart_get_type(addr, &actualTypeId, &count);
+  switch(status) {
+    case TA_OK:
+      break;
+    case TA_INVALID_ID:
+      fail("Type ID is invalid");
+    case TA_BAD_ALIGNMENT:
+      fail("Pointer does not align to a type");
+    case TA_UNKNOWN_ADDRESS:
+      fail("Address is unknown");
+    default:
+      fail("Unexpected error during type resolution");
+  }
+  if (actualTypeId != typeId) {
+    const char* expectedName = typeart_get_type_name(typeId);
+    const char* actualName = typeart_get_type_name(actualTypeId);
+    std::stringstream ss;
+    ss << "Expected type " << expectedName << "(id=" << typeId << " but got " << actualName << "(id=" << actualTypeId << ")";
+    fail(ss.str());
+  }
+
 }

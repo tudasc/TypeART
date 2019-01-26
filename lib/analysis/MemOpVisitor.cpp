@@ -44,6 +44,8 @@ void MemOpVisitor::visitCallInst(llvm::CallInst& ci) {
     visitMallocLike(ci, val.getValue());
   } else if (auto val = isInSet(deallocMap)) {
     visitFreeLike(ci, val.getValue());
+  } else if (ci.getCalledFunction()->getName().str() == assertFuncName) {
+    visitTypeAssert(ci);
   }
 }
 
@@ -106,10 +108,15 @@ void MemOpVisitor::visitAllocaInst(llvm::AllocaInst& ai) {
   //  LOG_DEBUG("Alloca: " << util::dump(ai) << " -> lifetime marker: " << util::dump(lifetimes));
 }  // namespace typeart
 
+void MemOpVisitor::visitTypeAssert(CallInst& ci) {
+  listAssert.insert(&ci);
+}
+
 void MemOpVisitor::clear() {
   listAlloca.clear();
   listMalloc.clear();
   listFree.clear();
+  listAssert.clear();
 }
 
 MemOpVisitor::~MemOpVisitor() = default;

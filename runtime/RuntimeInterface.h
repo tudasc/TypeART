@@ -9,6 +9,18 @@
 #include <stddef.h>
 #endif
 
+// Type assert macro
+#ifndef NDEBUG
+// TODO: Unique name needed for type ptr?
+#define ASSERT_TYPE(ptr, type)                   \
+  {                                              \
+    type* __type_ptr;                            \
+    __typeart_assert_type_stub(ptr, __type_ptr); \
+  }
+#else
+#define ASSERT_TYPE(ptr, type)
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -129,6 +141,8 @@ const char* typeart_get_type_name(int id);
  * \param[out] retAddr The approximate address where the allocation occurred, or nullptr.
  */
 void typeart_get_return_address(const void* addr, const void** retAddr);
+
+void __typeart_assert_type_stub(const void* addr, const void* typePtr);
 
 #ifdef __cplusplus
 }
