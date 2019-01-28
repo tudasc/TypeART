@@ -293,8 +293,20 @@ bool TypeArtPass::runOnFunc(Function& f) {
   };
 
   const auto processTypeAssert = [&](CallInst* ci) -> bool {
+      LOG_ERROR("Processing assert");
+      if (!ci) {
+          LOG_ERROR("CallInst is null");
+      }
     auto bufferArg = ci->getArgOperand(0);
     auto typeArg = ci->getArgOperand(1);
+
+    if (!bufferArg || !typeArg) {
+      LOG_ERROR("__typeart_assert_type called with wrong number of arguments");
+      LOG_ERROR("Call inst: " << util::dump(*ci));
+      return false;
+    }
+    LOG_ERROR(util::dump(*bufferArg));
+    LOG_ERROR(util::dump(*typeArg));
 
     if (!bufferArg->getType()->isPointerTy()) {
       LOG_ERROR("First argument to __typeart_assert_type must be a pointer to the target buffer");

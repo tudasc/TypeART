@@ -27,7 +27,7 @@ if [ -e "${tmpDir}/types.yaml" ]; then
     rm "${tmpDir}/types.yaml"
 fi
 
-$compiler -S -emit-llvm "$target" -o "$tmpfile".ll -I${scriptDir}/../typelib
+$compiler -S -emit-llvm "$target" -o "$tmpfile".ll -I${scriptDir}/../typelib -I${scriptDir}/../runtime
 opt -load ${pathToPlugin}/analysis/meminstfinderpass.so -load ${pathToPlugin}/typeartpass.so -typeart $pluginArgs < "$tmpfile".ll -o "$tmpfile".ll > /dev/null
 llc "$tmpfile".ll -o "$tmpfile".s
 $compiler "$tmpfile".s -L"$pathToRT" -ltypeart-rt -o "$tmpfile".o
