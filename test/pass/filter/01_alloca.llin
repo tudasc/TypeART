@@ -1,0 +1,123 @@
+; RUN: cat %s | opt -load %pluginpath/analysis/meminstfinderpass.so -load %pluginpath/%pluginname %pluginargs -typeart-alloca -alloca-array-only=false -S 2>&1 | FileCheck %s
+; RUN: cat %s | opt -load %pluginpath/analysis/meminstfinderpass.so -load %pluginpath/%pluginname %pluginargs -typeart-alloca -alloca-array-only=false -call-filter -S 2>&1 | FileCheck %s -check-prefix=CHECK-FILTER
+
+; ModuleID = '<stdin>'
+source_filename = "test/pass/filter/01_alloca.c"
+target datalayout = "e-m:e-i64:64-f80:128-n8:16:32:64-S128"
+target triple = "x86_64-pc-linux-gnu"
+
+; Function Attrs: noinline nounwind uwtable
+define void @MPI_send(i32*) #0 {
+  %2 = alloca i32*, align 8
+  store i32* %0, i32** %2, align 8
+  %3 = load i32*, i32** %2, align 8
+  ret void
+}
+
+; Function Attrs: noinline nounwind uwtable
+define void @foo_bar(i32*) #0 {
+  %2 = alloca i32*, align 8
+  store i32* %0, i32** %2, align 8
+  %3 = load i32*, i32** %2, align 8
+  store i32 1, i32* %3, align 4
+  %4 = load i32*, i32** %2, align 8
+  ret void
+}
+
+; Function Attrs: noinline nounwind uwtable
+define void @foo_bar2(i32*, i32*) #0 {
+  %3 = alloca i32*, align 8
+  %4 = alloca i32*, align 8
+  store i32* %0, i32** %3, align 8
+  store i32* %1, i32** %4, align 8
+  %5 = load i32*, i32** %3, align 8
+  store i32 1, i32* %5, align 4
+  %6 = load i32*, i32** %3, align 8
+  %7 = load i32*, i32** %4, align 8
+  call void @MPI_send(i32* %7)
+  ret void
+}
+
+; Function Attrs: noinline nounwind uwtable
+define void @foo_bar3() #0 {
+  %1 = alloca i32*, align 8
+  %2 = call noalias i8* @malloc(i64 40) #3
+  %3 = bitcast i8* %2 to i32*
+  store i32* %3, i32** %1, align 8
+  %4 = load i32*, i32** %1, align 8
+  %5 = load i32*, i32** %1, align 8
+  call void @MPI_send(i32* %5)
+  ret void
+}
+
+; Function Attrs: nounwind
+declare noalias i8* @malloc(i64) #1
+
+; CHECK-FILTER: define void @foo()
+; CHECK-FILTER: %__ta_alloca_counter = alloca i64
+; CHECK-FILTER-NEXT: store i64 0, i64* %__ta_alloca_counter
+; CHECK-FILTER: %4 = bitcast i32** %3 to i8*
+; CHECK-FILTER-NEXT  call void @__typeart_alloc_stack(i8* %4, i32 10, i64 1)
+; CHECK-FILTER: %6 = bitcast i32* %5 to i8*
+; CHECK-FILTER-NEXT  call void @__typeart_alloc_stack(i8* %6, i32 2, i64 1)
+; CHECK-FILTER: %8 = bitcast i32* %7 to i8*
+; CHECK-FILTER-NEXT  call void @__typeart_alloc_stack(i8* %8, i32 2, i64 1)
+; CHECK-FILTER: %14 = load i64, i64* %__ta_alloca_counter
+; CHECK-FILTER-NEXT: %15 = add i64 3, %14
+; CHECK-FILTER: call void @__typeart_leave_scope(i64 %__ta_counter_load)
+
+; CHECK: define void @foo()
+; CHECK: %__ta_alloca_counter = alloca i64
+; CHECK-NEXT: store i64 0, i64* %__ta_alloca_counter
+; CHECK: %2 = bitcast i32* %1 to i8*
+; CHECK-NEXT: call void @__typeart_alloc_stack(i8* %2, i32 2, i64 1)
+; CHECK: %4 = bitcast i32* %3 to i8*
+; CHECK-NEXT: call void @__typeart_alloc_stack(i8* %4, i32 2, i64 1)
+; CHECK: %6 = bitcast i32** %5 to i8*
+; CHECK-NEXT: call void @__typeart_alloc_stack(i8* %6, i32 10, i64 1)
+; CHECK: %8 = bitcast i32* %7 to i8*
+; CHECK-NEXT: call void @__typeart_alloc_stack(i8* %8, i32 2, i64 1)
+; CHECK: %10 = bitcast i32* %9 to i8*
+; CHECK-NEXT: call void @__typeart_alloc_stack(i8* %10, i32 2, i64 1)
+; CHECK: %16 = load i64, i64* %__ta_alloca_counter
+; CHECK-NEXT: %17 = add i64 5, %16
+; CHECK: call void @__typeart_leave_scope(i64 %__ta_counter_load)
+; Function Attrs: noinline nounwind uwtable
+define void @foo() #0 {
+  %1 = alloca i32, align 4
+  %2 = alloca i32, align 4
+  %3 = alloca i32*, align 8
+  %4 = alloca i32, align 4
+  %5 = alloca i32, align 4
+  store i32 1, i32* %1, align 4
+  %6 = load i32, i32* %1, align 4
+  store i32 %6, i32* %2, align 4
+  store i32* %1, i32** %3, align 8
+  %7 = load i32, i32* %1, align 4
+  store i32 %7, i32* %4, align 4
+  %8 = load i32, i32* %1, align 4
+  store i32 %8, i32* %5, align 4
+  %9 = load i32*, i32** %3, align 8
+  call void @MPI_send(i32* %9)
+  %10 = load i32, i32* %4, align 4
+  call void @bar(i32 %10)
+  call void @ebar(i32* %4)
+  call void @foo_bar(i32* %1)
+  call void @foo_bar2(i32* %1, i32* %5)
+  ret void
+}
+
+declare void @bar(i32) #2
+
+declare void @ebar(i32*) #2
+
+attributes #0 = { noinline nounwind uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+fxsr,+mmx,+sse,+sse2,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #1 = { nounwind "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+fxsr,+mmx,+sse,+sse2,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #2 = { "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+fxsr,+mmx,+sse,+sse2,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #3 = { nounwind }
+
+!llvm.module.flags = !{!0}
+!llvm.ident = !{!1}
+
+!0 = !{i32 1, !"wchar_size", i32 4}
+!1 = !{!"clang version 6.0.0 (tags/RELEASE_600/final 332839)"}

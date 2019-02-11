@@ -1,26 +1,60 @@
-list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
+set(PROJECT_NAME typeart_llvm)
+set(TARGETS_EXPORT_NAME ${PROJECT_NAME}-targets)
 
-include(AddLLVM)
+add_subdirectory(analysis)
 
 set(PASS_SOURCES
- 	MUSTSupportPass.cpp
-	TypeUtil.cpp
+  TypeARTPass.cpp
+  support/TypeUtil.cpp
+  TypeManager.cpp
 )
 
-add_llvm_loadable_module(MustSupportPass
-	${PASS_SOURCES}
+make_llvm_module(typeartpass
+  "${PASS_SOURCES}"
+  LINK_LIBS
+    typelib
+  DEPENDS
+    meminstfinderpass
+  INCLUDE_DIRS
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${PROJECT_SOURCE_DIR}/typelib
+    ${PROJECT_SOURCE_DIR}/runtime
 )
 
-
-
-add_tidy_target(tidy-run-on-pass
-  "Clang-tidy run on MUST support pass translation units"
-  SOURCES ${PASS_SOURCES}
-  OTHER --header-filter=${CMAKE_CURRENT_SOURCE_DIR}
+target_project_compile_options(typeartpass)
+target_project_compile_definitions(typeartpass
+  PRIVATE_DEFS
+    LOG_LEVEL=${LOG_LEVEL}
 )
 
-add_tidy_fix_target(tidy-fix-on-pass
-  "Clang-tidy run with fixes on  MUST support pass translation units"
-  SOURCES ${PASS_SOURCES}
-  OTHER --header-filter=${CMAKE_CURRENT_SOURCE_DIR} -checks=-*,modernize-*,llvm-namespace-comment,google-explicit-constructor
+if(SHOW_STATS)
+  target_project_compile_definitions(typeartpass
+    PRIVATE_DEFS 
+      LLVM_ENABLE_STATS
+  )
+endif()
+
+install(
+  TARGETS typeartpass
+  EXPORT ${TARGETS_EXPORT_NAME}
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+)
+
+# also handles subdir meminstfinder
+install(
+  EXPORT ${TARGETS_EXPORT_NAME}
+  NAMESPACE typeart::
+  DESTINATION lib/cmake
+)
+
+configure_package_config_file(
+  ${PROJECT_SOURCE_DIR}/cmake/Config.cmake.in
+  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
+  INSTALL_DESTINATION lib/cmake
+)
+
+install(FILES
+  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
+  DESTINATION lib/cmake
 )

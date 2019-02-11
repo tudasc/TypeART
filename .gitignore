@@ -39,3 +39,13 @@ bin/
 # Eclipse files
 .cproject
 .project
+
+# CLion
+.idea/
+
+# llvm-lit related
+test/**/Output/
+test/*/*.ll
+test/*/*.s
+test/*/*.o
+**/musttypes

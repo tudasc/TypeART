@@ -1,84 +1,67 @@
-function(add_format_target target comment)
-  macro(filter_dir _dir_name_)
-    foreach (SOURCE_FILE ${ALL_CXX_FILES})
-      string(FIND ${SOURCE_FILE} ${_dir_name_} EXCLUDE_FOUND)
-      if (NOT ${EXCLUDE_FOUND} EQUAL -1)
-        list(REMOVE_ITEM ALL_CXX_FILES ${SOURCE_FILE})
-      endif()
-    endforeach()
-  endmacro()
+find_package(LLVM REQUIRED CONFIG)
+message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}") 
 
-  cmake_parse_arguments(ARG "" "" "EXCLUDES;OTHER" ${ARGN})
-  file(GLOB_RECURSE
-    ALL_CXX_FILES
-    lib/*.cpp
-    lib/*.h
-    runtime/*.cpp
-    runtime/*.h
+list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
+
+include(AddLLVM)
+include(clang-tidy)
+include(clang-format)
+include(llvm-util)
+include(log-util)
+
+set(LOG_LEVEL 0 CACHE STRING "Granularity of LLVM pass logger. 3 ist most verbose, 0 is least.")
+set(LOG_LEVEL_RT 0 CACHE STRING "Granularity of runtime logger. 3 ist most verbose, 0 is least.")
+option(SHOW_STATS "Passes show the statistics vars." OFF)
+option(MPI_LOGGER "Whether the logger should use MPI." OFF)
+option(MPI_INTERCEPT_LIB "Build MPI interceptor library, requires wrap.py generator file." OFF)
+option(SOFTCOUNTERS "Enable software tracking of #tracked addrs. / #distinct checks / etc." OFF)
+option(USE_BTREE "Enable usage of btree-backed map instead of std::map for the runtime." OFF)
+
+if(MPI_LOGGER)
+  find_package(MPI REQUIRED)
+endif()
+
+if(NOT CMAKE_BUILD_TYPE)
+# set default build type
+  set(CMAKE_BUILD_TYPE Debug)
+endif()
+
+
+function(target_project_compile_options target)
+  cmake_parse_arguments(ARG "" "" "PRIVATE_FLAGS;PUBLIC_FLAGS" ${ARGN})
+
+  target_compile_options(${target} PRIVATE
+    -Wall -Wextra -pedantic
+    -Wunreachable-code -Wwrite-strings
+    -Wpointer-arith -Wcast-align
+    -Wcast-qual -Wno-unused-parameter
   )
 
-  foreach(exclude ${ARG_EXCLUDES})
-    filter_dir(${exclude})
-  endforeach()
-
-  find_program(FORMAT_COMMAND
-               NAMES clang-format clang-format-5.0 clang-format-4.0 clang-format-3.8 clang-format-3.7)
-  if(FORMAT_COMMAND)
-    add_custom_target(${target}
-      COMMAND ${FORMAT_COMMAND} -i -style=file ${ARG_OTHER} ${ARG_UNPARSED_ARGUMENTS}
-              ${ALL_CXX_FILES}
-      WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-      COMMENT "${comment}"
-      USES_TERMINAL
+  if(ARG_PRIVATE_FLAGS)
+    target_compile_options(${target} PRIVATE
+      "${ARG_PRIVATE_FLAGS}"
     )
-  else()
-    message(WARNING "Could not find clang-format executable.")
-    add_custom_target(${target}
-      COMMAND ${CMAKE_COMMAND} -E echo "${target} does nothing, no clang-format found.")
+  endif()
+
+  if(ARG_PUBLIC_FLAGS)
+    target_compile_options(${target} PUBLIC
+      "${ARG_PUBLIC_FLAGS}"
+    )
   endif()
 endfunction()
 
+function(target_project_compile_definitions target)
+  cmake_parse_arguments(ARG "" "" "PRIVATE_DEFS;PUBLIC_DEFS" ${ARGN})
 
-function(add_tidy_target target comment)
-  macro(filter_dir _name_)
-    foreach (SOURCE_FILE ${ARG_SOURCES})
-      string(FIND ${SOURCE_FILE} ${_name_} EXCLUDE_FOUND)
-      if (NOT ${EXCLUDE_FOUND} EQUAL -1)
-        list(REMOVE_ITEM ARG_SOURCES ${SOURCE_FILE})
-      endif()
-    endforeach()
-  endmacro()
-
-  cmake_parse_arguments(ARG "" "" "SOURCES;EXCLUDES;OTHER" ${ARGN})
-
-  foreach(exclude ${ARG_EXCLUDES})
-    filter_dir(${exclude})
-  endforeach()
-
-  find_program(TIDY_COMMAND
-               NAMES clang-tidy clang-tidy-5.0 clang-tidy-4.0 clang-tidy-3.8 clang-tidy-3.7)
-  if(TIDY_COMMAND)
-    add_custom_target(${target}
-      COMMAND ${TIDY_COMMAND} -p ${CMAKE_BINARY_DIR}
-              ${ARG_OTHER}
-              ${ARG_UNPARSED_ARGUMENTS}
-              ${ARG_SOURCES}
-      COMMENT "${comment}"
-      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-      USES_TERMINAL
+  if(ARG_PRIVATE_DEFS)
+    target_compile_definitions(${target} PRIVATE
+      "${ARG_PRIVATE_DEFS}"
     )
-  else()
-    message(WARNING "Could not find clang-tidy executable.")
-    add_custom_target(${target}
-      COMMAND ${CMAKE_COMMAND} -E echo "${target} does nothing, no clang-tidy command found.")
   endif()
-endfunction()
 
-function(add_tidy_fix_target target comment)
-  cmake_parse_arguments(ARG "" "" "SOURCES;EXCLUDES;OTHER" ${ARGN})
-  add_tidy_target(${target} "${comment}"
-    SOURCES ${ARG_SOURCES}
-    EXCLUDES ${ARG_EXCLUDES}
-    OTHER ${ARG_OTHER} -fix
-  )
+  if(ARG_PUBLIC_DEFS)
+    target_compile_definitions(${target} PUBLIC
+      "${ARG_PUBLIC_DEFS}"
+    )
+  endif()
 endfunction()
