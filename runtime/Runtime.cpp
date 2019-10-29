@@ -719,3 +719,7 @@ void __typeart_assert_type(void* addr, int typeId) {
   }
 
 }
+
+void __typeart_assert_type(void* addr, int typeId, size_t count) {
+
+}

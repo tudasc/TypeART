@@ -31,6 +31,7 @@ class TypeArtPass : public llvm::ModulePass {
   TypeArtFunc typeart_free{"__typeart_free"};
   TypeArtFunc typeart_leave_scope{"__typeart_leave_scope"};
   TypeArtFunc typeart_assert_type{"__typeart_assert_type"};
+  TypeArtFunc typeart_assert_type_len{"__typeart_assert_type_len"};
 
   TypeManager typeManager;
 

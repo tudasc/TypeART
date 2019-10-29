@@ -1,7 +1,7 @@
 #ifndef LLVM_MUST_SUPPORT_RUNTIMEINTERFACE_H
 #define LLVM_MUST_SUPPORT_RUNTIMEINTERFACE_H
 
-#include "TypeInterface.h"
+#include "../typelib/TypeInterface.h"
 
 #ifdef __cplusplus
 #include <cstddef>
@@ -16,6 +16,12 @@
   {                                              \
     type* __type_ptr;                            \
     __typeart_assert_type_stub(ptr, __type_ptr); \
+  }
+
+#define ASSERT_TYPE(ptr, type, len)                   \
+  {                                              \
+    type* __type_ptr;                            \
+    __typeart_assert_type_stub_len(ptr, __type_ptr, len); \
   }
 #else
 #define ASSERT_TYPE(ptr, type)
@@ -143,6 +149,7 @@ const char* typeart_get_type_name(int id);
 void typeart_get_return_address(const void* addr, const void** retAddr);
 
 void __typeart_assert_type_stub(const void* addr, const void* typePtr);
+void __typeart_assert_type_stub_len(const void* addr, const void* typePtr, size_t);
 
 #ifdef __cplusplus
 }

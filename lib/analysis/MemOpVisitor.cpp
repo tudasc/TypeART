@@ -16,16 +16,8 @@ namespace typeart {
 namespace finder {
 using namespace llvm;
 
-MemOpVisitor::MemOpVisitor() = default;
-
-void MemOpVisitor::visitModuleGlobals(Module& m) {
-  for (auto& g : m.globals()) {
-    listGlobals.push_back(&g);
-  }
-}
-
-void MemOpVisitor::visitCallInst(llvm::CallInst& ci) {
-  const auto isInSet = [&](const auto& fMap) -> llvm::Optional<MemOpKind> {
+template<typename Map>
+auto isInSetCheck(const Map& fMap, llvm::CallInst& ci) -> Optional<typename Map::mapped_type> {
     const auto* f = ci.getCalledFunction();
     if (!f) {
       // TODO handle calls through, e.g., function pointers? - seems infeasible
@@ -38,14 +30,23 @@ void MemOpVisitor::visitCallInst(llvm::CallInst& ci) {
       return {(*res).second};
     }
     return None;
-  };
+}
 
-  if (auto val = isInSet(allocMap)) {
+MemOpVisitor::MemOpVisitor() = default;
+
+void MemOpVisitor::visitModuleGlobals(Module& m) {
+  for (auto& g : m.globals()) {
+    listGlobals.push_back(&g);
+  }
+}
+
+void MemOpVisitor::visitCallInst(llvm::CallInst& ci) {
+  if (auto val = isInSetCheck(allocMap,ci)) {
     visitMallocLike(ci, val.getValue());
-  } else if (auto val = isInSet(deallocMap)) {
+  } else if (auto val = isInSetCheck(deallocMap,ci)) {
     visitFreeLike(ci, val.getValue());
-  } else if (ci.getCalledFunction()->getName().str() == assertFuncName) {
-    visitTypeAssert(ci);
+  } else if (auto val = isInSetCheck(assertMap,ci)) {
+    visitTypeAssert(ci, val.getValue());
   }
 }
 
@@ -108,8 +109,8 @@ void MemOpVisitor::visitAllocaInst(llvm::AllocaInst& ai) {
   //  LOG_DEBUG("Alloca: " << util::dump(ai) << " -> lifetime marker: " << util::dump(lifetimes));
 }  // namespace typeart
 
-void MemOpVisitor::visitTypeAssert(CallInst& ci) {
-  listAssert.insert(&ci);
+void MemOpVisitor::visitTypeAssert(CallInst& ci, AssertKind k) {
+  listAssert.push_back({&ci, k});
 }
 
 void MemOpVisitor::clear() {

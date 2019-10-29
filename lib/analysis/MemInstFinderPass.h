@@ -47,7 +47,7 @@ struct FunctionData {
   llvm::SmallVector<MallocData, 8> listMalloc;
   llvm::SmallPtrSet<llvm::CallInst*, 8> listFree;
   llvm::SmallVector<AllocaData, 8> listAlloca;
-  llvm::SmallPtrSet<llvm::CallInst*, 8> listAssert;
+  llvm::SmallVector<AssertData, 8> listAssert;
 };
 
 class MemInstFinderPass : public llvm::ModulePass {

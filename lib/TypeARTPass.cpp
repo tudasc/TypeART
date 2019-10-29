@@ -292,8 +292,9 @@ bool TypeArtPass::runOnFunc(Function& f) {
     return true;
   };
 
-  const auto processTypeAssert = [&](CallInst* ci) -> bool {
+  const auto processTypeAssert = [&](AssertData& ad) -> bool {
       LOG_ERROR("Processing assert");
+      auto* ci = ad.call;
       if (!ci) {
           LOG_ERROR("CallInst is null");
       }
@@ -330,11 +331,24 @@ bool TypeArtPass::runOnFunc(Function& f) {
       return false;
     }
 
-    // Create call to actual assert function
     IRBuilder<> IRB(ci->getNextNode());
     auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), typeId);
-    IRB.CreateCall(typeart_assert_type.f, ArrayRef<Value*>{bufferArg, typeIdConst});
-
+    if(ad.kind == AssertKind::TYPE) {
+      // Create call to actual assert function
+      //IRBuilder<> IRB(ci->getNextNode());
+      //auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), typeId);
+      IRB.CreateCall(typeart_assert_type.f, ArrayRef<Value*>{bufferArg, typeIdConst});
+    } 
+    
+    if(ad.kind == AssertKind::TYPELEN){
+      auto typeLen = ci->getArgOperand(2);
+      if(typeLen == nullptr){
+        LOG_ERROR("Length is null");
+        return false;
+      }
+      IRB.CreateCall(typeart_assert_type_len.f, ArrayRef<Value*>{bufferArg, typeIdConst, typeLen});
+    }
+      
     // Delete call to stub function
     ci->eraseFromParent();
     LOG_DEBUG("Resolved assert (id=" << typeId << ")");
@@ -441,6 +455,7 @@ void TypeArtPass::declareInstrumentationFunctions(Module& m) {
   Type* free_arg_types[] = {tu::getVoidPtrType(c)};
   Type* leavescope_arg_types[] = {tu::getInt64Type(c)};
   Type* assert_arg_types[] = {tu::getVoidPtrType(c), tu::getInt32Type(c)};
+  Type* assert_arg_types_len[] = {tu::getVoidPtrType(c), tu::getInt32Type(c),tu::getInt64Type(c)};
 
   make_function(typeart_alloc, FunctionType::get(Type::getVoidTy(c), alloc_arg_types, false));
   make_function(typeart_alloc_stack, FunctionType::get(Type::getVoidTy(c), alloc_arg_types, false));
@@ -448,6 +463,7 @@ void TypeArtPass::declareInstrumentationFunctions(Module& m) {
   make_function(typeart_free, FunctionType::get(Type::getVoidTy(c), free_arg_types, false));
   make_function(typeart_leave_scope, FunctionType::get(Type::getVoidTy(c), leavescope_arg_types, false));
   make_function(typeart_assert_type, FunctionType::get(Type::getVoidTy(c), assert_arg_types, false));
+  make_function(typeart_assert_type_len, FunctionType::get(Type::getVoidTy(c), assert_arg_types_len, false));
 }
 
 void TypeArtPass::propagateTypeInformation(Module&) {
