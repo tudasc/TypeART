@@ -720,6 +720,36 @@ void __typeart_assert_type(void* addr, int typeId) {
 
 }
 
-void __typeart_assert_type(void* addr, int typeId, size_t count) {
-
+void __typeart_assert_type_len(void* addr, int typeId, size_t count) {
+    // TODO: Add line, file info
+    const auto fail = [&](std::string msg) -> void {
+        LOG_FATAL("Assert failed: " << msg);
+        exit(EXIT_FAILURE);
+    };
+    int actualTypeId{TA_UNKNOWN_TYPE};
+    size_t actualCount{0};
+    auto status = typeart_get_type(addr, &actualTypeId, &actualCount);
+    switch(status) {
+        case TA_OK:
+            break;
+        case TA_INVALID_ID:
+            fail("Type ID is invalid");
+        case TA_BAD_ALIGNMENT:
+            fail("Pointer does not align to a type");
+        case TA_UNKNOWN_ADDRESS:
+            fail("Address is unknown");
+        default:
+            fail("Unexpected error during type resolution");
+    }
+    if (actualTypeId != typeId) {
+        const char* expectedName = typeart_get_type_name(typeId);
+        const char* actualName = typeart_get_type_name(actualTypeId);
+        std::stringstream ss;
+        ss << "Expected type " << expectedName << "(id=" << typeId << " but got " << actualName << "(id=" << actualTypeId << ")";
+        fail(ss.str());
+    } else if(actualCount != count) {
+        std::stringstream ss;
+        ss << "Expected number of elements is " << count << " but actual number is " << actualCount;
+        fail(ss.str());
+    }
 }
