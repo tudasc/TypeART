@@ -100,7 +100,7 @@ install(
 )
 
 install(
-  FILES RuntimeInterface.h
+  FILES RuntimeInterface.h typecheck_macro.h
   DESTINATION include
 )
 
