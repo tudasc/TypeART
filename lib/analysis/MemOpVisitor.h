@@ -29,7 +29,7 @@ struct AllocaData {
 };
 
 struct AssertData {
-  llvm::CallInst* call{nullptr};
+  llvm::Instruction* call{nullptr};
   AssertKind kind;
 };
 
@@ -40,11 +40,13 @@ struct MemOpVisitor : public llvm::InstVisitor<MemOpVisitor> {
   void clear();
   void visitModuleGlobals(llvm::Module& m);
   void visitCallInst(llvm::CallInst& ci);
+  void visitInvokeInst(llvm::InvokeInst& ii);
   void visitMallocLike(llvm::CallInst& ci, MemOpKind k);
   void visitFreeLike(llvm::CallInst& ci, MemOpKind k);
   //  void visitIntrinsicInst(llvm::IntrinsicInst& ii);
   void visitAllocaInst(llvm::AllocaInst& ai);
   void visitTypeAssert(llvm::CallInst& ci, AssertKind k);
+  void visitTypeAssert(llvm::InvokeInst& ii, AssertKind k);
   virtual ~MemOpVisitor();
 
   llvm::SmallVector<llvm::GlobalVariable*, 8> listGlobals;

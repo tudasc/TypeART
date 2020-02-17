@@ -12,24 +12,32 @@
 
 #include <algorithm>
 
+#include "llvm/IR/InstrTypes.h"
+
 namespace typeart {
 namespace finder {
 using namespace llvm;
 
 template<typename Map>
-auto isInSetCheck(const Map& fMap, llvm::CallInst& ci) -> Optional<typename Map::mapped_type> {
-    const auto* f = ci.getCalledFunction();
+auto isInSetCheck(const Map &fMap, llvm::Instruction &i) -> Optional<typename Map::mapped_type> {
+    llvm::Function *f = nullptr;
+    if (llvm::isa<llvm::CallInst>(i)) {
+        f = llvm::cast<CallInst>(i).getCalledFunction();
+    } else if (llvm::isa<llvm::InvokeInst>(i)) {
+        f = llvm::cast<InvokeInst>(i).getCalledFunction();
+    }
     if (!f) {
-      // TODO handle calls through, e.g., function pointers? - seems infeasible
-      LOG_INFO("Encountered indirect call, skipping.");
-      return None;
+        // TODO handle calls through, e.g., function pointers? - seems infeasible
+        LOG_INFO("Encountered indirect call, skipping.");
+        return None;
     }
     const auto name = f->getName().str();
     const auto res = fMap.find(name);
     if (res != fMap.end()) {
-      return {(*res).second};
+        return {(*res).second};
     }
     return None;
+
 }
 
 MemOpVisitor::MemOpVisitor() = default;
@@ -41,6 +49,7 @@ void MemOpVisitor::visitModuleGlobals(Module& m) {
 }
 
 void MemOpVisitor::visitCallInst(llvm::CallInst& ci) {
+    LOG_INFO("visiting" << ci);
   if (auto val = isInSetCheck(allocMap,ci)) {
     visitMallocLike(ci, val.getValue());
   } else if (auto val = isInSetCheck(deallocMap,ci)) {
@@ -48,6 +57,13 @@ void MemOpVisitor::visitCallInst(llvm::CallInst& ci) {
   } else if (auto val = isInSetCheck(assertMap,ci)) {
     visitTypeAssert(ci, val.getValue());
   }
+}
+
+void MemOpVisitor::visitInvokeInst(llvm::InvokeInst& ii) {
+    LOG_INFO("visiting" << ii );
+    if (auto val = isInSetCheck(assertMap,ii)) {
+        visitTypeAssert(ii, val.getValue());
+    }
 }
 
 void MemOpVisitor::visitMallocLike(llvm::CallInst& ci, MemOpKind k) {
@@ -110,7 +126,13 @@ void MemOpVisitor::visitAllocaInst(llvm::AllocaInst& ai) {
 }  // namespace typeart
 
 void MemOpVisitor::visitTypeAssert(CallInst& ci, AssertKind k) {
+    LOG_INFO("visiting" << ci );
   listAssert.push_back({&ci, k});
+}
+
+void MemOpVisitor::visitTypeAssert(InvokeInst& ii, AssertKind k) {
+    LOG_INFO("visiting" << ii );
+    listAssert.push_back({&ii, k});
 }
 
 void MemOpVisitor::clear() {
