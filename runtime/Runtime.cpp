@@ -714,7 +714,7 @@ void __typeart_assert_type(void* addr, int typeId) {
     const char* expectedName = typeart_get_type_name(typeId);
     const char* actualName = typeart_get_type_name(actualTypeId);
     std::stringstream ss;
-    ss << "Expected type " << expectedName << "(id=" << typeId << " but got " << actualName << "(id=" << actualTypeId << ")";
+    ss << "Expected type " << expectedName << "(id=" << typeId << ") but got " << actualName << "(id=" << actualTypeId << ")";
     fail(ss.str());
   }
 
@@ -745,7 +745,7 @@ void __typeart_assert_type_len(void* addr, int typeId, size_t count) {
         const char* expectedName = typeart_get_type_name(typeId);
         const char* actualName = typeart_get_type_name(actualTypeId);
         std::stringstream ss;
-        ss << "Expected type " << expectedName << "(id=" << typeId << " but got " << actualName << "(id=" << actualTypeId << ")";
+        ss << "Expected type " << expectedName << "(id=" << typeId << ") but got " << actualName << "(id=" << actualTypeId << ")";
         fail(ss.str());
     } else if(actualCount != count) {
         std::stringstream ss;
