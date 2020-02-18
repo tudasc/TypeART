@@ -300,31 +300,27 @@ bool TypeArtPass::runOnFunc(Function& f) {
           LOG_ERROR("CallInst is null");
       }
 
-      Wrap<llvm::CallInst, llvm::InvokeInst> ci;
-      ci.active = 0;
+      //
+      Wrap<llvm::CallInst, llvm::InvokeInst> callOrInvoke;
+      callOrInvoke.active = 0;
       if(auto callinst_temp = llvm::dyn_cast<llvm::CallInst>(ad.call)) {
-          ci.c = callinst_temp;
-          ci.active = 1;
+          callOrInvoke.c = callinst_temp;
+          callOrInvoke.active = 1;
       } else if (auto invokeinst_temp = llvm::dyn_cast<llvm::InvokeInst>(ad.call)) {
-          ci.i = invokeinst_temp;
-          ci.active = 2;
+          callOrInvoke.i = invokeinst_temp;
+          callOrInvoke.active = 2;
       } else {
           assert(false);
       }
 
-      //auto* ci = ad.call;
-    LOG_INFO("ci.active = " << ci.active << ", ci.inst().dump() = " << util::dump(*ci.inst()));
-
-    auto bufferArg = ci.getArgOperand(0);
-    auto typeArg = ci.getArgOperand(1);
+    auto bufferArg = callOrInvoke.getArgOperand(0);
+    auto typeArg = callOrInvoke.getArgOperand(1);
 
     if (!bufferArg || !typeArg) {
       LOG_ERROR("__typeart_assert_type called with wrong number of arguments");
-      LOG_ERROR("Call inst: " << util::dump( *ci.inst()));
+      LOG_ERROR("call or invoke instruction: " << util::dump( *callOrInvoke.inst()));
       return false;
     }
-    LOG_ERROR(util::dump(*bufferArg));
-    LOG_ERROR(util::dump(*typeArg));
 
     if (!bufferArg->getType()->isPointerTy()) {
       LOG_ERROR("First argument to __typeart_assert_type must be a pointer to the target buffer");
@@ -348,86 +344,53 @@ bool TypeArtPass::runOnFunc(Function& f) {
       return false;
     }
 
-    //    if (ci.active == 2) {
-    //        auto node = ci.i->getNextNode();
-    //        assert(node);
-    //        LOG_ERROR("Next node: " << util::dump(*node));
-    //    }
-
-
-    // solution attempt 1:
-    // if we have an invoke inst we need to move all the instructions from its continue block to right after the InvokeInst
-    // after handling of the type assert we need to delete the empty continue block
-    // the landing pad may also become unused if the handled type assert was the last invoke instruction branching to the
-    // landing pad, maybe check for uses of the landing pad and remove if unused? or live with dead block...
-    //    llvm::BasicBlock *contBlock = nullptr;
-    //    if(ci.active == 2) {
-    //        contBlock = ci.i->getNormalDest();
-    //        llvm::Instruction *inst = nullptr;
-    //        llvm::Instruction *next_inst = contBlock->getFirstNonPHI();
-    //        assert(next_inst);
-    //        while(true) {
-    //            inst = next_inst;
-    //            if (!inst) {
-    //                break;
-    //            }
-    //            next_inst = inst->getNextNode();
-    //            LOG_INFO("[Invoke Handling] Moving instruction: "<< util::dump(*inst));
-    //            inst->moveAfter(ci.inst());
-    //        }
-    //    }
-
-    // solution attempt 2:
-    // dont try to glue together bb's, messing with the cfg is complicated
-    // instead just add an unconditional branch to maintain the control flow created by the invoke instruction after its deletion
-    if(ci.active == 2) {
-        // get continue block of invoke instruction
-        llvm::BasicBlock *contBlock = ci.i->getNormalDest();
-        // create unconditional branch to continue block at the end of the basic block
-        // that contains the invoke instruction, i.e., directly after the invoke instruction
-        llvm::BranchInst::Create(contBlock, ci.inst()->getParent());
-        // handling of the assert can continue now, since the invoke instruction has a
-        // successor and getNextNode() won't segfault
-    }
-
-
-    // FIXME for the InvokeInst there is no nextNode since we branch immediately after the InvokeInst
-    //IRBuilder<> IRB(ci.inst()->getNextNode());
-    IRBuilder<> IRB( (ci.active == 1) ? ci.c->getNextNode() : ci.i->getNextNode());
     auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), typeId);
-    if(ad.kind == AssertKind::TYPE) {
-      // Create call to actual assert function
-      //IRBuilder<> IRB(ci->getNextNode());
-      //auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), typeId);
-      IRB.CreateCall(typeart_assert_type.f, ArrayRef<Value*>{bufferArg, typeIdConst});
-    } 
-    
-    if(ad.kind == AssertKind::TYPELEN){
-      auto typeLen = ci.getArgOperand(2);
-      if(typeLen == nullptr){
-        LOG_ERROR("Length is null");
-        return false;
+    if(callOrInvoke.active == 1) { // handle call instruction
+      IRBuilder<> IRB(callOrInvoke.inst()->getNextNode());
+      if (ad.kind == AssertKind::TYPE) {
+        // Create call to actual assert function
+        IRB.CreateCall(typeart_assert_type.f, ArrayRef<Value*>{bufferArg, typeIdConst});
       }
-      IRB.CreateCall(typeart_assert_type_len.f, ArrayRef<Value*>{bufferArg, typeIdConst, typeLen});
-    }
-      
-    // Delete call to stub function
-    ci.inst()->eraseFromParent();
 
-// solution attempt 1:
-//    if(ci.active == 2) {
-//        LOG_INFO("[Invoke Handling] Removing continue block");
-//        contBlock->eraseFromParent();
-//    }
-
-    for (BasicBlock &BB : f) {
-        for (Instruction &I : BB) {
-            LOG_INFO("[Invoke Handling] Fin: " << util::dump(I));
+      if (ad.kind == AssertKind::TYPELEN) {
+        auto typeLen = callOrInvoke.getArgOperand(2);
+        if (typeLen == nullptr) {
+          LOG_ERROR("Length is null");
+          return false;
         }
+        IRB.CreateCall(typeart_assert_type_len.f, ArrayRef<Value*>{bufferArg, typeIdConst, typeLen});
+      }
+
+      // Delete call to stub function
+      callOrInvoke.inst()->eraseFromParent();
+
+      LOG_DEBUG("Resolved call assert (id=" << typeId << ")");
+
+    } else if (callOrInvoke.active == 2) { // handle invoke instruction
+      // replace call target of invoke with runtime function
+      // set argument vector
+
+      if(ad.kind == AssertKind::TYPE) {
+        callOrInvoke.i->setCalledFunction(typeart_assert_type.f);
+      }
+
+      if(ad.kind == AssertKind::TYPELEN) {
+        auto typeLen = callOrInvoke.getArgOperand(2);
+        if (typeLen == nullptr) {
+          LOG_ERROR("Length is null");
+          return false;
+        }
+        callOrInvoke.i->setCalledFunction(typeart_assert_type_len.f);
+        callOrInvoke.i->setArgOperand(2, typeLen);
+      }
+
+      // these are the same in both cases
+      callOrInvoke.i->setArgOperand(0, bufferArg);
+      callOrInvoke.i->setArgOperand(1, typeIdConst);
+
+      LOG_DEBUG("Resolved invoke assert (id=" << typeId << ")");
     }
 
-
-    LOG_DEBUG("Resolved assert (id=" << typeId << ")");
     return true;
   };
 
