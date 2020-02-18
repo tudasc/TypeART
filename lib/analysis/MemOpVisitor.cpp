@@ -49,7 +49,6 @@ void MemOpVisitor::visitModuleGlobals(Module& m) {
 }
 
 void MemOpVisitor::visitCallInst(llvm::CallInst& ci) {
-    LOG_INFO("visiting" << ci);
   if (auto val = isInSetCheck(allocMap,ci)) {
     visitMallocLike(ci, val.getValue());
   } else if (auto val = isInSetCheck(deallocMap,ci)) {
@@ -60,10 +59,13 @@ void MemOpVisitor::visitCallInst(llvm::CallInst& ci) {
 }
 
 void MemOpVisitor::visitInvokeInst(llvm::InvokeInst& ii) {
-    LOG_INFO("visiting" << ii );
-    if (auto val = isInSetCheck(assertMap,ii)) {
-        visitTypeAssert(ii, val.getValue());
-    }
+  if (auto val = isInSetCheck(allocMap, ii)) {
+    LOG_WARNING("visiting malloc-like invoke instruction");
+  } else if (auto val = isInSetCheck(deallocMap, ii)) {
+    LOG_WARNING("visiting free-like invoke instruction");
+  } else if (auto val = isInSetCheck(assertMap, ii)) {
+    visitTypeAssert(ii, val.getValue());
+  }
 }
 
 void MemOpVisitor::visitMallocLike(llvm::CallInst& ci, MemOpKind k) {
