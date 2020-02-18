@@ -128,12 +128,10 @@ void MemOpVisitor::visitAllocaInst(llvm::AllocaInst& ai) {
 }  // namespace typeart
 
 void MemOpVisitor::visitTypeAssert(CallInst& ci, AssertKind k) {
-    LOG_INFO("visiting" << ci );
   listAssert.push_back({&ci, k});
 }
 
 void MemOpVisitor::visitTypeAssert(InvokeInst& ii, AssertKind k) {
-    LOG_INFO("visiting" << ii );
     listAssert.push_back({&ii, k});
 }
 
