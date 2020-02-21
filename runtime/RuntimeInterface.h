@@ -18,11 +18,22 @@
     __typeart_assert_type_stub(ptr, __type_ptr); \
   }
 
-#define ASSERT_TYPE(ptr, type, len)                   \
-  {                                              \
-    type* __type_ptr;                            \
+#define ASSERT_TYPE(ptr, type, len)                       \
+  {                                                       \
+    type* __type_ptr;                                     \
     __typeart_assert_type_stub_len(ptr, __type_ptr, len); \
   }
+
+//// unique name for type ptr by appending __LINE__
+//// K&R p. 91
+//#define PASTE2(front, back) front ## back
+//#define PASTE(front, back) PASTE2(front, back)
+//
+//#define ASSERT_TYPE(ptr, type)                   \
+//    type*  PASTE(__type_ptr, __LINE__); __typeart_assert_type_stub(ptr,  PASTE(__type_ptr, __LINE__));
+//
+//#define ASSERT_TYPE(ptr, type, len)                   \
+//    type* PASTE(__type_ptr, __LINE__); __typeart_assert_type_stub_len(ptr, PASTE(__type_ptr, __LINE__), len);
 #else
 #define ASSERT_TYPE(ptr, type)
 #endif
