@@ -11,13 +11,16 @@
 #include "llvm/IR/InstVisitor.h"
 
 #include <set>
+#include <variant>
 
 namespace typeart {
 
 enum class MemOpKind { MALLOC, CALLOC, REALLOC, FREE };
 enum class AssertKind {TYPE, TYPELEN};
 struct MallocData {
-  llvm::CallInst* call{nullptr};
+  // In this version of LLVM (6.0) CallInst and InvokeInst do not have
+  // a common base, so we need to store the instructions individually.
+  std::variant<llvm::CallInst*, llvm::InvokeInst*> call;
   llvm::BitCastInst* primary{nullptr};  // Non-null if non (void*) cast exists
   llvm::SmallPtrSet<llvm::BitCastInst*, 4> bitcasts;
   MemOpKind kind;
@@ -42,7 +45,10 @@ struct MemOpVisitor : public llvm::InstVisitor<MemOpVisitor> {
   void visitCallInst(llvm::CallInst& ci);
   void visitInvokeInst(llvm::InvokeInst& ii);
   void visitMallocLike(llvm::CallInst& ci, MemOpKind k);
+  void visitMallocLike(llvm::InvokeInst& ii, MemOpKind k);
   void visitFreeLike(llvm::CallInst& ci, MemOpKind k);
+  // TODO: Implement!
+  void visitFreeLike(llvm::InvokeInst& ii, MemOpKind k);
   //  void visitIntrinsicInst(llvm::IntrinsicInst& ii);
   void visitAllocaInst(llvm::AllocaInst& ai);
   void visitTypeAssert(llvm::CallInst& ci, AssertKind k);

@@ -37,43 +37,13 @@ auto isInSetCheck(const Map &fMap, llvm::Instruction &i) -> Optional<typename Ma
         return {(*res).second};
     }
     return None;
-
 }
 
-MemOpVisitor::MemOpVisitor() = default;
-
-void MemOpVisitor::visitModuleGlobals(Module& m) {
-  for (auto& g : m.globals()) {
-    listGlobals.push_back(&g);
-  }
-}
-
-void MemOpVisitor::visitCallInst(llvm::CallInst& ci) {
-  if (auto val = isInSetCheck(allocMap,ci)) {
-    visitMallocLike(ci, val.getValue());
-  } else if (auto val = isInSetCheck(deallocMap,ci)) {
-    visitFreeLike(ci, val.getValue());
-  } else if (auto val = isInSetCheck(assertMap,ci)) {
-    visitTypeAssert(ci, val.getValue());
-  }
-}
-
-void MemOpVisitor::visitInvokeInst(llvm::InvokeInst& ii) {
-  if (auto val = isInSetCheck(allocMap, ii)) {
-    LOG_WARNING("visiting malloc-like invoke instruction");
-  } else if (auto val = isInSetCheck(deallocMap, ii)) {
-    LOG_WARNING("visiting free-like invoke instruction");
-  } else if (auto val = isInSetCheck(assertMap, ii)) {
-    visitTypeAssert(ii, val.getValue());
-  }
-}
-
-void MemOpVisitor::visitMallocLike(llvm::CallInst& ci, MemOpKind k) {
-  //  LOG_DEBUG("Found malloc-like: " << ci.getCalledFunction()->getName());
-
+template<typename C>
+auto processMallocLike(C &cInst, MemOpKind k) {
   SmallPtrSet<BitCastInst*, 4> bcasts;
 
-  for (auto user : ci.users()) {
+  for (auto user : cInst.users()) {
     // Simple case: Pointer is immediately casted
     if (auto inst = dyn_cast<BitCastInst>(user)) {
       bcasts.insert(inst);
@@ -100,15 +70,60 @@ void MemOpVisitor::visitMallocLike(llvm::CallInst& ci, MemOpKind k) {
     }
   });
 
-  //  LOG_DEBUG("  >> number of bitcasts found: " << bcasts.size());
+  return MallocData{&cInst, primaryBitcast, bcasts, k};
+}
 
-  listMalloc.push_back(MallocData{&ci, primaryBitcast, bcasts, k});
+MemOpVisitor::MemOpVisitor() = default;
+
+void MemOpVisitor::visitModuleGlobals(Module& m) {
+  for (auto& g : m.globals()) {
+    listGlobals.push_back(&g);
+  }
+}
+
+void MemOpVisitor::visitCallInst(llvm::CallInst& ci) {
+  if (auto val = isInSetCheck(allocMap,ci)) {
+    visitMallocLike(ci, val.getValue());
+  } else if (auto val = isInSetCheck(deallocMap,ci)) {
+    visitFreeLike(ci, val.getValue());
+  } else if (auto val = isInSetCheck(assertMap,ci)) {
+    visitTypeAssert(ci, val.getValue());
+  }
+}
+
+void MemOpVisitor::visitInvokeInst(llvm::InvokeInst& ii) {
+  if (auto val = isInSetCheck(allocMap, ii)) {
+    visitMallocLike(ii, val.getValue());
+  } else if (auto val = isInSetCheck(deallocMap, ii)) {
+    visitFreeLike(ii, val.getValue());
+  } else if (auto val = isInSetCheck(assertMap, ii)) {
+    visitTypeAssert(ii, val.getValue());
+  }
+}
+
+/* In this version of LLVM (6.0) CallInst and InvokeInst have no common
+ * base class, so we need to have two distinct functions, doing basically
+ * the same. Moved the logic to processMallocLike template, which returns
+ * the corresponding MalloData object.
+ */
+void MemOpVisitor::visitMallocLike(llvm::InvokeInst& ii, MemOpKind k) {
+  auto md = processMallocLike(ii, k);
+  listMalloc.push_back(md);
+}
+
+void MemOpVisitor::visitMallocLike(llvm::CallInst& ci, MemOpKind k) {
+  //  LOG_DEBUG("Found malloc-like: " << ci.getCalledFunction()->getName());
+  auto md = processMallocLike(ci, k);
+  listMalloc.push_back(md);
 }
 
 void MemOpVisitor::visitFreeLike(llvm::CallInst& ci, MemOpKind) {
   //  LOG_DEBUG(ci.getCalledFunction()->getName());
-
   listFree.insert(&ci);
+}
+
+void MemOpVisitor::visitFreeLike(llvm::InvokeInst& ii, MemOpKind) {
+    LOG_WARNING("visiting free-like invoke instruction");
 }
 
 // void MemOpVisitor::visitIntrinsicInst(llvm::IntrinsicInst& ii) {

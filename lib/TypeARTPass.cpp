@@ -89,6 +89,16 @@ bool TypeArtPass::runOnModule(Module& m) {
     auto& c = m.getContext();
 
     const auto instrumentGlobal = [&](auto* global, auto& IRB) {
+      const auto name = global->getName();
+      // Entities named "llvm.*" store, e.g., global initializer. Do not instrument
+      // such symbols as leads to segfaults.
+      // TODO: Outline the various filter / sanity checks into instance that can be queried
+      // whether a specific llvm::Value * _can_ and _should_ be instrumented. These
+      // are two separate things that we should be able to check separately.
+      if (name.startswith("llvm.") || name.startswith("__llvm_gcov") || name.startswith("__llvm_gcda")) {
+        // 2nd and 3rd check: Check if the global is private gcov data.
+        return false;
+      }
       auto type = global->getValueType();
 
       unsigned numElements = 1;
@@ -96,6 +106,13 @@ bool TypeArtPass::runOnModule(Module& m) {
         numElements = tu::getArrayLengthFlattened(type);
         type = tu::getArrayElementType(type);
       }
+
+#ifndef NDEBUG
+      LOG_DEBUG("Instrumenting global variable: " << util::dump(*global));
+      if (dyn_cast<StructType>(type)) {
+       LOG_DEBUG("The variable is of opaque type: " << dyn_cast<StructType>(type)->isOpaque())
+      }
+#endif
 
       int typeId = typeManager.getOrRegisterType(type, dl);
       // unsigned typeSize = tu::getTypeSizeInBytes(type, dl);
@@ -106,7 +123,6 @@ bool TypeArtPass::runOnModule(Module& m) {
 
       auto globalPtr = IRB.CreateBitOrPointerCast(global, tu::getVoidPtrType(c));
 
-      LOG_DEBUG("Instrumenting global variable: " << util::dump(*global));
 
       IRB.CreateCall(typeart_alloc_global.f, ArrayRef<Value*>{globalPtr, typeIdConst, numElementsConst});
       return true;
@@ -206,6 +222,15 @@ bool TypeArtPass::runOnFunc(Function& f) {
       }
     }
 
+    /* 
+     * In the case of an InvokeInst, the getNextNode() function returns s.th. that cannot be
+     * used by the IRBuilder as insertion point. Thus, for now, We set the insertion point to
+     * be the primary bitcast, in case we have it.
+     * TODO: Find out in which cases the primary bitcast is an invalid or undesired insertion point target.
+     */
+    if (primaryBitcast) {
+      insertBefore = primaryBitcast;
+    }
     IRBuilder<> IRB(insertBefore);
     auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), typeId);
     auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
@@ -395,10 +420,33 @@ bool TypeArtPass::runOnFunc(Function& f) {
   };
 
   if (!ClIgnoreHeap) {
+    /*
+     * The two structs are a hack for now to easily make the exissting code working.
+     * TODO: Implement a cleaner solution to this problem.
+     */
+    struct CallInstMalloc {
+      CallInst *call;
+      BitCastInst *primary;
+      SmallPtrSet<BitCastInst *, 4> bitcasts;
+      MemOpKind kind;
+    };
+    struct InvokeInstMalloc {
+      InvokeInst *call;
+      BitCastInst *primary;
+      SmallPtrSet<BitCastInst *, 4> bitcasts;
+      MemOpKind kind;
+    };
+
     // instrument collected calls of bb:
     for (auto& malloc : listMalloc) {
       ++NumInstrumentedMallocs;
-      mod |= instrumentMalloc(malloc);
+      if (std::holds_alternative<CallInst *>(malloc.call)) {
+        CallInstMalloc ma {std::get<CallInst *>(malloc.call), malloc.primary, malloc.bitcasts, malloc.kind};
+        mod |= instrumentMalloc(ma);
+      } else if (std::holds_alternative<InvokeInst *>(malloc.call)) {
+        InvokeInstMalloc ma {std::get<InvokeInst *>(malloc.call), malloc.primary, malloc.bitcasts, malloc.kind};
+        mod |= instrumentMalloc(ma);
+      }
     }
 
     for (auto free : listFree) {
