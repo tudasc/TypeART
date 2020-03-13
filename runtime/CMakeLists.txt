@@ -1,6 +1,8 @@
 set(PROJECT_NAME typeart-rt)
 set(TARGETS_EXPORT_NAME ${PROJECT_NAME}-targets)
 
+add_subdirectory(tycart)
+
 set(RUNTIME_LIB_SOURCES
   Runtime.cpp
 )
@@ -100,7 +102,7 @@ install(
 )
 
 install(
-  FILES RuntimeInterface.h typecheck_macro.h
+  FILES RuntimeInterface.h tycart.h typecheck_macro.h
   DESTINATION include
 )
 
