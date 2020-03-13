@@ -219,12 +219,12 @@ TypeArtRT::TypeArtRT() {
   const char* typeFile = std::getenv("TA_TYPE_FILE");
   if (typeFile) {
     if (!loadTypes(typeFile)) {
-      LOG_ERROR("Failed to load recorded types from " << typeFile);
+      LOG_FATAL("Failed to load recorded types from " << typeFile);
       std::exit(EXIT_FAILURE);  // TODO: Error handling
     }
   } else {
     if (!loadTypes(defaultTypeFileName)) {
-      LOG_ERROR("No type file with default name \""
+      LOG_FATAL("No type file with default name \""
                 << defaultTypeFileName
                 << "\" in current directory. To specify a different file, edit the TA_TYPE_FILE environment variable.");
       std::exit(EXIT_FAILURE);  // TODO: Error handling
@@ -722,6 +722,7 @@ void __typeart_assert_type(void* addr, int typeId) {
 
 void __typeart_assert_type_len(void* addr, int typeId, size_t count) {
     // TODO: Add line, file info
+    LOG_MSG("Entering __typeart_assert_type_len");
     const auto fail = [&](std::string msg) -> void {
         LOG_FATAL("Assert failed: " << msg);
         exit(EXIT_FAILURE);
