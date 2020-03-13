@@ -2,7 +2,7 @@ set(PROJECT_NAME tycart-rt)
 set(TARGETS_EXPORT_NAME ${PROJECT_NAME}-targets)
 
 set(TYCART_LIB_SOURCES
-	TycartRT.cpp
+	TyCartRT.cpp
 )
 
 add_library(tycart-rt SHARED
