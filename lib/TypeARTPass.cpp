@@ -395,7 +395,7 @@ bool TypeArtPass::runOnFunc(Function& f) {
         auto typeSize = tu::getTypeSizeInBytes(type, dl);
         auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
         //__tycart_assert(int id, void* addr, size_t count, size_t typeSize, int typeId);
-        IRB.CreateCall(typeart_assert_type_len.f,
+        IRB.CreateCall(typeart_assert_tycart.f,
                        ArrayRef<Value*>{cp_id, bufferArg, typeLen, typeSizeConst, typeIdConst});
       }
 

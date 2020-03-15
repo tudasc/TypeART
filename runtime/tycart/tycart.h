@@ -23,7 +23,7 @@ void __tycart_assert(int id, void* addr, size_t count, size_t typeSize, int type
  * The stub is inserted with Macro expansion. It is replaced by the TyCart compiler
  * pass to the actual RT call.
  */
-void __tycart_assert_stub(int id, void* pointer, size_t count, void* __stub_ptr);
+void __tycart_assert_stub(void* pointer, void* __stub_ptr, size_t count, int id);
 
 /*
  * Iterates the stored CP map, to re-assert all stored assumptions before calling the final
@@ -69,7 +69,7 @@ void __tycart_register_FTI_t(int typeId);
 #define TY_protect_mem(id, pointer, count, type)                     \
   {                                                                  \
     type* __stub_ptr_##__LINE__;                                     \
-    __tycart_assert_stub(pointer, count, __stub_ptr_##__LINE__, id); \
+    __tycart_assert_stub(pointer, __stub_ptr_##__LINE__, count, id); \
   }
 #else
 #define TY_protect_mem(id, pointer, count, type)          \
