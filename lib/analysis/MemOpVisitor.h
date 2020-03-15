@@ -16,7 +16,7 @@
 namespace typeart {
 
 enum class MemOpKind { MALLOC, CALLOC, REALLOC, FREE };
-enum class AssertKind {TYPE, TYPELEN};
+enum class AssertKind { TYPE, TYPELEN, TYCART };
 struct MallocData {
   // In this version of LLVM (6.0) CallInst and InvokeInst do not have
   // a common base, so we need to store the instructions individually.
@@ -75,7 +75,8 @@ struct MemOpVisitor : public llvm::InstVisitor<MemOpVisitor> {
                                                    };
   //const std::string assertFuncName{"__typeart_assert_type_stub"};
   const std::map<std::string, AssertKind> assertMap{{"__typeart_assert_type_stub", AssertKind::TYPE},
-                                                   {"__typeart_assert_type_stub_len", AssertKind::TYPELEN}
+                                                   {"__typeart_assert_type_stub_len", AssertKind::TYPELEN},
+												   {"__tycart_assert_stub", AssertKind::TYCART}
                                                   };
   // clang-format on
 };

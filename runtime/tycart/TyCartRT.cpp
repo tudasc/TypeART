@@ -2,6 +2,10 @@
 #include "Runtime.h"
 #include "tycart.h"
 
+#include "RuntimeInterface.h"
+
+#include <sstream>
+
 #ifdef WITH_FTI
 #include "fti.h"
 #endif
@@ -14,6 +18,10 @@
 #include <map>
 
 namespace tycart {
+
+enum class AssertKind { STRICT, RELAXED };
+
+static AssertKind assert_kind = AssertKind::STRICT;
 
 struct CPData {
   void* addr;
@@ -92,12 +100,103 @@ void registerFTIBuiltInTypes() {
 #undef TY_REG
 }
 }  // namespace fti
-#endif // WITH_FTI
+#endif  // WITH_FTI
 }  // namespace impl
+
+inline void TYdo_assert(void* addr, int typeId, size_t count, AssertKind assertk = AssertKind::STRICT) {
+  const auto fail = [&](std::string msg) -> void {
+    LOG_FATAL("Assert failed: " << msg);
+    exit(EXIT_FAILURE);
+  };
+  const auto type_mismatch_fail = [&](auto actualTypeId) {
+    const char* expectedName = typeart_get_type_name(typeId);
+    const char* actualName = typeart_get_type_name(actualTypeId);
+    std::stringstream ss;
+    ss << "Expected type " << expectedName << "(id=" << typeId << ") but got " << actualName << "(id=" << actualTypeId
+       << ")";
+    fail(ss.str());
+  };
+  const auto count_mismatch_fail = [&](auto actualCount) {
+    std::stringstream ss;
+    ss << "Expected number of elements is " << count << " but actual number is " << actualCount;
+    fail(ss.str());
+  };
+
+  const auto ta_status = [&fail](auto status) {
+    switch (status) {
+      case TA_OK:
+        break;
+      case TA_INVALID_ID:
+        fail("Type ID is invalid");
+        break;
+      case TA_BAD_ALIGNMENT:
+        fail("Pointer does not align to a type");
+        break;
+      case TA_UNKNOWN_ADDRESS:
+        fail("Address is unknown");
+        break;
+      default:
+        fail("Unexpected error during type resolution");
+    }
+  };
+
+  int actualTypeId{TA_UNKNOWN_TYPE};
+  size_t actualCount{0};
+
+  const auto get_type = [&actualTypeId, &actualCount, &ta_status](auto addr) {
+    auto status = typeart_get_type(addr, &actualTypeId, &actualCount);
+    if (status != TA_OK) {
+      // TODO log
+      ta_status(status);
+    }
+  };
+
+  // typeart_resolve_type
+
+  const auto resolve_type = [&](auto id, typeart_struct_layout& layout) {
+    auto status = typeart_resolve_type(id, &layout);
+    if (status != TA_OK && status != TA_WRONG_KIND) {
+      // TODO log
+      ta_status(status);
+    }
+
+    return status;
+  };
+
+  get_type(addr);
+  if (assertk == AssertKind::STRICT) {
+    if (actualTypeId != typeId) {
+      type_mismatch_fail(actualTypeId);
+    } else if (actualCount != count) {
+      count_mismatch_fail(actualCount);
+    }
+  } else if (assertk == AssertKind::RELAXED) {
+    if (actualTypeId != typeId) {
+      bool descent = false;
+      auto current_id = actualTypeId;
+      do {
+        typeart_struct_layout layout;
+        auto status = resolve_type(current_id, layout);
+
+        // we cannot resolve, actualTypeID is not a struct:
+        if (status == TA_WRONG_KIND) {
+          type_mismatch_fail(current_id);
+        }
+
+        // we have a struct, take first member id
+        if (layout.count > 0) {
+          current_id = layout.member_types[0];
+        }
+        // only continue searching if the current type ID does not match
+        descent = layout.count > 0 && current_id != typeId;
+      } while (descent);
+    }
+  }
+}
 
 inline int TYassert(int id, void* addr, size_t count, size_t typeSize, int typeId) {
   LOG_TRACE("Entering" << __FUNCTION__);
-  __typeart_assert_type_len(addr, typeId, count);
+  TYdo_assert(addr, typeId, count, assert_kind);
   insert(id, {addr, typeId, count});
   impl::_do_protect(id, addr, count, typeSize, typeId);
   return 0;
