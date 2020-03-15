@@ -1,5 +1,4 @@
 #include "Logger.h"
-#include "Runtime.h"
 #include "tycart.h"
 
 #include "RuntimeInterface.h"
@@ -69,7 +68,7 @@ inline void registerFTIType(int typeId) {
     initialized = true;
   }
   FTIT_type dType;
-  FTI_InitType(&dType, TypeArtRT::get().getTypeSize(typeId));
+  FTI_InitType(&dType, typeart_get_type_size(typeId));
   // XXX Assumes FTIT_type can be safely copied around.
   FTITs.insert({typeId, dType});
 }
@@ -142,7 +141,7 @@ inline void TYdo_assert(void* addr, int typeId, size_t count, AssertKind assertk
 
   int actualTypeId{TA_UNKNOWN_TYPE};
   size_t actualCount{0};
-
+  typeart_get_type_size(typeId);
   const auto get_type = [&actualTypeId, &actualCount, &ta_status](auto addr) {
     auto status = typeart_get_type(addr, &actualTypeId, &actualCount);
     if (status != TA_OK) {
@@ -208,7 +207,7 @@ inline int TYassert_cp() {
   for (auto [k, v] : CPs) {
     LOG_DEBUG("Checking for " << k);
     LOG_DEBUG("Addr: " << v.addr << "\ntypeId: " << v.typeId << "\nCount: " << v.count);
-    __typeart_assert_type_len(v.addr, v.typeId, v.count);
+    TYdo_assert(v.addr, v.typeId, v.count, assert_kind);
   }
   return 0;
 }
