@@ -66,10 +66,10 @@ void __tycart_register_FTI_t(int typeId);
  * The lower test macro is currently used in one simple TyCart test
  */
 #ifndef TYCART_TEST_
-#define TY_protect_mem(id, pointer, count, type)                     \
-  {                                                                  \
-    type* __stub_ptr_##__LINE__;                                     \
-    __tycart_assert_stub(pointer, __stub_ptr_##__LINE__, count, id); \
+#define TY_protect_mem(id, pointer, count, type)                            \
+  {                                                                         \
+    type* __stub_ptr_##__LINE__;                                            \
+    __tycart_assert_stub((void*)pointer, __stub_ptr_##__LINE__, count, id); \
   }
 #else
 #define TY_protect_mem(id, pointer, count, type)          \

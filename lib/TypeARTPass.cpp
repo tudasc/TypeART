@@ -35,7 +35,7 @@ static cl::opt<bool> ClTypeArtStats("typeart-stats", cl::desc("Show statistics f
 static cl::opt<bool> ClIgnoreHeap("typeart-no-heap", cl::desc("Ignore heap allocation/free instruction."), cl::Hidden,
                                   cl::init(false));
 static cl::opt<bool> ClTypeArtAlloca("typeart-alloca", cl::desc("Track alloca instructions."), cl::Hidden,
-                                     cl::init(false));
+                                     cl::init(true));
 
 static cl::opt<std::string> ClTypeFile("typeart-outfile", cl::desc("Location of the generated type file."), cl::Hidden,
                                        cl::init("types.yaml"));
@@ -429,23 +429,27 @@ bool TypeArtPass::runOnFunc(Function& f) {
       }
 
       if (ad.kind == AssertKind::TYCART) {
-        auto bufferArg = callOrInvoke.getArgOperand(0);
+        // auto bufferArg = callOrInvoke.getArgOperand(0);
         // auto typeArg = callOrInvoke.getArgOperand(1);
+        LOG_DEBUG(*bufferArg)
         auto typeLen = callOrInvoke.getArgOperand(2);
+        LOG_DEBUG(*typeLen)
         if (typeLen == nullptr) {
           LOG_ERROR("Length is null");
           return false;
         }
         auto cp_id = callOrInvoke.getArgOperand(3);
+        LOG_DEBUG(*cp_id)
         auto typeSize = tu::getTypeSizeInBytes(type, dl);
         auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
-        //__tycart_assert(int id, void* addr, size_t count, size_t typeSize, int typeId);
-        callOrInvoke.i->setCalledFunction(typeart_assert_tycart.f);
-        callOrInvoke.i->setArgOperand(0, cp_id);
-        callOrInvoke.i->setArgOperand(1, bufferArg);
-        callOrInvoke.i->setArgOperand(2, typeLen);
-        callOrInvoke.i->setArgOperand(4, typeIdConst);
-        callOrInvoke.i->setArgOperand(3, typeSizeConst);
+        LOG_DEBUG(*typeSizeConst)
+
+        // call needs to be replaced, mismatching arg count!
+        IRBuilder<> IRB(callOrInvoke.inst()->getPrevNode());
+        auto invok = dyn_cast<InvokeInst>(callOrInvoke.inst());
+        IRB.CreateInvoke(typeart_assert_tycart.f, invok->getNormalDest(), invok->getUnwindDest(),
+                         ArrayRef<Value*>{cp_id, bufferArg, typeLen, typeSizeConst, typeIdConst});
+        callOrInvoke.inst()->eraseFromParent();
       }
 
       LOG_DEBUG("Resolved invoke assert (id=" << typeId << ")");
@@ -489,7 +493,10 @@ bool TypeArtPass::runOnFunc(Function& f) {
       mod |= instrumentFree(free);
     }
   }
+
+  LOG_DEBUG("Instrument alloca2")
   if (ClTypeArtAlloca) {
+    LOG_DEBUG("Instrument alloca")
     const bool instrumented_alloca = std::count_if(listAlloca.begin(), listAlloca.end(), instrumentAlloca) > 0;
     mod |= instrumented_alloca;
 
