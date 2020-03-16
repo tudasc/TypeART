@@ -35,7 +35,7 @@ static cl::opt<bool> ClTypeArtStats("typeart-stats", cl::desc("Show statistics f
 static cl::opt<bool> ClIgnoreHeap("typeart-no-heap", cl::desc("Ignore heap allocation/free instruction."), cl::Hidden,
                                   cl::init(false));
 static cl::opt<bool> ClTypeArtAlloca("typeart-alloca", cl::desc("Track alloca instructions."), cl::Hidden,
-                                     cl::init(true));
+                                     cl::init(false));
 
 static cl::opt<std::string> ClTypeFile("typeart-outfile", cl::desc("Location of the generated type file."), cl::Hidden,
                                        cl::init("types.yaml"));
