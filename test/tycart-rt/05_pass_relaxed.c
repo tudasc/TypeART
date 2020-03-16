@@ -1,3 +1,5 @@
+// RUN: %scriptpath/applyAndRun-tycart.sh %s %pluginpath 2>&1 | FileCheck %s
+
 #include "support.h"
 
 struct S1 {

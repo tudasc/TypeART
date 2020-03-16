@@ -18,29 +18,29 @@ namespace typeart {
 namespace finder {
 using namespace llvm;
 
-template<typename Map>
-auto isInSetCheck(const Map &fMap, llvm::Instruction &i) -> Optional<typename Map::mapped_type> {
-    llvm::Function *f = nullptr;
-    if (llvm::isa<llvm::CallInst>(i)) {
-        f = llvm::cast<CallInst>(i).getCalledFunction();
-    } else if (llvm::isa<llvm::InvokeInst>(i)) {
-        f = llvm::cast<InvokeInst>(i).getCalledFunction();
-    }
-    if (!f) {
-        // TODO handle calls through, e.g., function pointers? - seems infeasible
-        LOG_INFO("Encountered indirect call, skipping.");
-        return None;
-    }
-    const auto name = f->getName().str();
-    const auto res = fMap.find(name);
-    if (res != fMap.end()) {
-        return {(*res).second};
-    }
+template <typename Map>
+auto isInSetCheck(const Map& fMap, llvm::Instruction& i) -> Optional<typename Map::mapped_type> {
+  llvm::Function* f = nullptr;
+  if (llvm::isa<llvm::CallInst>(i)) {
+    f = llvm::cast<CallInst>(i).getCalledFunction();
+  } else if (llvm::isa<llvm::InvokeInst>(i)) {
+    f = llvm::cast<InvokeInst>(i).getCalledFunction();
+  }
+  if (!f) {
+    // TODO handle calls through, e.g., function pointers? - seems infeasible
+    LOG_INFO("Encountered indirect call, skipping.");
     return None;
+  }
+  const auto name = f->getName().str();
+  const auto res = fMap.find(name);
+  if (res != fMap.end()) {
+    return {(*res).second};
+  }
+  return None;
 }
 
-template<typename C>
-auto processMallocLike(C &cInst, MemOpKind k) {
+template <typename C>
+auto processMallocLike(C& cInst, MemOpKind k) {
   SmallPtrSet<BitCastInst*, 4> bcasts;
 
   for (auto user : cInst.users()) {
@@ -82,11 +82,11 @@ void MemOpVisitor::visitModuleGlobals(Module& m) {
 }
 
 void MemOpVisitor::visitCallInst(llvm::CallInst& ci) {
-  if (auto val = isInSetCheck(allocMap,ci)) {
+  if (auto val = isInSetCheck(allocMap, ci)) {
     visitMallocLike(ci, val.getValue());
-  } else if (auto val = isInSetCheck(deallocMap,ci)) {
+  } else if (auto val = isInSetCheck(deallocMap, ci)) {
     visitFreeLike(ci, val.getValue());
-  } else if (auto val = isInSetCheck(assertMap,ci)) {
+  } else if (auto val = isInSetCheck(assertMap, ci)) {
     visitTypeAssert(ci, val.getValue());
   }
 }
@@ -123,7 +123,7 @@ void MemOpVisitor::visitFreeLike(llvm::CallInst& ci, MemOpKind) {
 }
 
 void MemOpVisitor::visitFreeLike(llvm::InvokeInst& ii, MemOpKind) {
-    LOG_WARNING("visiting free-like invoke instruction");
+  LOG_WARNING("visiting free-like invoke instruction");
 }
 
 // void MemOpVisitor::visitIntrinsicInst(llvm::IntrinsicInst& ii) {
@@ -147,7 +147,7 @@ void MemOpVisitor::visitTypeAssert(CallInst& ci, AssertKind k) {
 }
 
 void MemOpVisitor::visitTypeAssert(InvokeInst& ii, AssertKind k) {
-    listAssert.push_back({&ii, k});
+  listAssert.push_back({&ii, k});
 }
 
 void MemOpVisitor::clear() {

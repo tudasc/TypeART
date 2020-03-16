@@ -458,6 +458,10 @@ bool TypeArtPass::runOnFunc(Function& f) {
     return true;
   };
 
+  for (auto assertCall : listAssert) {
+    mod |= processTypeAssert(assertCall);
+  }
+
   if (!ClIgnoreHeap) {
     /*
      * The two structs are a hack for now to easily make the exissting code working.
@@ -494,9 +498,7 @@ bool TypeArtPass::runOnFunc(Function& f) {
     }
   }
 
-  LOG_DEBUG("Instrument alloca2")
   if (ClTypeArtAlloca) {
-    LOG_DEBUG("Instrument alloca")
     const bool instrumented_alloca = std::count_if(listAlloca.begin(), listAlloca.end(), instrumentAlloca) > 0;
     mod |= instrumented_alloca;
 
@@ -530,9 +532,6 @@ bool TypeArtPass::runOnFunc(Function& f) {
     }
   } else {
     NumInstrumentedAlloca += listAlloca.size();
-  }
-  for (auto assertCall : listAssert) {
-    mod |= processTypeAssert(assertCall);
   }
 
   return mod;

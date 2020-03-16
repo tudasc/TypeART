@@ -5,8 +5,8 @@
 #include "TypeDB.h"
 
 //#include <form.h> FIXME why needed?
-#include <iostream>
 #include <cassert>
+#include <iostream>
 
 namespace typeart {
 
@@ -73,7 +73,8 @@ void TypeDB::registerStruct(StructTypeInfo structType) {
       if (structType.isComplete == TypeInfoComplete::complete) {
         std::cerr << "Updating existing struct info with complete type information" << std::endl;
         structInfoList[id2Idx[structType.id]] = structType;
-        assert((getStructInfo(structType.id)->isComplete == TypeInfoComplete::complete) && "After the update, the type info is always complete.");
+        assert((getStructInfo(structType.id)->isComplete == TypeInfoComplete::complete) &&
+               "After the update, the type info is always complete.");
       } else {
         std::cerr << "No update, still no complete struct definition" << std::endl;
       }

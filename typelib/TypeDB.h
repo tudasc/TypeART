@@ -15,10 +15,7 @@ namespace typeart {
 
 using BuiltinType = typeart_builtin_type;
 
-enum class TypeInfoComplete : bool {
-  complete = true,
-  incomplete = false
-};
+enum class TypeInfoComplete : bool { complete = true, incomplete = false };
 
 struct StructTypeInfo {
   int id;
@@ -29,7 +26,7 @@ struct StructTypeInfo {
   std::vector<int> memberTypes;
   std::vector<size_t> arraySizes;
   int flags;
-  TypeInfoComplete isComplete; // used to identify externally defined data types, e.g., gsl_spline_2d
+  TypeInfoComplete isComplete;  // used to identify externally defined data types, e.g., gsl_spline_2d
 };
 
 class TypeDB {
