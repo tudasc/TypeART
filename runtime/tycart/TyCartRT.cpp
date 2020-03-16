@@ -20,7 +20,32 @@ namespace tycart {
 
 enum class AssertKind { STRICT, RELAXED };
 
-static AssertKind assert_kind = AssertKind::STRICT;
+// static AssertKind assert_kind = ((std::getenv("tycart_assert") == "rel") ? AssertKind::RELAXED :
+// AssertKind::RELAXED);
+
+class TyCartRT final {
+  AssertKind assert_kind{AssertKind::STRICT};
+
+ public:
+  TyCartRT() {
+    const char* mode = std::getenv("tycart_assert");
+    if (mode) {
+      if (strcmp(mode, "rel") == 0) {
+        LOG_DEBUG("Mode is set to relaxed")
+        assert_kind = AssertKind::RELAXED;
+      }
+    }
+  }
+
+  static TyCartRT& get() {
+    static TyCartRT instance;
+    return instance;
+  }
+
+  AssertKind mode() const {
+    return assert_kind;
+  }
+};
 
 struct CPData {
   void* addr;
@@ -159,7 +184,7 @@ inline void TYdo_assert(void* addr, int typeId, size_t count, AssertKind assertk
 
   int actualTypeId{TA_UNKNOWN_TYPE};
   size_t actualCount{0};
-  typeart_get_type_size(typeId);
+
   const auto get_type = [&actualTypeId, &actualCount, &ta_status](auto addr) {
     auto status = typeart_get_type(addr, &actualTypeId, &actualCount);
     if (status != TA_OK) {
@@ -232,7 +257,7 @@ inline void TYdo_assert(void* addr, int typeId, size_t count, AssertKind assertk
 
 inline int TYassert(int id, void* addr, size_t count, size_t typeSize, int typeId) {
   LOG_TRACE("Entering" << __FUNCTION__);
-  TYdo_assert(addr, typeId, count, assert_kind);
+  TYdo_assert(addr, typeId, count, TyCartRT::get().mode());
   insert(id, {addr, typeId, count});
   impl::_do_protect(id, addr, count, typeSize, typeId);
   return 0;
@@ -244,7 +269,7 @@ inline int TYassert_cp() {
   for (auto [k, v] : CPs) {
     LOG_DEBUG("Checking for " << k);
     LOG_DEBUG("Addr: " << v.addr << "\ntypeId: " << v.typeId << "\nCount: " << v.count);
-    TYdo_assert(v.addr, v.typeId, v.count, assert_kind);
+    TYdo_assert(v.addr, v.typeId, v.count, TyCartRT::get().mode());
   }
   return 0;
 }
