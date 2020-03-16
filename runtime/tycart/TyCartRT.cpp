@@ -115,9 +115,27 @@ inline void TYdo_assert(void* addr, int typeId, size_t count, AssertKind assertk
        << ")";
     fail(ss.str());
   };
+
+  const auto type_mismatch_fail_recurse = [&](auto actualTypeId, auto resolvedId) {
+    const char* expectedName = typeart_get_type_name(typeId);
+    const char* actualName = typeart_get_type_name(actualTypeId);
+    const char* recursedName = typeart_get_type_name(resolvedId);
+    std::stringstream ss;
+    ss << "During recursive resolve: Expected type " << expectedName << "(id=" << typeId << ") but got " << actualName
+       << "(id=" << actualTypeId << "). This resolved to " << recursedName;
+    fail(ss.str());
+  };
+
   const auto count_mismatch_fail = [&](auto actualCount) {
     std::stringstream ss;
     ss << "Expected number of elements is " << count << " but actual number is " << actualCount;
+    fail(ss.str());
+  };
+
+  const auto count_mismatch_fail_recurse = [&](auto actualCount, auto resolvedCount) {
+    std::stringstream ss;
+    ss << "Expected number of elements is " << count << " resolved to  " << resolvedCount << " (from initial "
+       << actualCount << ")";
     fail(ss.str());
   };
 
@@ -166,29 +184,48 @@ inline void TYdo_assert(void* addr, int typeId, size_t count, AssertKind assertk
   if (assertk == AssertKind::STRICT) {
     if (actualTypeId != typeId) {
       type_mismatch_fail(actualTypeId);
-    } else if (actualCount != count) {
+    }
+    if (actualCount != count) {
       count_mismatch_fail(actualCount);
     }
   } else if (assertk == AssertKind::RELAXED) {
     if (actualTypeId != typeId) {
       bool descent = false;
       auto current_id = actualTypeId;
+      typeart_struct_layout layout;
       do {
-        typeart_struct_layout layout;
+        descent = false;
+
         auto status = resolve_type(current_id, layout);
 
         // we cannot resolve, actualTypeID is not a struct:
         if (status == TA_WRONG_KIND) {
-          type_mismatch_fail(current_id);
+          type_mismatch_fail_recurse(actualTypeId, current_id);
         }
 
         // we have a struct, take first member id
-        if (layout.count > 0) {
+        if (layout.len > 0) {
           current_id = layout.member_types[0];
         }
+
         // only continue searching if the current type ID does not match
-        descent = layout.count > 0 && current_id != typeId;
+        // descent = layout.count > 0 && current_id != typeId;
+        if (current_id != typeId) {
+          if (layout.len == 0) {
+            type_mismatch_fail_recurse(actualTypeId, current_id);
+          } else {
+            descent = true;
+          }
+        }
       } while (descent);
+
+      // the type was resolved, but is the length as expected?
+      if (count != layout.count[0]) {
+        count_mismatch_fail_recurse(actualCount, layout.count[0]);
+      }
+
+    } else if (actualCount != count) {
+      count_mismatch_fail(actualCount);
     }
   }
 }

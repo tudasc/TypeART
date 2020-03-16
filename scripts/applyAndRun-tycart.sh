@@ -3,8 +3,7 @@
 target=$1
 pathToPlugin=${2:-build/lib}
 pluginArgs=${3:-"-typeart -typeart-alloca -typeart-stats -alloca-array-only=false"}
-pathToRT=${4:-build/runtime}
-
+pathToRT=${4:-$2/../runtime}
 scriptDir=$(dirname "$0")
 
 tmpDir="./"
@@ -31,6 +30,6 @@ fi
 $compiler -S -emit-llvm "$target" -o "$tmpfile".ll -I${scriptDir}/../typelib -I${scriptDir}/../runtime -I${scriptDir}/../runtime/tycart
 opt -load ${pathToPlugin}/analysis/meminstfinderpass.so -load ${pathToPlugin}/typeartpass.so -typeart $pluginArgs < "$tmpfile".ll -o "$tmpfile".ll > /dev/null
 llc "$tmpfile".ll -o "$tmpfile".s
-$compiler "$tmpfile".s -L"$pathToRT" -ltypeart-rt -o "$tmpfile".o
+$compiler "$tmpfile".s -L"$pathToRT" -ltypeart-rt -L"$pathToRT/tycart" -ltycart-rt -o "$tmpfile".o
 echo -e Executing with runtime lib
-LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$rtDir" "$tmpfile".o
+LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$rtDir:$rtDir/tycart" "$tmpfile".o

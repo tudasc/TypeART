@@ -55,7 +55,7 @@ typedef struct typeart_struct_layout_t {  // NOLINT
   int id;
   const char* name;
   size_t extent;
-  size_t len;
+  size_t len;  // numMembers
   const size_t* offsets;
   const int* member_types;
   const size_t* count;
