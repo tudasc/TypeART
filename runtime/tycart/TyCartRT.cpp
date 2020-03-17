@@ -266,7 +266,7 @@ inline int TYassert(int id, void* addr, size_t count, size_t typeSize, int typeI
 inline int TYassert_cp() {
   LOG_TRACE("Entering" << __FUNCTION__);
   // For all stored CP data, assert again.
-  for (auto [k, v] : CPs) {
+  for (const auto& [k, v] : CPs) {
     LOG_DEBUG("Checking for " << k);
     LOG_DEBUG("Addr: " << v.addr << "\ntypeId: " << v.typeId << "\nCount: " << v.count);
     TYdo_assert(v.addr, v.typeId, v.count, TyCartRT::get().mode());
