@@ -32,7 +32,6 @@ static bool typeart_rt_scope{false};
   typeart::typeart_rt_scope = true
 #define RUNTIME_GUARD_END typeart::typeart_rt_scope = false
 
-
 namespace typeart {
 namespace softcounter {
 /**
@@ -680,6 +679,10 @@ const char* typeart_get_type_name(int id) {
   return typeart::TypeArtRT::get().getTypeName(id).c_str();
 }
 
+size_t typeart_get_type_size(int id) {
+  return typeart::TypeArtRT::get().getTypeSize(id);
+}
+
 void typeart_get_return_address(const void* addr, const void** retAddr) {
   typeart::TypeArtRT::get().getReturnAddress(addr, retAddr);
 }
@@ -698,7 +701,7 @@ void __typeart_assert_type(void* addr, int typeId) {
   int actualTypeId{TA_UNKNOWN_TYPE};
   size_t count{0};
   auto status = typeart_get_type(addr, &actualTypeId, &count);
-  switch(status) {
+  switch (status) {
     case TA_OK:
       break;
     case TA_INVALID_ID:
@@ -714,43 +717,44 @@ void __typeart_assert_type(void* addr, int typeId) {
     const char* expectedName = typeart_get_type_name(typeId);
     const char* actualName = typeart_get_type_name(actualTypeId);
     std::stringstream ss;
-    ss << "Expected type " << expectedName << "(id=" << typeId << ") but got " << actualName << "(id=" << actualTypeId << ")";
+    ss << "Expected type " << expectedName << "(id=" << typeId << ") but got " << actualName << "(id=" << actualTypeId
+       << ")";
     fail(ss.str());
   }
-
 }
 
 void __typeart_assert_type_len(void* addr, int typeId, size_t count) {
-    // TODO: Add line, file info
-    LOG_MSG("Entering __typeart_assert_type_len");
-    const auto fail = [&](std::string msg) -> void {
-        LOG_FATAL("Assert failed: " << msg);
-        exit(EXIT_FAILURE);
-    };
-    int actualTypeId{TA_UNKNOWN_TYPE};
-    size_t actualCount{0};
-    auto status = typeart_get_type(addr, &actualTypeId, &actualCount);
-    switch(status) {
-        case TA_OK:
-            break;
-        case TA_INVALID_ID:
-            fail("Type ID is invalid");
-        case TA_BAD_ALIGNMENT:
-            fail("Pointer does not align to a type");
-        case TA_UNKNOWN_ADDRESS:
-            fail("Address is unknown");
-        default:
-            fail("Unexpected error during type resolution");
-    }
-    if (actualTypeId != typeId) {
-        const char* expectedName = typeart_get_type_name(typeId);
-        const char* actualName = typeart_get_type_name(actualTypeId);
-        std::stringstream ss;
-        ss << "Expected type " << expectedName << "(id=" << typeId << ") but got " << actualName << "(id=" << actualTypeId << ")";
-        fail(ss.str());
-    } else if(actualCount != count) {
-        std::stringstream ss;
-        ss << "Expected number of elements is " << count << " but actual number is " << actualCount;
-        fail(ss.str());
-    }
+  // TODO: Add line, file info
+  LOG_MSG("Entering __typeart_assert_type_len");
+  const auto fail = [&](std::string msg) -> void {
+    LOG_FATAL("Assert failed: " << msg);
+    exit(EXIT_FAILURE);
+  };
+  int actualTypeId{TA_UNKNOWN_TYPE};
+  size_t actualCount{0};
+  auto status = typeart_get_type(addr, &actualTypeId, &actualCount);
+  switch (status) {
+    case TA_OK:
+      break;
+    case TA_INVALID_ID:
+      fail("Type ID is invalid");
+    case TA_BAD_ALIGNMENT:
+      fail("Pointer does not align to a type");
+    case TA_UNKNOWN_ADDRESS:
+      fail("Address is unknown");
+    default:
+      fail("Unexpected error during type resolution");
+  }
+  if (actualTypeId != typeId) {
+    const char* expectedName = typeart_get_type_name(typeId);
+    const char* actualName = typeart_get_type_name(actualTypeId);
+    std::stringstream ss;
+    ss << "Expected type " << expectedName << "(id=" << typeId << ") but got " << actualName << "(id=" << actualTypeId
+       << ")";
+    fail(ss.str());
+  } else if (actualCount != count) {
+    std::stringstream ss;
+    ss << "Expected number of elements is " << count << " but actual number is " << actualCount;
+    fail(ss.str());
+  }
 }

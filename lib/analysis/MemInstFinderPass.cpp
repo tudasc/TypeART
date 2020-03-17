@@ -46,7 +46,7 @@ static cl::opt<bool> ClCallFilterDeep("call-filter-deep",
                                       cl::Hidden, cl::init(false));
 
 static cl::opt<const char*> ClCallFilterGlob("call-filter-str", cl::desc("Filter alloca instructions based on string."),
-                                             cl::Hidden, cl::init("__typeart_assert_type*"));
+                                             cl::Hidden, cl::init("__tycart_assert_stub*"));
 
 static cl::opt<bool> ClFilterGlobal("filter-globals", cl::desc("Filter globals of a module."), cl::Hidden,
                                     cl::init(true));
@@ -379,7 +379,9 @@ bool MemInstFinderPass::runOnModule(Module& m) {
               // and included in the main.cpp -> These variables should certainly not be filtered, as the
               // programmer can just regularly use them in the application.
               if (g->getLinkage() == GlobalValue::PrivateLinkage) {
-                LOG_DEBUG("filtered for External (" << (g->getLinkage() == GlobalValue::ExternalLinkage) << ") / PrivateLinkage (" << (g->getLinkage() == GlobalValue::PrivateLinkage) << ")");
+                LOG_DEBUG("filtered for External (" << (g->getLinkage() == GlobalValue::ExternalLinkage)
+                                                    << ") / PrivateLinkage ("
+                                                    << (g->getLinkage() == GlobalValue::PrivateLinkage) << ")");
                 return true;
               }
 
@@ -433,7 +435,8 @@ bool MemInstFinderPass::runOnFunc(llvm::Function& f) {
                                               primaryBitcast->getDestTy() != bitcastInst->getDestTy())) {
           // Second non-void* bitcast detected - semantics unclear
           // TODO: commented out because of std::variant
-//          LOG_WARNING("Encountered ambiguous pointer type in allocation: " << util::dump(*(mallocData.call)));
+          //          LOG_WARNING("Encountered ambiguous pointer type in allocation: " <<
+          //          util::dump(*(mallocData.call)));
           LOG_WARNING("  Primary cast: " << util::dump(*primaryBitcast));
           LOG_WARNING("  Secondary cast: " << util::dump(*bitcastInst));
         }
@@ -473,15 +476,19 @@ bool MemInstFinderPass::runOnFunc(llvm::Function& f) {
                                  [&source](const auto bcast) { return bcast == source; });
             }
           } else if (isa<CallInst>(source)) {
-            return std::any_of(mlist.begin(), mlist.end(),
-                               [&source](const auto& mdata) {
-                               if (std::holds_alternative<CallInst*>(mdata.call)) {
-                               return std::get<CallInst*>(mdata.call) == source; } return false;});
+            return std::any_of(mlist.begin(), mlist.end(), [&source](const auto& mdata) {
+              if (std::holds_alternative<CallInst*>(mdata.call)) {
+                return std::get<CallInst*>(mdata.call) == source;
+              }
+              return false;
+            });
           } else if (isa<InvokeInst>(source)) {
-            return std::any_of(mlist.begin(), mlist.end(),
-                               [&source](const auto& mdata) {
-                               if (std::holds_alternative<InvokeInst*>(mdata.call)) {
-                               return std::get<InvokeInst*>(mdata.call) == source; } return false;});
+            return std::any_of(mlist.begin(), mlist.end(), [&source](const auto& mdata) {
+              if (std::holds_alternative<InvokeInst*>(mdata.call)) {
+                return std::get<InvokeInst*>(mdata.call) == source;
+              }
+              return false;
+            });
           }
         }
       }

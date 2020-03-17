@@ -126,7 +126,15 @@ int TypeManager::getOrRegisterVector(llvm::VectorType* type, const llvm::DataLay
     offsets.push_back(usableBytes);
   }
 
-  StructTypeInfo vecTypeInfo{id, name, vectorBytes, memberTypeIDs.size(), offsets, memberTypeIDs, arraySizes, TA_VEC, TypeInfoComplete::complete};
+  StructTypeInfo vecTypeInfo{id,
+                             name,
+                             vectorBytes,
+                             memberTypeIDs.size(),
+                             offsets,
+                             memberTypeIDs,
+                             arraySizes,
+                             TA_VEC,
+                             TypeInfoComplete::complete};
   typeDB.registerStruct(vecTypeInfo);
   structMap.insert({name, id});
   return id;
@@ -154,7 +162,7 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
     return it->second;
   }
 
-  int id = -1; // This should not be a valid ID
+  int id = -1;  // This should not be a valid ID
   // The first time we encounter this type
   if (it == structMap.end()) {
     // Get next ID and register struct
@@ -168,7 +176,7 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
   // If we have an opaque type, e.g., from third party lib, we cannot determine the data layout
   // Store it as incomplete type and return the generated ID
   if (type->isOpaque()) {
-    StructTypeInfo sInfo {id, "", 0, 0, {0}, {-1}, {0}, TA_USER_DEF, TypeInfoComplete::incomplete};
+    StructTypeInfo sInfo{id, "", 0, 0, {0}, {-1}, {0}, TA_USER_DEF, TypeInfoComplete::incomplete};
     typeDB.registerStruct(sInfo);
     return id;
   }
@@ -221,7 +229,8 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
 
   size_t numBytes = layout->getSizeInBytes();
 
-  StructTypeInfo structInfo{id, name, numBytes, n, offsets, memberTypeIDs, arraySizes, TA_USER_DEF, TypeInfoComplete::complete};
+  StructTypeInfo structInfo{
+      id, name, numBytes, n, offsets, memberTypeIDs, arraySizes, TA_USER_DEF, TypeInfoComplete::complete};
   typeDB.registerStruct(structInfo);
 
   structMap.insert({name, id});

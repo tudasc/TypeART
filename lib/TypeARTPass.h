@@ -33,31 +33,35 @@ class TypeArtPass : public llvm::ModulePass {
   TypeArtFunc typeart_leave_scope{"__typeart_leave_scope"};
   TypeArtFunc typeart_assert_type{"__typeart_assert_type"};
   TypeArtFunc typeart_assert_type_len{"__typeart_assert_type_len"};
+  TypeArtFunc typeart_assert_tycart{"__tycart_assert"};
 
   TypeManager typeManager;
 
-    // Call/Invoke Fix
-    template<typename T, typename U>
-    struct Wrap {
-        union {
-            T* c;
-            U* i;
-        };
-
-        short active;
-
-        llvm::Value *getArgOperand(int pos) {
-            switch (active) {
-                case 1: return c->getArgOperand(pos);
-                case 2: return i->getArgOperand(pos);
-                default: assert(false);
-            }
-        }
-
-        llvm::Instruction *inst() {
-            return c;
-        }
+  // Call/Invoke Fix
+  template <typename T, typename U>
+  struct Wrap {
+    union {
+      T* c;
+      U* i;
     };
+
+    short active;
+
+    llvm::Value* getArgOperand(int pos) {
+      switch (active) {
+        case 1:
+          return c->getArgOperand(pos);
+        case 2:
+          return i->getArgOperand(pos);
+        default:
+          assert(false);
+      }
+    }
+
+    llvm::Instruction* inst() {
+      return c;
+    }
+  };
 
  public:
   static char ID;  // used to identify pass

@@ -14,10 +14,10 @@ echo -e Running on "$target" using plugin: "$plugin"
 
 if [ $extension == "c" ]; then
   compiler=clang
-  flags="-Xclang -disable-O0-optnone "
+  flags="-Xclang -disable-O0-optnone -Iruntime/tycart "
 else
   compiler=clang++
-  flags="-std=c++14 -Xclang -disable-O0-optnone "
+  flags="-std=c++14 -Xclang -disable-O0-optnone -Iruntime/tycart "
 fi
 
 function show_ir() {
