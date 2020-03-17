@@ -9,9 +9,11 @@
 #define RUNTIME_COUNTER_H_
 
 #include "Logger.h"
+#include "RuntimeInterface.h"
 
 #include <llvm/Support/raw_ostream.h>
 
+#include <set>
 #include <sstream>
 #include <unordered_map>
 #include <unordered_set>
@@ -105,9 +107,9 @@ class AccessRecorder {
     };
 
     buf << "------------\nAlloc Stats from softcounters\n"
-        << "Total Calls .onAlloc [heap]:\t" << heapAllocs << "\n"
-        << "Total Calls .onAlloc [stack]:\t" << stackAllocs << "\n"
-        << "Total Calls .onAlloc [global]:\t" << globalAllocs << "\n"
+        << "Total Calls .onAlloc [heap]:\t" << heapAllocs << " / " << heap_array << " arrays \n"
+        << "Total Calls .onAlloc [stack]:\t" << stackAllocs << " / " << stack_array << " arrays \n"
+        << "Total Calls .onAlloc [global]:\t" << globalAllocs << " / " << global_array << " arrays \n"
         << "Max. Heap Allocs:\t\t" << maxHeapAllocs << "\n"
         << "Max. Stack Allocs:\t\t" << maxStackAllocs << "\n"
         << "Addresses re-used:\t\t" << addrReuses << "\n"
@@ -118,6 +120,31 @@ class AccessRecorder {
         << "Estimated mem consumption:\t" << estMemConsumption << " bytes = " << getStr(estMemConsumptionKByte)
         << " kiB\n"
         << "vector overhead: " << vectorSize << " bytes\tmap overhead: " << mapSize << " bytes\n";
+
+    std::set<int> type_id_set;
+    const auto fill_set = [&type_id_set](const auto& map) {
+      for (const auto& [key, val] : map) {
+        type_id_set.insert(key);
+      }
+    };
+    fill_set(heap);
+    fill_set(global);
+    fill_set(stack);
+
+    const auto count = [](const auto& map, auto id) {
+      auto it = map.find(id);
+      if (it != map.end()) {
+        return it->second;
+      }
+      return 0ll;
+    };
+
+    buf << "Allocation type detail (heap, stack, global):\n";
+    for (auto type_id : type_id_set) {
+      buf << typeart_get_type_name(type_id) << ": " << count(heap, type_id) << ", " << count(stack, type_id) << ", "
+          << count(global, type_id) << "\n";
+    }
+
     LOG_MSG(buf.str());
   }
 
