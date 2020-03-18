@@ -16,6 +16,8 @@
 #include "llvm/IR/Instructions.h"
 #include "llvm/Support/Format.h"
 
+#include <iostream>
+
 using namespace llvm;
 
 #define DEBUG_TYPE "meminstanalysis"
@@ -44,7 +46,7 @@ static cl::opt<bool> ClCallFilterDeep("call-filter-deep",
                                       cl::Hidden, cl::init(false));
 
 static cl::opt<const char*> ClCallFilterGlob("call-filter-str", cl::desc("Filter alloca instructions based on string."),
-                                             cl::Hidden, cl::init("MPI_*"));
+                                             cl::Hidden, cl::init("__tycart_assert_stub*"));
 
 static cl::opt<bool> ClFilterGlobal("filter-globals", cl::desc("Filter globals of a module."), cl::Hidden,
                                     cl::init(true));
@@ -332,7 +334,9 @@ bool MemInstFinderPass::runOnModule(Module& m) {
             globals,
             [&](const auto g) {
               const auto name = g->getName();
+              LOG_DEBUG(name.str());
               if (name.startswith("llvm.") || name.startswith("__llvm_gcov") || name.startswith("__llvm_gcda")) {
+                LOG_DEBUG("filtered for llvm. / llvm_gcov / llvm_gcda");
                 // 2nd and 3rd check: Check if the global is private gcov data.
                 return true;
               }
@@ -342,6 +346,7 @@ bool MemInstFinderPass::runOnModule(Module& m) {
                 StringRef ini_name = util::dump(*ini);
 
                 if (ini_name.contains("std::ios_base::Init")) {
+                  LOG_DEBUG("filtered for std::ios::base::Init");
                   return true;
                 }
               }
@@ -354,10 +359,12 @@ bool MemInstFinderPass::runOnModule(Module& m) {
 
                 // Globals from llvm.metadata aren't emitted, do not instrument them.
                 if (Section == "llvm.metadata") {
+                  LOG_DEBUG("filtered for llvm.metadata");
                   return true;
                 }
                 // Do not instrument globals from special LLVM sections.
                 if (Section.find("__llvm") != StringRef::npos || Section.find("__LLVM") != StringRef::npos) {
+                  LOG_DEBUG("filtered for LLVM section");
                   return true;
                 }
                 // Check if the global is in the PGO counters section.
@@ -368,12 +375,19 @@ bool MemInstFinderPass::runOnModule(Module& m) {
                 //                }
               }
 
-              if (g->getLinkage() == GlobalValue::ExternalLinkage || g->getLinkage() == GlobalValue::PrivateLinkage) {
+              // g->getLinkage() == ExternalLinkage filtered out globals that were declared in a .h file
+              // and included in the main.cpp -> These variables should certainly not be filtered, as the
+              // programmer can just regularly use them in the application.
+              if (g->getLinkage() == GlobalValue::PrivateLinkage) {
+                LOG_DEBUG("filtered for External (" << (g->getLinkage() == GlobalValue::ExternalLinkage)
+                                                    << ") / PrivateLinkage ("
+                                                    << (g->getLinkage() == GlobalValue::PrivateLinkage) << ")");
                 return true;
               }
 
               Type* t = g->getValueType();
               if (!t->isSized()) {
+                LOG_DEBUG("filtered for not being sized");
                 return true;
               }
 
@@ -386,6 +400,7 @@ bool MemInstFinderPass::runOnModule(Module& m) {
                   return true;
                 }
               }
+              LOG_DEBUG("\n");
               return false;
             }),
         globals.end());
@@ -419,7 +434,9 @@ bool MemInstFinderPass::runOnFunc(llvm::Function& f) {
         if (bitcastInst != primaryBitcast && (!typeart::util::type::isVoidPtr(bitcastInst->getDestTy()) &&
                                               primaryBitcast->getDestTy() != bitcastInst->getDestTy())) {
           // Second non-void* bitcast detected - semantics unclear
-          LOG_WARNING("Encountered ambiguous pointer type in allocation: " << util::dump(*(mallocData.call)));
+          // TODO: commented out because of std::variant
+          //          LOG_WARNING("Encountered ambiguous pointer type in allocation: " <<
+          //          util::dump(*(mallocData.call)));
           LOG_WARNING("  Primary cast: " << util::dump(*primaryBitcast));
           LOG_WARNING("  Secondary cast: " << util::dump(*bitcastInst));
         }
@@ -459,8 +476,19 @@ bool MemInstFinderPass::runOnFunc(llvm::Function& f) {
                                  [&source](const auto bcast) { return bcast == source; });
             }
           } else if (isa<CallInst>(source)) {
-            return std::any_of(mlist.begin(), mlist.end(),
-                               [&source](const auto& mdata) { return mdata.call == source; });
+            return std::any_of(mlist.begin(), mlist.end(), [&source](const auto& mdata) {
+              if (std::holds_alternative<CallInst*>(mdata.call)) {
+                return std::get<CallInst*>(mdata.call) == source;
+              }
+              return false;
+            });
+          } else if (isa<InvokeInst>(source)) {
+            return std::any_of(mlist.begin(), mlist.end(), [&source](const auto& mdata) {
+              if (std::holds_alternative<InvokeInst*>(mdata.call)) {
+                return std::get<InvokeInst*>(mdata.call) == source;
+              }
+              return false;
+            });
           }
         }
       }
@@ -499,7 +527,7 @@ bool MemInstFinderPass::runOnFunc(llvm::Function& f) {
     checkAmbigiousMalloc(mallocData);
   }
 
-  FunctionData d{mOpsCollector.listMalloc, mOpsCollector.listFree, mOpsCollector.listAlloca};
+  FunctionData d{mOpsCollector.listMalloc, mOpsCollector.listFree, mOpsCollector.listAlloca, mOpsCollector.listAssert};
   functionMap[&f] = d;
 
   mOpsCollector.clear();

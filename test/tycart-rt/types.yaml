@@ -1,0 +1,10 @@
+---
+- id:              256
+  name:            struct.S1
+  extent:          4
+  member_count:    1
+  offsets:         [ 0 ]
+  types:           [ 2 ]
+  sizes:           [ 1 ]
+  flags:           1
+...

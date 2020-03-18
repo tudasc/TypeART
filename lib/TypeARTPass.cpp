@@ -8,6 +8,7 @@
 #include "support/Util.h"
 
 #include "llvm/ADT/Statistic.h"
+#include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
@@ -88,6 +89,16 @@ bool TypeArtPass::runOnModule(Module& m) {
     auto& c = m.getContext();
 
     const auto instrumentGlobal = [&](auto* global, auto& IRB) {
+      const auto name = global->getName();
+      // Entities named "llvm.*" store, e.g., global initializer. Do not instrument
+      // such symbols as leads to segfaults.
+      // TODO: Outline the various filter / sanity checks into instance that can be queried
+      // whether a specific llvm::Value * _can_ and _should_ be instrumented. These
+      // are two separate things that we should be able to check separately.
+      if (name.startswith("llvm.") || name.startswith("__llvm_gcov") || name.startswith("__llvm_gcda")) {
+        // 2nd and 3rd check: Check if the global is private gcov data.
+        return false;
+      }
       auto type = global->getValueType();
 
       unsigned numElements = 1;
@@ -95,6 +106,13 @@ bool TypeArtPass::runOnModule(Module& m) {
         numElements = tu::getArrayLengthFlattened(type);
         type = tu::getArrayElementType(type);
       }
+
+#ifndef NDEBUG
+      LOG_DEBUG("Instrumenting global variable: " << util::dump(*global));
+      if (dyn_cast<StructType>(type)) {
+        LOG_DEBUG("The variable is of opaque type: " << dyn_cast<StructType>(type)->isOpaque())
+      }
+#endif
 
       int typeId = typeManager.getOrRegisterType(type, dl);
       // unsigned typeSize = tu::getTypeSizeInBytes(type, dl);
@@ -104,8 +122,6 @@ bool TypeArtPass::runOnModule(Module& m) {
       auto numElementsConst = ConstantInt::get(tu::getInt64Type(c), numElements);
 
       auto globalPtr = IRB.CreateBitOrPointerCast(global, tu::getVoidPtrType(c));
-
-      LOG_DEBUG("Instrumenting global variable: " << util::dump(*global));
 
       IRB.CreateCall(typeart_alloc_global.f, ArrayRef<Value*>{globalPtr, typeIdConst, numElementsConst});
       return true;
@@ -165,6 +181,7 @@ bool TypeArtPass::runOnFunc(Function& f) {
   const auto& listMalloc = fData.listMalloc;
   const auto& listAlloca = fData.listAlloca;
   const auto& listFree = fData.listFree;
+  const auto& listAssert = fData.listAssert;
 
   const auto instrumentMalloc = [&](const auto& malloc) -> bool {
     const auto mallocInst = malloc.call;
@@ -204,6 +221,15 @@ bool TypeArtPass::runOnFunc(Function& f) {
       }
     }
 
+    /*
+     * In the case of an InvokeInst, the getNextNode() function returns s.th. that cannot be
+     * used by the IRBuilder as insertion point. Thus, for now, We set the insertion point to
+     * be the primary bitcast, in case we have it.
+     * TODO: Find out in which cases the primary bitcast is an invalid or undesired insertion point target.
+     */
+    if (primaryBitcast) {
+      insertBefore = primaryBitcast;
+    }
     IRBuilder<> IRB(insertBefore);
     auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), typeId);
     auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
@@ -291,11 +317,179 @@ bool TypeArtPass::runOnFunc(Function& f) {
     return true;
   };
 
+  const auto processTypeAssert = [&](AssertData& ad) -> bool {
+    LOG_ERROR("Processing assert");
+
+    if (!ad.call) {
+      LOG_ERROR("CallInst is null");
+    }
+
+    //
+    Wrap<llvm::CallInst, llvm::InvokeInst> callOrInvoke;
+    callOrInvoke.active = 0;
+    if (auto callinst_temp = llvm::dyn_cast<llvm::CallInst>(ad.call)) {
+      callOrInvoke.c = callinst_temp;
+      callOrInvoke.active = 1;
+    } else if (auto invokeinst_temp = llvm::dyn_cast<llvm::InvokeInst>(ad.call)) {
+      callOrInvoke.i = invokeinst_temp;
+      callOrInvoke.active = 2;
+    } else {
+      assert(false);
+    }
+
+    auto bufferArg = callOrInvoke.getArgOperand(0);
+    auto typeArg = callOrInvoke.getArgOperand(1);
+
+    if (!bufferArg || !typeArg) {
+      LOG_ERROR("__typeart_assert_type called with wrong number of arguments");
+      LOG_ERROR("call or invoke instruction: " << util::dump(*callOrInvoke.inst()));
+      return false;
+    }
+
+    if (!bufferArg->getType()->isPointerTy()) {
+      LOG_ERROR("First argument to __typeart_assert_type must be a pointer to the target buffer");
+      return false;
+    }
+
+    auto typePtr = typeArg->getType();
+    if (!typePtr->isPointerTy()) {
+      LOG_ERROR("Second argument to __typeart_assert_type must be a pointer of the expected type");
+      return false;
+    }
+    // TODO: Move to analysis
+    if (auto ptrCast = dyn_cast<BitCastInst>(typeArg)) {
+      typePtr = ptrCast->getSrcTy();
+    }
+
+    auto type = typePtr->getPointerElementType();
+    int typeId = typeManager.getOrRegisterType(type, dl);
+    if (typeId == TA_UNKNOWN_TYPE) {
+      LOG_ERROR("Type is not supported: " << util::dump(*type));
+      return false;
+    }
+
+    auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), typeId);
+    if (callOrInvoke.active == 1) {  // handle call instruction
+      IRBuilder<> IRB(callOrInvoke.inst()->getNextNode());
+      if (ad.kind == AssertKind::TYPE) {
+        // Create call to actual assert function
+        IRB.CreateCall(typeart_assert_type.f, ArrayRef<Value*>{bufferArg, typeIdConst});
+      }
+
+      if (ad.kind == AssertKind::TYPELEN) {
+        auto typeLen = callOrInvoke.getArgOperand(2);
+        if (typeLen == nullptr) {
+          LOG_ERROR("Length is null");
+          return false;
+        }
+        IRB.CreateCall(typeart_assert_type_len.f, ArrayRef<Value*>{bufferArg, typeIdConst, typeLen});
+      }
+
+      if (ad.kind == AssertKind::TYCART) {
+        auto typeLen = callOrInvoke.getArgOperand(2);
+        if (typeLen == nullptr) {
+          LOG_ERROR("Length is null");
+          return false;
+        }
+        auto cp_id = callOrInvoke.getArgOperand(3);
+        auto typeSize = tu::getTypeSizeInBytes(type, dl);
+        auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
+        //__tycart_assert(int id, void* addr, size_t count, size_t typeSize, int typeId);
+        IRB.CreateCall(typeart_assert_tycart.f,
+                       ArrayRef<Value*>{cp_id, bufferArg, typeLen, typeSizeConst, typeIdConst});
+      }
+
+      // Delete call to stub function
+      callOrInvoke.inst()->eraseFromParent();
+
+      LOG_DEBUG("Resolved call assert (id=" << typeId << ")");
+
+    } else if (callOrInvoke.active == 2) {  // handle invoke instruction
+      // replace call target of invoke with runtime function
+      // set argument vector
+
+      if (ad.kind == AssertKind::TYPE) {
+        callOrInvoke.i->setCalledFunction(typeart_assert_type.f);
+      }
+
+      if (ad.kind == AssertKind::TYPELEN) {
+        auto typeLen = callOrInvoke.getArgOperand(2);
+        if (typeLen == nullptr) {
+          LOG_ERROR("Length is null");
+          return false;
+        }
+        callOrInvoke.i->setCalledFunction(typeart_assert_type_len.f);
+        callOrInvoke.i->setArgOperand(2, typeLen);
+      }
+
+      if (ad.kind != AssertKind::TYCART) {
+        // these are the same in both cases
+        callOrInvoke.i->setArgOperand(0, bufferArg);
+        callOrInvoke.i->setArgOperand(1, typeIdConst);
+      }
+
+      if (ad.kind == AssertKind::TYCART) {
+        // auto bufferArg = callOrInvoke.getArgOperand(0);
+        // auto typeArg = callOrInvoke.getArgOperand(1);
+        LOG_DEBUG(*bufferArg)
+        auto typeLen = callOrInvoke.getArgOperand(2);
+        LOG_DEBUG(*typeLen)
+        if (typeLen == nullptr) {
+          LOG_ERROR("Length is null");
+          return false;
+        }
+        auto cp_id = callOrInvoke.getArgOperand(3);
+        LOG_DEBUG(*cp_id)
+        auto typeSize = tu::getTypeSizeInBytes(type, dl);
+        auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
+        LOG_DEBUG(*typeSizeConst)
+
+        // call needs to be replaced, mismatching arg count!
+        IRBuilder<> IRB(callOrInvoke.inst()->getPrevNode());
+        auto invok = dyn_cast<InvokeInst>(callOrInvoke.inst());
+        IRB.CreateInvoke(typeart_assert_tycart.f, invok->getNormalDest(), invok->getUnwindDest(),
+                         ArrayRef<Value*>{cp_id, bufferArg, typeLen, typeSizeConst, typeIdConst});
+        callOrInvoke.inst()->eraseFromParent();
+      }
+
+      LOG_DEBUG("Resolved invoke assert (id=" << typeId << ")");
+    }
+
+    return true;
+  };
+
+  for (auto assertCall : listAssert) {
+    mod |= processTypeAssert(assertCall);
+  }
+
   if (!ClIgnoreHeap) {
+    /*
+     * The two structs are a hack for now to easily make the exissting code working.
+     * TODO: Implement a cleaner solution to this problem.
+     */
+    struct CallInstMalloc {
+      CallInst* call;
+      BitCastInst* primary;
+      SmallPtrSet<BitCastInst*, 4> bitcasts;
+      MemOpKind kind;
+    };
+    struct InvokeInstMalloc {
+      InvokeInst* call;
+      BitCastInst* primary;
+      SmallPtrSet<BitCastInst*, 4> bitcasts;
+      MemOpKind kind;
+    };
+
     // instrument collected calls of bb:
     for (auto& malloc : listMalloc) {
       ++NumInstrumentedMallocs;
-      mod |= instrumentMalloc(malloc);
+      if (std::holds_alternative<CallInst*>(malloc.call)) {
+        CallInstMalloc ma{std::get<CallInst*>(malloc.call), malloc.primary, malloc.bitcasts, malloc.kind};
+        mod |= instrumentMalloc(ma);
+      } else if (std::holds_alternative<InvokeInst*>(malloc.call)) {
+        InvokeInstMalloc ma{std::get<InvokeInst*>(malloc.call), malloc.primary, malloc.bitcasts, malloc.kind};
+        mod |= instrumentMalloc(ma);
+      }
     }
 
     for (auto free : listFree) {
@@ -303,6 +497,7 @@ bool TypeArtPass::runOnFunc(Function& f) {
       mod |= instrumentFree(free);
     }
   }
+
   if (ClTypeArtAlloca) {
     const bool instrumented_alloca = std::count_if(listAlloca.begin(), listAlloca.end(), instrumentAlloca) > 0;
     mod |= instrumented_alloca;
@@ -363,7 +558,8 @@ bool TypeArtPass::doFinalization(Module&) {
 void TypeArtPass::declareInstrumentationFunctions(Module& m) {
   // Remove this return if problems come up during compilation
   if (typeart_alloc_global.f != nullptr && typeart_alloc_stack.f != nullptr && typeart_alloc.f != nullptr &&
-      typeart_free.f != nullptr && typeart_leave_scope.f != nullptr) {
+      typeart_free.f != nullptr && typeart_leave_scope.f != nullptr && typeart_assert_type.f != nullptr &&
+      typeart_assert_type_len.f != nullptr && typeart_assert_tycart.f != nullptr) {
     return;
   }
 
@@ -387,12 +583,21 @@ void TypeArtPass::declareInstrumentationFunctions(Module& m) {
   Type* alloc_arg_types[] = {tu::getVoidPtrType(c), tu::getInt32Type(c), tu::getInt64Type(c)};
   Type* free_arg_types[] = {tu::getVoidPtrType(c)};
   Type* leavescope_arg_types[] = {tu::getInt64Type(c)};
+  Type* assert_arg_types[] = {tu::getVoidPtrType(c), tu::getInt32Type(c)};
+  Type* assert_arg_types_len[] = {tu::getVoidPtrType(c), tu::getInt32Type(c), tu::getInt64Type(c)};
+  Type* assert_arg_types_tycart[] = {tu::getInt32Type(c), tu::getVoidPtrType(c), tu::getInt64Type(c),
+                                     tu::getInt64Type(c), tu::getInt32Type(c)};
 
   make_function(typeart_alloc, FunctionType::get(Type::getVoidTy(c), alloc_arg_types, false));
   make_function(typeart_alloc_stack, FunctionType::get(Type::getVoidTy(c), alloc_arg_types, false));
   make_function(typeart_alloc_global, FunctionType::get(Type::getVoidTy(c), alloc_arg_types, false));
   make_function(typeart_free, FunctionType::get(Type::getVoidTy(c), free_arg_types, false));
   make_function(typeart_leave_scope, FunctionType::get(Type::getVoidTy(c), leavescope_arg_types, false));
+  make_function(typeart_assert_type, FunctionType::get(Type::getVoidTy(c), assert_arg_types, false));
+  make_function(typeart_assert_type_len, FunctionType::get(Type::getVoidTy(c), assert_arg_types_len, false));
+
+  //__tycart_assert(int id, void* addr, size_t count, size_t typeSize, int typeId);
+  make_function(typeart_assert_tycart, FunctionType::get(Type::getVoidTy(c), assert_arg_types_tycart, false));
 }
 
 void TypeArtPass::propagateTypeInformation(Module&) {

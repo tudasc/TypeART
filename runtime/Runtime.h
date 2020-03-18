@@ -18,6 +18,8 @@ void __typeart_alloc_stack(void* addr, int typeId, size_t count);
 void __typeart_alloc_global(void* addr, int typeId, size_t count);
 void __typeart_free(void* addr);
 void __typeart_leave_scope(size_t alloca_count);
+void __typeart_assert_type(void* addr, int typeId);
+void __typeart_assert_type_len(void* addr, int typeId, size_t count);
 }
 
 namespace llvm {

@@ -5,6 +5,7 @@
 #include "TypeDB.h"
 
 //#include <form.h> FIXME why needed?
+#include <cassert>
 #include <iostream>
 
 namespace typeart {
@@ -63,11 +64,20 @@ bool TypeDB::isValid(int id) const {
 
 void TypeDB::registerStruct(StructTypeInfo structType) {
   if (isValid(structType.id)) {
-    std::cerr << "Invalid type ID for struct " << structType.name << std::endl;
+    std::cerr << "Type ID for struct " << structType.name << " already in map." << std::endl;
     if (isReservedType(structType.id)) {
-      std::cerr << "Type ID is reserved for builtin types" << std::endl;
+      std::cerr << "[ERROR]: Type ID is reserved for builtin types" << std::endl;
     } else {
       std::cerr << "Conflicting struct is " << getStructInfo(structType.id)->name << std::endl;
+      // Update (potentially incomplete) struct data types
+      if (structType.isComplete == TypeInfoComplete::complete) {
+        std::cerr << "Updating existing struct info with complete type information" << std::endl;
+        structInfoList[id2Idx[structType.id]] = structType;
+        assert((getStructInfo(structType.id)->isComplete == TypeInfoComplete::complete) &&
+               "After the update, the type info is always complete.");
+      } else {
+        std::cerr << "No update, still no complete struct definition" << std::endl;
+      }
     }
     // TODO: Error handling
     return;

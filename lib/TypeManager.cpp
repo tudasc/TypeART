@@ -126,7 +126,15 @@ int TypeManager::getOrRegisterVector(llvm::VectorType* type, const llvm::DataLay
     offsets.push_back(usableBytes);
   }
 
-  StructTypeInfo vecTypeInfo{id, name, vectorBytes, memberTypeIDs.size(), offsets, memberTypeIDs, arraySizes, TA_VEC};
+  StructTypeInfo vecTypeInfo{id,
+                             name,
+                             vectorBytes,
+                             memberTypeIDs.size(),
+                             offsets,
+                             memberTypeIDs,
+                             arraySizes,
+                             TA_VEC,
+                             TypeInfoComplete::complete};
   typeDB.registerStruct(vecTypeInfo);
   structMap.insert({name, id});
   return id;
@@ -148,11 +156,33 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
       LOG_ERROR("Expected user defined struct type: " << name);
       return TA_UNKNOWN_TYPE;
     }
+  }
+  // We have full information for the type already
+  if (it != structMap.end() && (typeDB.getStructInfo(it->second)->isComplete == TypeInfoComplete::complete)) {
     return it->second;
   }
 
-  // Get next ID and register struct
-  int id = reserveNextId();
+  int id = -1;  // This should not be a valid ID
+  // The first time we encounter this type
+  if (it == structMap.end()) {
+    // Get next ID and register struct
+    id = reserveNextId();
+  } else {
+    // We already have the type in our map, but may need to update it
+    id = it->second;
+  }
+  // At this point, the id should always be a valid number
+  assert(id > -1 && "Type IDs are always > -1");
+  // If we have an opaque type, e.g., from third party lib, we cannot determine the data layout
+  // Store it as incomplete type and return the generated ID
+  if (type->isOpaque()) {
+    StructTypeInfo sInfo{id, "", 0, 0, {0}, {-1}, {0}, TA_USER_DEF, TypeInfoComplete::incomplete};
+    typeDB.registerStruct(sInfo);
+    return id;
+  }
+
+  // If we have an id already, incomplete type info, and the type is not opaque, we can proceed
+  // here to update the type info in our TypeDB.
 
   size_t n = type->getStructNumElements();
 
@@ -199,7 +229,8 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
 
   size_t numBytes = layout->getSizeInBytes();
 
-  StructTypeInfo structInfo{id, name, numBytes, n, offsets, memberTypeIDs, arraySizes, TA_USER_DEF};
+  StructTypeInfo structInfo{
+      id, name, numBytes, n, offsets, memberTypeIDs, arraySizes, TA_USER_DEF, TypeInfoComplete::complete};
   typeDB.registerStruct(structInfo);
 
   structMap.insert({name, id});
