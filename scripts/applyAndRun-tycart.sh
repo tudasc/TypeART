@@ -3,7 +3,7 @@
 target=$1
 pathToPlugin=${2:-build/lib}
 pluginArgs=${3:-"-typeart -typeart-alloca -typeart-stats -alloca-array-only=false"}
-pathToRT=${4:-$2/../runtime}
+pathToRT=${4:-"$pathToPlugin"/../runtime}
 scriptDir=$(dirname "$0")
 
 tmpDir="./"

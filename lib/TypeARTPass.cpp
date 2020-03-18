@@ -317,7 +317,7 @@ bool TypeArtPass::runOnFunc(Function& f) {
     return true;
   };
 
-  const auto processTypeAssert = [&](AssertData& ad) -> bool {
+  const auto processTypeAssert = [&](const AssertData& ad) -> bool {
     LOG_ERROR("Processing assert");
 
     if (!ad.call) {
@@ -445,10 +445,11 @@ bool TypeArtPass::runOnFunc(Function& f) {
         LOG_DEBUG(*typeSizeConst)
 
         // call needs to be replaced, mismatching arg count!
-        IRBuilder<> IRB(callOrInvoke.inst()->getPrevNode());
         auto invok = dyn_cast<InvokeInst>(callOrInvoke.inst());
+        IRBuilder<> IRB(invok);
         IRB.CreateInvoke(typeart_assert_tycart.f, invok->getNormalDest(), invok->getUnwindDest(),
                          ArrayRef<Value*>{cp_id, bufferArg, typeLen, typeSizeConst, typeIdConst});
+
         callOrInvoke.inst()->eraseFromParent();
       }
 
@@ -458,7 +459,7 @@ bool TypeArtPass::runOnFunc(Function& f) {
     return true;
   };
 
-  for (auto assertCall : listAssert) {
+  for (const auto& assertCall : listAssert) {
     mod |= processTypeAssert(assertCall);
   }
 

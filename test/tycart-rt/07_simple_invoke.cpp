@@ -4,13 +4,14 @@
 
 struct S1 {
   int x;
+  virtual ~S1() = default;
 };
 
 // CHECK: No assert 0.
 // CHECK-NOT: No assert 0.
 int main() {
-  int s;
-  make_assert(0, &s, 1, int);
+  S1 s;
+  make_assert(0, &s, 1, S1);
   make_assert(1, &s, 1, double);
   return 0;
 }
