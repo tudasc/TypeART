@@ -102,7 +102,7 @@ install(
 )
 
 install(
-  FILES RuntimeInterface.h tycart.h typecheck_macro.h
+  FILES RuntimeInterface.h
   DESTINATION include
 )
 
