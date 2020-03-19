@@ -18,8 +18,11 @@ option(SOFTCOUNTERS "Enable software tracking of #tracked addrs. / #distinct che
 option(USE_BTREE "Enable usage of btree-backed map instead of std::map for the runtime." OFF)
 option(WITH_FTI "Enable FTI as backend for TyCart" OFF)
 option(WITH_VELOC "Enable VeloC as backend for TyCart" OFF)
+option(WITH_MINI_CPR "Enable mini-cpr as backend for TyCart" OFF)
 set(FTI_INSTALL_DIR "" CACHE PATH "Path to FTI install directory")
 set(VELOC_INSTALL_DIR "" CACHE PATH "Path to VeloC install directory")
+set(MINI_INSTALL_DIR "" CACHE PATH "Path to mini-cpr install directory")
+
 
 if(MPI_LOGGER)
   find_package(MPI REQUIRED)

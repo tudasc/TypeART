@@ -53,12 +53,21 @@ void __tycart_register_FTI_t(int typeId);
 #define VELOC_CP(name, version) VELOC_Checkpoint(name, version);
 
 #define FTI_CP(id, level)
+#define MCPR_CP(name, version)
 #endif
 
 #ifdef __FTI_H__
 #define FTI_CP(id, level) FTI_Checkpoint(id, level);
 
 #define VELOC_CP(name, version)
+#define MCPR_CP(name, version)
+#endif
+
+#ifdef MINI_CPR_MINI_CPR_H
+#define MCPR_CP(name, version) mini_cpr_checkpoint(name, version);
+
+#define VELOC_CP(name, version)
+#define FTI_CP(id, level)
 #endif
 
 /*
@@ -66,35 +75,24 @@ void __tycart_register_FTI_t(int typeId);
  * The lower test macro is currently used in one simple TyCart test
  */
 #ifndef TYCART_TEST_
-#define TY_protect_mem(id, pointer, count, type)                            \
+#define TY_protect(id, pointer, count, type)                            \
   {                                                                         \
     type* __stub_ptr_##__LINE__;                                            \
     __tycart_assert_stub((void*)pointer, __stub_ptr_##__LINE__, count, id); \
   }
 #else
-#define TY_protect_mem(id, pointer, count, type)          \
+#define TY_protect(id, pointer, count, type)          \
   {                                                       \
     type __stub_ptr_##__LINE__;                           \
     __tycart_assert(id, pointer, count, sizeof(type), 2); \
   }
 #endif
 
-#ifdef __VELOC_H
-#define VELOC_CP(name, version) VELOC_Checkpoint(name, version);
-
-#define FTI_CP(id, level)
-#endif
-
-#ifdef __FTI_H__
-#define FTI_CP(id, level) FTI_Checkpoint(id, level);
-
-#define VELOC_CP(name, version)
-#endif
-
 #define TY_checkpoint(name, id, version, level) \
   __tycart_cp_assert();                         \
-  VELOC_CP(name, version);                      \
-  FTI_CP(id, level);
+  VELOC_CP(name, version)                      \
+  FTI_CP(id, level)                            \
+  MCPR_CP(name, version)
 
 #define TY_register_type(type)                            \
   {                                                       \

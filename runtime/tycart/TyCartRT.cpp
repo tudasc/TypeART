@@ -13,6 +13,10 @@
 #include "veloc.h"
 #endif
 
+#ifdef WITH_MINI_CPR
+#include "mini-cpr.h"
+#endif
+
 #include <iostream>
 #include <map>
 
@@ -79,6 +83,10 @@ inline void _do_protect(int id, void* addr, size_t count, size_t baseSize, int t
 #ifdef WITH_FTI
   (void)baseSize;  // silence compiler warning
   FTI_Protect(id, addr, count, fti::getFTIType(typeId));
+#endif
+#ifdef WITH_MINI_CPR
+  (void)typeId;
+  mini_cpr_register(id, addr, count, baseSize);
 #endif
 }
 

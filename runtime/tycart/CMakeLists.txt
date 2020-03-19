@@ -20,6 +20,11 @@ if(WITH_VELOC)
 		${VELOC_INSTALL_DIR}/lib/libveloc-modules.so)
 endif()
 
+if(WITH_MINI_CPR)
+	set(CPR_BACKEND_INCLUDE ${MINI_INSTALL_DIR}/include)
+	set(CPR_BACKEND_LIBRARIES ${MINI_INSTALL_DIR}/lib/libminicpr.so)
+endif()
+
 target_link_libraries(tycart-rt
 	# Include VeloC / FTI
 	${CPR_BACKEND_LIBRARIES}
