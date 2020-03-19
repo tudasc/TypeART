@@ -21,8 +21,8 @@ if(WITH_VELOC)
 endif()
 
 if(WITH_MINI_CPR)
-	set(CPR_BACKEND_INCLUDE ${MINI_INSTALL_DIR}/include)
-	set(CPR_BACKEND_LIBRARIES ${MINI_INSTALL_DIR}/lib/libminicpr.so)
+	set(CPR_BACKEND_INCLUDE ${MINI_INSTALL_DIR}/src)
+	set(CPR_BACKEND_LIBRARIES ${MINI_INSTALL_DIR}/build/libminicpr.so)
 endif()
 
 target_link_libraries(tycart-rt
