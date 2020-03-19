@@ -20,7 +20,7 @@
 //    __typeart_assert_type_stub_len(ptr, __type_ptr, len);       \
 //  }
 
-#include "RuntimeInterface.h"
+#include "../RuntimeInterface.h"
 
 #ifdef __VELOC_H
 
