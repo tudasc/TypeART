@@ -45,7 +45,7 @@ void __tycart_register_FTI_t(int typeId);
 /*
  * Stub that is replaced by the TypeART compiler pass.
  */
-void __tycart_register_FTI_t_stub(void *ptr);
+void __tycart_register_FTI_t_stub(void* ptr);
 
 #ifdef __cplusplus
 }
@@ -102,7 +102,7 @@ void __tycart_register_FTI_t_stub(void *ptr);
 
 #define TY_register_type(type)                            \
   {                                                       \
-    type __stub_ptr_##__LINE__; __tycart_register_FTI_t(void* __stub_ptr_##__LINE__); \
+    type* __stub_ptr_##__LINE__; __tycart_register_FTI_t_stub((void*) __stub_ptr_##__LINE__); \
   }
 
 #define TY_unregister_mem(id) __tycart_deregister_mem(id);
