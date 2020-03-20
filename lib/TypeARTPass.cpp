@@ -436,10 +436,10 @@ bool TypeArtPass::runOnFunc(Function& f) {
         callOrInvoke.i->setArgOperand(2, typeLen);
       }
 
-      if (ad.kind != AssertKind::TYCART) {
+      if (ad.kind != AssertKind::TYCART && ad.kind != AssertKind::TYCART_FTI_T) {
         // these are the same in both cases
-        // callOrInvoke.i->setArgOperand(0, bufferArg);
-        // callOrInvoke.i->setArgOperand(1, typeIdConst);
+        callOrInvoke.i->setArgOperand(0, bufferArg);
+        callOrInvoke.i->setArgOperand(1, typeIdConst);
       }
 
       if (ad.kind == AssertKind::TYCART) {
