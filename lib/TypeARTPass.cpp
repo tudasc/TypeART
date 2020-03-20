@@ -337,17 +337,28 @@ bool TypeArtPass::runOnFunc(Function& f) {
       assert(false);
     }
 
-    auto bufferArg = callOrInvoke.getArgOperand(0);
-    auto typeArg = callOrInvoke.getArgOperand(1);
+    Value* typeArg{nullptr};
+    Value* bufferArg{nullptr};
 
-    if (!bufferArg || !typeArg) {
-      LOG_ERROR("__typeart_assert_type called with wrong number of arguments");
-      LOG_ERROR("call or invoke instruction: " << util::dump(*callOrInvoke.inst()));
-      return false;
+    if (ad.kind == AssertKind::TYCART_FTI_T) {
+      typeArg = callOrInvoke.getArgOperand(0);
+    } else {
+      bufferArg = callOrInvoke.getArgOperand(0);
+      typeArg = callOrInvoke.getArgOperand(1);
+      if (!bufferArg) {
+        LOG_ERROR("__typeart_assert_type called with missing buffer ptr");
+        LOG_ERROR("call or invoke instruction: " << util::dump(*callOrInvoke.inst()));
+        return false;
+      }
+      if (!bufferArg->getType()->isPointerTy()) {
+        LOG_ERROR("First argument to __typeart_assert_type must be a pointer to the target buffer");
+        return false;
+      }
     }
 
-    if (!bufferArg->getType()->isPointerTy()) {
-      LOG_ERROR("First argument to __typeart_assert_type must be a pointer to the target buffer");
+    if (!typeArg) {
+      LOG_ERROR("__typeart_assert_type called with missing type art");
+      LOG_ERROR("call or invoke instruction: " << util::dump(*callOrInvoke.inst()));
       return false;
     }
 
@@ -399,6 +410,9 @@ bool TypeArtPass::runOnFunc(Function& f) {
                        ArrayRef<Value*>{cp_id, bufferArg, typeLen, typeSizeConst, typeIdConst});
       }
 
+      if (ad.kind == AssertKind::TYCART_FTI_T) {
+        IRB.CreateCall(typeart_assert_tycart_fti_t.f, ArrayRef<Value*>{typeIdConst});
+      }
       // Delete call to stub function
       callOrInvoke.inst()->eraseFromParent();
 
@@ -422,7 +436,7 @@ bool TypeArtPass::runOnFunc(Function& f) {
         callOrInvoke.i->setArgOperand(2, typeLen);
       }
 
-      if (ad.kind != AssertKind::TYCART) {
+      if (ad.kind != AssertKind::TYCART && ad.kind != AssertKind::TYCART_FTI_T) {
         // these are the same in both cases
         callOrInvoke.i->setArgOperand(0, bufferArg);
         callOrInvoke.i->setArgOperand(1, typeIdConst);
@@ -431,24 +445,29 @@ bool TypeArtPass::runOnFunc(Function& f) {
       if (ad.kind == AssertKind::TYCART) {
         // auto bufferArg = callOrInvoke.getArgOperand(0);
         // auto typeArg = callOrInvoke.getArgOperand(1);
-        LOG_DEBUG(*bufferArg)
         auto typeLen = callOrInvoke.getArgOperand(2);
-        LOG_DEBUG(*typeLen)
         if (typeLen == nullptr) {
           LOG_ERROR("Length is null");
           return false;
         }
         auto cp_id = callOrInvoke.getArgOperand(3);
-        LOG_DEBUG(*cp_id)
         auto typeSize = tu::getTypeSizeInBytes(type, dl);
         auto typeSizeConst = ConstantInt::get(tu::getInt64Type(c), typeSize);
-        LOG_DEBUG(*typeSizeConst)
 
         // call needs to be replaced, mismatching arg count!
         auto invok = dyn_cast<InvokeInst>(callOrInvoke.inst());
         IRBuilder<> IRB(invok);
         IRB.CreateInvoke(typeart_assert_tycart.f, invok->getNormalDest(), invok->getUnwindDest(),
                          ArrayRef<Value*>{cp_id, bufferArg, typeLen, typeSizeConst, typeIdConst});
+
+        callOrInvoke.inst()->eraseFromParent();
+      }
+
+      if (ad.kind == AssertKind::TYCART_FTI_T) {
+        auto invok = dyn_cast<InvokeInst>(callOrInvoke.inst());
+        IRBuilder<> IRB(invok);
+        IRB.CreateInvoke(typeart_assert_tycart_fti_t.f, invok->getNormalDest(), invok->getUnwindDest(),
+                         ArrayRef<Value*>{typeIdConst});
 
         callOrInvoke.inst()->eraseFromParent();
       }
@@ -588,6 +607,7 @@ void TypeArtPass::declareInstrumentationFunctions(Module& m) {
   Type* assert_arg_types_len[] = {tu::getVoidPtrType(c), tu::getInt32Type(c), tu::getInt64Type(c)};
   Type* assert_arg_types_tycart[] = {tu::getInt32Type(c), tu::getVoidPtrType(c), tu::getInt64Type(c),
                                      tu::getInt64Type(c), tu::getInt32Type(c)};
+  Type* assert_arg_types_tycart_fti[] = {tu::getInt32Type(c)};
 
   make_function(typeart_alloc, FunctionType::get(Type::getVoidTy(c), alloc_arg_types, false));
   make_function(typeart_alloc_stack, FunctionType::get(Type::getVoidTy(c), alloc_arg_types, false));
@@ -599,6 +619,7 @@ void TypeArtPass::declareInstrumentationFunctions(Module& m) {
 
   //__tycart_assert(int id, void* addr, size_t count, size_t typeSize, int typeId);
   make_function(typeart_assert_tycart, FunctionType::get(Type::getVoidTy(c), assert_arg_types_tycart, false));
+  make_function(typeart_assert_tycart_fti_t, FunctionType::get(Type::getVoidTy(c), assert_arg_types_tycart_fti, false));
 }
 
 void TypeArtPass::propagateTypeInformation(Module&) {
