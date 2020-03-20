@@ -42,6 +42,11 @@ void __tycart_deregister_mem(int id);
  */
 void __tycart_register_FTI_t(int typeId);
 
+/*
+ * Stub that is replaced by the TypeART compiler pass.
+ */
+void __tycart_register_FTI_t_stub(void *ptr);
+
 #ifdef __cplusplus
 }
 #endif  // __cplusplus
@@ -74,11 +79,12 @@ void __tycart_register_FTI_t(int typeId);
  * FIXME This should be cleaned up after the actual integration.
  * The lower test macro is currently used in one simple TyCart test
  */
+// clang-format off
+//
 #ifndef TYCART_TEST_
 #define TY_protect(id, pointer, count, type)                            \
   {                                                                         \
-    type* __stub_ptr_##__LINE__;                                            \
-    __tycart_assert_stub((void*)pointer, __stub_ptr_##__LINE__, count, id); \
+    type* __stub_ptr_##__LINE__; __tycart_assert_stub((void*)pointer, __stub_ptr_##__LINE__, count, id); \
   }
 #else
 #define TY_protect(id, pointer, count, type)          \
@@ -96,10 +102,11 @@ void __tycart_register_FTI_t(int typeId);
 
 #define TY_register_type(type)                            \
   {                                                       \
-    type __stub_ptr_##__LINE__;                           \
-    __tycart_register_FTI_t(void* __stub_ptr_##__LINE__); \
+    type __stub_ptr_##__LINE__; __tycart_register_FTI_t(void* __stub_ptr_##__LINE__); \
   }
 
 #define TY_unregister_mem(id) __tycart_deregister_mem(id);
+
+// clang-format on
 
 #endif  // header guard
