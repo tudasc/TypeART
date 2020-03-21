@@ -12,17 +12,20 @@ add_library(tycart-rt SHARED
 if(WITH_FTI)
 	set(CPR_BACKEND_INCLUDE ${FTI_INSTALL_DIR}/include)
 	set(CPR_BACKEND_LIBRARIES ${FTI_INSTALL_DIR}/lib/libfti.so)
+	target_compile_definitions(tycart-rt PRIVATE WITH_FTI)
 endif()
 
 if(WITH_VELOC)
 	set(CPR_BACKEND_INCLUDE ${VELOC_INSTALL_DIR}/include)
 	set(CPR_BACKEND_LIBRARIES ${VELOC_INSTALL_DIR}/lib/libveloc-client.so
 		${VELOC_INSTALL_DIR}/lib/libveloc-modules.so)
+	target_compile_definitions(tycart-rt PRIVATE WITH_VELOC)
 endif()
 
 if(WITH_MINI_CPR)
 	set(CPR_BACKEND_INCLUDE ${MINI_INSTALL_DIR}/src)
 	set(CPR_BACKEND_LIBRARIES ${MINI_INSTALL_DIR}/build/libminicpr.so)
+	target_compile_definitions(tycart-rt PRIVATE WITH_MINI_CPR)
 endif()
 
 target_link_libraries(tycart-rt

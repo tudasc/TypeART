@@ -75,23 +75,10 @@ inline int remove(int id) {
 }
 
 namespace impl {
-inline void _do_protect(int id, void* addr, size_t count, size_t baseSize, int typeId) {
-#ifdef WITH_VELOC
-  (void)typeId;  // silence compiler warning
-  VELOC_Mem_protect(id, addr, count, baseSize);
-#endif
-#ifdef WITH_FTI
-  (void)baseSize;  // silence compiler warning
-  FTI_Protect(id, addr, count, fti::getFTIType(typeId));
-#endif
-#ifdef WITH_MINI_CPR
-  (void)typeId;
-  mini_cpr_register(id, addr, count, baseSize);
-#endif
-}
-
 #ifdef WITH_FTI
 namespace fti {
+void registerFTIBuiltInTypes();
+
 static std::map<int, FTIT_type> FTITs;
 static bool initialized{false};
 
@@ -133,6 +120,20 @@ void registerFTIBuiltInTypes() {
 }
 }  // namespace fti
 #endif  // WITH_FTI
+inline int _do_protect(int id, void* addr, size_t count, size_t baseSize, int typeId) {
+#ifdef WITH_VELOC
+  (void)typeId;  // silence compiler warning
+  return VELOC_Mem_protect(id, addr, count, baseSize);
+#endif
+#ifdef WITH_FTI
+  (void)baseSize;  // silence compiler warning
+  return FTI_Protect(id, addr, count, fti::getFTIType(typeId));
+#endif
+#ifdef WITH_MINI_CPR
+  (void)typeId;
+  return mini_cpr_register(id, addr, count, baseSize);
+#endif
+}
 }  // namespace impl
 
 inline void TYdo_assert(void* addr, int typeId, size_t count, AssertKind assertk = AssertKind::STRICT) {
@@ -267,8 +268,7 @@ inline int TYassert(int id, void* addr, size_t count, size_t typeSize, int typeI
   LOG_TRACE("Entering" << __FUNCTION__);
   TYdo_assert(addr, typeId, count, TyCartRT::get().mode());
   insert(id, {addr, typeId, count});
-  impl::_do_protect(id, addr, count, typeSize, typeId);
-  return 0;
+  return impl::_do_protect(id, addr, count, typeSize, typeId);
 }
 
 inline int TYassert_cp() {

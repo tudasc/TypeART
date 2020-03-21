@@ -75,24 +75,16 @@ void __tycart_register_FTI_t_stub(void* ptr);
 #define FTI_CP(id, level)
 #endif
 
-/*
- * FIXME This should be cleaned up after the actual integration.
- * The lower test macro is currently used in one simple TyCart test
- */
+// Taken from https://stackoverflow.com/questions/1597007/creating-c-macro-with-and-line-token-concatenation-with-positioning-macr
+#define TOKENPASTE(x, y) x ## y
+#define PASTELINE(x, y) TOKENPASTE(x, y)
+
 // clang-format off
 //
-#ifndef TYCART_TEST_
 #define TY_protect(id, pointer, count, type)                            \
   {                                                                         \
-    type* __stub_ptr_##__LINE__; __tycart_assert_stub((void*)pointer, __stub_ptr_##__LINE__, count, id); \
+    type* PASTELINE(__stub_ptr_, __LINE__) = NULL; __tycart_assert_stub((void*)pointer, PASTELINE(__stub_ptr_, __LINE__), count, id); \
   }
-#else
-#define TY_protect(id, pointer, count, type)          \
-  {                                                       \
-    type __stub_ptr_##__LINE__;                           \
-    __tycart_assert(id, pointer, count, sizeof(type), 2); \
-  }
-#endif
 
 #define TY_checkpoint(name, id, version, level) \
   __tycart_cp_assert();                         \
@@ -102,11 +94,11 @@ void __tycart_register_FTI_t_stub(void* ptr);
 
 #define TY_register_type(type)                            \
   {                                                       \
-    type* __stub_ptr_##__LINE__; __tycart_register_FTI_t_stub((void*) __stub_ptr_##__LINE__); \
+    type* PASTELINE(__stub_ptr_, __LINE__) ; __tycart_register_FTI_t_stub((void*) PASTELINE(__stub_ptr_, __LINE__) ); \
   }
 
 #define TY_unregister_mem(id) __tycart_deregister_mem(id);
-
+//
 // clang-format on
 
 #endif  // header guard
