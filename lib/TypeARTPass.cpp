@@ -219,6 +219,8 @@ bool TypeArtPass::runOnFunc(Function& f) {
         LOG_ERROR("Target type: " << util::dump(*dstPtrType));
         return false;
       }
+    } else {
+      LOG_ERROR("Primary bitcast is null. malloc: " << util::dump(*mallocInst))
     }
 
     /*
@@ -229,6 +231,14 @@ bool TypeArtPass::runOnFunc(Function& f) {
      */
     if (primaryBitcast) {
       insertBefore = primaryBitcast;
+    }
+
+    if (insertBefore == nullptr) {
+      if (InvokeInst* inv = dyn_cast<InvokeInst>(mallocInst)) {
+        insertBefore = &(*inv->getNormalDest()->getFirstInsertionPt());
+      } else {
+        LOG_ERROR("insertBefore is null. malloc: " << util::dump(*mallocInst));
+      }
     }
     IRBuilder<> IRB(insertBefore);
     auto typeIdConst = ConstantInt::get(tu::getInt32Type(c), typeId);
