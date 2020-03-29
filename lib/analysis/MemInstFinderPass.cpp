@@ -46,7 +46,7 @@ static cl::opt<bool> ClCallFilterDeep("call-filter-deep",
                                       cl::Hidden, cl::init(false));
 
 static cl::opt<const char*> ClCallFilterGlob("call-filter-str", cl::desc("Filter alloca instructions based on string."),
-                                             cl::Hidden, cl::init("__tycart_assert_stub*"));
+                                             cl::Hidden, cl::init("__tycart_assert_*"));
 
 static cl::opt<bool> ClFilterGlobal("filter-globals", cl::desc("Filter globals of a module."), cl::Hidden,
                                     cl::init(true));
@@ -74,6 +74,11 @@ class CallFilter::FilterImpl {
   int depth{0};
 
  public:
+  struct FilterReason {
+    std::string reason;
+  };
+
+
   explicit FilterImpl(const std::string& glob) : call_regex(util::glob2regex(glob)) {
   }
 
@@ -84,6 +89,10 @@ class CallFilter::FilterImpl {
   void setStartingFunction(llvm::Function* start) {
     start_f = start;
     depth = 0;
+  }
+
+  FilterReason getFilterReason() {
+    return fReason;
   }
 
   bool filter(Value* in) {
@@ -125,11 +134,19 @@ class CallFilter::FilterImpl {
 
     // Search through all users of users of .... (e.g., our AllocaInst)
     while (!working_set.empty()) {
+      LOG_DEBUG("Working set size: " << std::to_string(working_set.size()));
       auto val = peek();
 
+      if (auto ins = llvm::dyn_cast<Instruction>(val)) {
+        LOG_DEBUG("OpCode: " << ins->getOpcodeName());
+      }
+
       // If we encounter a callsite, we want to analyze later, or quit in case we have a regex match
+      if (auto bcVal = llvm::dyn_cast<BitCastInst>(val)) {
+        LOG_DEBUG("Found bitcast use of " << util::dump(*in) << " : " << util::dump(*bcVal));
+      }
       CallSite c(val);
-      if (c.isCall()) {
+      if (c.isCall() || c.isInvoke()) {
         const auto callee = c.getCalledFunction();
         const bool indirect_call = callee == nullptr;
 
@@ -146,6 +163,7 @@ class CallFilter::FilterImpl {
             if (ClCallFilterDeep && match(callee) && shouldContinue(c, in)) {
               continue;
             }
+            LOG_DEBUG("Not Filtering");
             return false;
           } else {
             LOG_DEBUG("Call is an intrinsic. Continue analyzing...")
@@ -154,10 +172,11 @@ class CallFilter::FilterImpl {
         }
 
         if (match(callee)) {
-          LOG_DEBUG("Found a call. Call: " << util::dump(*c.getInstruction()));
+          LOG_DEBUG("Found a matching call. Call: " << util::dump(*c.getInstruction()));
           if (ClCallFilterDeep && shouldContinue(c, in)) {
             continue;
           }
+          LOG_DEBUG("Not Filtering");
           return false;
         }
 
@@ -183,8 +202,11 @@ class CallFilter::FilterImpl {
       addToWork(val->users());
     }
     ++depth;
-    return std::all_of(working_set_calls.begin(), working_set_calls.end(), [&](CallSite c) { return filter(c, in); });
+    auto shouldFilter = std::all_of(working_set_calls.begin(), working_set_calls.end(), [&](CallSite c) { return filter(c, in); });
+    fReason.reason += std::string(" working_set_calls.size() == " + std::to_string(working_set_calls.size()));
+    return shouldFilter;
   }
+
 
  private:
   bool filter(CallSite& csite, Value* in) {
@@ -193,12 +215,14 @@ class CallFilter::FilterImpl {
       LOG_DEBUG("Calling filter with inst of argument: " << util::dump(the_arg));
       const bool filter_arg = filter(&the_arg);
       LOG_DEBUG("Should filter? : " << filter_arg);
+      fReason.reason += std::string(": Analyse arg should filter");
       return filter_arg;
     };
 
     LOG_DEBUG("Analyzing function call " << csite.getCalledFunction()->getName());
 
     if (csite.getCalledFunction() == start_f) {
+      fReason.reason = std::string("Called function == start function");
       return true;
     }
 
@@ -209,15 +233,19 @@ class CallFilter::FilterImpl {
     if (pos != csite.arg_end()) {
       const auto argNum = std::distance(csite.arg_begin(), pos);
       LOG_DEBUG("Found exact position: " << argNum);
+      fReason.reason = std::string("Exact Arg Position analysis");
       return analyse_arg(csite, argNum);
     } else {
       LOG_DEBUG("Analyze all args, cannot correlate alloca with arg.");
+      fReason.reason = std::string("All Arg Position analysis");
       return std::all_of(csite.arg_begin(), csite.arg_end(), [&csite, &analyse_arg](const Use& arg_use) {
         auto argNum = csite.getArgumentNo(&arg_use);
         return analyse_arg(csite, argNum);
       });
     }
 
+    // What is the reason here for filtering?
+    fReason.reason = std::string("Unclear filter reason");
     return true;
   }
 
@@ -235,7 +263,7 @@ class CallFilter::FilterImpl {
     return filter(llvm::dyn_cast<Value>(arg));
   }
 
-  bool shouldContinue(CallSite c, Value* in) const {
+  bool shouldContinue(CallSite c, Value* in) {
     LOG_DEBUG("Found a name match, analyzing closer...");
     const auto is_void_ptr = [](Type* type) {
       return type->isPointerTy() && type->getPointerElementType()->isIntegerTy(8);
@@ -250,6 +278,7 @@ class CallFilter::FilterImpl {
       });
       if (count_void_ptr > 0) {
         LOG_DEBUG("Call takes a void*, filtering.");
+        fReason.reason = std::string("[__LINE__] Used as void * argument. Possible filtering");
         return false;
       }
       LOG_DEBUG("Call has no void* argument");
@@ -260,6 +289,7 @@ class CallFilter::FilterImpl {
       auto type = the_arg.getType();
       if (is_void_ptr(type)) {
         LOG_DEBUG("Call arg is a void*, filtering.");
+        fReason.reason = std::string("[__LINE__] Should not continue; Possible filtering");
         return false;
       }
       LOG_DEBUG("Value* in is not passed as void ptr");
@@ -278,6 +308,8 @@ class CallFilter::FilterImpl {
 
     return name;
   }
+
+  FilterReason fReason;
 };
 
 CallFilter::CallFilter(const std::string& glob) : fImpl{std::make_unique<FilterImpl>(glob)} {
@@ -303,6 +335,8 @@ bool CallFilter::operator()(GlobalValue* g) {
   const auto filter_ = fImpl->filter(g);
   if (filter_) {
     LOG_DEBUG("Filtering value: " << util::dump(*g) << "\n");
+    auto fReason = fImpl->getFilterReason();
+    LOG_DEBUG("Filter reason: " << fReason.reason << "\n");
   } else {
     LOG_DEBUG("Keeping value: " << util::dump(*g) << "\n");
   }
@@ -350,9 +384,6 @@ bool MemInstFinderPass::runOnModule(Module& m) {
                   return true;
                 }
               }
-              //              if (!g->hasInitializer()) {
-              //                return true;
-              //              }
 
               if (g->hasSection()) {
                 StringRef Section = g->getSection();
@@ -367,12 +398,6 @@ bool MemInstFinderPass::runOnModule(Module& m) {
                   LOG_DEBUG("filtered for LLVM section");
                   return true;
                 }
-                // Check if the global is in the PGO counters section.
-                //                auto OF = Triple(m.getTargetTriple()).getObjectFormat();
-                //                if (Section.endswith(getInstrProfSectionName(IPSK_cnts, OF,
-                //                /*AddSegmentInfo=*/false))) {
-                //                  return true;
-                //                }
               }
 
               // g->getLinkage() == ExternalLinkage filtered out globals that were declared in a .h file
