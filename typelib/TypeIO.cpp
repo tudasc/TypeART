@@ -94,11 +94,17 @@ bool TypeIO::store(const std::string& file) const {
     llvm::errs() << "Error\n";
     return false;
   }
-
-  yaml::Output out(oss);
-
   auto types = typeDB.getStructList();
-  out << types;
+  yaml::Output out(oss);
+  if (types.size() > 0) {
+    out << types;
+
+    yaml::Output out2(llvm::outs());
+    out2 << types;
+  } else {
+    out.beginDocuments();
+    out.endDocuments();
+  }
 
   return true;
 }
