@@ -11,6 +11,7 @@
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
+#include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Format.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/Transforms/Utils/CtorUtils.h"
@@ -373,7 +374,13 @@ void TypeArtPass::declareInstrumentationFunctions(Module& m) {
   };
 
   const auto make_function = [&](auto& f_struct, auto f_type) {
-    f_struct.f = m.getOrInsertFunction(f_struct.name, f_type);
+    auto func = m.getOrInsertFunction(f_struct.name, f_type);
+    // f_struct.fc = func;
+#if LLVM_VERSION >= 10
+    f_struct.f = func.getCallee();
+#else
+    f_struct.f = func;
+#endif
     if (auto f = dyn_cast<Function>(f_struct.f)) {
       f->setLinkage(GlobalValue::ExternalLinkage);
       auto& firstParam = *(f->arg_begin());

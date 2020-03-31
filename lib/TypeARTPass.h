@@ -22,7 +22,7 @@ class TypeArtPass : public llvm::ModulePass {
  private:
   struct TypeArtFunc {
     const std::string name{""};
-    llvm::Constant* f{nullptr};
+    llvm::Value* f{nullptr};
   };
 
   TypeArtFunc typeart_alloc{"__typeart_alloc"};

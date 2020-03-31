@@ -14,6 +14,7 @@
 
 #include "llvm/ADT/Statistic.h"
 #include "llvm/IR/Instructions.h"
+#include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Format.h"
 
 using namespace llvm;
@@ -140,7 +141,7 @@ class CallFilter::FilterImpl {
         // FIXME the MPI calls are all hitting this branch (obviously)
         if (is_decl) {
           LOG_DEBUG("Found call with declaration only. Call: " << util::dump(*c.getInstruction()));
-          if (c.getIntrinsicID() == Intrinsic::ID::not_intrinsic) {
+          if (c.getIntrinsicID() == Intrinsic::not_intrinsic /*Intrinsic::ID::not_intrinsic*/) {
             if (ClCallFilterDeep && match(callee) && shouldContinue(c, in)) {
               continue;
             }
