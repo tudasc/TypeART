@@ -54,9 +54,33 @@ if(USE_BTREE)
   target_project_compile_definitions(typeart-rt
     PRIVATE_DEFS USE_BTREE
   )
+elseif(USE_ABSL)
+  include(FetchContent)
+  FetchContent_Declare(
+    cpp-abseil
+    GIT_REPOSITORY https://github.com/abseil/abseil-cpp.git
+  )
+
+  FetchContent_GetProperties(cpp-abseil)
+  if(NOT cpp-abseil_POPULATED)
+    FetchContent_Populate(cpp-abseil)
+    add_subdirectory(${cpp-abseil_SOURCE_DIR} ${cpp-abseil_BINARY_DIR})
+  endif()
+
+  target_link_libraries(typeart-rt PRIVATE
+    absl::btree
+  )
+
+  target_include_directories(typeart-rt PRIVATE
+    ${cpp-abseil_SOURCE_DIR}
+  )
+
+  target_project_compile_definitions(typeart-rt
+     PRIVATE_DEFS USE_ABSL
+  )
 endif()
 
-target_link_libraries(typeart-rt 
+target_link_libraries(typeart-rt PUBLIC
   ${RUNTIME_LIB_DEPS}
 )
 
@@ -81,7 +105,7 @@ target_project_compile_definitions(typeart-rt
 target_project_compile_definitions(typeart-rt)
 target_define_file_basename(typeart-rt)
 
-target_link_libraries(typeart-rt
+target_link_libraries(typeart-rt PUBLIC
   LLVMCore
   LLVMSupport
 )

@@ -5,8 +5,20 @@
 #include "TypeDB.h"
 
 #ifdef USE_BTREE
+#ifdef USE_ABSL
+#error TypeART-RT: Set BTREE and ABSL, mutually exclusive.
+#endif
 #include "btree_map.h"
-#else
+#endif
+
+#ifdef USE_ABSL
+#ifdef USE_BTREE
+#error TypeART-RT: Set ABSL and BTREE, mutually exclusive.
+#endif
+#include "absl/container/btree_map.h"
+#endif
+
+#if !defined(USE_BTREE) && !defined(USE_ABSL)
 #include <map>
 #endif
 
@@ -39,7 +51,11 @@ class TypeArtRT final {
   using Stack = std::vector<const void*>;
 #ifdef USE_BTREE
   using PointerMap = btree::btree_map<const void*, PointerInfo>;
-#else
+#endif
+#ifdef USE_ABSL
+  using PointerMap = absl::btree_map<const void*, PointerInfo>;
+#endif
+#if !defined(USE_BTREE) && !defined(USE_ABSL)
   using PointerMap = std::map<const void*, PointerInfo>;
 #endif
   using MapEntry = PointerMap::value_type;
