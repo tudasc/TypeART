@@ -8,7 +8,6 @@ include(clang-tidy)
 include(clang-format)
 include(llvm-util)
 include(log-util)
-include(CMakeDependentOption)
 
 set(LOG_LEVEL 0 CACHE STRING "Granularity of LLVM pass logger. 3 ist most verbose, 0 is least.")
 set(LOG_LEVEL_RT 0 CACHE STRING "Granularity of runtime logger. 3 ist most verbose, 0 is least.")
@@ -16,10 +15,7 @@ option(SHOW_STATS "Passes show the statistics vars." OFF)
 option(MPI_LOGGER "Whether the logger should use MPI." OFF)
 option(MPI_INTERCEPT_LIB "Build MPI interceptor library, requires wrap.py generator file." OFF)
 option(SOFTCOUNTERS "Enable software tracking of #tracked addrs. / #distinct checks / etc." OFF)
-#option(USE_ABSL "Enable usage of abseil's btree-backed map instead of std::map for the runtime." ON)
-option(USE_BTREE "Enable usage of btree-backed map instead of std::map for the runtime." ON)
-CMAKE_DEPENDENT_OPTION(USE_ABSL "Enable usage of abseil's btree-backed map instead of std::map for the runtime." ON "NOT USE_BTREE" OFF)
-option(TEST_CONFIG "Set logging levels so test runner succeeds" OFF)
+option(TEST_CONFIG "Set logging levels to appropriate levels for test runner to succeed" OFF)
 
 if(TEST_CONFIG)
   set(LOG_LEVEL 2 CACHE STRING "" FORCE)
@@ -32,9 +28,15 @@ endif()
 
 if(NOT CMAKE_BUILD_TYPE)
 # set default build type
-  set(CMAKE_BUILD_TYPE Debug)
+  set(CMAKE_BUILD_TYPE Debug CACHE STRING "" FORCE)
+  message(STATUS "Building as debug (default)")
 endif()
 
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+# set default install path
+  set(CMAKE_INSTALL_PREFIX "${typeart_SOURCE_DIR}/install/typeart" CACHE PATH "" FORCE)
+  message(STATUS "Installing to (default): ${CMAKE_INSTALL_PREFIX}")
+endif()
 
 function(target_project_compile_options target)
   cmake_parse_arguments(ARG "" "" "PRIVATE_FLAGS;PUBLIC_FLAGS" ${ARGN})

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.11)
 
 project(typeart)
 
@@ -26,6 +26,7 @@ add_format_target(format-sources
           typelib/*.h
 )
 
+add_subdirectory(externals)
 add_subdirectory(lib)
 add_subdirectory(typelib)
 add_subdirectory(runtime)

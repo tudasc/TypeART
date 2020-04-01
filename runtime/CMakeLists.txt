@@ -34,45 +34,15 @@ if(SOFTCOUNTERS)
 endif()
 
 if(USE_BTREE)
-  include(ExternalProject)
-  ExternalProject_Add(
-      cpp-btree
-      GIT_REPOSITORY https://github.com/ahueck/cpp-btree.git
-      PREFIX ${CMAKE_CURRENT_BINARY_DIR}/cpp-btree
-      CONFIGURE_COMMAND ""
-      BUILD_COMMAND ""
-      INSTALL_COMMAND ""
-      TEST_COMMAND ""
+  target_link_libraries(typeart-rt PRIVATE
+    google::btree
   )
-  
-  ExternalProject_Get_Property(cpp-btree SOURCE_DIR)
-  set(cppbtree_INCLUDE_DIR ${SOURCE_DIR})
-  
-  target_include_directories(typeart-rt PRIVATE 
-    ${cppbtree_INCLUDE_DIR}
-  ) 
   target_project_compile_definitions(typeart-rt
     PRIVATE_DEFS USE_BTREE
   )
 elseif(USE_ABSL)
-  include(FetchContent)
-  FetchContent_Declare(
-    cpp-abseil
-    GIT_REPOSITORY https://github.com/abseil/abseil-cpp.git
-  )
-
-  FetchContent_GetProperties(cpp-abseil)
-  if(NOT cpp-abseil_POPULATED)
-    FetchContent_Populate(cpp-abseil)
-    add_subdirectory(${cpp-abseil_SOURCE_DIR} ${cpp-abseil_BINARY_DIR})
-  endif()
-
   target_link_libraries(typeart-rt PRIVATE
     absl::btree
-  )
-
-  target_include_directories(typeart-rt PRIVATE
-    ${cpp-abseil_SOURCE_DIR}
   )
 
   target_project_compile_definitions(typeart-rt
