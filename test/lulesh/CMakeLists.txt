@@ -32,8 +32,10 @@ function(add_integration_test name dir exe_dir np args)
     )
     
     set_tests_properties(test_build_${name} PROPERTIES ENVIRONMENT TYPEART_PATH=${CMAKE_BINARY_DIR})
+    set_tests_properties(test_build_${name} PROPERTIES DEPENDS test_clean_${name})
+    set_tests_properties(test_clean_${name} PROPERTIES FIXTURES_SETUP lulesh_b)
     set_tests_properties(test_build_${name} PROPERTIES FIXTURES_SETUP lulesh_b)
-    set_tests_properties(test_clean_${name} PROPERTIES FIXTURES_CLEANUP lulesh_b)
+    #set_tests_properties(test_clean_${name} PROPERTIES FIXTURES_CLEANUP lulesh_b)
     
     add_test(NAME ${name}
         COMMAND "${TEST_SCRIPT}" ${name} ${np} ${args} ${CMAKE_BINARY_DIR}/runtime ${CMAKE_BINARY_DIR}/test/mpi_interceptor
