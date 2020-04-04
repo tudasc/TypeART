@@ -99,6 +99,7 @@ class AccessRecorder {
     auto estMemConsumption = (maxHeapAllocs + maxStackAllocs) * memPerEntry;
     estMemConsumption += (maxStackAllocs * memInStack);
     estMemConsumption += (vectorSize + mapSize);
+    estMemConsumption += mapNodeSizeInBytes * maxHeapAllocs;
     auto estMemConsumptionKByte = estMemConsumption / 1024.0;
 
     const auto getStr = [&](const auto memConsKB) {
@@ -119,7 +120,7 @@ class AccessRecorder {
         << "Distinct Addresses missed:\t" << missing.size() << "\n"
         << "Estimated mem consumption:\t" << estMemConsumption << " bytes = " << getStr(estMemConsumptionKByte)
         << " kiB\n"
-        << "vector overhead: " << vectorSize << " bytes\tmap overhead: " << mapSize << " bytes\n";
+        << "vector overhead: " << vectorSize << " bytes\tmap overhead: " << mapSize << " bytes\tnode overhead: " << mapNodeSizeInBytes << "\n";
 
     std::set<int> type_id_set;
     const auto fill_set = [&type_id_set](const auto& map) {
@@ -158,7 +159,16 @@ class AccessRecorder {
   AccessRecorder(AccessRecorder& other) = default;
   AccessRecorder(AccessRecorder&& other) = default;
 
-  const int memPerEntry = sizeof(PointerInfo) + sizeof(void*);  // Type-map key + value
+  // const int memPerEntry = sizeof(PointerInfo) + sizeof(void*);  // Type-map key + value
+#ifdef USE_BTREE
+  const int memPerEntry = sizeof(TypeArtRT::MapEntry);
+  const int mapNodeSizeInBytes = -1;
+#else
+  // Assumes GCC as compiler / runtime
+  const int memPerEntry = sizeof(TypeArtRT::MapEntry);
+  // based on https://github.com/gcc-mirror/gcc/blob/master/libstdc%2B%2B-v3/include/bits/stl_tree.h#L218
+  const int mapNodeSizeInBytes = sizeof(std::remove_pointer<std::map<int, void*>::iterator::_Link_type>::type); // GNU STL tree node: 3 pointers, 1 color
+#endif
   const int memInStack = sizeof(void*);                         // Stack allocs
   const int vectorSize = sizeof(TypeArtRT::Stack);              // Stack overhead
   const int mapSize = sizeof(TypeArtRT::PointerMap);            // Map overhead
