@@ -9,6 +9,13 @@ extern "C" {
 
 #include "InterceptorFunctions.h"
 
+{{fn fn_name MPI_Finalize}}
+{
+  ta_exit();
+  return P{{fn_name}}({{args}});
+}
+{{endfn}}
+
 // Send functions (1 buffer, 1 count)
 {{fn fn_name MPI_Bsend
              MPI_Bsend_init

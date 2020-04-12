@@ -15,11 +15,6 @@ function(configure_typeart_lit_site_cfg input output)
   configure_file(${input} ${output} @ONLY)
 endfunction()
 
-if(${MPI_INTERCEPT_LIB})
-  add_subdirectory(mpi_interceptor)
-endif()
-
-
 add_format_target(format-tests
   "Formats project test source files"
   TARGETS *.c
@@ -30,7 +25,7 @@ configure_typeart_lit_site_cfg(
   ${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg
 )
 
-set(TYPEARTPASS_TEST_DEPENDS typeartpass)
+set(TYPEARTPASS_TEST_DEPENDS typeartpass typeart-rt)
 
 find_program(LLVM_LIT_PATH
   NAME llvm-lit
@@ -52,5 +47,10 @@ add_lit_testsuite(lit-pass-test
 
 add_test(
   NAME ctest_lit_suite
-  COMMAND llvm-lit --param typeartpass_site_config=${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg ${CMAKE_CURRENT_SOURCE_DIR}
+  COMMAND llvm-lit -j 1 --param typeartpass_site_config=${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg ${CMAKE_CURRENT_SOURCE_DIR}
 )
+
+if(MPI_INTERCEPT_LIB)
+  add_subdirectory(mpi_interceptor)
+  add_subdirectory(lulesh)
+endif()
