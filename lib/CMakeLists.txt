@@ -6,6 +6,7 @@ add_subdirectory(analysis)
 set(PASS_SOURCES
   TypeARTPass.cpp
   support/TypeUtil.cpp
+  support/InstrumentationHelper.cpp
   TypeManager.cpp
 )
 

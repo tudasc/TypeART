@@ -3,6 +3,7 @@
 
 #include "TypeDB.h"
 #include "TypeManager.h"
+#include "support/InstrumentationHelper.h"
 
 #include "llvm/Pass.h"
 
@@ -32,6 +33,7 @@ class TypeArtPass : public llvm::ModulePass {
   TypeArtFunc typeart_leave_scope{"__typeart_leave_scope"};
 
   TypeManager typeManager;
+  InstrumentationHelper instr;
 
  public:
   static char ID;  // used to identify pass
@@ -45,7 +47,6 @@ class TypeArtPass : public llvm::ModulePass {
 
  private:
   void declareInstrumentationFunctions(llvm::Module&);
-  void propagateTypeInformation(llvm::Module&);
   void printStats(llvm::raw_ostream&);
 };
 
