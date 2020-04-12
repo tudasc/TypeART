@@ -1,0 +1,36 @@
+name: Test-TypeART
+
+on:
+  push:
+    branches: [ master, ta2-devel ]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-18.04
+    
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Setup LLVM repository
+      run: |
+        wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key 2>/dev/null | sudo apt-key add -
+        sudo add-apt-repository 'deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-10 main' -y
+        sudo apt-get update -q
+
+    - name: Install LLVM
+      run: sudo apt-get install libllvm10 llvm-10 llvm-10-dev llvm-10-runtime
+      
+    - name: Install Clang
+      run: clang-10 clang-tools-10 libclang-common-10-dev libclang-10-dev libclang1-10 clang-format-10 clangd-10
+    
+    - name: Build TypeART
+      run: |
+        cmake --version
+        cmake -B build -DTEST_CONFIG=ON
+        cmake --build build --parallel
+    
+    - name: Test TypeART
+      run: cmake --build build --target test -- ARGS=-VV
+        
+        
