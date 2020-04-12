@@ -22,7 +22,7 @@ jobs:
       run: sudo apt-get install libllvm10 llvm-10 llvm-10-dev llvm-10-runtime
       
     - name: Install Clang
-      run: clang-10 clang-tools-10 libclang-common-10-dev libclang-10-dev libclang1-10 clang-format-10 clangd-10
+      run: sudo apt-get install clang-10 clang-tools-10 libclang-common-10-dev libclang-10-dev libclang1-10 clang-format-10 clangd-10
     
     - name: Build TypeART
       run: |
