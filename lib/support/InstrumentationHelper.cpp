@@ -15,11 +15,10 @@ namespace typeart {
 
 using namespace llvm;
 
-InstrumentationHelper::InstrumentationHelper() = default;
+InstrumentationHelper::InstrumentationHelper()  = default;
 InstrumentationHelper::~InstrumentationHelper() = default;
 
-llvm::SmallVector<llvm::Type*, 8> InstrumentationHelper::make_signature(llvm::LLVMContext& /*c*/,
-                                                                        const llvm::ArrayRef<llvm::Value*>& args) {
+llvm::SmallVector<llvm::Type*, 8> InstrumentationHelper::make_signature(const llvm::ArrayRef<llvm::Value*>& args) {
   llvm::SmallVector<llvm::Type*, 8> types;
   for (auto* val : args) {
     types.push_back(val->getType());
@@ -43,6 +42,7 @@ llvm::Type* InstrumentationHelper::getTypeFor(IType id) {
     case IType::stack_count:
       return Type::getInt32Ty(c);
     default:
+      LOG_WARNING("Unknown IType selected.");
       return nullptr;
   }
 }
@@ -77,8 +77,8 @@ llvm::Function* InstrumentationHelper::make_function(llvm::StringRef basename, l
     return it->second;
   }
 
-  auto& m = *module;
-  auto& c = m.getContext();
+  auto& m                           = *module;
+  auto& c                           = m.getContext();
   const auto addOptimizerAttributes = [&](llvm::Function* f) {
     for (Argument& arg : f->args()) {
       if (arg.getType()->isPointerTy()) {

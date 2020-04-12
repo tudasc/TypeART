@@ -342,7 +342,7 @@ bool TypeArtPass::doFinalization(Module&) {
   if (typeManager.store()) {
     LOG_DEBUG("Success!");
   } else {
-    LOG_ERROR("Failed writing type config to " << ClTypeFile.getValue());
+    LOG_FATAL("Failed writing type config to " << ClTypeFile.getValue());
   }
   if (ClTypeArtStats && AreStatisticsEnabled()) {
     auto& out = llvm::errs();
@@ -358,39 +358,16 @@ void TypeArtPass::declareInstrumentationFunctions(Module& m) {
     return;
   }
 
-  const auto addOptimizerAttributes = [&](auto& arg) {
-    arg.addAttr(Attribute::NoCapture);
-    arg.addAttr(Attribute::ReadOnly);
-  };
-
-  const auto make_function = [&](auto& f_struct, auto f_type) {
-    auto func = m.getOrInsertFunction(f_struct.name, f_type);
-    // f_struct.fc = func;
-#if LLVM_VERSION >= 10
-    f_struct.f = func.getCallee();
-#else
-    f_struct.f = func;
-#endif
-    if (auto f = dyn_cast<Function>(f_struct.f)) {
-      f->setLinkage(GlobalValue::ExternalLinkage);
-      auto& firstParam = *(f->arg_begin());
-      if (firstParam.getType()->isPointerTy()) {
-        addOptimizerAttributes(firstParam);
-      }
-    }
-  };
-
-  auto& c                      = m.getContext();
   Type* alloc_arg_types[]      = {instr.getTypeFor(IType::ptr), instr.getTypeFor(IType::type_id),
                              instr.getTypeFor(IType::extent)};
   Type* free_arg_types[]       = {instr.getTypeFor(IType::ptr)};
   Type* leavescope_arg_types[] = {instr.getTypeFor(IType::stack_count)};
 
-  make_function(typeart_alloc, FunctionType::get(Type::getVoidTy(c), alloc_arg_types, false));
-  make_function(typeart_alloc_stack, FunctionType::get(Type::getVoidTy(c), alloc_arg_types, false));
-  make_function(typeart_alloc_global, FunctionType::get(Type::getVoidTy(c), alloc_arg_types, false));
-  make_function(typeart_free, FunctionType::get(Type::getVoidTy(c), free_arg_types, false));
-  make_function(typeart_leave_scope, FunctionType::get(Type::getVoidTy(c), leavescope_arg_types, false));
+  typeart_alloc.f        = instr.make_function(typeart_alloc.name, alloc_arg_types);
+  typeart_alloc_stack.f  = instr.make_function(typeart_alloc_stack.name, alloc_arg_types);
+  typeart_alloc_global.f = instr.make_function(typeart_alloc_global.name, alloc_arg_types);
+  typeart_free.f         = instr.make_function(typeart_free.name, free_arg_types);
+  typeart_leave_scope.f  = instr.make_function(typeart_leave_scope.name, leavescope_arg_types);
 }
 
 void TypeArtPass::printStats(llvm::raw_ostream& out) {
