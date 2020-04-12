@@ -34,7 +34,7 @@ endif()
 
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 # set default install path
-  set(CMAKE_INSTALL_PREFIX "${typeart_SOURCE_DIR}/install/typeart" CACHE PATH "" FORCE)
+  set(CMAKE_INSTALL_PREFIX "${typeart_SOURCE_DIR}/install/typeart" CACHE PATH "Default install path" FORCE)
   message(STATUS "Installing to (default): ${CMAKE_INSTALL_PREFIX}")
 endif()
 

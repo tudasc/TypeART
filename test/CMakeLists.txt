@@ -37,20 +37,24 @@ if(LLVM_LIT_PATH)
   set(LLVM_EXTERNAL_LIT ${LLVM_LIT_PATH})
 endif()
 
-add_lit_testsuite(lit-pass-test 
-  "Running the TYPEART support pass tests"
-  ${CMAKE_CURRENT_SOURCE_DIR}
-  ARGS -v -j 1
-  PARAMS typeartpass_site_config=${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg
-  DEPENDS ${TYPEARTPASS_TEST_DEPENDS}
-)
+if(NOT LLVM_EXTERNAL_LIT)
+  message(WARNING "llvm-lit could not be detected. Binary install of LLVM currently unsupported.")
+else()
+  add_lit_testsuite(lit-pass-test
+    "Running the TYPEART support pass tests"
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ARGS -v -j 1
+    PARAMS typeartpass_site_config=${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg
+    DEPENDS ${TYPEARTPASS_TEST_DEPENDS}
+  )
 
-add_test(
-  NAME ctest_lit_suite
-  COMMAND llvm-lit -j 1 --param typeartpass_site_config=${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg ${CMAKE_CURRENT_SOURCE_DIR}
-)
+  add_test(
+    NAME ctest_lit_suite
+    COMMAND llvm-lit -j 1 --param typeartpass_site_config=${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg ${CMAKE_CURRENT_SOURCE_DIR}
+  )
 
-if(MPI_INTERCEPT_LIB)
-  add_subdirectory(mpi_interceptor)
-  add_subdirectory(lulesh)
+  if(MPI_INTERCEPT_LIB)
+    add_subdirectory(mpi_interceptor)
+    add_subdirectory(lulesh)
+  endif()
 endif()
