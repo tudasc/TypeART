@@ -24,8 +24,8 @@ jobs:
     - name: Install Clang
       run: |
         sudo apt-get install clang-10 clang-tools-10 libclang-common-10-dev libclang-10-dev libclang1-10 clang-format-10 clang-tidy-10 clangd-10
-        export CXX=clang++
-        export CC=clang
+        export CXX=clang++-10
+        export CC=clang-10
     
     - name: Build TypeART
       run: |
