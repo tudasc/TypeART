@@ -28,6 +28,7 @@ configure_typeart_lit_site_cfg(
 set(TYPEARTPASS_TEST_DEPENDS typeartpass typeart-rt)
 
 
+message(STATUS "LLVM : ${LLVM_EXTERNAL_LIT}")
 add_lit_testsuite(lit-pass-test
     "Running the TYPEART support pass tests"
     ${CMAKE_CURRENT_SOURCE_DIR}

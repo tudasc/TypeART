@@ -1,4 +1,5 @@
 #include "TypeUtil.h"
+
 #include "Logger.h"
 
 #include "llvm/IR/Constants.h"
@@ -11,23 +12,6 @@ using namespace llvm;
 namespace typeart {
 namespace util {
 namespace type {
-
-Type* getVoidType(LLVMContext& c) {
-  return Type::getVoidTy(c);
-}
-
-Type* getVoidPtrType(LLVMContext& c) {
-  // NOTE: LLVM does not support an explicit void pointer
-  return Type::getInt8PtrTy(c);
-}
-
-Type* getInt32Type(LLVMContext& c) {
-  return Type::getInt32Ty(c);
-}
-
-Type* getInt64Type(LLVMContext& c) {
-  return Type::getInt64Ty(c);
-}
 
 bool isVoidPtr(llvm::Type* type) {
   return type->isPointerTy() && type->getPointerElementType()->isIntegerTy(8);
@@ -92,7 +76,7 @@ unsigned getArrayLengthFlattened(llvm::Type* arrT) {
 }
 
 unsigned getStructSizeInBytes(llvm::Type* structT, const llvm::DataLayout& dl) {
-  auto st = dyn_cast<llvm::StructType>(structT);
+  auto st                    = dyn_cast<llvm::StructType>(structT);
   const StructLayout* layout = dl.getStructLayout(st);
   return layout->getSizeInBytes();
 }

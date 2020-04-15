@@ -24,7 +24,7 @@ if(NOT LIT_COMMAND_I)
   if(LLVM_LIT_PATH)
     get_filename_component(path_to_llvm_lit ${LLVM_LIT_PATH} ABSOLUTE CACHE)
     set(LIT_COMMAND_I ${path_to_llvm_lit})
-    set(LLVM_EXTERNAL_LIT ${path_to_llvm_lit}) # workaround for AddLLVM.cmake path not being set
+    set(LLVM_EXTERNAL_LIT ${LLVM_LIT_PATH})
   else()
     message(WARNING "No llvm lit is available")
   endif()

@@ -7,6 +7,7 @@
 
 #include "TypeInterface.h"
 
+#include <array>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -32,7 +33,7 @@ class TypeDB {
 
   void clear();
 
-  void registerStruct(StructTypeInfo structInfo);
+  void registerStruct(const StructTypeInfo& structInfo);
 
   bool isValid(int id) const;
 
@@ -54,10 +55,9 @@ class TypeDB {
 
   const std::vector<StructTypeInfo>& getStructList() const;
 
-  static std::string BuiltinNames[];
-  static size_t BuiltinSizes[];
-
-  static std::string UnknownStructName;
+  static const std::array<std::string, 11> BuiltinNames;
+  static const std::array<size_t, 11> BuiltinSizes;
+  static const std::string UnknownStructName;
 
  private:
   std::vector<StructTypeInfo> structInfoList;
