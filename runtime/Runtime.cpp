@@ -412,7 +412,7 @@ TypeArtRT::TypeArtStatus TypeArtRT::getTypeInfo(const void* addr, int* type, siz
   }
 
   // Resolve struct recursively
-  const auto *structInfo = typeDB.getStructInfo(containingType);
+  const auto* structInfo = typeDB.getStructInfo(containingType);
   if (structInfo != nullptr) {
     const void* containingTypeAddr = addByteOffset(addr, -internalOffset);
     return getTypeInfoInternal(containingTypeAddr, internalOffset, *structInfo, type, count);
@@ -427,7 +427,7 @@ TypeArtRT::TypeArtStatus TypeArtRT::getContainingTypeInfo(const void* addr, int*
 
   if (ptrData) {
     const auto& basePtrInfo = ptrData.getValue().second;
-    const auto *basePtr            = ptrData.getValue().first;
+    const auto* basePtr     = ptrData.getValue().first;
     size_t typeSize         = getTypeSize(basePtrInfo.typeId);
 
     // Check for exact match -> no further checks and offsets calculations needed
@@ -491,7 +491,7 @@ TypeArtRT::TypeArtStatus TypeArtRT::getStructInfo(int id, const StructTypeInfo**
     return TA_WRONG_KIND;
   }
 
-  const auto *result = typeDB.getStructInfo(id);
+  const auto* result = typeDB.getStructInfo(id);
 
   if (result != nullptr) {
     *structInfo = result;

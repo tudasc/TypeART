@@ -96,10 +96,10 @@ bool TypeArtPass::runOnModule(Module& m) {
         type        = tu::getArrayElementType(type);
       }
 
-      int typeId            = typeManager.getOrRegisterType(type, dl);
-      auto typeIdConst      = instr.getConstantFor(IType::type_id, typeId);
-      auto numElementsConst = instr.getConstantFor(IType::extent, numElements);
-      auto globalPtr        = IRB.CreateBitOrPointerCast(global, instr.getTypeFor(IType::ptr));
+      int typeId             = typeManager.getOrRegisterType(type, dl);
+      auto* typeIdConst      = instr.getConstantFor(IType::type_id, typeId);
+      auto* numElementsConst = instr.getConstantFor(IType::extent, numElements);
+      auto globalPtr         = IRB.CreateBitOrPointerCast(global, instr.getTypeFor(IType::ptr));
 
       LOG_DEBUG("Instrumenting global variable: " << util::dump(*global));
 
@@ -182,7 +182,7 @@ bool TypeArtPass::runOnFunc(Function& f) {
 
     // Use the first cast as the determining type (if there is any)
     if (primaryBitcast) {
-      auto dstPtrType = primaryBitcast->getDestTy()->getPointerElementType();
+      auto* dstPtrType = primaryBitcast->getDestTy()->getPointerElementType();
 
       typeSize = tu::getTypeSizeInBytes(dstPtrType, dl);
 
@@ -202,8 +202,8 @@ bool TypeArtPass::runOnFunc(Function& f) {
     }
 
     IRBuilder<> IRB(insertBefore);
-    auto typeIdConst   = instr.getConstantFor(IType::type_id, typeId);
-    auto typeSizeConst = instr.getConstantFor(IType::extent, typeSize);
+    auto* typeIdConst   = instr.getConstantFor(IType::type_id, typeId);
+    auto* typeSizeConst = instr.getConstantFor(IType::extent, typeSize);
     // Compute element count: count = numBytes / typeSize
     Value* elementCount = nullptr;
     if (malloc.kind == MemOpKind::MALLOC) {
@@ -238,23 +238,17 @@ bool TypeArtPass::runOnFunc(Function& f) {
   };
 
   const auto instrumentAlloca = [&](const auto& allocaData) -> bool {
-    auto alloca   = allocaData.alloca;
-    int arraySize = allocaData.arraySize;
-
-    bool vla = arraySize < 0;
-
-    Type* elementType = alloca->getAllocatedType();
-
+    auto alloca           = allocaData.alloca;
+    Type* elementType     = alloca->getAllocatedType();
+    Value* numElementsVal = nullptr;
     // The length can be specified statically through the array type or as a separate argument.
     // Both cases are handled here.
-
-    Value* numElementsVal = nullptr;
-    if (vla) {
+    if (allocaData.is_vla) {
       numElementsVal = alloca->getArraySize();
-
       // This should not happen in generated IR code
       assert(!elementType->isArrayTy() && "VLAs of array types are currently not supported.");
     } else {
+      size_t arraySize = allocaData.arraySize;
       if (elementType->isArrayTy()) {
         arraySize   = arraySize * tu::getArrayLengthFlattened(elementType);
         elementType = tu::getArrayElementType(elementType);
@@ -271,8 +265,8 @@ bool TypeArtPass::runOnFunc(Function& f) {
       LOG_ERROR("Type is not supported: " << util::dump(*elementType));
     }
 
-    auto typeIdConst = instr.getConstantFor(IType::type_id, typeId);
-    auto arrayPtr    = IRB.CreateBitOrPointerCast(alloca, instr.getTypeFor(IType::ptr));
+    auto* typeIdConst = instr.getConstantFor(IType::type_id, typeId);
+    auto arrayPtr     = IRB.CreateBitOrPointerCast(alloca, instr.getTypeFor(IType::ptr));
 
     IRB.CreateCall(typeart_alloc_stack.f, ArrayRef<Value*>{arrayPtr, typeIdConst, numElementsVal});
 
@@ -284,12 +278,12 @@ bool TypeArtPass::runOnFunc(Function& f) {
 
   if (!ClIgnoreHeap) {
     // instrument collected calls of bb:
-    for (auto& malloc : listMalloc) {
+    for (const auto& malloc : listMalloc) {
       ++NumInstrumentedMallocs;
       mod |= instrumentMalloc(malloc);
     }
 
-    for (auto free : listFree) {
+    for (auto* free : listFree) {
       ++NumInstrumentedFrees;
       mod |= instrumentFree(free);
     }
@@ -302,13 +296,13 @@ bool TypeArtPass::runOnFunc(Function& f) {
       //      LOG_DEBUG("Add alloca counter")
       // counter = 0 at beginning of function
       IRBuilder<> CBuilder(f.getEntryBlock().getFirstNonPHI());
-      auto counter = CBuilder.CreateAlloca(instr.getTypeFor(IType::stack_count), nullptr, "__ta_alloca_counter");
+      auto* counter = CBuilder.CreateAlloca(instr.getTypeFor(IType::stack_count), nullptr, "__ta_alloca_counter");
       CBuilder.CreateStore(instr.getConstantFor(IType::stack_count), counter);
 
       // In each basic block: counter =+ num_alloca (in BB)
       for (auto data : allocCounts) {
         IRBuilder<> IRB(data.first->getTerminator());
-        auto load_counter        = IRB.CreateLoad(counter);
+        auto* load_counter       = IRB.CreateLoad(counter);
         Value* increment_counter = IRB.CreateAdd(instr.getConstantFor(IType::stack_count, data.second), load_counter);
         IRB.CreateStore(increment_counter, counter);
       }
@@ -317,11 +311,11 @@ bool TypeArtPass::runOnFunc(Function& f) {
       // if(counter > 0) call runtime for stack cleanup
       EscapeEnumerator ee(f);
       while (IRBuilder<>* irb = ee.Next()) {
-        auto I = &(*irb->GetInsertPoint());
+        auto* I = &(*irb->GetInsertPoint());
 
-        auto counter_load = irb->CreateLoad(counter, "__ta_counter_load");
-        auto cond         = irb->CreateICmpNE(counter_load, instr.getConstantFor(IType::stack_count), "__ta_cond");
-        auto then_term    = SplitBlockAndInsertIfThen(cond, I, false);
+        auto* counter_load = irb->CreateLoad(counter, "__ta_counter_load");
+        auto* cond         = irb->CreateICmpNE(counter_load, instr.getConstantFor(IType::stack_count), "__ta_cond");
+        auto* then_term    = SplitBlockAndInsertIfThen(cond, I, false);
         irb->SetInsertPoint(then_term);
         irb->CreateCall(typeart_leave_scope.f, ArrayRef<Value*>{counter_load});
       }
