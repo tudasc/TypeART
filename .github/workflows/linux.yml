@@ -27,11 +27,12 @@ jobs:
         
     - name: Setup env
       run: |
-        echo usr/bin/clang -v
+        usr/bin/clang -v
         sudo ln -f -s /usr/bin/clang-10 /usr/bin/clang
         sudo ln -f -s /usr/bin/clang++-10 /usr/bin/clang++
         sudo ln -f -s /usr/bin/opt-10 /usr/bin/opt
         sudo ln -f -s /usr/bin/FileCheck-10 /usr/bin/FileCheck
+        sudo ln -f -s /usr/bin/llc-10 /usr/bin/llc
         echo "::set-env name=ClangC::/usr/bin/clang-10"
         echo "::set-env name=ClangCxx::/usr/bin/clang++-10"
         echo "::set-env name=EXT_LIT::/usr/lib/llvm-10/build/utils/lit/lit.py"
