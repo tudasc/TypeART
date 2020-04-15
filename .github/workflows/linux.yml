@@ -44,5 +44,24 @@ jobs:
     
     - name: Test TypeART
       run: cmake --build build --target test -- ARGS=-VV
+
+    - name: Run tidy checks
+      run : |
+        cmake --build build --target tidy-run-on-typeartpass        | tee tidy_typeartpass.txt    | tee -a tidy_all.txt
+        cmake --build build --target tidy-run-on-meminstfinderpass  | tee tidy_meminstfinder.txt  | tee -a tidy_all.txt
+        cmake --build build --target tidy-run-on-typelib            | tee tidy_typelib.txt        | tee -a tidy_all.txt
+        cmake --build build --target tidy-run-on-typeart-rt         | tee tidy_typeart-rt.txt     | tee -a tidy_all.txt
+    
+    - name: Prepare artifact
+      run : |
+        mkdir artifact
+        mv tidy_* artifact/
+        echo "::set-env name=TidyArtifacts::artifact"
+
+    - name: Upload clang-tidy artifact
+      uses: actions/upload-artifact@v1
+      with:
+        name: typeart-clangtidy-archive
+        path: ${TidyArtifacts}
         
         
