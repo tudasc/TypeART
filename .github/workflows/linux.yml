@@ -56,12 +56,11 @@ jobs:
       run : |
         mkdir artifact
         mv tidy_* artifact/
-        echo "::set-env name=TidyArtifacts::artifact"
 
     - name: Upload clang-tidy artifact
       uses: actions/upload-artifact@v1
       with:
         name: typeart-clangtidy-archive
-        path: ${TidyArtifacts}
+        path: artifact
         
         
