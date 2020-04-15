@@ -1,5 +1,5 @@
 ---
-Checks:          'clang-diagnostic-*,clang-analyzer-*,-*,performance-*,modernize-*,llvm-namespace-comment,google-explicit-constructor,bugprone-*,misc-*,-modernize-use-trailing-return-type,-modernize-use-using'
+Checks:          'clang-diagnostic-*,clang-analyzer-*,-*,performance-*,modernize-*,llvm-namespace-comment,google-explicit-constructor,bugprone-*,misc-*,readability-*, -readability-named-parameter,-modernize-use-trailing-return-type,-modernize-use-using'
 WarningsAsErrors: ''
 HeaderFilterRegex: ''
 AnalyzeTemporaryDtors: false

@@ -1,4 +1,5 @@
 #include "Runtime.h"
+
 #include "Logger.h"
 #include "RuntimeInterface.h"
 #include "TypeIO.h"
@@ -130,24 +131,24 @@ class AccessRecorder {
   }
 
  private:
-  AccessRecorder() = default;
-  AccessRecorder(AccessRecorder& other) = default;
+  AccessRecorder()                       = default;
+  AccessRecorder(AccessRecorder& other)  = default;
   AccessRecorder(AccessRecorder&& other) = default;
 
-  const int memPerEntry = sizeof(PointerInfo) + sizeof(void*);  // Type-map key + value
-  const int memInStack = sizeof(void*);                         // Stack allocs
-  const int vectorSize = sizeof(TypeArtRT::Stack);              // Stack overhead
-  const int mapSize = sizeof(TypeArtRT::PointerMap);            // Map overhead
-  long long heapAllocs = 0;
-  long long stackAllocs = 0;
-  long long globalAllocs = 0;
-  long long maxHeapAllocs = 0;
+  const int memPerEntry    = sizeof(PointerInfo) + sizeof(void*);  // Type-map key + value
+  const int memInStack     = sizeof(void*);                        // Stack allocs
+  const int vectorSize     = sizeof(TypeArtRT::Stack);             // Stack overhead
+  const int mapSize        = sizeof(TypeArtRT::PointerMap);        // Map overhead
+  long long heapAllocs     = 0;
+  long long stackAllocs    = 0;
+  long long globalAllocs   = 0;
+  long long maxHeapAllocs  = 0;
   long long maxStackAllocs = 0;
-  long long curHeapAllocs = 0;
+  long long curHeapAllocs  = 0;
   long long curStackAllocs = 0;
-  long long addrReuses = 0;
-  long long addrMissing = 0;
-  long long addrChecked = 0;
+  long long addrReuses     = 0;
+  long long addrMissing    = 0;
+  long long addrChecked    = 0;
   std::unordered_set<const void*> missing;
   std::unordered_set<const void*> seen;
 };
@@ -216,14 +217,14 @@ TypeArtRT::TypeArtRT() {
   // Try to load types from specified file first.
   // Then look at default location.
   const char* typeFile = std::getenv("TA_TYPE_FILE");
-  if (typeFile) {
+  if (typeFile != nullptr) {
     if (!loadTypes(typeFile)) {
-      LOG_ERROR("Failed to load recorded types from " << typeFile);
+      LOG_FATAL("Failed to load recorded types from " << typeFile);
       std::exit(EXIT_FAILURE);  // TODO: Error handling
     }
   } else {
     if (!loadTypes(defaultTypeFileName)) {
-      LOG_ERROR("No type file with default name \""
+      LOG_FATAL("No type file with default name \""
                 << defaultTypeFileName
                 << "\" in current directory. To specify a different file, edit the TA_TYPE_FILE environment variable.");
       std::exit(EXIT_FAILURE);  // TODO: Error handling
@@ -231,7 +232,7 @@ TypeArtRT::TypeArtRT() {
   }
 
   std::stringstream ss;
-  for (auto structInfo : typeDB.getStructList()) {
+  for (const auto& structInfo : typeDB.getStructList()) {
     ss << structInfo.name << ", ";
   }
   LOG_INFO("Recorded types: " << ss.str());
@@ -301,10 +302,10 @@ TypeArtRT::TypeArtStatus TypeArtRT::getSubTypeInfo(const void* baseAddr, size_t 
   size_t baseOffset = containerInfo.offsets[memberIndex];
   assert(offset >= baseOffset && "Invalid offset values");
 
-  size_t internalOffset = offset - baseOffset;
-  size_t typeSize = typeDB.getTypeSize(memberType);
+  size_t internalOffset   = offset - baseOffset;
+  size_t typeSize         = typeDB.getTypeSize(memberType);
   size_t offsetInTypeSize = internalOffset / typeSize;
-  size_t newOffset = internalOffset % typeSize;
+  size_t newOffset        = internalOffset % typeSize;
 
   // If newOffset != 0, the subtype cannot be atomic, i.e. must be a struct
   if (newOffset != 0) {
@@ -319,10 +320,10 @@ TypeArtRT::TypeArtStatus TypeArtRT::getSubTypeInfo(const void* baseAddr, size_t 
     return TA_BAD_ALIGNMENT;
   }
 
-  *subType = memberType;
+  *subType         = memberType;
   *subTypeBaseAddr = addByteOffset(baseAddr, baseOffset);
-  *subTypeOffset = newOffset;
-  *subTypeCount = containerInfo.count[memberIndex] - offsetInTypeSize;
+  *subTypeOffset   = newOffset;
+  *subTypeCount    = containerInfo.count[memberIndex] - offsetInTypeSize;
 
   return TA_OK;
 }
@@ -332,13 +333,13 @@ TypeArtRT::TypeArtStatus TypeArtRT::getSubTypeInfo(const void* baseAddr, size_t 
                                                    const void** subTypeBaseAddr, size_t* subTypeOffset,
                                                    size_t* subTypeCount) const {
   typeart_struct_layout structLayout;
-  structLayout.id = containerInfo.id;
-  structLayout.name = containerInfo.name.c_str();
-  structLayout.len = containerInfo.numMembers;
-  structLayout.extent = containerInfo.extent;
-  structLayout.offsets = &containerInfo.offsets[0];
+  structLayout.id           = containerInfo.id;
+  structLayout.name         = containerInfo.name.c_str();
+  structLayout.len          = containerInfo.numMembers;
+  structLayout.extent       = containerInfo.extent;
+  structLayout.offsets      = &containerInfo.offsets[0];
   structLayout.member_types = &containerInfo.memberTypes[0];
-  structLayout.count = &containerInfo.arraySizes[0];
+  structLayout.count        = &containerInfo.arraySizes[0];
   return getSubTypeInfo(baseAddr, offset, structLayout, subType, subTypeBaseAddr, subTypeOffset, subTypeCount);
 }
 
@@ -365,7 +366,7 @@ TypeArtRT::TypeArtStatus TypeArtRT::getTypeInfoInternal(const void* baseAddr, si
     }
 
     baseAddr = subTypeBaseAddr;
-    offset = subTypeOffset;
+    offset   = subTypeOffset;
 
     // Continue as long as there is a byte offset
     resolve = offset != 0;
@@ -378,7 +379,7 @@ TypeArtRT::TypeArtStatus TypeArtRT::getTypeInfoInternal(const void* baseAddr, si
       }
     }
   }
-  *type = subType;
+  *type  = subType;
   *count = subTypeCount;
   return TA_OK;
 }
@@ -392,7 +393,7 @@ TypeArtRT::TypeArtStatus TypeArtRT::getTypeInfo(const void* addr, int* type, siz
   // First, retrieve the containing type
   TypeArtStatus status = getContainingTypeInfo(addr, &containingType, &containingTypeCount, &baseAddr, &internalOffset);
   if (status != TA_OK) {
-    if (TA_UNKNOWN_ADDRESS) {
+    if (status == TA_UNKNOWN_ADDRESS) {
       typeart::Recorder::get().incAddrMissing(addr);
     }
     return status;
@@ -400,7 +401,7 @@ TypeArtRT::TypeArtStatus TypeArtRT::getTypeInfo(const void* addr, int* type, siz
 
   // Check for exact address match
   if (internalOffset == 0) {
-    *type = containingType;
+    *type  = containingType;
     *count = containingTypeCount;
     return TA_OK;
   }
@@ -411,8 +412,8 @@ TypeArtRT::TypeArtStatus TypeArtRT::getTypeInfo(const void* addr, int* type, siz
   }
 
   // Resolve struct recursively
-  auto structInfo = typeDB.getStructInfo(containingType);
-  if (structInfo) {
+  const auto *structInfo = typeDB.getStructInfo(containingType);
+  if (structInfo != nullptr) {
     const void* containingTypeAddr = addByteOffset(addr, -internalOffset);
     return getTypeInfoInternal(containingTypeAddr, internalOffset, *structInfo, type, count);
   }
@@ -426,15 +427,15 @@ TypeArtRT::TypeArtStatus TypeArtRT::getContainingTypeInfo(const void* addr, int*
 
   if (ptrData) {
     const auto& basePtrInfo = ptrData.getValue().second;
-    auto basePtr = ptrData.getValue().first;
-    size_t typeSize = getTypeSize(basePtrInfo.typeId);
+    const auto *basePtr            = ptrData.getValue().first;
+    size_t typeSize         = getTypeSize(basePtrInfo.typeId);
 
     // Check for exact match -> no further checks and offsets calculations needed
     if (basePtr == addr) {
-      *type = basePtrInfo.typeId;
-      *count = basePtrInfo.count;
+      *type        = basePtrInfo.typeId;
+      *count       = basePtrInfo.count;
       *baseAddress = addr;
-      *offset = 0;
+      *offset      = 0;
       return TA_OK;
     }
 
@@ -444,7 +445,7 @@ TypeArtRT::TypeArtStatus TypeArtRT::getContainingTypeInfo(const void* addr, int*
     // Ensure that the given address is in bounds and points to the start of an element
     if (addr >= blockEnd) {
       const std::ptrdiff_t offset = static_cast<const uint8_t*>(addr) - static_cast<const uint8_t*>(basePtr);
-      const auto oob_index = (offset / typeSize) - basePtrInfo.count + 1;
+      const auto oob_index        = (offset / typeSize) - basePtrInfo.count + 1;
       LOG_ERROR("Out of bounds for the lookup: (" << toString(addr, basePtrInfo)
                                                   << ") #Elements too far: " << oob_index);
       return TA_UNKNOWN_ADDRESS;
@@ -458,13 +459,13 @@ TypeArtRT::TypeArtStatus TypeArtRT::getContainingTypeInfo(const void* addr, int*
 
     // Array index
     size_t typeOffset = addrDif / typeSize;
-    size_t typeCount = basePtrInfo.count - typeOffset;
+    size_t typeCount  = basePtrInfo.count - typeOffset;
 
     // Retrieve and return type information
-    *type = basePtrInfo.typeId;
-    *count = typeCount;
+    *type        = basePtrInfo.typeId;
+    *count       = typeCount;
     *baseAddress = basePtr;  // addByteOffset(basePtr, typeOffset * basePtrInfo.typeSize);
-    *offset = internalOffset;
+    *offset      = internalOffset;
     return TA_OK;
   }
   return TA_UNKNOWN_ADDRESS;
@@ -490,9 +491,9 @@ TypeArtRT::TypeArtStatus TypeArtRT::getStructInfo(int id, const StructTypeInfo**
     return TA_WRONG_KIND;
   }
 
-  auto result = typeDB.getStructInfo(id);
+  const auto *result = typeDB.getStructInfo(id);
 
-  if (result) {
+  if (result != nullptr) {
     *structInfo = result;
     return TA_OK;
   }
@@ -530,8 +531,9 @@ void TypeArtRT::doAlloc(const void* addr, int typeId, size_t count, const void* 
     LOG_WARNING("Zero-size allocation (id=" << typeId << ") recorded at " << addr << " [" << reg << "], called from "
                                             << retAddr);
 
-    if (addr == nullptr)
+    if (addr == nullptr) {
       return;
+    }
   } else if (addr == nullptr) {
     LOG_ERROR("Nullptr allocation (id=" << typeId << ") recorded at " << addr << " [" << reg << "], called from "
                                         << retAddr);
@@ -553,8 +555,8 @@ void TypeArtRT::doAlloc(const void* addr, int typeId, size_t count, const void* 
   }
 
   def.typeId = typeId;
-  def.count = count;
-  def.debug = retAddr;
+  def.count  = count;
+  def.debug  = retAddr;
 }
 
 void TypeArtRT::onAlloc(const void* addr, int typeId, size_t count, const void* retAddr) {
@@ -592,7 +594,7 @@ void TypeArtRT::onLeaveScope(size_t alloca_count, const void* retAddr) {
     alloca_count = stackVars.size();
   }
 
-  const auto cend = stackVars.cend();
+  const auto cend      = stackVars.cend();
   const auto start_pos = (cend - alloca_count);
   LOG_TRACE("Freeing stack (" << alloca_count << ")  " << std::distance(start_pos, stackVars.cend()))
   std::for_each(start_pos, cend, [&](const void* addr) { onFree<true>(addr, retAddr); });
@@ -664,13 +666,13 @@ typeart_status typeart_resolve_type(int id, typeart_struct_layout* struct_layout
   const typeart::StructTypeInfo* structInfo;
   typeart_status status = typeart::TypeArtRT::get().getStructInfo(id, &structInfo);
   if (status == TA_OK) {
-    struct_layout->id = structInfo->id;
-    struct_layout->name = structInfo->name.c_str();
-    struct_layout->len = structInfo->numMembers;
-    struct_layout->extent = structInfo->extent;
-    struct_layout->offsets = &structInfo->offsets[0];
+    struct_layout->id           = structInfo->id;
+    struct_layout->name         = structInfo->name.c_str();
+    struct_layout->len          = structInfo->numMembers;
+    struct_layout->extent       = structInfo->extent;
+    struct_layout->offsets      = &structInfo->offsets[0];
     struct_layout->member_types = &structInfo->memberTypes[0];
-    struct_layout->count = &structInfo->arraySizes[0];
+    struct_layout->count        = &structInfo->arraySizes[0];
   }
   return status;
 }
