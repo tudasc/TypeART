@@ -2,7 +2,7 @@ name: Test-TypeART
 
 on:
   push:
-    branches: [ ta2-devel ] # only ta2-devel is ready for clang 10
+    branches: [ devel, ta2-devel ] # only (ta2-)devel is ready for clang 10
   pull_request:
 
 jobs:
@@ -24,15 +24,22 @@ jobs:
     - name: Install Clang
       run: |
         sudo apt-get install clang-10 clang-tools-10 libclang-common-10-dev libclang-10-dev libclang1-10 clang-format-10 clang-tidy-10 clangd-10
+        
+    - name: Setup env
+      run: |
+        sudo ln -s /usr/bin/clang-10 /usr/bin/clang
+        sudo ln -s /usr/bin/clang++-10 /usr/bin/clang++
+        sudo ln -s /usr/bin/opt-10 /usr/bin/opt
+        sudo ln -s /usr/bin/FileCheck-10 /usr/bin/FileCheck
+        echo "::set-env name=EXT_LIT::/usr/lib/llvm-10/build/utils/lit/lit.py"
 
     - name: Build TypeART
       run: |
         cmake --version
-        cmake -B build -DTEST_CONFIG=ON
+        cmake -B build -DTEST_CONFIG=ON -DLLVM_EXTERNAL_LIT=${EXT_LIT} -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_CC_COMPILER=clang
         cmake --build build --parallel
     
-# Currently unsupported on LLVM binary install due to llvm-lit missing
-#    - name: Test TypeART
-#      run: cmake --build build --target test -- ARGS=-VV
+    - name: Test TypeART
+      run: cmake --build build --target test -- ARGS=-VV
         
         

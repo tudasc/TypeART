@@ -153,7 +153,7 @@ bool TypeArtPass::runOnFunc(Function& f) {
   declareInstrumentationFunctions(*f.getParent());
 
   bool mod{false};
-  auto& c = f.getContext();
+  //  auto& c = f.getContext();
   DataLayout dl(f.getParent());
 
   llvm::SmallDenseMap<BasicBlock*, size_t> allocCounts;
@@ -358,10 +358,9 @@ void TypeArtPass::declareInstrumentationFunctions(Module& m) {
     return;
   }
 
-  Type* alloc_arg_types[]      = {instr.getTypeFor(IType::ptr), instr.getTypeFor(IType::type_id),
-                             instr.getTypeFor(IType::extent)};
-  Type* free_arg_types[]       = {instr.getTypeFor(IType::ptr)};
-  Type* leavescope_arg_types[] = {instr.getTypeFor(IType::stack_count)};
+  auto alloc_arg_types      = instr.make_parameters(IType::ptr, IType::type_id, IType::extent);
+  auto free_arg_types       = instr.make_parameters(IType::ptr);
+  auto leavescope_arg_types = instr.make_parameters(IType::stack_count);
 
   typeart_alloc.f        = instr.make_function(typeart_alloc.name, alloc_arg_types);
   typeart_alloc_stack.f  = instr.make_function(typeart_alloc_stack.name, alloc_arg_types);

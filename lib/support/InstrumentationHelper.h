@@ -50,6 +50,13 @@ class InstrumentationHelper {
   void setModule(llvm::Module& m);
   llvm::Function* make_function(llvm::StringRef name, llvm::ArrayRef<llvm::Type*> args, bool fixed_name = true);
   static llvm::SmallVector<llvm::Type*, 8> make_signature(const llvm::ArrayRef<llvm::Value*>& args);
+
+  template <typename... Types>
+  llvm::SmallVector<llvm::Type*, 8> make_parameters(Types... args) {
+    static_assert((std::is_same_v<IType, Types> && ...));
+    return {getTypeFor(args)...};
+  }
+
   llvm::Type* getTypeFor(IType id);
   llvm::ConstantInt* getConstantFor(IType id, size_t val = 0);
   const std::map<std::string, llvm::Function*>& getFunctionMap() const;
