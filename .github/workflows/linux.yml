@@ -27,7 +27,6 @@ jobs:
         
     - name: Setup env
       run: |
-        usr/bin/clang -v
         sudo ln -f -s /usr/bin/clang-10 /usr/bin/clang
         sudo ln -f -s /usr/bin/clang++-10 /usr/bin/clang++
         sudo ln -f -s /usr/bin/opt-10 /usr/bin/opt
@@ -40,7 +39,7 @@ jobs:
     - name: Build TypeART
       run: |
         cmake --version
-        cmake -B build -DTEST_CONFIG=ON -DLLVM_EXTERNAL_LIT=${EXT_LIT} -DCMAKE_CXX_COMPILER=${ClangCxx} -DCMAKE_CC_COMPILER=${ClangC}
+        cmake -B build -DTEST_CONFIG=ON -DLLVM_EXTERNAL_LIT=${EXT_LIT} -DCMAKE_CXX_COMPILER=${ClangCxx} -DCMAKE_C_COMPILER=${ClangC}
         cmake --build build --parallel
     
     - name: Test TypeART
