@@ -17,9 +17,6 @@ jobs:
         wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key 2>/dev/null | sudo apt-key add -
         sudo add-apt-repository 'deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-10 main' -y
         sudo apt-get update -q
-
-    - name: Remove system Clang 
-      run: sudo apt-get remove -y clang* llvm-*
       
     - name: Install LLVM
       run: sudo apt-get install libllvm10 llvm-10 llvm-10-dev llvm-10-runtime
@@ -30,16 +27,19 @@ jobs:
         
     - name: Setup env
       run: |
-        sudo ln -s /usr/bin/clang-10 /usr/bin/clang
-        sudo ln -s /usr/bin/clang++-10 /usr/bin/clang++
-        sudo ln -s /usr/bin/opt-10 /usr/bin/opt
-        sudo ln -s /usr/bin/FileCheck-10 /usr/bin/FileCheck
+        echo usr/bin/clang -v
+        sudo ln -f -s /usr/bin/clang-10 /usr/bin/clang
+        sudo ln -f -s /usr/bin/clang++-10 /usr/bin/clang++
+        sudo ln -f -s /usr/bin/opt-10 /usr/bin/opt
+        sudo ln -f -s /usr/bin/FileCheck-10 /usr/bin/FileCheck
+        echo "::set-env name=ClangC::/usr/bin/clang-10"
+        echo "::set-env name=ClangCxx::/usr/bin/clang++-10"
         echo "::set-env name=EXT_LIT::/usr/lib/llvm-10/build/utils/lit/lit.py"
 
     - name: Build TypeART
       run: |
         cmake --version
-        cmake -B build -DTEST_CONFIG=ON -DLLVM_EXTERNAL_LIT=${EXT_LIT} -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_CC_COMPILER=clang
+        cmake -B build -DTEST_CONFIG=ON -DLLVM_EXTERNAL_LIT=${EXT_LIT} -DCMAKE_CXX_COMPILER=${ClangCxx} -DCMAKE_CC_COMPILER=${ClangC}
         cmake --build build --parallel
     
     - name: Test TypeART
