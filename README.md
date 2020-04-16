@@ -35,17 +35,17 @@ A brief summary is given in a subsequent section and more information can be fou
 
 ## Software dependencies
 
-TypeART requires [LLVM](https://llvm.org) version 6.0 and CMake version >= 3.5.
+TypeART requires [LLVM](https://llvm.org) version 10 and CMake version >= 3.12.
 
 #### Building TypeART
 
-TypeART uses CMake to build, cf. [TravisCI build file](.travis.yaml) for a complete recipe to build.
+TypeART uses CMake to build, cf. [GitHub CI build file](.github/workflows/basic-ci.yml) for a complete recipe to build.
+Example build recipe (debug build, installs to default prefix)
 ```{.sh}
-$> git clone https://github.com/jplehr/TypeART.git
+$> git clone https://github.com/tudasc/TypeART
 $> cd TypeART
-$> mkdir build && cd build
-$> cmake .. -DCMAKE_INSTALL_PREFIX=*your path*
-$> cmake --build . --target install
+$> cmake -B build
+$> cmake --build build --target install --parallel
 ```
 
 #### CMake Configuration: Options for users
