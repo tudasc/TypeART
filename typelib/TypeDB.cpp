@@ -9,20 +9,20 @@
 
 namespace typeart {
 
-std::string TypeDB::BuiltinNames[] = {"int8",   "int16",    "int32",       "int64",        "half",   "float",
-                                      "double", "float128", "x86_float80", "ppc_float128", "pointer"};
+const std::array<std::string, 11> TypeDB::BuiltinNames = {
+    "int8", "int16", "int32", "int64", "half", "float", "double", "float128", "x86_float80", "ppc_float128", "pointer"};
 
 // TODO: Builtin ID changes lead to wrong type sizes/names
-size_t TypeDB::BuiltinSizes[] = {1,  2,
-                                 4,  8,
-                                 2,  4,
-                                 8,  16,
-                                 16,  // TODO: Always correct?
-                                 16, sizeof(void*)};
+const std::array<size_t, 11> TypeDB::BuiltinSizes = {1,  2,
+                                                     4,  8,
+                                                     2,  4,
+                                                     8,  16,
+                                                     16,  // TODO: Always correct?
+                                                     16, sizeof(void*)};
 
 // TypeInfo TypeDB::InvalidType = TypeInfo{BUILTIN, TA_UNKNOWN_TYPE};
 
-std::string TypeDB::UnknownStructName{"UnknownStruct"};
+const std::string TypeDB::UnknownStructName{"UnknownStruct"};
 
 TypeDB::TypeDB() = default;
 
@@ -61,7 +61,7 @@ bool TypeDB::isValid(int id) const {
   return id2Idx.find(id) != id2Idx.end();
 }
 
-void TypeDB::registerStruct(StructTypeInfo structType) {
+void TypeDB::registerStruct(const StructTypeInfo& structType) {
   if (isValid(structType.id)) {
     std::cerr << "Invalid type ID for struct " << structType.name << std::endl;
     if (isReservedType(structType.id)) {

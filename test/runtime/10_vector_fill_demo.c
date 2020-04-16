@@ -1,6 +1,7 @@
 // RUN: %scriptpath/applyAndRun.sh %s %pluginpath "-typeart-alloca" %rtpath 2>&1 | FileCheck %s
 
 #include "../../runtime/RuntimeInterface.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

@@ -3,6 +3,7 @@
 //
 
 #include "TypeManager.h"
+
 #include "TypeIO.h"
 #include "TypeInterface.h"
 #include "support/Logger.h"
@@ -79,7 +80,7 @@ int TypeManager::getOrRegisterVector(llvm::VectorType* type, const llvm::DataLay
   namespace tu = typeart::util;
 
   size_t vectorBytes = dl.getTypeAllocSize(type);
-  size_t vectorSize = type->getVectorNumElements();
+  size_t vectorSize  = type->getVectorNumElements();
 
   auto elementType = type->getVectorElementType();
 
@@ -92,7 +93,7 @@ int TypeManager::getOrRegisterVector(llvm::VectorType* type, const llvm::DataLay
     return elementId;
   }
   auto elementName = typeDB.getTypeName(elementId);
-  auto name = "vec" + std::to_string(vectorSize) + ":" + elementName;
+  auto name        = "vec" + std::to_string(vectorSize) + ":" + elementName;
 
   // To avoid problems with padding bytes due to alignment, vector types are represented as structs rather than static
   // arrays. They are given special names and are marked with a TA_VEC flag to avoid confusion.
@@ -133,7 +134,7 @@ int TypeManager::getOrRegisterVector(llvm::VectorType* type, const llvm::DataLay
 }
 
 int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLayout& dl) {
-  namespace tu = typeart::util;
+  namespace tu       = typeart::util;
   const auto getName = [](auto type) -> std::string {
     if (type->isLiteral()) {
       return "LiteralS" + std::to_string(reinterpret_cast<long int>(type));
@@ -142,7 +143,7 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
   };
 
   auto name = getName(type);
-  auto it = structMap.find(name);
+  auto it   = structMap.find(name);
   if (it != structMap.end()) {
     if (!typeDB.isUserDefinedType(it->second)) {
       LOG_ERROR("Expected user defined struct type: " << name);
@@ -164,13 +165,13 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
 
   for (uint32_t i = 0; i < n; i++) {
     llvm::Type* memberType = type->getStructElementType(i);
-    int memberID = TA_UNKNOWN_TYPE;
+    int memberID           = TA_UNKNOWN_TYPE;
 
     size_t arraySize = 1;
 
     if (memberType->isArrayTy()) {
       // Note that clang does not allow VLAs inside of structs (GCC does)
-      arraySize = tu::type::getArrayLengthFlattened(memberType);
+      arraySize  = tu::type::getArrayLengthFlattened(memberType);
       memberType = tu::type::getArrayElementType(memberType);
     }
 
