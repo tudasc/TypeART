@@ -12,7 +12,7 @@ mat alloc_mat(int rows, int cols) {
   mat m;
   m.dim[0] = rows;
   m.dim[1] = cols;
-  m.vals = (double*)malloc(rows * cols * sizeof(double));
+  m.vals   = (double*)malloc(rows * cols * sizeof(double));
   return m;
 }
 

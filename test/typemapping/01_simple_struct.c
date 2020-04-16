@@ -62,7 +62,7 @@ typedef struct s4_t {
 } s4;
 
 int main(int argc, char** argv) {
-  s* a = malloc(sizeof(s));
+  s* a  = malloc(sizeof(s));
   s2* b = malloc(sizeof(s2));
   s3* c = malloc(sizeof(s3));
   s4* d = malloc(sizeof(s4));

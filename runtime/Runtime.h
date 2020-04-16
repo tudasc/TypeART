@@ -48,7 +48,7 @@ struct PointerInfo final {
 class TypeArtRT final {
  public:
   using TypeArtStatus = typeart_status;
-  using Stack = std::vector<const void*>;
+  using Stack         = std::vector<const void*>;
 #ifdef USE_BTREE
   using PointerMap = btree::btree_map<const void*, PointerInfo>;
 #endif

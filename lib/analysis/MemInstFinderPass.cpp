@@ -82,7 +82,7 @@ class CallFilter::FilterImpl {
 
   void setStartingFunction(llvm::Function* start) {
     start_f = start;
-    depth = 0;
+    depth   = 0;
   }
 
   bool filter(Value* in) {
@@ -129,7 +129,7 @@ class CallFilter::FilterImpl {
       // If we encounter a callsite, we want to analyze later, or quit in case we have a regex match
       CallSite c(val);
       if (c.isCall()) {
-        const auto callee = c.getCalledFunction();
+        const auto callee        = c.getCalledFunction();
         const bool indirect_call = callee == nullptr;
 
         if (indirect_call) {
@@ -256,7 +256,7 @@ class CallFilter::FilterImpl {
       // We have an arg_pos match
       const auto argNum = std::distance(c.arg_begin(), arg_pos);
       Argument& the_arg = *(c.getCalledFunction()->arg_begin() + argNum);
-      auto type = the_arg.getType();
+      auto type         = the_arg.getType();
       if (is_void_ptr(type)) {
         LOG_DEBUG("Call arg is a void*, filtering.");
         return false;
@@ -339,7 +339,7 @@ bool MemInstFinderPass::runOnModule(Module& m) {
               }
 
               if (g->hasInitializer()) {
-                auto* ini = g->getInitializer();
+                auto* ini          = g->getInitializer();
                 StringRef ini_name = util::dump(*ini);
 
                 if (ini_name.contains("std::ios_base::Init")) {
@@ -392,7 +392,7 @@ bool MemInstFinderPass::runOnModule(Module& m) {
         globals.end());
 
     const auto beforeCallFilter = globals.size();
-    NumFilteredGlobals = NumDetectedGlobals - beforeCallFilter;
+    NumFilteredGlobals          = NumDetectedGlobals - beforeCallFilter;
 
     globals.erase(llvm::remove_if(globals, [&](const auto g) { return filter(g); }), globals.end());
 
@@ -445,7 +445,7 @@ bool MemInstFinderPass::runOnFunc(llvm::Function& f) {
 
   if (ClFilterMallocAllocPair) {
     auto& allocs = mOpsCollector.listAlloca;
-    auto& mlist = mOpsCollector.listMalloc;
+    auto& mlist  = mOpsCollector.listMalloc;
 
     const auto filterMallocAllocPairing = [&mlist](const auto alloc) {
       // Only look for the direct users of the alloc:
@@ -525,10 +525,10 @@ void MemInstFinderPass::printStats(llvm::raw_ostream& out) {
     return format("%-*s: %*.1f\n", max_string, desc, max_val, val);
   };
 
-  auto all_stack = double(NumDetectedAllocs.getValue());
-  auto nonarray_stack = double(NumFilteredNonArrayAllocs.getValue());
+  auto all_stack          = double(NumDetectedAllocs.getValue());
+  auto nonarray_stack     = double(NumFilteredNonArrayAllocs.getValue());
   auto malloc_alloc_stack = double(NumFilteredMallocAllocs.getValue());
-  auto call_filter_stack = double(NumCallFilteredAllocs.getValue());
+  auto call_filter_stack  = double(NumCallFilteredAllocs.getValue());
 
   out << line;
   out << "   MemInstFinderPass\n";
