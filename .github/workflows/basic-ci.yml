@@ -2,7 +2,7 @@ name: Test-TypeART
 
 on:
   push:
-    branches: [ devel, ta2-devel ] # only (ta2-)devel is ready for clang 10
+    branches: [ master, devel ]
   pull_request:
 
 jobs:
