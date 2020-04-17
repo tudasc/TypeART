@@ -33,7 +33,7 @@ class CallFilter {
  public:
   explicit CallFilter(const std::string& glob);
   CallFilter(const CallFilter&) = delete;
-  CallFilter(CallFilter&&) = default;
+  CallFilter(CallFilter&&)      = default;
   bool operator()(llvm::AllocaInst*);
   bool operator()(llvm::GlobalValue*);
   CallFilter& operator=(CallFilter&&) noexcept;

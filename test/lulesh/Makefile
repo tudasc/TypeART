@@ -5,17 +5,12 @@ SHELL = /bin/sh
 
 LULESH_EXEC = lulesh2.0
 
-MPI_INC = /opt/local/include/openmpi
-MPI_LIB = /opt/local/lib
-
 SERCXX = clang++ -DUSE_MPI=0
 MPICXX = OMPI_CXX=clang++ mpic++ -DUSE_MPI=1
 CXX = $(MPICXX)
 
-COMPILE_SCRIPT = $(PWD)/buildAndApplyPass.sh
-TYPEART_RTPATH = ../../build/runtime
-TYPEART_PASS_DIR = ../../build/lib
-LTYPEART_RT= -L$(TYPEART_RTPATH) -ltypeart-rt 
+TYPEART_RTPATH = ${TYPEART_PATH}/lib
+LTYPEART_RT= -L$(TYPEART_PATH)/runtime -ltypeart-rt 
 
 SOURCES2.0 = \
 	lulesh.cc \
@@ -25,39 +20,29 @@ SOURCES2.0 = \
 	lulesh-init.cc
 OBJECTS2.0 = $(SOURCES2.0:.cc=.o)
 
-#Default build suggestions with OpenMP for g++
-#CXXFLAGS = -g -O3 -fopenmp -I. -Wall
-#LDFLAGS = -g -O3 -fopenmp
-
-#Below are reasonable default flags for a serial build
-CXXFLAGS = -g -O3 -I. -Wall
+#Below are reasonable default flags for a serial build w/o OpenMP
+CXXFLAGS = -g -I. -Wall
 LDFLAGS = -g -O3
-CLFLAGS = -Xclang -load -Xclang $(TYPEART_PASS_DIR)/analysis/meminstfinderpass.so -Xclang -load -Xclang $(TYPEART_PASS_DIR)/typeartpass.so -mllvm -alloca-array-only=false -mllvm -typeart-alloca -mllvm -call-filter
 
-#common places you might find silo on the Livermore machines.
-#SILO_INCDIR = /opt/local/include
-#SILO_LIBDIR = /opt/local/lib
-#SILO_INCDIR = ./silo/4.9/1.8.10.1/include
-#SILO_LIBDIR = ./silo/4.9/1.8.10.1/lib
-
-#If you do not have silo and visit you can get them at:
-#silo:  https://wci.llnl.gov/codes/silo/downloads.html
-#visit: https://wci.llnl.gov/codes/visit/download.html
-
-#below is and example of how to make with silo, hdf5 to get vizulization by default all this is turned off.  All paths are Livermore specific.
-#CXXFLAGS = -g -DVIZ_MESH -I${SILO_INCDIR} -Wall -Wno-pragmas
-#LDFLAGS = -g -L${SILO_LIBDIR} -Wl,-rpath -Wl,${SILO_LIBDIR} -lsiloh5 -lhdf5
+PASSES=-load ${TYPEART_PATH}/lib/analysis/meminstfinderpass.so -load ${TYPEART_PATH}/lib/typeartpass.so
+CALL_FILTER=-call-filter -call-filter-deep
 
 .cc.o: lulesh.h
-	@echo "Building $<"
-#	$(COMPILE_SCRIPT) $< $@ "$(CXXFLAGS)" "$(CXX)"
-	$(CXX) -c $(CXXFLAGS) $(CLFLAGS) -o $@  $<
+ifeq ($(TYPEART), yes)
+	$(CXX) ${CXXFLAGS} -O1 -Xclang -disable-llvm-passes -S -emit-llvm $< -o - | opt $(PASSES) -typeart -S | opt -O3 -S | opt $(PASSES) -typeart -typeart-alloca -alloca-array-only=false $(CALL_FILTER) -typeart-no-heap=true | llc -x=ir -filetype=obj -o $@
+else
+	$(CXX) $(CXXFLAGS) -O3 -c -o $@ $<
+endif
 
 all: $(LULESH_EXEC)
 
 lulesh2.0: $(OBJECTS2.0)
-	@echo "Linking"
+	@echo "Linking" 
+ifeq ($(TYPEART), yes)
 	$(CXX) $(OBJECTS2.0) $(LDFLAGS) -lm $(LTYPEART_RT) -o $@
+else
+	$(CXX) $(OBJECTS2.0) $(LDFLAGS) -lm -o $@
+endif
 
 clean:
 	/bin/rm -f *.o *.s *~ $(OBJECTS) $(LULESH_EXEC) types.yaml

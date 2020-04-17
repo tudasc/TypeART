@@ -1,11 +1,13 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.12)
 
-project(typeart)
+project(typeart
+  VERSION 2.0
+)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -26,6 +28,7 @@ add_format_target(format-sources
           typelib/*.h
 )
 
+add_subdirectory(externals)
 add_subdirectory(lib)
 add_subdirectory(typelib)
 add_subdirectory(runtime)

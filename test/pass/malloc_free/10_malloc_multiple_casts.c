@@ -3,8 +3,8 @@
 // clang-format on
 #include <stdlib.h>
 void test() {
-  void* p = malloc(42 * sizeof(int));
-  int* pi = (int*)p;
+  void* p   = malloc(42 * sizeof(int));
+  int* pi   = (int*)p;
   short* ps = (short*)p;
 }
 

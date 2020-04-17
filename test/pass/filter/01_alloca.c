@@ -33,11 +33,11 @@ void foo_bar3() {
 }
 
 void foo() {
-  int a = 1;
-  int b = a;
+  int a  = 1;
+  int b  = a;
   int* c = &a;
-  int d = a;
-  int x = a;
+  int d  = a;
+  int x  = a;
   //  MPI_send(&a);
   MPI_send(c);  // mem2reg a gets filtered because c points to alloca of a; withpout mem2reg the c alloca gets filtered
   bar(d);

@@ -28,6 +28,6 @@ void setVartypes(struct_grid* pgrid, int nvars, int* vartypes /* = i32 ptr */) {
   for (int i = 0; i < nvars; i++) {
     new_vartypes[i] = vartypes[i];  // this is a memcpy (with -O1 and higher)
   }
-  pgrid->nvars = nvars;
+  pgrid->nvars    = nvars;
   pgrid->vartypes = new_vartypes;
 }
