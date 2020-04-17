@@ -19,8 +19,8 @@ void alloc_vector_vlas(int n) {
 }
 
 void malloc_vector(int n) {
-  int2* i = malloc(n * sizeof(int2));
-  float2* f = malloc(n * sizeof(float2));
+  int2* i    = malloc(n * sizeof(int2));
+  float2* f  = malloc(n * sizeof(float2));
   double3* d = malloc(n * sizeof(double3));
   printf("malloc size %d\n", sizeof(double3));
   free(i);

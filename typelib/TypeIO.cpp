@@ -3,6 +3,7 @@
 //
 
 #include "TypeIO.h"
+
 #include "TypeDB.h"
 #include "TypeInterface.h"
 
@@ -94,11 +95,14 @@ bool TypeIO::store(const std::string& file) const {
     llvm::errs() << "Error\n";
     return false;
   }
-
-  yaml::Output out(oss);
-
   auto types = typeDB.getStructList();
-  out << types;
+  yaml::Output out(oss);
+  if (types.size() > 0) {
+    out << types;
+  } else {
+    out.beginDocuments();
+    out.endDocuments();
+  }
 
   return true;
 }

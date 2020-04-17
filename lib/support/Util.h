@@ -79,7 +79,7 @@ inline std::string dump(const Val& s) {
 template <typename String>
 inline std::string demangle(String&& s) {
   std::string name = s;
-  auto demangle = llvm::itaniumDemangle(name.data(), nullptr, nullptr, nullptr);
+  auto demangle    = llvm::itaniumDemangle(name.data(), nullptr, nullptr, nullptr);
   if (demangle && std::string(demangle) != "") {
     return std::string(demangle);
   }

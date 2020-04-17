@@ -6,6 +6,7 @@
  */
 
 #include "MemOpVisitor.h"
+
 #include "support/Logger.h"
 #include "support/TypeUtil.h"
 #include "support/Util.h"
@@ -33,7 +34,7 @@ void MemOpVisitor::visitCallInst(llvm::CallInst& ci) {
       return None;
     }
     const auto name = f->getName().str();
-    const auto res = fMap.find(name);
+    const auto res  = fMap.find(name);
     if (res != fMap.end()) {
       return {(*res).second};
     }
@@ -97,12 +98,15 @@ void MemOpVisitor::visitFreeLike(llvm::CallInst& ci, MemOpKind) {
 void MemOpVisitor::visitAllocaInst(llvm::AllocaInst& ai) {
   //  LOG_DEBUG("Found alloca " << ai);
   Value* arraySizeOperand = ai.getArraySize();
-  int arraySize = -1;
+  size_t arraySize{0};  // FIXME avoid using int (
+  bool is_vla{false};
   if (auto arraySizeConst = llvm::dyn_cast<ConstantInt>(arraySizeOperand)) {
     arraySize = arraySizeConst->getZExtValue();
+  } else {
+    is_vla = true;
   }
 
-  listAlloca.push_back({&ai, arraySize});
+  listAlloca.push_back({&ai, arraySize, is_vla});
   //  LOG_DEBUG("Alloca: " << util::dump(ai) << " -> lifetime marker: " << util::dump(lifetimes));
 }  // namespace typeart
 

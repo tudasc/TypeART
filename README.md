@@ -1,4 +1,4 @@
-# TypeART
+# TypeART &nbsp; [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause) &nbsp; ![](https://github.com/tudasc/TypeART/workflows/Test-TypeART/badge.svg?branch=master)
 
 TypeART \[[TA18](#ref-typeart-2018)\] is a type and memory allocation tracking sanitizer.
 It consists of an LLVM compiler pass and a corresponding runtime to track relevant memory allocation information during the execution of a target program.
@@ -18,7 +18,7 @@ A brief summary is given in a subsequent section and more information can be fou
 <tr>
     <td valign="top"><a name="ref-typeart-2018"></a>[TA18]</td>
     <td>Hück, Alexander and Lehr, Jan-Patrick and Kreutzer, Sebastian and Protze, Joachim and Terboven, Christian and Bischof, Christian and Müller, Matthias S.
-    <a href=http://conferences.computer.org/scw/2018/pdfs/Correctness2018-4a8nikwzUlkPjw1TP5zWZt/3eQuPpEOKXTkjmMgQI3L3T/5g7rbAUBoYPUZJ6duKhpL4.pdf>
+    <a href=https://doi.org/10.1109/Correctness.2018.00011>
     Compiler-aided type tracking for correctness checking of MPI applications</a>.
     In <i>2nd International Workshop on Software Correctness for HPC Applications (Correctness)</i>,
     pages 51–58. IEEE, 2018.</td>
@@ -26,7 +26,7 @@ A brief summary is given in a subsequent section and more information can be fou
 <tr>
     <td valign="top"><a name="ref-must-2013"></a>[MU13]</td>
     <td>Hilbrich, Tobias and Protze, Joachim and Schulz, Martin and de Supinski, Bronis R. and Müller, Matthias S.
-    <a href=http://dx.doi.org/10.3233/SPR-130368>
+    <a href=https://doi.org/10.3233/SPR-130368>
     MPI Runtime Error Detection with MUST: Advances in Deadlock Detection</a>.
     In <i>Scientific Programming</i>, vol. 21, no. 3-4,
     pages 109–121, 2013.</td>
@@ -35,17 +35,17 @@ A brief summary is given in a subsequent section and more information can be fou
 
 ## Software dependencies
 
-TypeART requires [LLVM](https://llvm.org) version 6.0 and CMake version >= 3.5.
+TypeART requires [LLVM](https://llvm.org) version 10 and CMake version >= 3.12.
 
 #### Building TypeART
 
-TypeART uses CMake to build, cf. [TravisCI build file](.travis.yaml) for a complete recipe to build.
+TypeART uses CMake to build, cf. [GitHub CI build file](.github/workflows/basic-ci.yml) for a complete recipe to build.
+Example build recipe (debug build, installs to default prefix)
 ```{.sh}
-$> git clone https://github.com/jplehr/TypeART.git
+$> git clone https://github.com/tudasc/TypeART
 $> cd TypeART
-$> mkdir build && cd build
-$> cmake .. -DCMAKE_INSTALL_PREFIX=*your path*
-$> cmake --build . --target install
+$> cmake -B build
+$> cmake --build build --target install --parallel
 ```
 
 #### CMake Configuration: Options for users

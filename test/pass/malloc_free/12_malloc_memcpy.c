@@ -18,7 +18,7 @@ typedef struct {
 // CHECK-OPT: tail call void @free
 // CHECK-OPT-NEXT: call void @__typeart_free
 // CHECK-OPT: call void @__typeart_alloc(i8* %{{[0-9]+}}, i32 0,
-// CHECK-OPT: call void @llvm.memcpy.p0i8.p0i8.i64(i8* %15,
+// CHECK-OPT: call void @llvm.memcpy.p0i8.p0i8.i64(i8* {{(align 4[[:space:]])?}}%15,
 void setVartypes(struct_grid* pgrid, int nvars, int* vartypes /* = i32 ptr */) {
   int* new_vartypes;
   // free(pgrid->vartypes);
@@ -28,6 +28,6 @@ void setVartypes(struct_grid* pgrid, int nvars, int* vartypes /* = i32 ptr */) {
   for (int i = 0; i < nvars; i++) {
     new_vartypes[i] = vartypes[i];  // this is a memcpy (with -O1 and higher)
   }
-  pgrid->nvars = nvars;
+  pgrid->nvars    = nvars;
   pgrid->vartypes = new_vartypes;
 }

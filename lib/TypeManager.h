@@ -5,7 +5,6 @@
 
 #include <llvm/IR/DataLayout.h>
 #include <llvm/IR/Type.h>
-
 #include <map>
 
 namespace typeart {
