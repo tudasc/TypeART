@@ -1,4 +1,4 @@
-# TypeART
+# TypeART &nbsp; [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
 TypeART \[[TA18](#ref-typeart-2018)\] is a type and memory allocation tracking sanitizer.
 It consists of an LLVM compiler pass and a corresponding runtime to track relevant memory allocation information during the execution of a target program.
