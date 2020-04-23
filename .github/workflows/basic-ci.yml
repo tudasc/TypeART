@@ -1,4 +1,4 @@
-name: Test-TypeART
+name: TypeART-CI
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 jobs:
   build-and-run-test:
     runs-on: ubuntu-18.04
-
+    if: "!contains(github.event.head_commit.message, '[ci skip]')"
     steps:
       - uses: actions/checkout@v2
 
@@ -19,10 +19,13 @@ jobs:
           sudo apt-get update -q
 
       - name: Install LLVM
-        run: sudo apt-get install libllvm10 llvm-10 llvm-10-dev llvm-10-runtime
+        run: sudo apt-get install libllvm10 llvm-10 llvm-10-dev
 
       - name: Install Clang
-        run: sudo apt-get install clang-10 clang-format-10 clang-tidy-10
+        run: sudo apt-get install clang-10
+
+      - name: Install OpenMPI
+        run: sudo apt-get install libopenmpi-dev openmpi-bin
 
       - name: Setup env
         run: |
@@ -33,32 +36,35 @@ jobs:
           sudo ln -f -s /usr/bin/llc-10 /usr/bin/llc
           echo "::set-env name=CC::clang-10"
           echo "::set-env name=CXX::clang++-10"
-          echo "::set-env name=EXT_LIT::/usr/lib/llvm-10/build/utils/lit/lit.py"
+          echo "::set-env name=EXTERNAL_LIT::/usr/lib/llvm-10/build/utils/lit/lit.py"
 
       - name: Build TypeART
         run: |
-          cmake -B build -DTEST_CONFIG=ON -DLLVM_EXTERNAL_LIT=${EXT_LIT}
+          cmake -B build -DTEST_CONFIG=ON -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT}
           cmake --build build --parallel
 
       - name: Test TypeART
         run: cmake --build build --target test -- ARGS=-VV
 
-      - name: Run tidy checks
+      - name: Build TypeART Release
         run: |
-          cmake --build build --target tidy-run-on-typeartpass        | tee tidy_typeartpass.txt    | tee -a tidy_all.txt
-          cmake --build build --target tidy-run-on-meminstfinderpass  | tee tidy_meminstfinder.txt  | tee -a tidy_all.txt
-          cmake --build build --target tidy-run-on-typelib            | tee tidy_typelib.txt        | tee -a tidy_all.txt
-          cmake --build build --target tidy-run-on-typeart-rt         | tee tidy_typeart-rt.txt     | tee -a tidy_all.txt
+          cmake -B build_lulesh -DCMAKE_BUILD_TYPE=Release -DMPI_INTERCEPT_LIB=ON -DSHOW_STATS=ON
+          cmake --build build_lulesh --parallel
 
-      - name: Prepare clang-tidy artifact
+      - name: Test TypeART on lulesh
+        working-directory: build_lulesh
+        run: ctest -V -R lulesh -O lulesh2.0_build.log
+        
+      - name: Prepare lulesh artifact
         run: |
-          mkdir artifact
-          mv tidy_* artifact/
+          mkdir artifact_lulesh
+          mv build_lulesh/lulesh2.0_build.log artifact_lulesh/
+          mv test/lulesh/lulesh2.0_out.log artifact_lulesh/
+          mv test/lulesh/types.yaml artifact_lulesh/lulesh2.0_types.yaml
 
-      - name: Upload clang-tidy artifact
+      - name: Upload lulesh test artifact
         uses: actions/upload-artifact@v1
         with:
-          name: typeart-clangtidy-archive
-          path: artifact
-        
+          name: typeart-lulesh-archive
+          path: artifact_lulesh
         
