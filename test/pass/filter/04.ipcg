@@ -1,0 +1,38 @@
+{
+    "bar": {
+        "callees": ["MPI_Send"],
+        "doesOverride": false,
+        "hasBody": false,
+        "isVirtual": false,
+        "numStatements": 0,
+        "overriddenBy": [],
+        "overriddenFunctions": [],
+        "parents": [
+            "foo"
+        ]
+    },
+    "aar": {
+        "callees": [],
+        "doesOverride": false,
+        "hasBody": false,
+        "isVirtual": false,
+        "numStatements": 0,
+        "overriddenBy": [],
+        "overriddenFunctions": [],
+        "parents": [
+            "foo"
+        ]
+    },
+    "foo": {
+        "callees": [
+            "bar"
+        ],
+        "doesOverride": false,
+        "hasBody": true,
+        "isVirtual": false,
+        "numStatements": 1,
+        "overriddenBy": [],
+        "overriddenFunctions": [],
+        "parents": []
+    }
+}

@@ -8,6 +8,7 @@
 #include "MemInstFinderPass.h"
 
 #include "MemOpVisitor.h"
+#include "support/CGInterface.h"
 #include "support/Logger.h"
 #include "support/TypeUtil.h"
 #include "support/Util.h"
@@ -50,6 +51,8 @@ static cl::opt<const char*> ClCallFilterGlob("call-filter-str", cl::desc("Filter
 static cl::opt<bool> ClFilterGlobal("filter-globals", cl::desc("Filter globals of a module."), cl::Hidden,
                                     cl::init(true));
 
+static cl::opt<std::string> ClCGFile("cg-file", cl::desc("Location of CG to use."), cl::Hidden, cl::init(""));
+
 STATISTIC(NumDetectedHeap, "Number of detected heap allocs");
 STATISTIC(NumFilteredDetectedHeap, "Number of filtered heap allocs");
 STATISTIC(NumDetectedAllocs, "Number of detected allocs");
@@ -67,6 +70,9 @@ using namespace finder;
 namespace filter {
 
 class CallFilter::FilterImpl {
+  // Holds pointer to a CG implementation
+  std::unique_ptr<CGInterface> callGraph;
+
   const std::string call_regex;
   bool malloc_mode{false};
   llvm::Function* start_f{nullptr};
@@ -74,6 +80,12 @@ class CallFilter::FilterImpl {
 
  public:
   explicit FilterImpl(const std::string& glob) : call_regex(util::glob2regex(glob)) {
+    // XXX Move this to a better place
+    if (!callGraph && !ClCGFile.getValue().empty()) {
+      LOG_DEBUG("Resetting the CGInterface with JSON CG");
+      //callGraph.reset(new JSONCG(JSONCG::getJSON(ClCGFile.getValue())));
+      callGraph.reset(JSONCG::getJSON(ClCGFile.getValue()));
+    }
   }
 
   void setMode(bool search_malloc) {
