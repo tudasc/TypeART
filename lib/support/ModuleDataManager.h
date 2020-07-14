@@ -9,13 +9,17 @@
 
 #include <DataDB.h>
 #include <TaData.h>
+#include <analysis/MemOpVisitor.h>
 #include <bits/unordered_map.h>
+#include <llvm/ADT/DenseMap.h>
 #include <llvm/ADT/StringMap.h>
 
 namespace llvm {
 class Function;
 class Module;
 class Value;
+class GlobalVariable;
+class Instruction;
 }  // namespace llvm
 
 using namespace typeart::data;
@@ -27,29 +31,31 @@ class ModuleDataManager {
   DataDB mDB;
   MID mID{127};
   FID fID{127};
-  AllocID id{0};
+  AllocID aId{0};
 
   llvm::StringMap<FID> f_map;
+  // llvm::DenseMap<FID, MID> f2m_map;
   llvm::StringMap<MID> m_map;
 
-  // TODO *unused* eventually caches current context :
+  // TODO eventually caches current context :
   struct context {
-    llvm::Function* cur_f;
-    llvm::Module* cur_m;
     MID m;
-    FID f;
-    typeart::data::ModuleData* md;
-    typeart::data::FunctionData* fd;
-  } ctx;
+  } c;
+
+ private:
+  void make_id(AllocData&);
+  AllocData make_data(int, llvm::Instruction&);
+  // void make_alloc(AllocData&);
 
  public:
   explicit ModuleDataManager(std::string path);
   FID lookupFunction(llvm::Function& f);
   MID lookupModule(llvm::Module& m);
 
-  void putHeap(FID, llvm::Value*);
-  void putStack(FID, llvm::Value*);
-  void putGlobal(MID, llvm::Value*);
+  void setContext(MID);
+  void putHeap(FID, const MallocData&, int type);
+  void putStack(FID, const AllocaData&, int type);
+  void putGlobal(llvm::GlobalVariable*, int type);
 
   bool load();
   bool store();

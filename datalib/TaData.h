@@ -45,7 +45,7 @@ struct ModuleData final {
   }
   MID id{0};
   std::string name{""};
-  AllocData globals{};
+  AllocDataMap globals{};
   FunctionDataMap functions{};
 };
 

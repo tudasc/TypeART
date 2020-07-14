@@ -5,11 +5,13 @@
 #include "ModuleDataManager.h"
 
 #include "../../datalib/TaData.h"
+#include "../analysis/MemOpVisitor.h"
 #include "Logger.h"
 #include "Util.h"
 
 #include <DataIO.h>
 #include <TaData.h>
+#include <llvm/IR/Instruction.h>
 #include <llvm/IR/Module.h>
 
 using namespace typeart::data;
@@ -20,9 +22,6 @@ ModuleDataManager::ModuleDataManager(std::string path) : path(std::move(path)) {
 
 FID ModuleDataManager::lookupFunction(llvm::Function& f) {
   const auto fname = f.getName();
-  if (ctx.cur_f != &f) {
-    ctx.cur_f = &f;
-  }
 
   if (auto it = f_map.find(fname); it != f_map.end()) {
     return it->second;
@@ -44,11 +43,11 @@ FID ModuleDataManager::lookupFunction(llvm::Function& f) {
 
 MID ModuleDataManager::lookupModule(llvm::Module& m) {
   const std::string name = m.getName();
-  if (ctx.cur_m != &m) {
-    ctx.cur_m = &m;
-  }
+
   if (auto it = m_map.find(name); it != m_map.end()) {
-    return it->second;
+    auto id = it->second;
+    c.m     = id;
+    return id;
   }
 
   // new module:
@@ -61,7 +60,51 @@ MID ModuleDataManager::lookupModule(llvm::Module& m) {
     return 0;
   }
 
+  c.m = mID;
   return mID;
+}
+
+void ModuleDataManager::setContext(MID id) {
+  c.m = id;
+}
+
+void ModuleDataManager::make_id(AllocData& d) {
+  // TODO duplicate checking etc.?
+  ++aId;
+  d.id = aId;
+}
+
+AllocData ModuleDataManager::make_data(int type, llvm::Instruction& i) {
+  AllocData data;
+  make_id(data);
+  data.typeID = type;
+  auto dbg    = util::getDebugVar(i);
+  return data;
+}
+
+void ModuleDataManager::putHeap(FID fID, const MallocData& m, int type) {
+  auto mid     = c.m;
+  auto& fdata  = mDB.function(mid, fID);
+  auto& heap_m = fdata.heap;
+
+  auto data = make_data(type, *m.call);
+}
+void ModuleDataManager::putStack(FID, const AllocaData& m, int type) {
+  auto mid      = c.m;
+  auto& fdata   = mDB.function(mid, fID);
+  auto& stack_m = fdata.stack;
+
+  auto data = make_data(type, *m.alloca);
+}
+void ModuleDataManager::putGlobal(llvm::GlobalVariable* g, int type) {
+  auto mid       = c.m;
+  auto& mdata    = mDB.module(mid);
+  auto& global_m = mdata.globals;
+
+  AllocData data;
+  make_id(data);
+  data.typeID = type;
+  // auto dbg    = util::getDebugVar(*g);
 }
 
 bool ModuleDataManager::load() {

@@ -11,11 +11,18 @@
 //#include "Logger.h"
 
 #include "llvm/Demangle/Demangle.h"
+#include "llvm/IR/DebugInfo.h"
+#include "llvm/IR/DerivedTypes.h"
+#include "llvm/IR/Function.h"
+#include "llvm/IR/InstIterator.h"
+#include "llvm/IR/IntrinsicInst.h"
 #include "llvm/Support/Regex.h"
 #include "llvm/Support/raw_ostream.h"
 
 namespace typeart {
 namespace util {
+
+#define ifcast(ty, var, val) if (ty* var = llvm::dyn_cast<ty>(val))  // NOLINT
 
 namespace detail {
 // http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4502.pdf :
@@ -133,6 +140,31 @@ inline std::string glob2regex(const std::string& glob) {
   }
   glob_reg += "$";
   return glob_reg;
+}
+
+inline llvm::DILocalVariable* getDebugVar(llvm::Value& inst, const llvm::Function& f) {
+  llvm::DILocalVariable* var = nullptr;
+  for (auto it = inst_begin(f); it != inst_end(f); it++) {
+    ifcast(const llvm::DbgDeclareInst, dbgInst, &*it) {
+      if (dbgInst->getAddress() == &inst) {
+        var = dbgInst->getVariable();
+        break;
+      }
+    }
+    ifcast(const llvm::DbgValueInst, dbgInst, &*it) {
+      if (dbgInst->getValue() == &inst) {
+        var = dbgInst->getVariable();
+        break;
+      }
+    }
+  }
+
+  return var;
+}
+
+inline llvm::DILocalVariable* getDebugVar(llvm::Instruction& inst) {
+  llvm::Function& f = *inst.getFunction();
+  return getDebugVar(inst, f);
 }
 
 }  // namespace util
