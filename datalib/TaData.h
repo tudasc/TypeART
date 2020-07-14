@@ -26,19 +26,27 @@ struct AllocData final {
 using AllocDataMap = std::unordered_map<AllocID, AllocData>;
 
 struct FunctionData final {
+  FunctionData() {
+  }
+  FunctionData(FID id) : id(id) {
+  }
   FID id{0};
   std::string name{""};
-  AllocDataMap stack;
-  AllocDataMap heap;
+  AllocDataMap stack{};
+  AllocDataMap heap{};
 };
 
 using FunctionDataMap = std::unordered_map<FID, FunctionData>;
 
 struct ModuleData final {
+  ModuleData() {
+  }
+  ModuleData(MID id) : id(id) {
+  }
   MID id{0};
   std::string name{""};
-  AllocData globals;
-  FunctionDataMap functions;
+  AllocData globals{};
+  FunctionDataMap functions{};
 };
 
 using ModuleDataVec = std::vector<ModuleData>;

@@ -7,10 +7,17 @@
 #include "TaData.h"
 namespace typeart {
 class DataDB {
+  data::ModuleDataVec modules;
+
  public:
   void clear();
+  void makeUnique() {
+  }
   void putModule(data::ModuleData& data);
-  data::ModuleDataVec getModules();
+  const data::ModuleDataVec& getModules();
+
+  data::ModuleData& module(data::MID id);
+  data::FunctionData& function(data::MID id, data::FID fid);
 };
 }  // namespace typeart
 #endif  // TYPEART_DATADB_H

@@ -142,7 +142,7 @@ bool DataIO::load(const std::string& file) {
   in >> modules;
 
   for (auto& moduleInfo : modules) {
-    dataDB.put(moduleInfo);
+    dataDB.putModule(moduleInfo);
   }
 
   if (in.error()) {
