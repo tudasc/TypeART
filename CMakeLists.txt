@@ -31,6 +31,7 @@ add_format_target(format-sources
 add_subdirectory(externals)
 add_subdirectory(lib)
 add_subdirectory(typelib)
+add_subdirectory(datalib)
 add_subdirectory(runtime)
 add_subdirectory(scripts)
 enable_testing()
