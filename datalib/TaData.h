@@ -18,7 +18,7 @@ using Location = int;
 
 struct AllocData final {
   AllocID id{0};
-  int typeID{0};  // TODO use typedef
+  int typeID{0};
   std::string typeStr{""};
   Location line{-1};
   std::string dump{"-"};

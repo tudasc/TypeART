@@ -93,7 +93,7 @@ int ta_check_buffer(const char* mpi_name, const void* called_from, const void* b
     return -1;
   }
   int typeId;
-  size_t count = 0;
+  size_t count                    = 0;
   typeart_status typeart_status_v = typeart_get_type(buf, &typeId, &count);
   if (typeart_status_v != TA_OK) {
     ++mcounter.error;
@@ -137,9 +137,9 @@ void ta_exit() {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   struct rusage end;
   getrusage(RUSAGE_SELF, &end);
-  printf("CCounter (%i) { Send: %i Recv: %i Send_Recv: %i Unsupported: %i MAX RSS[KBytes]: %ld }\n", rank, counter.send,
-         counter.recv, counter.send_recv, counter.unsupported, end.ru_maxrss);
-  printf("MCounter (%i) { Error: %i Null_Buf: %i Null_Count: %i }\n", rank, mcounter.error, mcounter.null_buff,
+  printf("CCounter (%i) { Send: %li Recv: %li Send_Recv: %li Unsupported: %li MAX RSS[KBytes]: %ld }\n", rank,
+         counter.send, counter.recv, counter.send_recv, counter.unsupported, end.ru_maxrss);
+  printf("MCounter (%i) { Error: %li Null_Buf: %li Null_Count: %li }\n", rank, mcounter.error, mcounter.null_buff,
          mcounter.null_count);
 }
 

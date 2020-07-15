@@ -116,8 +116,9 @@ bool TypeArtPass::runOnModule(Module& m) {
       auto globalPtr         = IRB.CreateBitOrPointerCast(global, instr.getTypeFor(IType::ptr));
 
       LOG_DEBUG("Instrumenting global variable: " << util::dump(*global));
-      auto global_ID = data.putGlobal(global, typeId);
-      IRB.CreateCall(typeart_alloc_global.f, ArrayRef<Value*>{globalPtr, typeIdConst, numElementsConst});
+      auto global_ID     = data.putGlobal(global, typeId);
+      auto global_ID_val = instr.getConstantFor(IType::alloca_id, global_ID);
+      IRB.CreateCall(typeart_alloc_global.f, ArrayRef<Value*>{globalPtr, typeIdConst, numElementsConst, global_ID_val});
       return true;
     };
 
@@ -239,8 +240,9 @@ bool TypeArtPass::runOnFunc(Function& f) {
       return false;
     }
 
-    auto heap_ID = data.putHeap(FID, malloc, typeId);
-    IRB.CreateCall(typeart_alloc.f, ArrayRef<Value*>{mallocInst, typeIdConst, elementCount});
+    auto heap_ID     = data.putHeap(FID, malloc, typeId);
+    auto heap_ID_val = instr.getConstantFor(IType::alloca_id, heap_ID);
+    IRB.CreateCall(typeart_alloc.f, ArrayRef<Value*>{mallocInst, typeIdConst, elementCount, heap_ID_val});
 
     return true;
   };
@@ -285,8 +287,9 @@ bool TypeArtPass::runOnFunc(Function& f) {
     auto* typeIdConst = instr.getConstantFor(IType::type_id, typeId);
     auto arrayPtr     = IRB.CreateBitOrPointerCast(alloca, instr.getTypeFor(IType::ptr));
 
-    auto stack_ID = data.putStack(FID, allocaData, typeId);
-    IRB.CreateCall(typeart_alloc_stack.f, ArrayRef<Value*>{arrayPtr, typeIdConst, numElementsVal});
+    auto stack_ID     = data.putStack(FID, allocaData, typeId);
+    auto stack_ID_val = instr.getConstantFor(IType::alloca_id, stack_ID);
+    IRB.CreateCall(typeart_alloc_stack.f, ArrayRef<Value*>{arrayPtr, typeIdConst, numElementsVal, stack_ID_val});
 
     allocCounts[alloca->getParent()]++;
 
@@ -376,7 +379,7 @@ void TypeArtPass::declareInstrumentationFunctions(Module& m) {
     return;
   }
 
-  auto alloc_arg_types      = instr.make_parameters(IType::ptr, IType::type_id, IType::extent);
+  auto alloc_arg_types      = instr.make_parameters(IType::ptr, IType::type_id, IType::extent, IType::alloca_id);
   auto free_arg_types       = instr.make_parameters(IType::ptr);
   auto leavescope_arg_types = instr.make_parameters(IType::stack_count);
 
