@@ -509,11 +509,13 @@ size_t TypeArtRT::getTypeSize(int id) const {
 }
 
 int TypeArtRT::getReturnAddress(const void* addr) const {
+#if USE_DBG_LOC == 1
   auto basePtr = findBaseAddress(addr);
 
   if (basePtr) {
     return basePtr.getValue().second.id;
   }
+#endif
   return -1;
 }
 
@@ -547,15 +549,19 @@ void TypeArtRT::doAlloc(const void* addr, int typeId, size_t count, int ret_id, 
   } else {
     typeart::Recorder::get().incAddrReuse();
     if (reg == 'G' || reg == 'H') {
+#if USE_DBG_LOC == 1
       LOG_ERROR("Already exists (" << ret_id << ", prev=" << def.id
                                    << "): " << toString(addr, typeId, count, typeDB.getTypeSize(typeId)));
+#else
+      LOG_ERROR("Already exists: " << toString(addr, typeId, count, typeDB.getTypeSize(typeId)));
+#endif
       LOG_ERROR("Data in map is: " << toString(addr, def));
     }
   }
 
   def.typeId = typeId;
   def.count  = count;
-#ifdef USE_DBG_LOC
+#if USE_DBG_LOC == 1
   def.id = ret_id;
 #endif
   // def.debug  = retAddr;
