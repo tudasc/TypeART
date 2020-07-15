@@ -114,10 +114,33 @@ data::AllocID ModuleDataManager::putGlobal(llvm::GlobalVariable* g, int type) {
 }
 
 bool ModuleDataManager::load() {
+  const auto max_count = [](const auto& vec, auto& max) {
+    auto max_e = std::max_element(std::begin(vec), std::end(vec),
+                                  [](const auto& item, const auto& item2) { return item.first < item2.first; });
+    if (max_e != std::end(vec) && max_e->first > max) {
+      max = max_e->first;
+    }
+  };
+
   DataIO io(mDB);
   if (io.load(path)) {
     mDB.makeUnique();
-    // TODO set mID, fID, AllocID start values
+
+    const auto& modules = mDB.getModules();
+    for (const auto& m : modules) {
+      if (m.id > mID) {
+        mID = m.id;
+      }
+      m_map.try_emplace(m.name, m.id);
+      max_count(m.globals, aId);
+      max_count(m.functions, fID);
+      for (auto&& [id, f] : m.functions) {
+        f_map.try_emplace(f.name, f.id);
+        max_count(f.heap, aId);
+        max_count(f.stack, aId);
+      }
+    }
+    LOG_FATAL(fID)
   }
   return false;
 }

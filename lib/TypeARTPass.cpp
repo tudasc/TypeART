@@ -162,6 +162,7 @@ bool TypeArtPass::runOnFunc(Function& f) {
   LOG_DEBUG("Running on function: " << f.getName())
 
   const auto FID = data.lookupFunction(f);
+  LOG_FATAL("FID " << FID)
 
   // FIXME this is required when "PassManagerBuilder::EP_OptimizerLast" is used as the function (constant) pointer are
   // nullpointer/invalidated

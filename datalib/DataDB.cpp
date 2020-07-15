@@ -13,6 +13,7 @@ void DataDB::clear() {
 }
 
 void DataDB::putModule(data::ModuleData& moduleData) {
+  modules.push_back(moduleData);
 }
 
 const data::ModuleDataVec& DataDB::getModules() {
