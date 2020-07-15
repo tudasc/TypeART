@@ -8,6 +8,7 @@
 #include "../../datalib/DataDB.h"
 #include "../../datalib/TaData.h"
 //#include "TaData.h"
+#include "TypeManager.h"
 #include "analysis/MemOpVisitor.h"
 
 #include <bits/unordered_map.h>
@@ -32,10 +33,10 @@ class ModuleDataManager {
   MID mID{127};
   FID fID{127};
   AllocID aId{0};
-
   llvm::StringMap<FID> f_map;
-  // llvm::DenseMap<FID, MID> f2m_map;
   llvm::StringMap<MID> m_map;
+
+  TypeManager* type_m{nullptr};
 
   // TODO eventually caches current context :
   struct context {
@@ -52,6 +53,7 @@ class ModuleDataManager {
   FID lookupFunction(llvm::Function& f);
   MID lookupModule(llvm::Module& m);
 
+  void setTypeManager(TypeManager* m);
   void setContext(MID);
   data::AllocID putHeap(FID, const MallocData&, int type);
   data::AllocID putStack(FID, const AllocaData&, int type);

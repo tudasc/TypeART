@@ -81,7 +81,8 @@ struct llvm::yaml::MappingTraits<typeart::data::AllocData> {
   static void mapping(IO& io, typeart::data::AllocData& info) {
     io.mapRequired("id", info.id);
     io.mapRequired("type", info.typeID);
-    io.mapRequired("loc", info.line);
+    io.mapOptional("type_n", info.typeStr);
+    io.mapOptional("loc", info.line);
     io.mapRequired("dump", info.dump);
   }
 };

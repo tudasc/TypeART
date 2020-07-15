@@ -4,6 +4,7 @@
 
 #include "ModuleDataManager.h"
 
+#include "../TypeManager.h"
 #include "../analysis/MemOpVisitor.h"
 #include "DataIO.h"
 #include "Logger.h"
@@ -66,6 +67,10 @@ void ModuleDataManager::setContext(MID id) {
   c.m = id;
 }
 
+void ModuleDataManager::setTypeManager(TypeManager* m) {
+  type_m = m;
+}
+
 void ModuleDataManager::make_id(AllocData& d) {
   // TODO duplicate checking etc.?
   ++aId;
@@ -76,7 +81,14 @@ AllocData ModuleDataManager::make_data(int type, llvm::Instruction& i) {
   AllocData data;
   make_id(data);
   data.typeID = type;
-  auto dbg    = util::getDebugVar(i);
+  if (type_m != nullptr) {
+    data.typeStr = type_m->typeNameOf(type);
+  }
+  data.dump = util::dump(i);
+  auto dbg  = util::getDebugVar(i);
+  if (dbg != nullptr) {
+    data.line = dbg->getLine();
+  }
   return data;
 }
 
@@ -107,6 +119,7 @@ data::AllocID ModuleDataManager::putGlobal(llvm::GlobalVariable* g, int type) {
   AllocData data;
   make_id(data);
   data.typeID = type;
+  data.dump   = util::dump(*g);
   // auto dbg    = util::getDebugVar(*g);
 
   global_m.try_emplace(data.id, data);
@@ -140,7 +153,7 @@ bool ModuleDataManager::load() {
         max_count(f.stack, aId);
       }
     }
-    LOG_FATAL(fID)
+    return true;
   }
   return false;
 }

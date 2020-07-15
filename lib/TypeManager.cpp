@@ -207,6 +207,10 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
   return id;
 }
 
+std::string TypeManager::typeNameOf(int typeID) {
+  return typeDB.getTypeName(typeID);
+}
+
 int TypeManager::reserveNextId() {
   int id = TA_NUM_RESERVED_IDS + structCount;
   structCount++;
