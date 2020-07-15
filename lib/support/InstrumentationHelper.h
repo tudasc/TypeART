@@ -37,7 +37,7 @@ enum class IType {
   function_id,  // Type for identifying a function
   type_id,      // Type for identifying a type
   extent,       // Type for identifying an array length
-  alloca_id,    // Type for identifying a memory allocaion
+  alloca_id,    // Type for identifying a memory allocation
   stack_count,  // Type for identifying a count of stack alloca instructions
 };
 

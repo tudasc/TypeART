@@ -5,11 +5,11 @@
 #ifndef TYPEART_MODULEDATAMANAGER_H
 #define TYPEART_MODULEDATAMANAGER_H
 
-//#include "../../datalib/TaData.h"
+#include "../../datalib/DataDB.h"
+#include "../../datalib/TaData.h"
+//#include "TaData.h"
+#include "analysis/MemOpVisitor.h"
 
-#include <DataDB.h>
-#include <TaData.h>
-#include <analysis/MemOpVisitor.h>
 #include <bits/unordered_map.h>
 #include <llvm/ADT/DenseMap.h>
 #include <llvm/ADT/StringMap.h>
@@ -53,9 +53,9 @@ class ModuleDataManager {
   MID lookupModule(llvm::Module& m);
 
   void setContext(MID);
-  void putHeap(FID, const MallocData&, int type);
-  void putStack(FID, const AllocaData&, int type);
-  void putGlobal(llvm::GlobalVariable*, int type);
+  data::AllocID putHeap(FID, const MallocData&, int type);
+  data::AllocID putStack(FID, const AllocaData&, int type);
+  data::AllocID putGlobal(llvm::GlobalVariable*, int type);
 
   bool load();
   bool store();

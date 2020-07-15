@@ -4,13 +4,11 @@
 
 #include "ModuleDataManager.h"
 
-#include "../../datalib/TaData.h"
 #include "../analysis/MemOpVisitor.h"
+#include "DataIO.h"
 #include "Logger.h"
 #include "Util.h"
 
-#include <DataIO.h>
-#include <TaData.h>
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/Module.h>
 
@@ -82,21 +80,26 @@ AllocData ModuleDataManager::make_data(int type, llvm::Instruction& i) {
   return data;
 }
 
-void ModuleDataManager::putHeap(FID fID, const MallocData& m, int type) {
+data::AllocID ModuleDataManager::putHeap(FID fID, const MallocData& m, int type) {
   auto mid     = c.m;
   auto& fdata  = mDB.function(mid, fID);
   auto& heap_m = fdata.heap;
 
   auto data = make_data(type, *m.call);
+
+  heap_m.try_emplace(data.id, data);
+  return data.id;
 }
-void ModuleDataManager::putStack(FID, const AllocaData& m, int type) {
+data::AllocID ModuleDataManager::putStack(FID, const AllocaData& m, int type) {
   auto mid      = c.m;
   auto& fdata   = mDB.function(mid, fID);
   auto& stack_m = fdata.stack;
 
   auto data = make_data(type, *m.alloca);
+  stack_m.try_emplace(data.id, data);
+  return data.id;
 }
-void ModuleDataManager::putGlobal(llvm::GlobalVariable* g, int type) {
+data::AllocID ModuleDataManager::putGlobal(llvm::GlobalVariable* g, int type) {
   auto mid       = c.m;
   auto& mdata    = mDB.module(mid);
   auto& global_m = mdata.globals;
@@ -105,6 +108,9 @@ void ModuleDataManager::putGlobal(llvm::GlobalVariable* g, int type) {
   make_id(data);
   data.typeID = type;
   // auto dbg    = util::getDebugVar(*g);
+
+  global_m.try_emplace(data.id, data);
+  return data.id;
 }
 
 bool ModuleDataManager::load() {

@@ -20,7 +20,7 @@ struct AllocData final {
   AllocID id{0};
   int typeID{0};  // TODO use typedef
   Location line{-1};
-  std::string dump{"-missing-"};
+  std::string dump{"-"};
 };
 
 using AllocDataMap = std::unordered_map<AllocID, AllocData>;

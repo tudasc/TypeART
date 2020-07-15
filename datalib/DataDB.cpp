@@ -27,7 +27,7 @@ data::ModuleData& DataDB::module(data::MID id) {
 }
 
 data::FunctionData& DataDB::function(data::MID id, data::FID fid) {
-  auto mdata           = module(id);
+  auto& mdata          = module(id);
   auto& functions      = mdata.functions;
   auto&& [it, success] = functions.try_emplace(fid, FunctionData{fid});
 

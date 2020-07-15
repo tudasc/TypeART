@@ -5,6 +5,7 @@
 #include "TypeInterface.h"
 #include "analysis/MemInstFinderPass.h"
 #include "support/Logger.h"
+#include "support/ModuleDataManager.h"
 #include "support/TypeUtil.h"
 #include "support/Util.h"
 
@@ -41,6 +42,9 @@ static cl::opt<bool> ClTypeArtAlloca("typeart-alloca", cl::desc("Track alloca in
 static cl::opt<std::string> ClTypeFile("typeart-outfile", cl::desc("Location of the generated type file."), cl::Hidden,
                                        cl::init("types.yaml"));
 
+static cl::opt<std::string> ClAllocFile("typeart-alloc-outfile", cl::desc("Location of the generated alloc file."),
+                                        cl::Hidden, cl::init("allocs-instrumented.yaml"));
+
 STATISTIC(NumInstrumentedMallocs, "Number of instrumented mallocs");
 STATISTIC(NumInstrumentedFrees, "Number of instrumented frees");
 STATISTIC(NumInstrumentedAlloca, "Number of instrumented (stack) allocas");
@@ -56,7 +60,7 @@ char TypeArtPass::ID = 0;
 
 // std::unique_ptr<TypeMapping> TypeArtPass::typeMapping = std::make_unique<SimpleTypeMapping>();
 
-TypeArtPass::TypeArtPass() : llvm::ModulePass(ID), typeManager(ClTypeFile.getValue()) {
+TypeArtPass::TypeArtPass() : llvm::ModulePass(ID), typeManager(ClTypeFile.getValue()), data(ClAllocFile.getValue()) {
   assert(!ClTypeFile.empty() && "Default type file not set");
   EnableStatistics();
 }
@@ -72,13 +76,22 @@ bool TypeArtPass::doInitialization(Module& m) {
   if (typeManager.load()) {
     LOG_DEBUG("Existing type configuration successfully loaded from " << ClTypeFile.getValue());
   } else {
-    LOG_DEBUG("No valid existing type configuration found: " << ClTypeFile.getValue());
+    LOG_WARNING("No valid existing type configuration found: " << ClTypeFile.getValue());
+  }
+
+  LOG_DEBUG("Propagating alloc infos.");
+  if (data.load()) {
+    LOG_DEBUG("Existing alloc data successfully loaded from " << ClAllocFile.getValue());
+  } else {
+    LOG_WARNING("No valid existing alloc data found: " << ClAllocFile.getValue());
   }
 
   return true;
 }
 
 bool TypeArtPass::runOnModule(Module& m) {
+  data.lookupModule(m);
+
   bool globalInstro{false};
   if (ClIgnoreHeap) {
     declareInstrumentationFunctions(m);
@@ -102,7 +115,7 @@ bool TypeArtPass::runOnModule(Module& m) {
       auto globalPtr         = IRB.CreateBitOrPointerCast(global, instr.getTypeFor(IType::ptr));
 
       LOG_DEBUG("Instrumenting global variable: " << util::dump(*global));
-
+      auto global_ID = data.putGlobal(global, typeId);
       IRB.CreateCall(typeart_alloc_global.f, ArrayRef<Value*>{globalPtr, typeIdConst, numElementsConst});
       return true;
     };
@@ -147,6 +160,8 @@ bool TypeArtPass::runOnFunc(Function& f) {
   }
 
   LOG_DEBUG("Running on function: " << f.getName())
+
+  const auto FID = data.lookupFunction(f);
 
   // FIXME this is required when "PassManagerBuilder::EP_OptimizerLast" is used as the function (constant) pointer are
   // nullpointer/invalidated
@@ -223,6 +238,7 @@ bool TypeArtPass::runOnFunc(Function& f) {
       return false;
     }
 
+    auto heap_ID = data.putHeap(FID, malloc, typeId);
     IRB.CreateCall(typeart_alloc.f, ArrayRef<Value*>{mallocInst, typeIdConst, elementCount});
 
     return true;
@@ -268,6 +284,7 @@ bool TypeArtPass::runOnFunc(Function& f) {
     auto* typeIdConst = instr.getConstantFor(IType::type_id, typeId);
     auto arrayPtr     = IRB.CreateBitOrPointerCast(alloca, instr.getTypeFor(IType::ptr));
 
+    auto stack_ID = data.putStack(FID, allocaData, typeId);
     IRB.CreateCall(typeart_alloc_stack.f, ArrayRef<Value*>{arrayPtr, typeIdConst, numElementsVal});
 
     allocCounts[alloca->getParent()]++;
@@ -331,13 +348,19 @@ bool TypeArtPass::doFinalization(Module&) {
   /*
    * Persist the accumulated type definition information for this module.
    */
-  LOG_DEBUG("Writing type file to " << ClTypeFile.getValue());
 
   if (typeManager.store()) {
-    LOG_DEBUG("Success!");
+    LOG_DEBUG("Stored type data.");
   } else {
     LOG_FATAL("Failed writing type config to " << ClTypeFile.getValue());
   }
+
+  if (data.store()) {
+    LOG_DEBUG("Stored alloc data.");
+  } else {
+    LOG_FATAL("Failed writing alloc data to " << ClAllocFile.getValue());
+  }
+
   if (ClTypeArtStats && AreStatisticsEnabled()) {
     auto& out = llvm::errs();
     printStats(out);

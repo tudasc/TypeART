@@ -65,10 +65,19 @@ struct YamlNormalizeMap {
     return m;
   }
 };
+
 }  // namespace detail
+
+using NormalizedAMap = ::detail::YamlNormalizeMap<typeart::data::AllocDataMap, std::vector<typeart::data::AllocData>>;
+using NormalizeAllocData = MappingNormalization<NormalizedAMap, NormalizedAMap::MapTy>;
+
+using NormalizedFMap =
+    ::detail::YamlNormalizeMap<typeart::data::FunctionDataMap, std::vector<typeart::data::FunctionData>>;
+using NormalizeFuncData = MappingNormalization<NormalizedFMap, NormalizedFMap::MapTy>;
 
 template <>
 struct llvm::yaml::MappingTraits<typeart::data::AllocData> {
+  static const bool flow = true;
   static void mapping(IO& io, typeart::data::AllocData& info) {
     io.mapRequired("id", info.id);
     io.mapRequired("type", info.typeID);
@@ -79,6 +88,7 @@ struct llvm::yaml::MappingTraits<typeart::data::AllocData> {
 
 LLVM_YAML_IS_SEQUENCE_VECTOR(AllocData)
 
+/*
 template <>
 struct llvm::yaml::MappingTraits<typeart::data::AllocDataMap> {
   static void mapping(IO& io, typeart::data::AllocDataMap& polar) {
@@ -87,19 +97,24 @@ struct llvm::yaml::MappingTraits<typeart::data::AllocDataMap> {
     io.mapRequired("sequence", keys->norm);
   }
 };
+*/
 
 template <>
 struct llvm::yaml::MappingTraits<typeart::data::FunctionData> {
   static void mapping(IO& io, typeart::data::FunctionData& info) {
     io.mapRequired("id", info.id);
     io.mapRequired("name", info.name);
-    io.mapRequired("heap", info.heap);
-    io.mapRequired("stack", info.stack);
+
+    NormalizeAllocData keys_h(io, info.heap);
+    NormalizeAllocData keys_s(io, info.stack);
+    io.mapOptional("heap", keys_h->norm);
+    io.mapOptional("stack", keys_s->norm);
   }
 };
 
 LLVM_YAML_IS_SEQUENCE_VECTOR(FunctionData)
 
+/*
 template <>
 struct llvm::yaml::MappingTraits<typeart::data::FunctionDataMap> {
   static void mapping(IO& io, typeart::data::FunctionDataMap& polar) {
@@ -108,14 +123,19 @@ struct llvm::yaml::MappingTraits<typeart::data::FunctionDataMap> {
     io.mapRequired("sequence", keys->norm);
   }
 };
+*/
 
 template <>
 struct llvm::yaml::MappingTraits<typeart::data::ModuleData> {
   static void mapping(IO& io, typeart::data::ModuleData& info) {
     io.mapRequired("id", info.id);
     io.mapRequired("name", info.name);
-    io.mapRequired("globals", info.globals);
-    io.mapRequired("functions", info.functions);
+
+    NormalizeFuncData keys_f(io, info.functions);
+    NormalizeAllocData keys_g(io, info.globals);
+
+    io.mapOptional("globals", keys_g->norm);
+    io.mapOptional("functions", keys_f->norm);
   }
 };
 
