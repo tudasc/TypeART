@@ -50,6 +50,9 @@ static cl::opt<const char*> ClCallFilterGlob("call-filter-str", cl::desc("Filter
 static cl::opt<bool> ClFilterGlobal("filter-globals", cl::desc("Filter globals of a module."), cl::Hidden,
                                     cl::init(true));
 
+static cl::opt<std::string> ClFilterFile("typeart-filter-outfile", cl::desc("Location of the generated alloc file."),
+                                         cl::Hidden, cl::init("allocs-filtered.yaml"));
+
 STATISTIC(NumDetectedHeap, "Number of detected heap allocs");
 STATISTIC(NumFilteredDetectedHeap, "Number of filtered heap allocs");
 STATISTIC(NumDetectedAllocs, "Number of detected allocs");
@@ -279,36 +282,38 @@ class CallFilter::FilterImpl {
   }
 };
 
-CallFilter::CallFilter(const std::string& glob) : fImpl{std::make_unique<FilterImpl>(glob)} {
+CallFilter::CallFilter(const std::string& glob, ModuleDataManager& m)
+    : fImpl{std::make_unique<FilterImpl>(glob)}, m(m) {
 }
 
-bool CallFilter::operator()(AllocaInst* in) {
+bool CallFilter::operator()(const AllocaData& adata) {
+  auto* in = adata.alloca;
   LOG_DEBUG("Analyzing value: " << util::dump(*in));
   fImpl->setMode(/*search mallocs = */ false);
   fImpl->setStartingFunction(in->getParent()->getParent());
   const auto filter_ = fImpl->filter(in);
   if (filter_) {
     LOG_DEBUG("Filtering value: " << util::dump(*in) << "\n");
+    m.putStack(adata, -1, "CallFiler");
   } else {
     LOG_DEBUG("Keeping value: " << util::dump(*in) << "\n");
   }
   return filter_;
 }
 
-bool CallFilter::operator()(GlobalValue* g) {
+bool CallFilter::operator()(GlobalVariable* g) {
   LOG_DEBUG("Analyzing value: " << util::dump(*g));
   fImpl->setMode(/*search mallocs = */ false);
   fImpl->setStartingFunction(nullptr);
   const auto filter_ = fImpl->filter(g);
   if (filter_) {
     LOG_DEBUG("Filtering value: " << util::dump(*g) << "\n");
+    m.putGlobal(g, -1, "CallFiler");
   } else {
     LOG_DEBUG("Keeping value: " << util::dump(*g) << "\n");
   }
   return filter_;
 }
-
-CallFilter& CallFilter::operator=(CallFilter&&) noexcept = default;
 
 CallFilter::~CallFilter() = default;
 
@@ -316,7 +321,11 @@ CallFilter::~CallFilter() = default;
 
 char MemInstFinderPass::ID = 0;
 
-MemInstFinderPass::MemInstFinderPass() : llvm::ModulePass(ID), mOpsCollector(), filter(ClCallFilterGlob.getValue()) {
+MemInstFinderPass::MemInstFinderPass()
+    : llvm::ModulePass(ID),
+      mOpsCollector(),
+      data_m(ClFilterFile.getValue()),
+      filter(ClCallFilterGlob.getValue(), data_m) {
 }
 
 void MemInstFinderPass::getAnalysisUsage(llvm::AnalysisUsage& info) const {
@@ -324,6 +333,9 @@ void MemInstFinderPass::getAnalysisUsage(llvm::AnalysisUsage& info) const {
 }
 
 bool MemInstFinderPass::runOnModule(Module& m) {
+  data_m.load();
+  data_m.lookupModule(m);
+
   mOpsCollector.visitModuleGlobals(m);
   auto& globals = mOpsCollector.listGlobals;
   NumDetectedGlobals += globals.size();
@@ -408,6 +420,8 @@ bool MemInstFinderPass::runOnFunc(llvm::Function& f) {
     return false;
   }
 
+  const auto FID = data_m.lookupFunction(f);
+
   mOpsCollector.visit(f);
 
   LOG_DEBUG("Running on function: " << f.getName())
@@ -483,7 +497,7 @@ bool MemInstFinderPass::runOnFunc(llvm::Function& f) {
     auto& allocs = mOpsCollector.listAlloca;
     allocs.erase(llvm::remove_if(allocs,
                                  [&](const auto& data) {
-                                   if (filter(data.alloca)) {
+                                   if (filter(data)) {
                                      ++NumCallFilteredAllocs;
                                      return true;
                                    }
@@ -509,6 +523,8 @@ bool MemInstFinderPass::runOnFunc(llvm::Function& f) {
 }  // namespace typeart
 
 bool MemInstFinderPass::doFinalization(llvm::Module&) {
+  data_m.clearEmpty();
+  data_m.store();
   if (AreStatisticsEnabled()) {
     auto& out = llvm::errs();
     printStats(out);

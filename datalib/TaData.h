@@ -16,12 +16,22 @@ using FID      = unsigned;
 using AllocID  = unsigned;
 using Location = int;
 
+struct FilterData final {
+  std::string reason{"-"};
+};
+
+struct DbgData final {
+  Location line{-1};
+  std::string name{""};
+};
+
 struct AllocData final {
   AllocID id{0};
   int typeID{0};
   std::string typeStr{""};
-  Location line{-1};
-  std::string dump{"-"};
+  std::string dump{""};
+  DbgData dbg{};
+  FilterData filter{};
 };
 
 using AllocDataMap = std::unordered_map<AllocID, AllocData>;

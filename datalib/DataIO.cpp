@@ -76,14 +76,32 @@ using NormalizedFMap =
 using NormalizeFuncData = MappingNormalization<NormalizedFMap, NormalizedFMap::MapTy>;
 
 template <>
+struct llvm::yaml::MappingTraits<typeart::data::FilterData> {
+  static const bool flow = true;
+  static void mapping(IO& io, typeart::data::FilterData& info) {
+    io.mapRequired("reason", info.reason);
+  }
+};
+
+template <>
+struct llvm::yaml::MappingTraits<typeart::data::DbgData> {
+  static const bool flow = true;
+  static void mapping(IO& io, typeart::data::DbgData& info) {
+    io.mapRequired("name", info.name);
+    io.mapRequired("loc", info.line);
+  }
+};
+
+template <>
 struct llvm::yaml::MappingTraits<typeart::data::AllocData> {
   static const bool flow = true;
   static void mapping(IO& io, typeart::data::AllocData& info) {
     io.mapRequired("id", info.id);
-    io.mapRequired("type", info.typeID);
-    io.mapOptional("type_n", info.typeStr);
-    io.mapOptional("loc", info.line);
+    io.mapRequired("ty", info.typeID);
+    io.mapOptional("ty_n", info.typeStr);
     io.mapRequired("dump", info.dump);
+    io.mapOptional("dbg", info.dbg);
+    io.mapOptional("filter", info.filter);
   }
 };
 

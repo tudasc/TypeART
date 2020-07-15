@@ -8,6 +8,7 @@ set(PASS_SOURCES
   support/TypeUtil.cpp
   support/InstrumentationHelper.cpp
   support/ModuleDataManager.cpp
+  support/ModuleManagerBase.cpp
   TypeManager.cpp
 )
 

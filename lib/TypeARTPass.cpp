@@ -240,7 +240,7 @@ bool TypeArtPass::runOnFunc(Function& f) {
       return false;
     }
 
-    auto heap_ID     = data.putHeap(FID, malloc, typeId);
+    auto heap_ID     = data.putHeap(malloc, typeId);
     auto heap_ID_val = instr.getConstantFor(IType::alloca_id, heap_ID);
     IRB.CreateCall(typeart_alloc.f, ArrayRef<Value*>{mallocInst, typeIdConst, elementCount, heap_ID_val});
 
@@ -287,7 +287,7 @@ bool TypeArtPass::runOnFunc(Function& f) {
     auto* typeIdConst = instr.getConstantFor(IType::type_id, typeId);
     auto arrayPtr     = IRB.CreateBitOrPointerCast(alloca, instr.getTypeFor(IType::ptr));
 
-    auto stack_ID     = data.putStack(FID, allocaData, typeId);
+    auto stack_ID     = data.putStack(allocaData, typeId);
     auto stack_ID_val = instr.getConstantFor(IType::alloca_id, stack_ID);
     IRB.CreateCall(typeart_alloc_stack.f, ArrayRef<Value*>{arrayPtr, typeIdConst, numElementsVal, stack_ID_val});
 

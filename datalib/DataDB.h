@@ -11,6 +11,7 @@ class DataDB {
 
  public:
   void clear();
+  void clearEmpty();
   void makeUnique() {
   }
   void putModule(data::ModuleData& data);

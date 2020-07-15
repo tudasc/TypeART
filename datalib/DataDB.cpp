@@ -12,6 +12,26 @@ namespace typeart {
 void DataDB::clear() {
 }
 
+void DataDB::clearEmpty() {
+  const auto predicate = [](auto&& item) {
+    auto&& [key, fdata] = item;
+    return fdata.heap.empty() && fdata.stack.empty();
+  };
+  const auto erase_if = [](FunctionDataMap& items, auto&& predicate) {
+    for (auto it = items.begin(); it != items.end();) {
+      if (predicate(*it)) {
+        it = items.erase(it);
+      } else {
+        ++it;
+      }
+    }
+  };
+
+  for (auto& m : modules) {
+    erase_if(m.functions, predicate);
+  }
+}
+
 void DataDB::putModule(data::ModuleData& moduleData) {
   modules.push_back(moduleData);
 }
