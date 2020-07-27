@@ -40,6 +40,9 @@ data::AllocID ModuleDataManager::putHeap(const MallocData& m, int type, std::str
   data.filter.reason = filter;
 
   heap_m.try_emplace(data.id, data);
+
+  auto& mdata = mDB.module(mid);
+  ++mdata.heap;
   return data.id;
 }
 data::AllocID ModuleDataManager::putStack(const AllocaData& m, int type, std::string filter) {
@@ -50,6 +53,9 @@ data::AllocID ModuleDataManager::putStack(const AllocaData& m, int type, std::st
   auto data          = make_data(type, *m.alloca);
   data.filter.reason = filter;
   stack_m.try_emplace(data.id, data);
+
+  auto& mdata = mDB.module(mid);
+  ++mdata.stack;
   return data.id;
 }
 data::AllocID ModuleDataManager::putGlobal(llvm::GlobalVariable* g, int type, std::string filter) {
@@ -65,6 +71,7 @@ data::AllocID ModuleDataManager::putGlobal(llvm::GlobalVariable* g, int type, st
   // auto dbg    = util::getDebugVar(*g);
 
   global_m.try_emplace(data.id, data);
+  ++mdata.globs;
   return data.id;
 }
 

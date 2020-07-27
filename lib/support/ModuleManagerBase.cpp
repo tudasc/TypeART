@@ -82,6 +82,7 @@ AllocData ModuleManagerBase::make_data(int type, llvm::Instruction& i) {
   auto dbg    = util::getDebugVar(i);
   if (dbg != nullptr) {
     data.dbg.line = dbg->getLine();
+    data.dbg.name = dbg->getName();
   }
   return data;
 }

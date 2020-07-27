@@ -15,6 +15,7 @@
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/InstIterator.h"
+#include "llvm/IR/Instruction.h"
 #include "llvm/IR/IntrinsicInst.h"
 #include "llvm/Support/Regex.h"
 #include "llvm/Support/raw_ostream.h"
@@ -163,7 +164,19 @@ inline llvm::DILocalVariable* getDebugVar(llvm::Value& inst, const llvm::Functio
 }
 
 inline llvm::DILocalVariable* getDebugVar(llvm::Instruction& inst) {
+  using namespace llvm;
   llvm::Function& f = *inst.getFunction();
+
+  ifcast(llvm::CallInst, heapv, &inst) {
+    LOG_FATAL(util::dump(*heapv));
+    for (auto user : heapv->users()) {
+      if (auto storeInst = dyn_cast<StoreInst>(user)) {
+        LOG_FATAL(util::dump(*storeInst->getPointerOperand()));
+        return getDebugVar(*storeInst->getPointerOperand(), f);
+      }
+    }
+  }
+
   return getDebugVar(inst, f);
 }
 

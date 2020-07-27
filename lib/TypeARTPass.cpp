@@ -33,7 +33,7 @@ static llvm::RegisterPass<typeart::pass::TypeArtPass> msp("typeart", "TypeArt ty
 }  // namespace
 
 static cl::opt<bool> ClTypeArtStats("typeart-stats", cl::desc("Show statistics for TypeArt type pass."), cl::Hidden,
-                                    cl::init(false));
+                                    cl::init(true));
 static cl::opt<bool> ClIgnoreHeap("typeart-no-heap", cl::desc("Ignore heap allocation/free instruction."), cl::Hidden,
                                   cl::init(false));
 static cl::opt<bool> ClTypeArtAlloca("typeart-alloca", cl::desc("Track alloca instructions."), cl::Hidden,
@@ -181,7 +181,8 @@ bool TypeArtPass::runOnFunc(Function& f) {
   const auto& listFree   = fData.listFree;
 
   const auto instrumentMalloc = [&](const auto& malloc) -> bool {
-    const auto mallocInst       = malloc.call;
+    const auto mallocInst = malloc.call;
+    LOG_FATAL("MALLOC from: " << util::demangle(mallocInst->getFunction()->getName()));
     BitCastInst* primaryBitcast = malloc.primary;
 
     // Number of bytes allocated
@@ -249,6 +250,7 @@ bool TypeArtPass::runOnFunc(Function& f) {
 
   const auto instrumentFree = [&](const auto& free_inst) -> bool {
     // Pointer address:
+    LOG_FATAL("Free from: " << util::demangle(free_inst->getFunction()->getName()));
     auto freeArg = free_inst->getOperand(0);
     IRBuilder<> IRB(free_inst->getNextNode());
     IRB.CreateCall(typeart_free.f, ArrayRef<Value*>{freeArg});

@@ -58,6 +58,7 @@ struct ModuleData final {
   std::string name{""};
   AllocDataMap globals{};
   FunctionDataMap functions{};
+  int globs{}, heap{}, stack{};
 };
 
 using ModuleDataVec = std::vector<ModuleData>;

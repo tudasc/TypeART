@@ -149,6 +149,9 @@ struct llvm::yaml::MappingTraits<typeart::data::ModuleData> {
   static void mapping(IO& io, typeart::data::ModuleData& info) {
     io.mapRequired("id", info.id);
     io.mapRequired("name", info.name);
+    io.mapRequired("n_Globals", info.globs);
+    io.mapRequired("n_Heap", info.heap);
+    io.mapRequired("n_Stack", info.stack);
 
     NormalizeFuncData keys_f(io, info.functions);
     NormalizeAllocData keys_g(io, info.globals);
