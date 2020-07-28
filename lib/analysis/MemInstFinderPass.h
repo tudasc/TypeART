@@ -27,9 +27,10 @@ namespace typeart {
 
 namespace filter {
 
+class FilterBase;
+
 class CallFilter {
-  class FilterImpl;
-  std::unique_ptr<FilterImpl> fImpl;
+  std::unique_ptr<FilterBase> fImpl;
   ModuleDataManager& m;
 
  public:
