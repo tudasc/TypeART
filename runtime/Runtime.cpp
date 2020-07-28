@@ -1,5 +1,5 @@
 #include "Runtime.h"
-
+#include "Counter.h"
 #include "Logger.h"
 #include "RuntimeInterface.h"
 #include "TypeIO.h"
@@ -34,161 +34,6 @@ static bool typeart_rt_scope{false};
 #define RUNTIME_GUARD_END typeart::typeart_rt_scope = false
 
 namespace typeart {
-namespace softcounter {
-/**
- * Very basic implementation of some couting infrastructure.
- * This implementation counts:
- * - the number of objects hold maximally in the datastructures for stack and heap.
- * - the total number of tracked allocations (counting multiple insertions of the same address as multiple tracked
- * values) for both stack and heap.
- * - the number of distinct addresses queried for information
- * - the number of addresses re-used (according to our type map)
- * In addition it estimates (lower-bound) the consumed memory for tracking the type information.
- *
- * It prints the information during object de-construction.
- */
-class AccessRecorder {
- public:
-  ~AccessRecorder() {
-    printStats();
-  }
-
-  inline void incHeapAlloc() {
-    ++curHeapAllocs;
-    ++heapAllocs;
-  }
-
-  inline void incStackAlloc() {
-    ++curStackAllocs;
-    ++stackAllocs;
-  }
-
-  inline void incGlobalAlloc() {
-    ++globalAllocs;
-  }
-
-  inline void decHeapAlloc() {
-    if (curHeapAllocs > maxHeapAllocs) {
-      maxHeapAllocs = curHeapAllocs;
-    }
-    --curHeapAllocs;
-  }
-
-  inline void decStackAlloc(size_t amount) {
-    if (curStackAllocs > maxStackAllocs) {
-      maxStackAllocs = curStackAllocs;
-    }
-    curStackAllocs -= amount;
-  }
-
-  inline void incUsedInRequest(const void* addr) {
-    ++addrChecked;
-    seen.insert(addr);
-  }
-
-  inline void incAddrReuse() {
-    ++addrReuses;
-  }
-
-  inline void incAddrMissing(const void* addr) {
-    ++addrMissing;
-    missing.insert(addr);
-  }
-
-  void printStats() const {
-    std::string s;
-    llvm::raw_string_ostream buf(s);
-    auto estMemConsumption = (maxHeapAllocs + maxStackAllocs) * memPerEntry;
-    estMemConsumption += (maxStackAllocs * memInStack);
-    estMemConsumption += (vectorSize + mapSize);
-    auto estMemConsumptionKByte = estMemConsumption / 1024.0;
-
-    const auto getStr = [&](const auto memConsKB) {
-      auto memStr = std::to_string(memConsKB);
-      return memStr.substr(0, memStr.find('.') + 2);
-    };
-
-    buf << "------------\nAlloc Stats from softcounters\n"
-        << "Total Calls .onAlloc [heap]:\t" << heapAllocs << "\n"
-        << "Total Calls .onAlloc [stack]:\t" << stackAllocs << "\n"
-        << "Total Calls .onAlloc [global]:\t" << globalAllocs << "\n"
-        << "Max. Heap Allocs:\t\t" << maxHeapAllocs << "\n"
-        << "Max. Stack Allocs:\t\t" << maxStackAllocs << "\n"
-        << "Addresses re-used:\t\t" << addrReuses << "\n"
-        << "Addresses missed:\t\t" << addrMissing << "\n"
-        << "Distinct Addresses checked:\t" << seen.size() << "\n"
-        << "Addresses checked:\t\t" << addrChecked << "\n"
-        << "Distinct Addresses missed:\t" << missing.size() << "\n"
-        << "Estimated mem consumption:\t" << estMemConsumption << " bytes = " << getStr(estMemConsumptionKByte)
-        << " kiB\n"
-        << "vector overhead: " << vectorSize << " bytes\tmap overhead: " << mapSize << " bytes\n";
-    LOG_MSG(buf.str());
-  }
-
-  static AccessRecorder& get() {
-    static AccessRecorder instance;
-    return instance;
-  }
-
- private:
-  AccessRecorder()                       = default;
-  AccessRecorder(AccessRecorder& other)  = default;
-  AccessRecorder(AccessRecorder&& other) = default;
-
-  const int memPerEntry    = sizeof(PointerInfo) + sizeof(void*);  // Type-map key + value
-  const int memInStack     = sizeof(void*);                        // Stack allocs
-  const int vectorSize     = sizeof(TypeArtRT::Stack);             // Stack overhead
-  const int mapSize        = sizeof(TypeArtRT::PointerMap);        // Map overhead
-  long long heapAllocs     = 0;
-  long long stackAllocs    = 0;
-  long long globalAllocs   = 0;
-  long long maxHeapAllocs  = 0;
-  long long maxStackAllocs = 0;
-  long long curHeapAllocs  = 0;
-  long long curStackAllocs = 0;
-  long long addrReuses     = 0;
-  long long addrMissing    = 0;
-  long long addrChecked    = 0;
-  std::unordered_set<const void*> missing;
-  std::unordered_set<const void*> seen;
-};
-
-/**
- * Used for no-operations in counter methods when not using softcounters.
- */
-class NoneRecorder {
- public:
-  inline void incHeapAlloc() {
-  }
-  inline void incStackAlloc() {
-  }
-  inline void incGlobalAlloc() {
-  }
-  inline void incUsedInRequest(const void*) {
-  }
-  inline void decHeapAlloc() {
-  }
-  inline void decStackAlloc(size_t) {
-  }
-  inline void incAddrReuse() {
-  }
-  inline void incAddrMissing(const void*) {
-  }
-  inline void printStats() const {
-  }
-
-  static NoneRecorder& get() {
-    static NoneRecorder instance;
-    return instance;
-  }
-};
-}  // namespace softcounter
-
-#if ENABLE_SOFTCOUNTER == 1
-using Recorder = softcounter::AccessRecorder;
-#else
-using Recorder = softcounter::NoneRecorder;
-#endif
 
 std::string TypeArtRT::defaultTypeFileName{"types.yaml"};
 
@@ -616,6 +461,7 @@ void __typeart_alloc(void* addr, int typeId, size_t count, int id) {
   RUNTIME_GUARD_BEGIN;
   // const void* retAddr = __builtin_return_address(0);
   typeart::TypeArtRT::get().onAlloc(addr, typeId, count, id);
+  typeart::Recorder::get().incHeapAlloc(typeId, count);
   RUNTIME_GUARD_END;
 }
 
@@ -623,6 +469,7 @@ void __typeart_alloc_stack(void* addr, int typeId, size_t count, int id) {
   RUNTIME_GUARD_BEGIN;
   // const void* retAddr = __builtin_return_address(0);
   typeart::TypeArtRT::get().onAllocStack(addr, typeId, count, id);
+  typeart::Recorder::get().incStackAlloc(typeId, count);
   RUNTIME_GUARD_END;
 }
 
@@ -630,6 +477,7 @@ void __typeart_alloc_global(void* addr, int typeId, size_t count, int id) {
   RUNTIME_GUARD_BEGIN;
   // const void* retAddr = __builtin_return_address(0);
   typeart::TypeArtRT::get().onAllocGlobal(addr, typeId, count, id);
+  typeart::Recorder::get().incGlobalAlloc(typeId, count);
   RUNTIME_GUARD_END;
 }
 
