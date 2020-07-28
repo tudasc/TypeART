@@ -14,6 +14,7 @@ class Module;
 class Value;
 class GlobalVariable;
 class Instruction;
+class CallInst;
 }  // namespace llvm
 
 using namespace typeart::data;
@@ -33,6 +34,7 @@ class ModuleDataManager : public ModuleManagerBase {
 
   void setTypeManager(TypeManager* m);
 
+  void putFree(const llvm::CallInst&, std::string filter = {""});
   data::AllocID putHeap(const MallocData&, int type, std::string filter = {""});
   data::AllocID putStack(const AllocaData&, int type, std::string filter = {""});
   data::AllocID putGlobal(llvm::GlobalVariable*, int type, std::string filter = {""});

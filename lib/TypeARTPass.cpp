@@ -255,6 +255,8 @@ bool TypeArtPass::runOnFunc(Function& f) {
     IRBuilder<> IRB(free_inst->getNextNode());
     IRB.CreateCall(typeart_free.f, ArrayRef<Value*>{freeArg});
 
+    data.putFree(*free_inst);
+
     return true;
   };
 
@@ -400,15 +402,18 @@ void TypeArtPass::printStats(llvm::raw_ostream& out) {
   const auto make_format = [&](const char* desc, const auto val) {
     return format("%-*s: %*u\n", max_string, desc, max_val, val);
   };
-
+  const bool heap_only = ClIgnoreHeap.getValue();
   out << line;
-  out << "   TypeArtPass\n";
+  out << "   TypeArtPass";
+  out << (heap_only ? " [Heap]\n" : " [Stack]\n");
   out << line;
+  // if (heap_only) {
   out << "Heap Memory\n";
   out << line;
   out << make_format("Malloc", NumInstrumentedMallocs.getValue());
   out << make_format("Free", NumInstrumentedFrees.getValue());
   out << line;
+  //} else {
   out << "Stack Memory\n";
   out << line;
   out << make_format("Alloca", NumInstrumentedAlloca.getValue());
@@ -417,6 +422,7 @@ void TypeArtPass::printStats(llvm::raw_ostream& out) {
   out << line;
   out << make_format("Global", NumInstrumentedGlobal.getValue());
   out << line;
+  //}
   out.flush();
 }
 

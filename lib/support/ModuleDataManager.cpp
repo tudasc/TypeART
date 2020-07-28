@@ -31,6 +31,20 @@ AllocData ModuleDataManager::make_data(int type, llvm::Instruction& i) {
   return data;
 }
 
+void ModuleDataManager::putFree(const llvm::CallInst& dealloc, std::string filter) {
+  auto mid    = c.m;
+  auto& fdata = mDB.function(mid, c.f);
+
+  auto dbg = util::getDebugVar(dealloc);
+  DbgData data;
+  if (dbg != nullptr) {
+    data.line = dbg->getLine();
+    data.name = dbg->getName();
+  }
+  const std::string dump = util::dump(dealloc);
+  fdata.frees.emplace_back(FreeData{dump, data});
+}
+
 data::AllocID ModuleDataManager::putHeap(const MallocData& m, int type, std::string filter) {
   auto mid     = c.m;
   auto& fdata  = mDB.function(mid, c.f);

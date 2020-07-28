@@ -107,6 +107,16 @@ struct llvm::yaml::MappingTraits<typeart::data::AllocData> {
 
 LLVM_YAML_IS_SEQUENCE_VECTOR(AllocData)
 
+template <>
+struct llvm::yaml::MappingTraits<typeart::data::FreeData> {
+  static const bool flow = true;
+  static void mapping(IO& io, typeart::data::FreeData& info) {
+    io.mapRequired("dump", info.dump);
+    io.mapOptional("dbg", info.dbg);
+  }
+};
+
+LLVM_YAML_IS_SEQUENCE_VECTOR(FreeData)
 /*
 template <>
 struct llvm::yaml::MappingTraits<typeart::data::AllocDataMap> {
@@ -128,6 +138,7 @@ struct llvm::yaml::MappingTraits<typeart::data::FunctionData> {
     NormalizeAllocData keys_s(io, info.stack);
     io.mapOptional("heap", keys_h->norm);
     io.mapOptional("stack", keys_s->norm);
+    io.mapOptional("frees", info.frees);
   }
 };
 

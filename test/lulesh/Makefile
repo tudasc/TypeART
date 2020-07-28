@@ -45,7 +45,7 @@ else
 endif
 
 clean:
-	/bin/rm -f *.o *.s *~ $(OBJECTS) $(LULESH_EXEC) types.yaml
+	/bin/rm -f *.o *.s *~ $(OBJECTS) $(LULESH_EXEC) *.yaml
 	/bin/rm -rf *.dSYM
 
 tar: clean

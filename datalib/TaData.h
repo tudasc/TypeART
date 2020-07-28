@@ -34,6 +34,11 @@ struct AllocData final {
   FilterData filter{};
 };
 
+struct FreeData final {
+  std::string dump{""};
+  DbgData dbg{};
+};
+
 using AllocDataMap = std::unordered_map<AllocID, AllocData>;
 
 struct FunctionData final {
@@ -45,6 +50,7 @@ struct FunctionData final {
   std::string name{""};
   AllocDataMap stack{};
   AllocDataMap heap{};
+  std::vector<FreeData> frees{};
 };
 
 using FunctionDataMap = std::unordered_map<FID, FunctionData>;

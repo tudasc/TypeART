@@ -55,6 +55,7 @@ static cl::opt<std::string> ClFilterFile("typeart-filter-outfile", cl::desc("Loc
 
 STATISTIC(NumDetectedHeap, "Number of detected heap allocs");
 STATISTIC(NumFilteredDetectedHeap, "Number of filtered heap allocs");
+STATISTIC(NumDetectedFree, "Number of detected frees");
 STATISTIC(NumDetectedAllocs, "Number of detected allocs");
 STATISTIC(NumCallFilteredAllocs, "Number of call filtered allocs");
 STATISTIC(NumFilteredMallocAllocs, "Number of  filtered  malloc-related allocs");
@@ -514,6 +515,8 @@ bool MemInstFinderPass::runOnFunc(llvm::Function& f) {
     checkAmbigiousMalloc(mallocData);
   }
 
+  NumDetectedFree += mOpsCollector.listFree.size();
+
   FunctionData d{mOpsCollector.listMalloc, mOpsCollector.listFree, mOpsCollector.listAlloca};
   functionMap[&f] = d;
 
@@ -555,6 +558,10 @@ void MemInstFinderPass::printStats(llvm::raw_ostream& out) {
   out << make_format(
       "% call filtered",
       (double(NumFilteredDetectedHeap.getValue()) / std::max(1.0, double(NumDetectedHeap.getValue()))) * 100.0);
+  out << line;
+  out << "Free Memory\n";
+  out << line;
+  out << make_format("Frees", double(NumDetectedFree.getValue()));
   out << line;
   out << "Stack Memory\n";
   out << line;

@@ -143,7 +143,7 @@ inline std::string glob2regex(const std::string& glob) {
   return glob_reg;
 }
 
-inline llvm::DILocalVariable* getDebugVar(llvm::Value& inst, const llvm::Function& f) {
+inline llvm::DILocalVariable* getDebugVar(const llvm::Value& inst, const llvm::Function& f) {
   llvm::DILocalVariable* var = nullptr;
   for (auto it = inst_begin(f); it != inst_end(f); it++) {
     ifcast(const llvm::DbgDeclareInst, dbgInst, &*it) {
@@ -163,15 +163,15 @@ inline llvm::DILocalVariable* getDebugVar(llvm::Value& inst, const llvm::Functio
   return var;
 }
 
-inline llvm::DILocalVariable* getDebugVar(llvm::Instruction& inst) {
+inline llvm::DILocalVariable* getDebugVar(const llvm::Instruction& inst) {
   using namespace llvm;
-  llvm::Function& f = *inst.getFunction();
+  const llvm::Function& f = *inst.getFunction();
 
-  ifcast(llvm::CallInst, heapv, &inst) {
-    LOG_FATAL(util::dump(*heapv));
+  ifcast(const llvm::CallInst, heapv, &inst) {
+    // LOG_FATAL(util::dump(*heapv));
     for (auto user : heapv->users()) {
       if (auto storeInst = dyn_cast<StoreInst>(user)) {
-        LOG_FATAL(util::dump(*storeInst->getPointerOperand()));
+        // LOG_FATAL(util::dump(*storeInst->getPointerOperand()));
         return getDebugVar(*storeInst->getPointerOperand(), f);
       }
     }
