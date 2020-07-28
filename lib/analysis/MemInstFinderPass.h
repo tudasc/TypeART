@@ -8,6 +8,7 @@
 #ifndef LIB_ANALYSIS_MEMINSTFINDERPASS_H_
 #define LIB_ANALYSIS_MEMINSTFINDERPASS_H_
 
+#include "../support/ModuleDataManager.h"
 #include "MemOpVisitor.h"
 
 #include "llvm/Pass.h"
@@ -29,15 +30,13 @@ namespace filter {
 class CallFilter {
   class FilterImpl;
   std::unique_ptr<FilterImpl> fImpl;
+  ModuleDataManager& m;
 
  public:
-  explicit CallFilter(const std::string& glob);
-  CallFilter(const CallFilter&) = delete;
-  CallFilter(CallFilter&&)      = default;
-  bool operator()(llvm::AllocaInst*);
-  bool operator()(llvm::GlobalValue*);
-  CallFilter& operator=(CallFilter&&) noexcept;
-  CallFilter& operator=(const CallFilter&) = delete;
+  explicit CallFilter(const std::string& glob, ModuleDataManager& m);
+
+  bool operator()(const AllocaData&);
+  bool operator()(llvm::GlobalVariable*);
   virtual ~CallFilter();
 };
 
@@ -52,8 +51,9 @@ struct FunctionData {
 class MemInstFinderPass : public llvm::ModulePass {
  private:
   finder::MemOpVisitor mOpsCollector;
-  filter::CallFilter filter;
   llvm::DenseMap<llvm::Function*, FunctionData> functionMap;
+  ModuleDataManager data_m;
+  filter::CallFilter filter;
 
  public:
   static char ID;

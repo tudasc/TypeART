@@ -5,6 +5,7 @@
 #include "TypeInterface.h"
 #include "analysis/MemInstFinderPass.h"
 #include "support/Logger.h"
+#include "support/ModuleDataManager.h"
 #include "support/TypeUtil.h"
 #include "support/Util.h"
 
@@ -32,7 +33,7 @@ static llvm::RegisterPass<typeart::pass::TypeArtPass> msp("typeart", "TypeArt ty
 }  // namespace
 
 static cl::opt<bool> ClTypeArtStats("typeart-stats", cl::desc("Show statistics for TypeArt type pass."), cl::Hidden,
-                                    cl::init(false));
+                                    cl::init(true));
 static cl::opt<bool> ClIgnoreHeap("typeart-no-heap", cl::desc("Ignore heap allocation/free instruction."), cl::Hidden,
                                   cl::init(false));
 static cl::opt<bool> ClTypeArtAlloca("typeart-alloca", cl::desc("Track alloca instructions."), cl::Hidden,
@@ -40,6 +41,9 @@ static cl::opt<bool> ClTypeArtAlloca("typeart-alloca", cl::desc("Track alloca in
 
 static cl::opt<std::string> ClTypeFile("typeart-outfile", cl::desc("Location of the generated type file."), cl::Hidden,
                                        cl::init("types.yaml"));
+
+static cl::opt<std::string> ClAllocFile("typeart-alloc-outfile", cl::desc("Location of the generated alloc file."),
+                                        cl::Hidden, cl::init("allocs-instrumented.yaml"));
 
 STATISTIC(NumInstrumentedMallocs, "Number of instrumented mallocs");
 STATISTIC(NumInstrumentedFrees, "Number of instrumented frees");
@@ -56,7 +60,7 @@ char TypeArtPass::ID = 0;
 
 // std::unique_ptr<TypeMapping> TypeArtPass::typeMapping = std::make_unique<SimpleTypeMapping>();
 
-TypeArtPass::TypeArtPass() : llvm::ModulePass(ID), typeManager(ClTypeFile.getValue()) {
+TypeArtPass::TypeArtPass() : llvm::ModulePass(ID), typeManager(ClTypeFile.getValue()), data(ClAllocFile.getValue()) {
   assert(!ClTypeFile.empty() && "Default type file not set");
   EnableStatistics();
 }
@@ -72,13 +76,23 @@ bool TypeArtPass::doInitialization(Module& m) {
   if (typeManager.load()) {
     LOG_DEBUG("Existing type configuration successfully loaded from " << ClTypeFile.getValue());
   } else {
-    LOG_DEBUG("No valid existing type configuration found: " << ClTypeFile.getValue());
+    LOG_WARNING("No valid existing type configuration found: " << ClTypeFile.getValue());
+  }
+
+  LOG_DEBUG("Propagating alloc infos.");
+  if (data.load()) {
+    LOG_DEBUG("Existing alloc data successfully loaded from " << ClAllocFile.getValue());
+  } else {
+    LOG_WARNING("No valid existing alloc data found: " << ClAllocFile.getValue());
   }
 
   return true;
 }
 
 bool TypeArtPass::runOnModule(Module& m) {
+  data.setTypeManager(&typeManager);
+  data.lookupModule(m);
+
   bool globalInstro{false};
   if (ClIgnoreHeap) {
     declareInstrumentationFunctions(m);
@@ -102,8 +116,9 @@ bool TypeArtPass::runOnModule(Module& m) {
       auto globalPtr         = IRB.CreateBitOrPointerCast(global, instr.getTypeFor(IType::ptr));
 
       LOG_DEBUG("Instrumenting global variable: " << util::dump(*global));
-
-      IRB.CreateCall(typeart_alloc_global.f, ArrayRef<Value*>{globalPtr, typeIdConst, numElementsConst});
+      auto global_ID     = data.putGlobal(global, typeId);
+      auto global_ID_val = instr.getConstantFor(IType::alloca_id, global_ID);
+      IRB.CreateCall(typeart_alloc_global.f, ArrayRef<Value*>{globalPtr, typeIdConst, numElementsConst, global_ID_val});
       return true;
     };
 
@@ -148,6 +163,8 @@ bool TypeArtPass::runOnFunc(Function& f) {
 
   LOG_DEBUG("Running on function: " << f.getName())
 
+  const auto FID = data.lookupFunction(f);
+
   // FIXME this is required when "PassManagerBuilder::EP_OptimizerLast" is used as the function (constant) pointer are
   // nullpointer/invalidated
   declareInstrumentationFunctions(*f.getParent());
@@ -164,7 +181,8 @@ bool TypeArtPass::runOnFunc(Function& f) {
   const auto& listFree   = fData.listFree;
 
   const auto instrumentMalloc = [&](const auto& malloc) -> bool {
-    const auto mallocInst       = malloc.call;
+    const auto mallocInst = malloc.call;
+    LOG_FATAL("MALLOC from: " << util::demangle(mallocInst->getFunction()->getName()));
     BitCastInst* primaryBitcast = malloc.primary;
 
     // Number of bytes allocated
@@ -223,16 +241,21 @@ bool TypeArtPass::runOnFunc(Function& f) {
       return false;
     }
 
-    IRB.CreateCall(typeart_alloc.f, ArrayRef<Value*>{mallocInst, typeIdConst, elementCount});
+    auto heap_ID     = data.putHeap(malloc, typeId);
+    auto heap_ID_val = instr.getConstantFor(IType::alloca_id, heap_ID);
+    IRB.CreateCall(typeart_alloc.f, ArrayRef<Value*>{mallocInst, typeIdConst, elementCount, heap_ID_val});
 
     return true;
   };
 
   const auto instrumentFree = [&](const auto& free_inst) -> bool {
     // Pointer address:
+    LOG_FATAL("Free from: " << util::demangle(free_inst->getFunction()->getName()));
     auto freeArg = free_inst->getOperand(0);
     IRBuilder<> IRB(free_inst->getNextNode());
     IRB.CreateCall(typeart_free.f, ArrayRef<Value*>{freeArg});
+
+    data.putFree(*free_inst);
 
     return true;
   };
@@ -268,7 +291,9 @@ bool TypeArtPass::runOnFunc(Function& f) {
     auto* typeIdConst = instr.getConstantFor(IType::type_id, typeId);
     auto arrayPtr     = IRB.CreateBitOrPointerCast(alloca, instr.getTypeFor(IType::ptr));
 
-    IRB.CreateCall(typeart_alloc_stack.f, ArrayRef<Value*>{arrayPtr, typeIdConst, numElementsVal});
+    auto stack_ID     = data.putStack(allocaData, typeId);
+    auto stack_ID_val = instr.getConstantFor(IType::alloca_id, stack_ID);
+    IRB.CreateCall(typeart_alloc_stack.f, ArrayRef<Value*>{arrayPtr, typeIdConst, numElementsVal, stack_ID_val});
 
     allocCounts[alloca->getParent()]++;
 
@@ -331,13 +356,19 @@ bool TypeArtPass::doFinalization(Module&) {
   /*
    * Persist the accumulated type definition information for this module.
    */
-  LOG_DEBUG("Writing type file to " << ClTypeFile.getValue());
 
   if (typeManager.store()) {
-    LOG_DEBUG("Success!");
+    LOG_DEBUG("Stored type data.");
   } else {
     LOG_FATAL("Failed writing type config to " << ClTypeFile.getValue());
   }
+
+  if (data.store()) {
+    LOG_DEBUG("Stored alloc data.");
+  } else {
+    LOG_FATAL("Failed writing alloc data to " << ClAllocFile.getValue());
+  }
+
   if (ClTypeArtStats && AreStatisticsEnabled()) {
     auto& out = llvm::errs();
     printStats(out);
@@ -352,7 +383,7 @@ void TypeArtPass::declareInstrumentationFunctions(Module& m) {
     return;
   }
 
-  auto alloc_arg_types      = instr.make_parameters(IType::ptr, IType::type_id, IType::extent);
+  auto alloc_arg_types      = instr.make_parameters(IType::ptr, IType::type_id, IType::extent, IType::alloca_id);
   auto free_arg_types       = instr.make_parameters(IType::ptr);
   auto leavescope_arg_types = instr.make_parameters(IType::stack_count);
 
@@ -371,15 +402,18 @@ void TypeArtPass::printStats(llvm::raw_ostream& out) {
   const auto make_format = [&](const char* desc, const auto val) {
     return format("%-*s: %*u\n", max_string, desc, max_val, val);
   };
-
+  const bool heap_only = ClIgnoreHeap.getValue();
   out << line;
-  out << "   TypeArtPass\n";
+  out << "   TypeArtPass";
+  out << (heap_only ? " [Heap]\n" : " [Stack]\n");
   out << line;
+  // if (heap_only) {
   out << "Heap Memory\n";
   out << line;
   out << make_format("Malloc", NumInstrumentedMallocs.getValue());
   out << make_format("Free", NumInstrumentedFrees.getValue());
   out << line;
+  //} else {
   out << "Stack Memory\n";
   out << line;
   out << make_format("Alloca", NumInstrumentedAlloca.getValue());
@@ -388,6 +422,7 @@ void TypeArtPass::printStats(llvm::raw_ostream& out) {
   out << line;
   out << make_format("Global", NumInstrumentedGlobal.getValue());
   out << line;
+  //}
   out.flush();
 }
 

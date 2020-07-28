@@ -4,6 +4,7 @@
 #include "TypeDB.h"
 #include "TypeManager.h"
 #include "support/InstrumentationHelper.h"
+#include "support/ModuleDataManager.h"
 
 #include "llvm/Pass.h"
 
@@ -34,6 +35,7 @@ class TypeArtPass : public llvm::ModulePass {
 
   TypeManager typeManager;
   InstrumentationHelper instr;
+  ModuleDataManager data;
 
  public:
   static char ID;  // used to identify pass

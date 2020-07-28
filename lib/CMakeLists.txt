@@ -7,7 +7,9 @@ set(PASS_SOURCES
   TypeARTPass.cpp
   support/TypeUtil.cpp
   support/InstrumentationHelper.cpp
-	support/CGInterface.cpp
+  support/ModuleDataManager.cpp
+  support/ModuleManagerBase.cpp
+  support/CGInterface.cpp
   TypeManager.cpp
 )
 
@@ -15,11 +17,13 @@ make_llvm_module(typeartpass
   "${PASS_SOURCES}"
   LINK_LIBS
     typelib
+    datalib
   DEPENDS
     meminstfinderpass
   INCLUDE_DIRS
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${PROJECT_SOURCE_DIR}/typelib
+    ${PROJECT_SOURCE_DIR}/datalib
     ${PROJECT_SOURCE_DIR}/runtime
 )
 
@@ -31,7 +35,7 @@ target_project_compile_definitions(typeartpass
 
 if(SHOW_STATS)
   target_project_compile_definitions(typeartpass
-    PRIVATE_DEFS 
+    PRIVATE_DEFS
       LLVM_ENABLE_STATS
   )
 endif()

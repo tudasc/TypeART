@@ -508,20 +508,21 @@ size_t TypeArtRT::getTypeSize(int id) const {
   return typeDB.getTypeSize(id);
 }
 
-void TypeArtRT::getReturnAddress(const void* addr, const void** retAddr) const {
+int TypeArtRT::getReturnAddress(const void* addr) const {
+#if USE_DBG_LOC == 1
   auto basePtr = findBaseAddress(addr);
 
   if (basePtr) {
-    *retAddr = basePtr.getValue().second.debug;
-  } else {
-    *retAddr = nullptr;
+    return basePtr.getValue().second.id;
   }
+#endif
+  return -1;
 }
 
-void TypeArtRT::doAlloc(const void* addr, int typeId, size_t count, const void* retAddr, const char reg) {
+void TypeArtRT::doAlloc(const void* addr, int typeId, size_t count, int ret_id, const char reg) {
   if (!typeDB.isValid(typeId)) {
     LOG_ERROR("Allocation of unknown type (id=" << typeId << ") recorded at " << addr << " [" << reg
-                                                << "], called from " << retAddr);
+                                                << "], called from " << ret_id);
   }
 
   // Calling malloc with size 0 may return a nullptr or some address that can not be written to.
@@ -529,14 +530,14 @@ void TypeArtRT::doAlloc(const void* addr, int typeId, size_t count, const void* 
   // On the other hand, an allocation on address 0x0 with size > 0 is an actual error.
   if (count == 0) {
     LOG_WARNING("Zero-size allocation (id=" << typeId << ") recorded at " << addr << " [" << reg << "], called from "
-                                            << retAddr);
+                                            << ret_id);
 
     if (addr == nullptr) {
       return;
     }
   } else if (addr == nullptr) {
     LOG_ERROR("Nullptr allocation (id=" << typeId << ") recorded at " << addr << " [" << reg << "], called from "
-                                        << retAddr);
+                                        << ret_id);
     return;
   }
 
@@ -548,28 +549,35 @@ void TypeArtRT::doAlloc(const void* addr, int typeId, size_t count, const void* 
   } else {
     typeart::Recorder::get().incAddrReuse();
     if (reg == 'G' || reg == 'H') {
-      LOG_ERROR("Already exists (" << retAddr << ", prev=" << def.debug
+#if USE_DBG_LOC == 1
+      LOG_ERROR("Already exists (" << ret_id << ", prev=" << def.id
                                    << "): " << toString(addr, typeId, count, typeDB.getTypeSize(typeId)));
+#else
+      LOG_ERROR("Already exists: " << toString(addr, typeId, count, typeDB.getTypeSize(typeId)));
+#endif
       LOG_ERROR("Data in map is: " << toString(addr, def));
     }
   }
 
   def.typeId = typeId;
   def.count  = count;
-  def.debug  = retAddr;
+#if USE_DBG_LOC == 1
+  def.id = ret_id;
+#endif
+  // def.debug  = retAddr;
 }
 
-void TypeArtRT::onAlloc(const void* addr, int typeId, size_t count, const void* retAddr) {
-  doAlloc(addr, typeId, count, retAddr);
+void TypeArtRT::onAlloc(const void* addr, int typeId, size_t count, int ret_id) {
+  doAlloc(addr, typeId, count, ret_id);
 }
 
-void TypeArtRT::onAllocStack(const void* addr, int typeId, size_t count, const void* retAddr) {
-  doAlloc(addr, typeId, count, retAddr, 'S');
+void TypeArtRT::onAllocStack(const void* addr, int typeId, size_t count, int ret_id) {
+  doAlloc(addr, typeId, count, ret_id, 'S');
   stackVars.push_back(addr);
 }
 
-void TypeArtRT::onAllocGlobal(const void* addr, int typeId, size_t count, const void* retAddr) {
-  doAlloc(addr, typeId, count, retAddr, 'G');
+void TypeArtRT::onAllocGlobal(const void* addr, int typeId, size_t count, int ret_id) {
+  doAlloc(addr, typeId, count, ret_id, 'G');
 }
 
 template <bool isStack>
@@ -604,30 +612,34 @@ void TypeArtRT::onLeaveScope(size_t alloca_count, const void* retAddr) {
 
 }  // namespace typeart
 
-void __typeart_alloc(void* addr, int typeId, size_t count) {
+void __typeart_alloc(void* addr, int typeId, size_t count, int id) {
   RUNTIME_GUARD_BEGIN;
-  const void* retAddr = __builtin_return_address(0);
-  typeart::TypeArtRT::get().onAlloc(addr, typeId, count, retAddr);
+  // const void* retAddr = __builtin_return_address(0);
+  typeart::TypeArtRT::get().onAlloc(addr, typeId, count, id);
   RUNTIME_GUARD_END;
 }
 
-void __typeart_alloc_stack(void* addr, int typeId, size_t count) {
+void __typeart_alloc_stack(void* addr, int typeId, size_t count, int id) {
   RUNTIME_GUARD_BEGIN;
-  const void* retAddr = __builtin_return_address(0);
-  typeart::TypeArtRT::get().onAllocStack(addr, typeId, count, retAddr);
+  // const void* retAddr = __builtin_return_address(0);
+  typeart::TypeArtRT::get().onAllocStack(addr, typeId, count, id);
   RUNTIME_GUARD_END;
 }
 
-void __typeart_alloc_global(void* addr, int typeId, size_t count) {
+void __typeart_alloc_global(void* addr, int typeId, size_t count, int id) {
   RUNTIME_GUARD_BEGIN;
-  const void* retAddr = __builtin_return_address(0);
-  typeart::TypeArtRT::get().onAllocGlobal(addr, typeId, count, retAddr);
+  // const void* retAddr = __builtin_return_address(0);
+  typeart::TypeArtRT::get().onAllocGlobal(addr, typeId, count, id);
   RUNTIME_GUARD_END;
 }
 
 void __typeart_free(void* addr) {
   RUNTIME_GUARD_BEGIN;
+#ifdef USE_DBG_LOC
   const void* retAddr = __builtin_return_address(0);
+#else
+  const void* retAddr = NULL;
+#endif
   typeart::TypeArtRT::get().onFree<false>(addr, retAddr);
   typeart::Recorder::get().decHeapAlloc();
   RUNTIME_GUARD_END;
@@ -635,7 +647,11 @@ void __typeart_free(void* addr) {
 
 void __typeart_leave_scope(size_t alloca_count) {
   RUNTIME_GUARD_BEGIN;
+#ifdef USE_DBG_LOC
   const void* retAddr = __builtin_return_address(0);
+#else
+  const void* retAddr = NULL;
+#endif
   typeart::TypeArtRT::get().onLeaveScope(alloca_count, retAddr);
   typeart::Recorder::get().decStackAlloc(alloca_count);
   RUNTIME_GUARD_END;
@@ -681,6 +697,6 @@ const char* typeart_get_type_name(int id) {
   return typeart::TypeArtRT::get().getTypeName(id).c_str();
 }
 
-void typeart_get_return_address(const void* addr, const void** retAddr) {
-  return typeart::TypeArtRT::get().getReturnAddress(addr, retAddr);
+int typeart_get_return_address(const void* addr) {
+  return typeart::TypeArtRT::get().getReturnAddress(addr);
 }

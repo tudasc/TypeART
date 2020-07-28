@@ -14,10 +14,10 @@ class TypeManager {
   explicit TypeManager(std::string file);
 
   bool load();
-
   bool store();
 
   int getOrRegisterType(llvm::Type* type, const llvm::DataLayout& dl);
+  std::string typeNameOf(int typeID);
 
  private:
   int getOrRegisterStruct(llvm::StructType* type, const llvm::DataLayout& dl);

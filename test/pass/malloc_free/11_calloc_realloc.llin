@@ -7,11 +7,11 @@ target triple = "x86_64-pc-linux-gnu"
 
 ; CHECK:define i32 @main()
 ; CHECK: %5 = call noalias i8* @calloc(i64 10, i64 8) #2
-; CHECK-NEXT: call void @__typeart_alloc(i8* %5, i32 6, i64 10)
+; CHECK-NEXT: call void @__typeart_alloc(i8* %5, i32 6, i64 10, i32 {{[1-9][0-9]*}})
 ; CHECK-NEXT: %6 = bitcast i8* %5 to double*
 ; CHECK: call void @__typeart_free(i8* %8)
 ; CHECK-NEXT: %9 = call i8* @realloc(i8* %8, i64 160) #2
-; CHECK-NEXT: call void @__typeart_alloc(i8* %9, i32 6, i64 20)
+; CHECK-NEXT: call void @__typeart_alloc(i8* %9, i32 6, i64 20, i32 {{[1-9][0-9]*}})
 ; CHECK-NEXT: %10 = bitcast i8* %9 to double*
 ; Function Attrs: noinline nounwind optnone uwtable
 define i32 @main() #0 {
