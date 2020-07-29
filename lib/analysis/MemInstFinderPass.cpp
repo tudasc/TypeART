@@ -78,16 +78,16 @@ using namespace finder;
 
 namespace filter {
 
-static FilterBase* make_filter(std::string id, std::string glob) {
+static std::unique_ptr<FilterBase> make_filter(std::string id, std::string glob) {
   const bool deep = ClCallFilterDeep.getValue();
   if (id == "cg-graph") {
     LOG_FATAL("Demand cg filter")
-    return new CGFilterImpl(glob, deep, ClCGFile.getValue());
+    return std::make_unique<CGFilterImpl>(glob, deep, ClCGFile.getValue());
   } else if (id == "empty" || !ClCallFilter.getValue()) {
-    return new FilterBase(glob, deep);
+    return std::make_unique<FilterBase>(glob, deep);
   } else {
     // default
-    return new FilterImpl(glob, deep);
+    return std::make_unique<FilterImpl>(glob, deep);
   }
 }
 

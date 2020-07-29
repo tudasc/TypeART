@@ -20,8 +20,8 @@ namespace filter {
 using namespace llvm;
 class CGFilterImpl final : public FilterBase {
   // Holds pointer to a CG implementation
-  // std::unique_ptr<CGInterface> callGraph;
-  CGInterface* callGraph{nullptr};
+  std::unique_ptr<CGInterface> callGraph;
+  // CGInterface* callGraph{nullptr};
 
  public:
   explicit CGFilterImpl(const std::string& glob, bool CallFilterDeep, std::string file)
@@ -29,8 +29,8 @@ class CGFilterImpl final : public FilterBase {
     if (!callGraph && !file.empty()) {
       LOG_FATAL("Resetting the CGInterface with JSON CG");
       // callGraph.reset(new JSONCG(JSONCG::getJSON(ClCGFile.getValue())));
-      // callGraph.reset(JSONCG::getJSON(file));
-      callGraph = JSONCG::getJSON(file);
+      callGraph.reset(JSONCG::getJSON(file));
+      // callGraph = JSONCG::getJSON(file);
     } else {
       LOG_FATAL("CG File not found " << file);
     }
