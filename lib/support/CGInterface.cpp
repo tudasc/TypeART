@@ -55,7 +55,7 @@ JSONCG::JSONCG(const llvm::json::Value& cg) {
   const llvm::json::Object* tlobj = cg.getAsObject();
   if (tlobj != nullptr) {
     for (const auto& entry : *tlobj) {
-      std::cout << "Building call site info for " << entry.first.str() << std::endl;
+      // std::cout << "Building call site info for " << entry.first.str() << std::endl;
       construct_call_information(entry.first.str(), *tlobj);
     }
   }
