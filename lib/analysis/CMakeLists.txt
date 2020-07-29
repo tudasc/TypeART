@@ -4,6 +4,7 @@ set(MEM_PASS_SOURCES
   ../support/TypeUtil.cpp
   ../support/ModuleDataManager.cpp
   ../support/ModuleManagerBase.cpp
+  ../support/CGInterface.cpp
 )
 
 make_llvm_module(meminstfinderpass

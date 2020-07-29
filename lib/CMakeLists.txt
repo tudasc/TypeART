@@ -9,7 +9,6 @@ set(PASS_SOURCES
   support/InstrumentationHelper.cpp
   support/ModuleDataManager.cpp
   support/ModuleManagerBase.cpp
-  support/CGInterface.cpp
   TypeManager.cpp
 )
 

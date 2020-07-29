@@ -40,7 +40,7 @@ install(
 )
 
 install(
-        FILES DataInterface.h DataIO.h DataDB.h
+        FILES TaData.h DataIO.h DataDB.h
         DESTINATION include
 )
 
