@@ -48,6 +48,7 @@ struct FunctionData final {
   }
   FID id{0};
   std::string name{""};
+  std::string demangled{""};
   AllocDataMap stack{};
   AllocDataMap heap{};
   std::vector<FreeData> frees{};

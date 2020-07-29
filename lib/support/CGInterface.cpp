@@ -96,14 +96,14 @@ JSONCG* JSONCG::getJSON(const std::string& fileName) {
       std::string str;
       llvm::raw_string_ostream ostr(str);
       ostr << json.takeError();
-      LOG_DEBUG(ostr.str());
+      LOG_FATAL(ostr.str());
       exit(-1);
     }
 
     return new JSONCG(json.get());
   } else {
     LOG_FATAL("No CG file provided / file cannot be found: " << fileName);
-    // exit(-1);
+    exit(-1);
   }
 }
 

@@ -72,6 +72,7 @@ class FilterImpl final : public FilterBase {
 
         if (indirect_call) {
           LOG_DEBUG("Found an indirect call, not filtering alloca: " << util::dump(*val));
+          append_trace("Indirect call");
           return false;  // Indirect calls might contain critical function calls.
         }
 
@@ -82,6 +83,11 @@ class FilterImpl final : public FilterBase {
           if (c.getIntrinsicID() == Intrinsic::not_intrinsic /*Intrinsic::ID::not_intrinsic*/) {
             if (CallFilterDeep && match(callee) && shouldContinue(c, in)) {
               continue;
+            }
+            if (match(callee)) {
+              append_trace("Pattern ") << call_regex << " match of " << util::dump(*c.getInstruction());
+            } else {
+              append_trace("decl call ") << getName(c.getCalledFunction());
             }
             return false;
           } else {
@@ -95,6 +101,7 @@ class FilterImpl final : public FilterBase {
           if (CallFilterDeep && shouldContinue(c, in)) {
             continue;
           }
+          append_trace("match call");
           return false;
         }
 
@@ -120,11 +127,19 @@ class FilterImpl final : public FilterBase {
       addToWork(val->users());
     }
     ++depth;
-    return std::all_of(working_set_calls.begin(), working_set_calls.end(), [&](CallSite c) { return filter(c, in); });
+    const auto filter_callsite =
+        std::all_of(working_set_calls.begin(), working_set_calls.end(), [&](CallSite c) { return filter(c, in); });
+    if (filter_callsite && !working_set_calls.empty()) {
+      append_trace("All calls true ") << working_set.size() << " " << *in;
+    } else if (filter_callsite) {
+      append_trace("Default filter (no call)");
+    }
+    return filter_callsite;
   }
 
  private:
   bool filter(CallSite& csite, Value* in) {
+    append_trace("Match call: ") << util::demangle(csite.getCalledFunction()->getName()) << " :: " << *in;
     const auto analyse_arg = [&](auto& csite, auto argNum) -> bool {
       Argument& the_arg = *(csite.getCalledFunction()->arg_begin() + argNum);
       LOG_DEBUG("Calling filter with inst of argument: " << util::dump(the_arg));
@@ -136,6 +151,7 @@ class FilterImpl final : public FilterBase {
     LOG_DEBUG("Analyzing function call " << csite.getCalledFunction()->getName());
 
     if (csite.getCalledFunction() == start_f) {
+      append_trace("a recursion");
       return true;
     }
 
@@ -146,15 +162,26 @@ class FilterImpl final : public FilterBase {
     if (pos != csite.arg_end()) {
       const auto argNum = std::distance(csite.arg_begin(), pos);
       LOG_DEBUG("Found exact position: " << argNum);
-      return analyse_arg(csite, argNum);
+
+      const auto arg_ = analyse_arg(csite, argNum);
+      if (arg_) {
+        append_trace("exact arg pos");
+      }
+      return arg_;
     } else {
       LOG_DEBUG("Analyze all args, cannot correlate alloca with arg.");
-      return std::all_of(csite.arg_begin(), csite.arg_end(), [&csite, &analyse_arg](const Use& arg_use) {
+
+      const auto all_pos = std::all_of(csite.arg_begin(), csite.arg_end(), [&csite, &analyse_arg](const Use& arg_use) {
         auto argNum = csite.getArgumentNo(&arg_use);
         return analyse_arg(csite, argNum);
       });
+      if (all_pos) {
+        append_trace("all args pos");
+      }
+      return all_pos;
     }
 
+    append_trace("blanked callsite allows");
     return true;
   }
 
@@ -204,6 +231,9 @@ class FilterImpl final : public FilterBase {
     LOG_DEBUG("No filter necessary for this call, continue.");
     return true;
   }
+
+ public:
+  virtual ~FilterImpl() = default;
 };
 
 }  // namespace filter

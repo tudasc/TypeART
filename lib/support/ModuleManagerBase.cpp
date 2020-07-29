@@ -28,9 +28,10 @@ FID ModuleManagerBase::lookupFunction(llvm::Function& f) {
 
   // new function
   ++fID;
-  auto mid    = lookupModule(*f.getParent());
-  auto& fdata = mDB.function(mid, fID);
-  fdata.name  = fname;
+  auto mid        = lookupModule(*f.getParent());
+  auto& fdata     = mDB.function(mid, fID);
+  fdata.name      = fname;
+  fdata.demangled = util::demangle(fname);
 
   if (auto&& [iter, success] = f_map.try_emplace(fname, fID); !success) {
     LOG_ERROR("Error emplacing function data into functionMap.");

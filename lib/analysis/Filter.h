@@ -22,22 +22,29 @@ class FilterBase {
   llvm::Function* start_f{nullptr};
   int depth{0};
   std::string reason_trace{""};
+  llvm::raw_string_ostream trace;
   bool CallFilterDeep{false};
 
  public:
-  FilterBase(const std::string& glob, bool cfilter) : call_regex(util::glob2regex(glob)), CallFilterDeep(cfilter) {
+  FilterBase(const std::string& glob, bool cfilter)
+      : call_regex(util::glob2regex(glob)), CallFilterDeep(cfilter), trace(reason_trace) {
   }
 
   virtual void setMode(bool search_malloc) {
     malloc_mode = search_malloc;
   }
 
-  void append_trace(std::string s) {
-    reason_trace += "; " + s;
+  llvm::raw_string_ostream& append_trace(std::string s) {
+    trace << " | " << s;
+    return trace;
   }
 
   std::string reason() {
-    return reason_trace;
+    return trace.str();
+  }
+
+  void clear_trace() {
+    reason_trace.clear();
   }
 
   virtual void setStartingFunction(llvm::Function* start) {
@@ -46,6 +53,7 @@ class FilterBase {
   }
 
   virtual bool filter(llvm::Value* in) {
+    append_trace("NOOP FILTER");
     return false;
   };
 
@@ -60,7 +68,7 @@ class FilterBase {
     return name;
   }
 
-  ~FilterBase() = default;
+  virtual ~FilterBase() = default;
 };
 }  // namespace filter
 }  // namespace typeart

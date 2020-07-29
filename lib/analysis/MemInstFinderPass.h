@@ -38,7 +38,7 @@ class CallFilter {
 
   bool operator()(const AllocaData&);
   bool operator()(llvm::GlobalVariable*);
-  virtual ~CallFilter();
+  virtual ~CallFilter() = default;
 };
 
 }  // namespace filter

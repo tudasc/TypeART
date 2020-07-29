@@ -182,7 +182,7 @@ bool TypeArtPass::runOnFunc(Function& f) {
 
   const auto instrumentMalloc = [&](const auto& malloc) -> bool {
     const auto mallocInst = malloc.call;
-    LOG_FATAL("MALLOC from: " << util::demangle(mallocInst->getFunction()->getName()));
+    // LOG_FATAL("MALLOC from: " << util::demangle(mallocInst->getFunction()->getName()));
     BitCastInst* primaryBitcast = malloc.primary;
 
     // Number of bytes allocated
@@ -250,7 +250,7 @@ bool TypeArtPass::runOnFunc(Function& f) {
 
   const auto instrumentFree = [&](const auto& free_inst) -> bool {
     // Pointer address:
-    LOG_FATAL("Free from: " << util::demangle(free_inst->getFunction()->getName()));
+    // LOG_FATAL("Free from: " << util::demangle(free_inst->getFunction()->getName()));
     auto freeArg = free_inst->getOperand(0);
     IRBuilder<> IRB(free_inst->getNextNode());
     IRB.CreateCall(typeart_free.f, ArrayRef<Value*>{freeArg});
@@ -402,10 +402,10 @@ void TypeArtPass::printStats(llvm::raw_ostream& out) {
   const auto make_format = [&](const char* desc, const auto val) {
     return format("%-*s: %*u\n", max_string, desc, max_val, val);
   };
-  const bool heap_only = ClIgnoreHeap.getValue();
+  const bool heap_ignore = ClIgnoreHeap.getValue();
   out << line;
   out << "   TypeArtPass";
-  out << (heap_only ? " [Heap]\n" : " [Stack]\n");
+  out << (heap_ignore ? " [Stack]\n" : " [Heap]\n");
   out << line;
   // if (heap_only) {
   out << "Heap Memory\n";

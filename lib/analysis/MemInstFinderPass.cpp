@@ -78,15 +78,16 @@ using namespace finder;
 
 namespace filter {
 
-static std::unique_ptr<FilterBase> make_filter(std::string id, std::string glob) {
+static FilterBase* make_filter(std::string id, std::string glob) {
   const bool deep = ClCallFilterDeep.getValue();
   if (id == "cg-graph") {
-    return std::make_unique<CGFilterImpl>(glob, deep, ClCGFile.getValue());
+    LOG_FATAL("Demand cg filter")
+    return new CGFilterImpl(glob, deep, ClCGFile.getValue());
   } else if (id == "empty" || !ClCallFilter.getValue()) {
-    return std::make_unique<FilterBase>(glob, deep);
+    return new FilterBase(glob, deep);
   } else {
     // default
-    return std::make_unique<FilterImpl>(glob, deep);
+    return new FilterImpl(glob, deep);
   }
 }
 
@@ -105,7 +106,9 @@ bool CallFilter::operator()(const AllocaData& adata) {
     m.putStack(adata, -1, "CallFiler " + fImpl->reason());
   } else {
     LOG_DEBUG("Keeping value: " << util::dump(*in) << "\n");
+    m.putStack(adata, -1, "Keep " + fImpl->reason());
   }
+  fImpl->clear_trace();
   return filter_;
 }
 
@@ -120,10 +123,9 @@ bool CallFilter::operator()(GlobalVariable* g) {
   } else {
     LOG_DEBUG("Keeping value: " << util::dump(*g) << "\n");
   }
+  fImpl->clear_trace();
   return filter_;
 }
-
-CallFilter::~CallFilter() = default;
 
 }  // namespace filter
 

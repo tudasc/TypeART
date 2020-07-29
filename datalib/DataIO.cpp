@@ -133,6 +133,7 @@ struct llvm::yaml::MappingTraits<typeart::data::FunctionData> {
   static void mapping(IO& io, typeart::data::FunctionData& info) {
     io.mapRequired("id", info.id);
     io.mapRequired("name", info.name);
+    io.mapOptional("demangled", info.demangled);
 
     NormalizeAllocData keys_h(io, info.heap);
     NormalizeAllocData keys_s(io, info.stack);
