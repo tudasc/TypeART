@@ -10,11 +10,13 @@
 namespace typeart {
 class CGInterface {
  public:
+  enum class ReachabilityResult { reaches, maybe_reaches, never_reaches };
+
   /**
    * \brief Checks if a path exists from source to target
    */
-  virtual bool reachable(const std::string& source, const std::string& target, bool case_sensitive = false,
-                         bool short_circuit = true) = 0;
+  virtual ReachabilityResult reachable(const std::string& source, const std::string& target,
+                                       bool case_sensitive = false, bool short_circuit = true) = 0;
 
   /**
    * \brief Returns all reachable functions starting from source
@@ -27,8 +29,8 @@ class CGInterface {
 class JSONCG : public CGInterface {
  public:
   explicit JSONCG(const llvm::json::Value& cg);
-  bool reachable(const std::string& source, const std::string& target, bool case_sensitive = false,
-                 bool short_circuit = true) override;
+  CGInterface::ReachabilityResult reachable(const std::string& source, const std::string& target,
+                                            bool case_sensitive = false, bool short_circuit = true) override;
   std::unordered_set<std::string> get_reachable_functions(const std::string& source) const override;
   std::unordered_set<std::string> get_directly_called_function_names(const std::string caller) const;
 
@@ -40,6 +42,7 @@ class JSONCG : public CGInterface {
  private:
   void construct_call_information(const std::string& caller, const llvm::json::Object& j);
   std::unordered_map<std::string, std::unordered_set<std::string>> directly_called_functions;
+  std::unordered_map<std::string, bool> hasBodyMap;
 };
 }  // namespace typeart
 #endif

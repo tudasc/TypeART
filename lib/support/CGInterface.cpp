@@ -9,16 +9,34 @@
 
 namespace typeart {
 
-bool JSONCG::reachable(const std::string& source, const std::string& target, bool case_sensitive, bool short_circuit) {
+CGInterface::ReachabilityResult JSONCG::reachable(const std::string& source, const std::string& target,
+                                                  bool case_sensitive, bool short_circuit) {
   const auto reachables = get_reachable_functions(source);
   bool matches          = false;
+  bool allBodies        = true;
+
   for (const auto& f : reachables) {
     matches |= util::regex_matches(target, f, case_sensitive);
+    allBodies = allBodies && hasBodyMap[target];
+
     if (matches && short_circuit) {
-      return matches;
+      // we have found a match -> whether all functions have bodies is irrelevant
+      return ReachabilityResult::reaches;
     }
   }
-  return matches;
+
+  if (matches) {
+    // matches but no short circuit
+    return ReachabilityResult::reaches;
+  }
+
+  if (!matches && !allBodies) {
+    // We did not find a match, but not all functions had bodies, we don't know
+    return ReachabilityResult::maybe_reaches;
+  }
+
+  // No match and all functions had bodies -> never reaches (all call targets found)
+  return ReachabilityResult::never_reaches;
 }
 
 std::unordered_set<std::string> JSONCG::get_reachable_functions(const std::string& caller) const {
@@ -67,6 +85,11 @@ void JSONCG::construct_call_information(const std::string& entry, const llvm::js
     directly_called_functions[entry] = std::unordered_set<std::string>();
     const auto caller                = j.getObject(entry);
     if (caller != nullptr) {
+      const auto hasBody = caller->get("hasBody");
+      if (hasBody != nullptr) {
+        assert(hasBody->kind() == llvm::json::Value::Kind::Boolean && "hasBody must be boolean");
+        hasBodyMap[entry] = hasBody->getAsBoolean().getValue();
+      }
       const auto calles = caller->getArray("callees");
       assert(calles != nullptr && "Json callee information is missing");
       if (calles != nullptr) {

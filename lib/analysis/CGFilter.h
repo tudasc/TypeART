@@ -50,7 +50,7 @@ class CGFilterImpl final : public FilterBase {
       if (callGraph) {
         return callGraph->reachable(from->getName(), call_regex);
       } else {
-        return true;
+        return CGInterface::ReachabilityResult::maybe_reaches;
       }
     };
 
@@ -110,15 +110,18 @@ class CGFilterImpl final : public FilterBase {
             if (match(callee)) {
               append_trace("Pattern ") << call_regex << " match of " << util::dump(*c.getInstruction());
             } else {
-              const bool reached = do_cg(c.getCalledFunction());
-              if (reached) {
+              const auto reached = do_cg(c.getCalledFunction());
+              if (reached == CGInterface::ReachabilityResult::reaches) {
                 append_trace("CG calls pattern ") << getName(c.getCalledFunction());
                 return false;
-              } else if (!reached) {
+              } else if (reached == CGInterface::ReachabilityResult::never_reaches) {
                 append_trace("CG success ") << getName(c.getCalledFunction());
                 continue;
+              } else if (reached == CGInterface::ReachabilityResult::maybe_reaches) {
+                append_trace("CG maybe reaches") << getName(c.getCalledFunction());
+                return false; // XXX This should be where we can change semantics
               } else {
-                append_trace("decl call ") << getName(c.getCalledFunction());
+                append_trace("CG warn: code path should not be executed ") << getName(c.getCalledFunction());
               }
             }
             return false;
