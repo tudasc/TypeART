@@ -82,6 +82,7 @@ class FilterImpl final : public FilterBase {
           LOG_DEBUG("Found call with declaration only. Call: " << util::dump(*c.getInstruction()));
           if (c.getIntrinsicID() == Intrinsic::not_intrinsic /*Intrinsic::ID::not_intrinsic*/) {
             if (CallFilterDeep && match(callee) && shouldContinue(c, in)) {
+              append_trace("Match, continue: ") << util::dump(*c.getInstruction());
               continue;
             }
             if (match(callee)) {

@@ -80,13 +80,15 @@ namespace filter {
 
 static std::unique_ptr<FilterBase> make_filter(std::string id, std::string glob) {
   const bool deep = ClCallFilterDeep.getValue();
-  if (id == "cg-graph") {
+  if (id == "cg") {
     LOG_FATAL("Demand cg filter")
     return std::make_unique<CGFilterImpl>(glob, deep, ClCGFile.getValue());
   } else if (id == "empty" || !ClCallFilter.getValue()) {
+    LOG_FATAL("Demand empty filter")
     return std::make_unique<FilterBase>(glob, deep);
   } else {
     // default
+    LOG_FATAL("Default filter")
     return std::make_unique<FilterImpl>(glob, deep);
   }
 }
@@ -103,7 +105,16 @@ bool CallFilter::operator()(const AllocaData& adata) {
   const auto filter_ = fImpl->filter(in);
   if (filter_) {
     LOG_DEBUG("Filtering value: " << util::dump(*in) << "\n");
-    m.putStack(adata, -1, "CallFiler " + fImpl->reason());
+    auto i   = adata.alloca;
+    auto dbg = util::getDebugVar(*i);
+    if (dbg != nullptr) {
+      if (dbg->getName() == "gnewdt") {
+        m.putStack(adata, -1, "Keep");
+        fImpl->clear_trace();
+        return false;
+      }
+    }
+    m.putStack(adata, -1, "CallFilter " + fImpl->reason());
   } else {
     LOG_DEBUG("Keeping value: " << util::dump(*in) << "\n");
     m.putStack(adata, -1, "Keep " + fImpl->reason());
@@ -119,7 +130,7 @@ bool CallFilter::operator()(GlobalVariable* g) {
   const auto filter_ = fImpl->filter(g);
   if (filter_) {
     LOG_DEBUG("Filtering value: " << util::dump(*g) << "\n");
-    m.putGlobal(g, -1, "CallFiler " + fImpl->reason());
+    m.putGlobal(g, -1, "CallFilter " + fImpl->reason());
   } else {
     LOG_DEBUG("Keeping value: " << util::dump(*g) << "\n");
   }

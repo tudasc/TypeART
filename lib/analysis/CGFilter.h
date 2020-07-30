@@ -101,15 +101,16 @@ class CGFilterImpl final : public FilterBase {
         // FIXME the MPI calls are all hitting this branch (obviously)
         if (is_decl) {
           LOG_DEBUG("Found call with declaration only. Call: " << util::dump(*c.getInstruction()));
+          // append_trace("Decl found ") << util::dump(*c.getInstruction());
           if (c.getIntrinsicID() == Intrinsic::not_intrinsic /*Intrinsic::ID::not_intrinsic*/) {
             if (CallFilterDeep && match(callee) && shouldContinue(c, in)) {
+              append_trace("Match, continue: ") << util::dump(*c.getInstruction());
               continue;
             }
             if (match(callee)) {
               append_trace("Pattern ") << call_regex << " match of " << util::dump(*c.getInstruction());
             } else {
-              const bool reached =
-                  do_cg(c.getCalledFunction());  // callGraph->reachable(c.getCalledFunction()->getName(), call_regex);
+              const bool reached = do_cg(c.getCalledFunction());
               if (reached) {
                 append_trace("CG calls pattern ") << getName(c.getCalledFunction());
                 return false;
@@ -120,6 +121,7 @@ class CGFilterImpl final : public FilterBase {
                 append_trace("decl call ") << getName(c.getCalledFunction());
               }
             }
+            return false;
           } else {
             LOG_DEBUG("Call is an intrinsic. Continue analyzing...")
             continue;
