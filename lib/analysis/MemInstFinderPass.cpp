@@ -114,10 +114,10 @@ bool CallFilter::operator()(const AllocaData& adata) {
         return false;
       }
     }
-    m.putStack(adata, -1, "CallFilter " + fImpl->reason());
+    m.putStack(adata, -1, "CallFilter (s) " + fImpl->reason());
   } else {
     LOG_DEBUG("Keeping value: " << util::dump(*in) << "\n");
-    m.putStack(adata, -1, "Keep " + fImpl->reason());
+    m.putStack(adata, -1, "Keep (s) " + fImpl->reason());
   }
   fImpl->clear_trace();
   return filter_;
@@ -130,9 +130,10 @@ bool CallFilter::operator()(GlobalVariable* g) {
   const auto filter_ = fImpl->filter(g);
   if (filter_) {
     LOG_DEBUG("Filtering value: " << util::dump(*g) << "\n");
-    m.putGlobal(g, -1, "CallFilter " + fImpl->reason());
+    m.putGlobal(g, -1, "CallFilter (g) " + fImpl->reason());
   } else {
     LOG_DEBUG("Keeping value: " << util::dump(*g) << "\n");
+    m.putGlobal(g, -1, "Keep (g) " + fImpl->reason());
   }
   fImpl->clear_trace();
   return filter_;

@@ -14,29 +14,65 @@ CGInterface::ReachabilityResult JSONCG::reachable(const std::string& source, con
   const auto reachables = get_reachable_functions(source);
   bool matches          = false;
   bool allBodies        = true;
+  bool what{false};
+  /*
+  bool what{false};
+  if (!hasBodyMap[source]) {
+    ++no_call_chain;
+  }
 
+  if (!reachables.empty()) {
+    ++call_chain;
+    f.push_back(source);
+    what = true;
+    LOG_FATAL(source);
+  }
+  */
   for (const auto& f : reachables) {
     matches |= util::regex_matches(target, f, case_sensitive);
     allBodies = allBodies && hasBodyMap[target];
 
     if (matches && short_circuit) {
       // we have found a match -> whether all functions have bodies is irrelevant
+      if (what) {
+        LOG_FATAL("Iter match with " << f);
+      }
       return ReachabilityResult::reaches;
     }
   }
 
   if (matches) {
     // matches but no short circuit
+    if (what) {
+      LOG_FATAL("matches");
+    }
     return ReachabilityResult::reaches;
   }
 
-  if (!matches && !allBodies) {
+  if (!matches && (!allBodies || !hasBodyMap[source])) {
+    if (what) {
+      LOG_FATAL("maybe");
+    }
     // We did not find a match, but not all functions had bodies, we don't know
     return ReachabilityResult::maybe_reaches;
   }
 
+  if (what) {
+    LOG_FATAL("never");
+  }
   // No match and all functions had bodies -> never reaches (all call targets found)
   return ReachabilityResult::never_reaches;
+}
+
+std::vector<std::string> JSONCG::get_decl_only() {
+  std::vector<std::string> list;
+  list.reserve(hasBodyMap.size());
+  for (const auto& [func, has_body] : hasBodyMap) {
+    if (!has_body) {
+      list.push_back(func);
+    }
+  }
+  return list;
 }
 
 std::unordered_set<std::string> JSONCG::get_reachable_functions(const std::string& caller) const {
@@ -127,6 +163,12 @@ JSONCG* JSONCG::getJSON(const std::string& fileName) {
   } else {
     LOG_FATAL("No CG file provided / file cannot be found: " << fileName);
     exit(-1);
+  }
+}
+JSONCG::~JSONCG() {
+  LOG_FATAL("### Call chain " << call_chain << " vs. decls " << no_call_chain)
+  for (auto& fs : f) {
+    LOG_FATAL(fs);
   }
 }
 

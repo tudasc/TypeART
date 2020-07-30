@@ -30,6 +30,24 @@ class CGFilterImpl final : public FilterBase {
       LOG_FATAL("Resetting the CGInterface with JSON CG");
       // callGraph.reset(new JSONCG(JSONCG::getJSON(ClCGFile.getValue())));
       callGraph.reset(JSONCG::getJSON(file));
+      auto vec                = callGraph->get_decl_only();
+      const auto dump_strings = [](auto& s) -> std::string {
+        auto beg = s.begin();
+        auto end = s.end();
+        if (beg == end) {
+          return "[ ]";
+        }
+
+        std::string tmp;
+        llvm::raw_string_ostream out(tmp);
+        auto next = std::next(beg);
+        out << "[ " << *(beg);
+        std::for_each(next, end, [&out](auto v) { out << " , " << v; });
+        out << " ]";
+        return out.str();
+      };
+
+      // LOG_FATAL(dump_strings(vec))
       // callGraph = JSONCG::getJSON(file);
     } else {
       LOG_FATAL("CG File not found " << file);
@@ -118,10 +136,10 @@ class CGFilterImpl final : public FilterBase {
                 append_trace("CG success ") << getName(c.getCalledFunction());
                 continue;
               } else if (reached == CGInterface::ReachabilityResult::maybe_reaches) {
-                append_trace("CG maybe reaches") << getName(c.getCalledFunction());
-                return false; // XXX This should be where we can change semantics
+                append_trace("CG maybe reaches ") << getName(c.getCalledFunction());
+                continue;  // XXX This should be where we can change semantics
               } else {
-                append_trace("CG warn: code path should not be executed ") << getName(c.getCalledFunction());
+                append_trace("Decl call (CG warn) ") << getName(c.getCalledFunction());
               }
             }
             return false;

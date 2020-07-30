@@ -23,6 +23,8 @@ class CGInterface {
    */
   virtual std::unordered_set<std::string> get_reachable_functions(const std::string& source) const = 0;
 
+  virtual std::vector<std::string> get_decl_only() = 0;
+
   virtual ~CGInterface() = default;
 };
 
@@ -33,16 +35,20 @@ class JSONCG : public CGInterface {
                                             bool case_sensitive = false, bool short_circuit = true) override;
   std::unordered_set<std::string> get_reachable_functions(const std::string& source) const override;
   std::unordered_set<std::string> get_directly_called_function_names(const std::string caller) const;
+  std::vector<std::string> get_decl_only();
 
   // static llvm::json::Value& getJSON(const std::string &fileName);
   static JSONCG* getJSON(const std::string& fileName);
 
-  virtual ~JSONCG() = default;
+  virtual ~JSONCG();
 
  private:
   void construct_call_information(const std::string& caller, const llvm::json::Object& j);
   std::unordered_map<std::string, std::unordered_set<std::string>> directly_called_functions;
   std::unordered_map<std::string, bool> hasBodyMap;
+  size_t no_call_chain{0};
+  size_t call_chain{0};
+  std::vector<std::string> f;
 };
 }  // namespace typeart
 #endif
