@@ -75,11 +75,12 @@ std::vector<std::string> JSONCG::get_decl_only() {
   return list;
 }
 
-std::unordered_set<std::string> JSONCG::get_reachable_functions(const std::string& caller) const {
+std::unordered_set<std::string> JSONCG::get_reachable_functions(const std::string& caller,
+                                                                bool considerOverrides) const {
   std::unordered_set<std::string> ret;
   std::unordered_set<std::string> worklist;
 
-  worklist = get_directly_called_function_names(caller);
+  worklist = get_directly_called_function_names(caller, considerOverrides);
   while (!worklist.empty()) {
     const std::string func_name = *worklist.begin();
     // Check if we did not already handled it
@@ -92,9 +93,17 @@ std::unordered_set<std::string> JSONCG::get_reachable_functions(const std::strin
   return ret;
 }
 
-std::unordered_set<std::string> JSONCG::get_directly_called_function_names(const std::string caller) const {
+std::unordered_set<std::string> JSONCG::get_directly_called_function_names(const std::string caller,
+                                                                           bool considerOverrides) const {
   auto ref = directly_called_functions.find(caller);
   if (ref != std::end(directly_called_functions)) {
+    // If the caller is virtual and overridden, add the overriding functions
+    if (considerOverrides && (virtualTargets.find(caller) != std::end(virtualTargets))) {
+      auto targets  = ref->second;
+      auto vTargets = virtualTargets.find(caller)->second;
+      targets.merge(vTargets);
+      return targets;
+    }
     return ref->second;
   }
   return std::unordered_set<std::string>();
@@ -137,6 +146,19 @@ void JSONCG::construct_call_information(const std::string& entry, const llvm::js
           if (callee_json_string.hasValue()) {
             const std::string callee_string = callee_json_string.getValue();
             directly_called_functions[entry].insert(callee_string);
+          }
+        }
+      }
+      // if the function is virtual, overriding functions are _potential_ call targets
+      const auto overridingFunctions = caller->getArray("overriddenBy");
+      if (overridingFunctions != nullptr) {
+        for (const auto& function : *overridingFunctions) {
+          assert(function.kind() == llvm::json::Value::Kind::String && "Function names are always strings");
+          const auto functionStr = function.getAsString();
+          assert(functionStr.hasValue() && "Retrieving overriding function as String failed");
+          if (functionStr.hasValue()) {
+            const std::string functionName = functionStr.getValue();
+            virtualTargets[entry].insert(functionName);
           }
         }
       }
