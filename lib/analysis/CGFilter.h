@@ -30,7 +30,7 @@ class CGFilterImpl final : public FilterBase {
       LOG_FATAL("Resetting the CGInterface with JSON CG");
       // callGraph.reset(new JSONCG(JSONCG::getJSON(ClCGFile.getValue())));
       callGraph.reset(JSONCG::getJSON(file));
-      auto vec                = callGraph->get_decl_only();
+      // auto vec                = callGraph->get_decl_only();
       const auto dump_strings = [](auto& s) -> std::string {
         auto beg = s.begin();
         auto end = s.end();

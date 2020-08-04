@@ -152,7 +152,11 @@ bool TypeArtPass::runOnModule(Module& m) {
 bool TypeArtPass::runOnFunc(Function& f) {
   using namespace typeart;
 
-  if (f.isDeclaration() || f.getName().startswith("__typeart")) {
+  const auto fname = f.getName();
+
+  const auto is_mpi_cxx_n = [&](auto& des) { return des.startswith("MPI::"); };
+
+  if (f.isDeclaration() || fname.startswith("__typeart") || is_mpi_cxx_n(fname)) {
     return false;
   }
 
@@ -161,7 +165,7 @@ bool TypeArtPass::runOnFunc(Function& f) {
     return false;
   }
 
-  LOG_DEBUG("Running on function: " << f.getName())
+  LOG_DEBUG("Running on function: " << fname)
 
   const auto FID = data.lookupFunction(f);
 
@@ -301,14 +305,25 @@ bool TypeArtPass::runOnFunc(Function& f) {
     return true;
   };
 
+  const auto is_mpi_cxx = [&](auto* val) {
+    auto des = util::demangle(val->getFunction()->getName());
+    return des.rfind("MPI::", 0) == 0;
+  };
+
   if (!ClIgnoreHeap) {
     // instrument collected calls of bb:
     for (const auto& malloc : listMalloc) {
+      if (is_mpi_cxx(malloc.call)) {
+        continue;
+      }
       ++NumInstrumentedMallocs;
       mod |= instrumentMalloc(malloc);
     }
 
     for (auto* free : listFree) {
+      if (is_mpi_cxx(free)) {
+        continue;
+      }
       ++NumInstrumentedFrees;
       mod |= instrumentFree(free);
     }

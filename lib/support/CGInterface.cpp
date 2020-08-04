@@ -15,8 +15,8 @@ CGInterface::ReachabilityResult JSONCG::reachable(const std::string& source, con
   bool matches          = false;
   bool allBodies        = true;
   bool what{false};
-  /*
-  bool what{false};
+
+  // bool what{false};
   if (!hasBodyMap[source]) {
     ++no_call_chain;
   }
@@ -27,7 +27,7 @@ CGInterface::ReachabilityResult JSONCG::reachable(const std::string& source, con
     what = true;
     LOG_FATAL(source);
   }
-  */
+
   for (const auto& f : reachables) {
     matches |= util::regex_matches(target, f, case_sensitive);
     allBodies = allBodies && hasBodyMap[target];
