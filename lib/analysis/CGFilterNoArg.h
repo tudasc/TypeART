@@ -2,8 +2,8 @@
 // Created by ahueck on 28.07.20.
 //
 
-#ifndef TYPEART_CGFILTER_H
-#define TYPEART_CGFILTER_H
+#ifndef TYPEART_CGFILTER2_H
+#define TYPEART_CGFILTER2_H
 
 #include "Filter.h"
 #include "support/CGInterface.h"
@@ -18,13 +18,13 @@
 namespace typeart {
 namespace filter {
 using namespace llvm;
-class CGFilterImpl final : public FilterBase {
+class CGFilterImpl2 final : public FilterBase {
   // Holds pointer to a CG implementation
   std::unique_ptr<CGInterface> callGraph;
   // CGInterface* callGraph{nullptr};
 
  public:
-  explicit CGFilterImpl(const std::string& glob, bool CallFilterDeep, std::string file)
+  explicit CGFilterImpl2(const std::string& glob, bool CallFilterDeep, std::string file)
       : FilterBase(glob, CallFilterDeep) {
     if (!callGraph && !file.empty()) {
       LOG_FATAL("Resetting the CGInterface with JSON CG");
@@ -158,7 +158,19 @@ class CGFilterImpl final : public FilterBase {
           return false;
         }
 
-        working_set_calls.push_back(c);
+        const auto reached = do_cg(c.getCalledFunction());
+        if (reached == CGInterface::ReachabilityResult::reaches) {
+          append_trace("CG def. calls pattern ") << getName(c.getCalledFunction());
+          return false;
+        } else if (reached == CGInterface::ReachabilityResult::never_reaches) {
+          append_trace("CG def. success ") << getName(c.getCalledFunction());
+          continue;
+        } else if (reached == CGInterface::ReachabilityResult::maybe_reaches) {
+          append_trace("CG def. maybe reaches ") << getName(c.getCalledFunction());
+          continue;  // XXX This should be where we can change semantics
+        }
+
+        // working_set_calls.push_back(c);
         // Caveat: below at the end of the loop, we add users of the function call to the search even though it might be
         // a simple "sink" for the alloca we analyse
       } else if (auto store = llvm::dyn_cast<StoreInst>(val)) {
@@ -180,79 +192,10 @@ class CGFilterImpl final : public FilterBase {
       addToWork(val->users());
     }
     ++depth;
-    const auto filter_callsite =
-        std::all_of(working_set_calls.begin(), working_set_calls.end(), [&](CallSite c) { return filter(c, in); });
-    if (filter_callsite && !working_set_calls.empty()) {
-      append_trace("All calls true ") << working_set.size() << " " << *in;
-    } else if (filter_callsite) {
-      append_trace("Default filter (no call)");
-    }
-    append_trace("Final callsite ") << filter_callsite;
-    return filter_callsite;
-  }
-
- private:
-  bool filter(CallSite& csite, Value* in) {
-    append_trace("Match call: ") << util::demangle(csite.getCalledFunction()->getName()) << " :: " << *in;
-    const auto analyse_arg = [&](auto& csite, auto argNum) -> bool {
-      Argument& the_arg = *(csite.getCalledFunction()->arg_begin() + argNum);
-      LOG_DEBUG("Calling filter with inst of argument: " << util::dump(the_arg));
-      const bool filter_arg = filter(&the_arg);
-      LOG_DEBUG("Should filter? : " << filter_arg);
-      return filter_arg;
-    };
-
-    LOG_DEBUG("Analyzing function call " << csite.getCalledFunction()->getName());
-
-    if (csite.getCalledFunction() == start_f) {
-      append_trace("a recursion");
-      return true;
-    }
-
-    // this only works if we can correlate alloca with argument:
-    const auto pos = std::find_if(csite.arg_begin(), csite.arg_end(),
-                                  [&in](const Use& arg_use) -> bool { return arg_use.get() == in; });
-    // auto pos = csite.arg_end();
-    if (pos != csite.arg_end()) {
-      const auto argNum = std::distance(csite.arg_begin(), pos);
-      LOG_DEBUG("Found exact position: " << argNum);
-
-      const auto arg_ = analyse_arg(csite, argNum);
-      if (arg_) {
-        append_trace("exact arg pos");
-      }
-      return arg_;
-    } else {
-      LOG_DEBUG("Analyze all args, cannot correlate alloca with arg.");
-
-      const auto all_pos = std::all_of(csite.arg_begin(), csite.arg_end(), [&csite, &analyse_arg](const Use& arg_use) {
-        auto argNum = csite.getArgumentNo(&arg_use);
-        return analyse_arg(csite, argNum);
-      });
-      if (all_pos) {
-        append_trace("all args pos");
-      }
-      return all_pos;
-    }
-
-    append_trace("blanked callsite allows");
     return true;
   }
 
-  bool filter(Argument* arg) {
-    for (auto* user : arg->users()) {
-      LOG_DEBUG("Looking at arg user " << util::dump(*user));
-      // This code is for non mem2reg code (i.e., where the argument is stored to a local alloca):
-      if (auto store = llvm::dyn_cast<StoreInst>(user)) {
-        // if (auto* alloca = llvm::dyn_cast<AllocaInst>(store->getPointerOperand())) {
-        //  LOG_DEBUG("Argument is a store inst and the operand is alloca");
-        return filter(store->getPointerOperand());
-        // }
-      }
-    }
-    return filter(llvm::dyn_cast<Value>(arg));
-  }
-
+ private:
   bool shouldContinue(CallSite c, Value* in) const {
     LOG_DEBUG("Found a name match, analyzing closer...");
     const auto is_void_ptr = [](Type* type) {
@@ -287,7 +230,7 @@ class CGFilterImpl final : public FilterBase {
   }
 
  public:
-  virtual ~CGFilterImpl() = default;
+  virtual ~CGFilterImpl2() = default;
 };
 }  // namespace filter
 }  // namespace typeart

@@ -135,6 +135,7 @@ class FilterImpl final : public FilterBase {
     } else if (filter_callsite) {
       append_trace("Default filter (no call)");
     }
+    append_trace("Final callsite ") << filter_callsite;
     return filter_callsite;
   }
 

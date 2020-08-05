@@ -8,6 +8,7 @@
 #include "MemInstFinderPass.h"
 
 #include "CGFilter.h"
+#include "CGFilterNoArg.h"
 #include "Filter.h"
 #include "MemOpVisitor.h"
 #include "StandardFilter.h"
@@ -83,6 +84,9 @@ static std::unique_ptr<FilterBase> make_filter(std::string id, std::string glob)
   if (id == "cg") {
     LOG_FATAL("Demand cg filter")
     return std::make_unique<CGFilterImpl>(glob, deep, ClCGFile.getValue());
+  } else if (id == "cg2") {
+    LOG_FATAL("Demand new cg2 filter")
+    return std::make_unique<CGFilterImpl2>(glob, deep, ClCGFile.getValue());
   } else if (id == "empty" || !ClCallFilter.getValue()) {
     LOG_FATAL("Demand empty filter")
     return std::make_unique<FilterBase>(glob, deep);
