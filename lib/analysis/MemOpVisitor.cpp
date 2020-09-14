@@ -65,24 +65,65 @@ void MemOpVisitor::visitMallocLike(llvm::CallBase& ci, MemOpKind k) {
         if (auto loadInst = dyn_cast<LoadInst>(storeUser)) {
           for (auto loadUser : loadInst->users()) {
             if (auto bcastInst = dyn_cast<BitCastInst>(loadUser)) {
+              LOG_MSG(*bcastInst)
               bcasts.insert(bcastInst);
             }
           }
         }
       }
     }
+    // FIXME this is a try to fix issue #13 ; may require more sophisticated dataflow tracking
+    if (auto gep = dyn_cast<GetElementPtrInst>(user)) {
+      // if (gep->getPointerOperand() == ci) {
+      for (auto gep_user : gep->users()) {
+        if (auto bcastInst = dyn_cast<BitCastInst>(gep_user)) {
+          bcasts.insert(bcastInst);
+        }
+      }
+      //}
+    }
   }
 
-  BitCastInst* primaryBitcast{nullptr};
+  BitCastInst* primary_cast{nullptr};
+  if (!bcasts.empty()) {
+    primary_cast = *bcasts.begin();
+  }
+
+  using namespace util::type;
+  // const auto is_i64 = [](auto* type) { return type->isPointerTy() && type->getPointerElementType()->isIntegerTy(64);
+  // };
+
+  const bool has_specific = llvm::count_if(bcasts, [&](auto bcast) {
+                              auto dest = bcast->getDestTy();
+                              return !isVoidPtr(dest) && !isi64Ptr(dest);
+                            }) > 0;
+
+  for (auto bcast : bcasts) {
+    auto dest = bcast->getDestTy();
+    if (!isVoidPtr(dest)) {
+      auto cast = bcast;
+      if (isi64Ptr(dest) && has_specific) {  // LLVM likes to treat mallocs with i64 ptr type, skip if we have sth else
+        continue;
+      }
+      primary_cast = cast;
+    }
+  }
+
+  if (primary_cast == nullptr) {
+    LOG_DEBUG("Primay bitcast null: " << ci)
+  }
+  /*
   std::for_each(bcasts.begin(), bcasts.end(), [&](auto bcast) {
-    if (!util::type::isVoidPtr(bcast->getDestTy())) {
-      primaryBitcast = bcast;
+    using namespace util::type;
+    auto dest = bcast->getDestTy();
+    if (!isVoidPtr(dest)) {
+      primary_cast = bcast;
     }
   });
-
+  */
   //  LOG_DEBUG("  >> number of bitcasts found: " << bcasts.size());
 
-  mallocs.push_back(MallocData{&ci, primaryBitcast, bcasts, k, isa<InvokeInst>(ci)});
+  mallocs.push_back(MallocData{&ci, primary_cast, bcasts, k, isa<InvokeInst>(ci)});
 }
 
 void MemOpVisitor::visitFreeLike(llvm::CallBase& ci, MemOpKind) {

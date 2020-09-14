@@ -415,12 +415,15 @@ bool MemInstFinderPass::runOnFunc(llvm::Function& f) {
   LOG_DEBUG("Running on function: " << f.getName())
 
   const auto checkAmbigiousMalloc = [](const MallocData& mallocData) {
+    using namespace typeart::util::type;
     auto primaryBitcast = mallocData.primary;
     if (primaryBitcast) {
       const auto& bitcasts = mallocData.bitcasts;
       std::for_each(bitcasts.begin(), bitcasts.end(), [&](auto bitcastInst) {
-        if (bitcastInst != primaryBitcast && (!typeart::util::type::isVoidPtr(bitcastInst->getDestTy()) &&
-                                              primaryBitcast->getDestTy() != bitcastInst->getDestTy())) {
+        auto dest = bitcastInst->getDestTy();
+        if (bitcastInst != primaryBitcast &&
+            (!isVoidPtr(dest) && !isi64Ptr(dest) &&
+             primaryBitcast->getDestTy() != dest)) {  // void* and i64* are used by LLVM
           // Second non-void* bitcast detected - semantics unclear
           LOG_WARNING("Encountered ambiguous pointer type in allocation: " << util::dump(*(mallocData.call)));
           LOG_WARNING("  Primary cast: " << util::dump(*primaryBitcast));

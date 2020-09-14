@@ -12,6 +12,8 @@ namespace typeart {
 namespace util {
 namespace type {
 
+bool isi64Ptr(llvm::Type* type);
+
 bool isVoidPtr(llvm::Type* type);
 
 unsigned getTypeSizeInBytes(llvm::Type* t, const llvm::DataLayout& dl);
