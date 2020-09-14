@@ -164,6 +164,10 @@ void typeart_get_return_address(const void* addr, const void** retAddr);
 void __typeart_assert_type_stub(const void* addr, const void* typePtr);
 void __typeart_assert_type_stub_len(const void* addr, const void* typePtr, size_t);
 
+size_t __typeart_introspect_len(const void* addr);
+/* TODO Figure out what to return here */
+void __typeart_introspect_ty(void* addr);
+
 #ifdef __cplusplus
 }
 #endif

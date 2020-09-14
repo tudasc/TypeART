@@ -88,6 +88,8 @@ void MemOpVisitor::visitCallInst(llvm::CallInst& ci) {
     visitFreeLike(ci, val.getValue());
   } else if (auto val = isInSetCheck(assertMap, ci)) {
     visitTypeAssert(ci, val.getValue());
+  } else if (auto val = isInSetCheck(instrospectionMarker, ci)) {
+    visitTypeAssert(ci, val.getValue());  // TODO refactor. We currently piggy back
   }
 }
 
@@ -97,6 +99,8 @@ void MemOpVisitor::visitInvokeInst(llvm::InvokeInst& ii) {
   } else if (auto val = isInSetCheck(deallocMap, ii)) {
     visitFreeLike(ii, val.getValue());
   } else if (auto val = isInSetCheck(assertMap, ii)) {
+    visitTypeAssert(ii, val.getValue());
+  } else if (auto val = isInSetCheck(instrospectionMarker, ii)) {
     visitTypeAssert(ii, val.getValue());
   }
 }

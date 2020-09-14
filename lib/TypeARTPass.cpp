@@ -12,6 +12,7 @@
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
+#include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Format.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/Transforms/Utils/CtorUtils.h"
@@ -352,6 +353,8 @@ bool TypeArtPass::runOnFunc(Function& f) {
 
     if (ad.kind == AssertKind::TYCART_FTI_T) {
       typeArg = callOrInvoke.getArgOperand(0);
+    } else if (ad.kind == AssertKind::INTROSPECT_MARK) {
+      return false;
     } else {
       bufferArg = callOrInvoke.getArgOperand(0);
       typeArg = callOrInvoke.getArgOperand(1);
@@ -439,7 +442,11 @@ bool TypeArtPass::runOnFunc(Function& f) {
       // set argument vector
 
       if (ad.kind == AssertKind::TYPE) {
-        callOrInvoke.i->setCalledFunction(typeart_assert_type.f);
+        if (const auto instrFunc = dyn_cast<Function>(typeart_assert_type.f)) {
+          callOrInvoke.i->setCalledFunction(instrFunc);
+        } else {
+          LOG_DEBUG("Could not set call target of invoke or call");
+        }
       }
 
       if (ad.kind == AssertKind::TYPELEN) {
@@ -448,7 +455,12 @@ bool TypeArtPass::runOnFunc(Function& f) {
           LOG_ERROR("Length is null");
           return false;
         }
-        callOrInvoke.i->setCalledFunction(typeart_assert_type_len.f);
+        if (const auto instrFunc = dyn_cast<Function>(typeart_assert_type_len.f)) {
+          callOrInvoke.i->setCalledFunction(instrFunc);
+        } else {
+          LOG_DEBUG("Could not set call target of invoke or call");
+        }
+        // callOrInvoke.i->setCalledFunction(typeart_assert_type_len.f);
         callOrInvoke.i->setArgOperand(2, typeLen);
       }
 
@@ -616,7 +628,8 @@ void TypeArtPass::declareInstrumentationFunctions(Module& m) {
   };
 
   const auto make_function = [&](auto& f_struct, auto f_type) {
-    f_struct.f = m.getOrInsertFunction(f_struct.name, f_type);
+    auto funcCallee = m.getOrInsertFunction(f_struct.name, f_type);
+    f_struct.f = dyn_cast<Function>(funcCallee.getCallee());
     if (auto f = dyn_cast<Function>(f_struct.f)) {
       f->setLinkage(GlobalValue::ExternalLinkage);
       auto& firstParam = *(f->arg_begin());

@@ -607,3 +607,14 @@ void __typeart_assert_type_len(void* addr, int typeId, size_t count) {
     fail(ss.str());
   }
 }
+
+size_t __typeart_introspect_len(void* addr) {
+  int actTypeId{TA_UNKNOWN_TYPE};
+  size_t actCount{0};
+  auto status = typeart_get_type(addr, &actTypeId, &actCount);
+  LOG_MSG("Determined count " << actCount);
+  return actCount;
+}
+
+void __typeart_introspect_ty(void* addr) {
+}
