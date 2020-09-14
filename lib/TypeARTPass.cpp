@@ -168,9 +168,6 @@ bool TypeArtPass::runOnFunc(Function& f) {
     const auto malloc_call      = malloc.call;
     BitCastInst* primaryBitcast = malloc.primary;
 
-    if (malloc.is_invoke) {
-      LOG_FATAL("Invoke in lulesh " << *malloc_call);
-    }
     // Number of bytes allocated
     auto mallocArg = malloc_call->getOperand(0);
     int typeId     = typeManager.getOrRegisterType(malloc_call->getType()->getPointerElementType(),
