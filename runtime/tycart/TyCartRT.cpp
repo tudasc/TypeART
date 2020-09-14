@@ -299,6 +299,47 @@ void __tycart_cp_assert() {
   tycart::TYassert_cp();
 }
 
+void __tycart_assert_auto(int id, void* addr, size_t typeSize, int typeId) {
+  const auto fail = [&](std::string msg) -> void {
+    LOG_FATAL("Assert failed: " << msg);
+    exit(EXIT_FAILURE);
+  };
+
+  const auto ta_status = [&fail](auto status) {
+    switch (status) {
+      case TA_OK:
+        break;
+      case TA_INVALID_ID:
+        fail("Type ID is invalid");
+        break;
+      case TA_BAD_ALIGNMENT:
+        fail("Pointer does not align to a type");
+        break;
+      case TA_UNKNOWN_ADDRESS:
+        fail("Address is unknown");
+        break;
+      default:
+        fail("Unexpected error during type resolution");
+    }
+  };
+
+  /* Query the runtime for the len information of the addr pointer and the datatype */
+  int actualTypeId{TA_UNKNOWN_TYPE};
+  size_t actualCount{0};
+
+  const auto get_type = [&actualTypeId, &actualCount, &ta_status](auto addr) {
+    auto status = typeart_get_type(addr, &actualTypeId, &actualCount);
+    if (status != TA_OK) {
+      // TODO log
+      ta_status(status);
+    }
+  };
+  get_type(addr);
+  LOG_INFO("The actual count was: " << actualCount);
+  __tycart_assert(id, addr, actualCount, typeSize, typeId);
+  /* Output the information into some file, that the user can access later */
+}
+
 void __tycart_deregister_mem(int id) {
   int err = tycart::TYdereg(id);
 }

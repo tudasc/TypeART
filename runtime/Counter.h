@@ -120,7 +120,8 @@ class AccessRecorder {
         << "Distinct Addresses missed:\t" << missing.size() << "\n"
         << "Estimated mem consumption:\t" << estMemConsumption << " bytes = " << getStr(estMemConsumptionKByte)
         << " kiB\n"
-        << "vector overhead: " << vectorSize << " bytes\tmap overhead: " << mapSize << " bytes\tnode overhead: " << mapNodeSizeInBytes << "\n";
+        << "vector overhead: " << vectorSize << " bytes\tmap overhead: " << mapSize
+        << " bytes\tnode overhead: " << mapNodeSizeInBytes << "\n";
 
     std::set<int> type_id_set;
     const auto fill_set = [&type_id_set](const auto& map) {
@@ -167,11 +168,12 @@ class AccessRecorder {
   // Assumes GCC as compiler / runtime
   const int memPerEntry = sizeof(TypeArtRT::MapEntry);
   // based on https://github.com/gcc-mirror/gcc/blob/master/libstdc%2B%2B-v3/include/bits/stl_tree.h#L218
-  const int mapNodeSizeInBytes = sizeof(std::remove_pointer<std::map<int, void*>::iterator::_Link_type>::type); // GNU STL tree node: 3 pointers, 1 color
+  const int mapNodeSizeInBytes = sizeof(
+      std::remove_pointer<std::map<int, void*>::iterator::_Link_type>::type);  // GNU STL tree node: 3 pointers, 1 color
 #endif
-  const int memInStack = sizeof(void*);                         // Stack allocs
-  const int vectorSize = sizeof(TypeArtRT::Stack);              // Stack overhead
-  const int mapSize = sizeof(TypeArtRT::PointerMap);            // Map overhead
+  const int memInStack = sizeof(void*);               // Stack allocs
+  const int vectorSize = sizeof(TypeArtRT::Stack);    // Stack overhead
+  const int mapSize = sizeof(TypeArtRT::PointerMap);  // Map overhead
   long long heapAllocs = 0;
   long long stackAllocs = 0;
   long long globalAllocs = 0;

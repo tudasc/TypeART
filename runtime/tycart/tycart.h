@@ -25,6 +25,9 @@ void __tycart_assert(int id, void* addr, size_t count, size_t typeSize, int type
  */
 void __tycart_assert_stub(void* pointer, void* __stub_ptr, size_t count, int id);
 
+void __tycart_assert_auto(int id, void* pointer, size_t typeSize, int typeId);
+void __tycart_assert_auto_stub(void* pointer, void* stub_ptr, int id);
+
 /*
  * Iterates the stored CP map, to re-assert all stored assumptions before calling the final
  * checkpointing mechanism.
@@ -75,8 +78,9 @@ void __tycart_register_FTI_t_stub(void* ptr);
 #define FTI_CP(id, level)
 #endif
 
-// Taken from https://stackoverflow.com/questions/1597007/creating-c-macro-with-and-line-token-concatenation-with-positioning-macr
-#define TOKENPASTE(x, y) x ## y
+// Taken from
+// https://stackoverflow.com/questions/1597007/creating-c-macro-with-and-line-token-concatenation-with-positioning-macr
+#define TOKENPASTE(x, y) x##y
 #define PASTELINE(x, y) TOKENPASTE(x, y)
 
 // clang-format off
@@ -84,6 +88,11 @@ void __tycart_register_FTI_t_stub(void* ptr);
 #define TY_protect(id, pointer, count, type)                            \
   {                                                                         \
     type* PASTELINE(__stub_ptr_, __LINE__) = NULL; __tycart_assert_stub((void*)pointer, PASTELINE(__stub_ptr_, __LINE__), count, id); \
+  }
+
+#define TY_protect_auto(id, pointer, type)                            \
+  {                                                                         \
+    type* PASTELINE(__stub_ptr_, __LINE__) = NULL; __tycart_assert_auto_stub((void*)pointer, PASTELINE(__stub_ptr_, __LINE__), id); \
   }
 
 #define TY_checkpoint(name, id, version, level) \

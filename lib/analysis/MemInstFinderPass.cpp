@@ -78,7 +78,6 @@ class CallFilter::FilterImpl {
     std::string reason;
   };
 
-
   explicit FilterImpl(const std::string& glob) : call_regex(util::glob2regex(glob)) {
   }
 
@@ -202,11 +201,11 @@ class CallFilter::FilterImpl {
       addToWork(val->users());
     }
     ++depth;
-    auto shouldFilter = std::all_of(working_set_calls.begin(), working_set_calls.end(), [&](CallSite c) { return filter(c, in); });
+    auto shouldFilter =
+        std::all_of(working_set_calls.begin(), working_set_calls.end(), [&](CallSite c) { return filter(c, in); });
     fReason.reason += std::string(" working_set_calls.size() == " + std::to_string(working_set_calls.size()));
     return shouldFilter;
   }
-
 
  private:
   bool filter(CallSite& csite, Value* in) {

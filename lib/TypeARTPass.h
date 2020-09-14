@@ -34,6 +34,7 @@ class TypeArtPass : public llvm::ModulePass {
   TypeArtFunc typeart_assert_type{"__typeart_assert_type"};
   TypeArtFunc typeart_assert_type_len{"__typeart_assert_type_len"};
   TypeArtFunc typeart_assert_tycart{"__tycart_assert"};
+  TypeArtFunc typeart_assert_tycart_auto{"__tycart_assert_auto"};
   TypeArtFunc typeart_assert_tycart_fti_t{"__tycart_register_FTI_t"};
 
   TypeManager typeManager;
