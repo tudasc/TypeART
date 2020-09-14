@@ -21,13 +21,13 @@ MemOpVisitor::MemOpVisitor() = default;
 
 void MemOpVisitor::visitModuleGlobals(Module& m) {
   for (auto& g : m.globals()) {
-    listGlobals.push_back(&g);
+    globals.emplace_back(GlobalData{&g});
   }
 }
 
-void MemOpVisitor::visitCallInst(llvm::CallInst& ci) {
+void MemOpVisitor::visitCallBase(llvm::CallBase& cb) {
   const auto isInSet = [&](const auto& fMap) -> llvm::Optional<MemOpKind> {
-    const auto* f = ci.getCalledFunction();
+    const auto* f = cb.getCalledFunction();
     if (!f) {
       // TODO handle calls through, e.g., function pointers? - seems infeasible
       LOG_INFO("Encountered indirect call, skipping.");
@@ -41,14 +41,14 @@ void MemOpVisitor::visitCallInst(llvm::CallInst& ci) {
     return None;
   };
 
-  if (auto val = isInSet(allocMap)) {
-    visitMallocLike(ci, val.getValue());
-  } else if (auto val = isInSet(deallocMap)) {
-    visitFreeLike(ci, val.getValue());
+  if (auto val = isInSet(alloc_map)) {
+    visitMallocLike(cb, val.getValue());
+  } else if (auto val = isInSet(dealloc_map)) {
+    visitFreeLike(cb, val.getValue());
   }
 }
 
-void MemOpVisitor::visitMallocLike(llvm::CallInst& ci, MemOpKind k) {
+void MemOpVisitor::visitMallocLike(llvm::CallBase& ci, MemOpKind k) {
   //  LOG_DEBUG("Found malloc-like: " << ci.getCalledFunction()->getName());
 
   SmallPtrSet<BitCastInst*, 4> bcasts;
@@ -82,13 +82,13 @@ void MemOpVisitor::visitMallocLike(llvm::CallInst& ci, MemOpKind k) {
 
   //  LOG_DEBUG("  >> number of bitcasts found: " << bcasts.size());
 
-  listMalloc.push_back(MallocData{&ci, primaryBitcast, bcasts, k});
+  mallocs.push_back(MallocData{&ci, primaryBitcast, bcasts, k, isa<InvokeInst>(ci)});
 }
 
-void MemOpVisitor::visitFreeLike(llvm::CallInst& ci, MemOpKind) {
+void MemOpVisitor::visitFreeLike(llvm::CallBase& ci, MemOpKind) {
   //  LOG_DEBUG(ci.getCalledFunction()->getName());
 
-  listFree.insert(&ci);
+  frees.emplace_back(FreeData{&ci, isa<InvokeInst>(ci)});
 }
 
 // void MemOpVisitor::visitIntrinsicInst(llvm::IntrinsicInst& ii) {
@@ -98,7 +98,7 @@ void MemOpVisitor::visitFreeLike(llvm::CallInst& ci, MemOpKind) {
 void MemOpVisitor::visitAllocaInst(llvm::AllocaInst& ai) {
   //  LOG_DEBUG("Found alloca " << ai);
   Value* arraySizeOperand = ai.getArraySize();
-  size_t arraySize{0};  // FIXME avoid using int (
+  size_t arraySize{0};
   bool is_vla{false};
   if (auto arraySizeConst = llvm::dyn_cast<ConstantInt>(arraySizeOperand)) {
     arraySize = arraySizeConst->getZExtValue();
@@ -106,14 +106,14 @@ void MemOpVisitor::visitAllocaInst(llvm::AllocaInst& ai) {
     is_vla = true;
   }
 
-  listAlloca.push_back({&ai, arraySize, is_vla});
+  allocas.push_back({&ai, arraySize, is_vla});
   //  LOG_DEBUG("Alloca: " << util::dump(ai) << " -> lifetime marker: " << util::dump(lifetimes));
 }  // namespace typeart
 
 void MemOpVisitor::clear() {
-  listAlloca.clear();
-  listMalloc.clear();
-  listFree.clear();
+  allocas.clear();
+  mallocs.clear();
+  frees.clear();
 }
 
 MemOpVisitor::~MemOpVisitor() = default;

@@ -87,8 +87,9 @@ bool TypeArtPass::runOnModule(Module& m) {
 
     auto& c = m.getContext();
 
-    const auto instrumentGlobal = [&](auto* global, auto& IRB) {
-      auto type = global->getValueType();
+    const auto instrumentGlobal = [&](auto& global_data, auto& IRB) {
+      auto global = global_data.global;
+      auto type   = global->getValueType();
 
       unsigned numElements = 1;
       if (type->isArrayTy()) {
@@ -158,27 +159,30 @@ bool TypeArtPass::runOnFunc(Function& f) {
 
   llvm::SmallDenseMap<BasicBlock*, size_t> allocCounts;
 
-  const auto& fData      = getAnalysis<MemInstFinderPass>().getFunctionData(&f);
-  const auto& listMalloc = fData.listMalloc;
-  const auto& listAlloca = fData.listAlloca;
-  const auto& listFree   = fData.listFree;
+  const auto& fData   = getAnalysis<MemInstFinderPass>().getFunctionData(&f);
+  const auto& mallocs = fData.mallocs;
+  const auto& allocas = fData.allocas;
+  const auto& frees   = fData.frees;
 
   const auto instrumentMalloc = [&](const auto& malloc) -> bool {
-    const auto mallocInst       = malloc.call;
+    const auto malloc_call      = malloc.call;
     BitCastInst* primaryBitcast = malloc.primary;
 
+    if (malloc.is_invoke) {
+      LOG_FATAL("Invoke in lulesh " << *malloc_call);
+    }
     // Number of bytes allocated
-    auto mallocArg = mallocInst->getOperand(0);
-    int typeId     = typeManager.getOrRegisterType(mallocInst->getType()->getPointerElementType(),
+    auto mallocArg = malloc_call->getOperand(0);
+    int typeId     = typeManager.getOrRegisterType(malloc_call->getType()->getPointerElementType(),
                                                dl);  // retrieveTypeID(tu::getVoidType(c));
     if (typeId == TA_UNKNOWN_TYPE) {
-      LOG_ERROR("Unknown allocated type. Not instrumenting. " << util::dump(*mallocInst));
+      LOG_ERROR("Unknown allocated type. Not instrumenting. " << util::dump(*malloc_call));
       return false;
     }
 
     // Number of bytes per element, 1 for void*
-    unsigned typeSize = tu::getTypeSizeInBytes(mallocInst->getType()->getPointerElementType(), dl);
-    auto insertBefore = mallocInst->getNextNode();
+    unsigned typeSize = tu::getTypeSizeInBytes(malloc_call->getType()->getPointerElementType(), dl);
+    auto insertBefore = malloc_call->getNextNode();
 
     // Use the first cast as the determining type (if there is any)
     if (primaryBitcast) {
@@ -194,11 +198,18 @@ bool TypeArtPass::runOnFunc(Function& f) {
 
       typeId = typeManager.getOrRegisterType(dstPtrType, dl);
       if (typeId == TA_UNKNOWN_TYPE) {
-        LOG_ERROR("Target type of casted allocation is unknown. Not instrumenting. " << util::dump(*mallocInst));
+        LOG_ERROR("Target type of casted allocation is unknown. Not instrumenting. " << util::dump(*malloc_call));
         LOG_ERROR("Cast: " << util::dump(*primaryBitcast));
         LOG_ERROR("Target type: " << util::dump(*dstPtrType));
         return false;
       }
+    } else {
+      LOG_ERROR("Primary bitcast is null. malloc: " << util::dump(*malloc_call))
+    }
+
+    if (malloc.is_invoke) {
+      InvokeInst* inv = dyn_cast<InvokeInst>(malloc_call);
+      insertBefore    = &(*inv->getNormalDest()->getFirstInsertionPt());
     }
 
     IRBuilder<> IRB(insertBefore);
@@ -209,29 +220,34 @@ bool TypeArtPass::runOnFunc(Function& f) {
     if (malloc.kind == MemOpKind::MALLOC) {
       elementCount = IRB.CreateUDiv(mallocArg, typeSizeConst);
     } else if (malloc.kind == MemOpKind::CALLOC) {
-      elementCount = mallocInst->getOperand(0);  // get the element count in calloc call
+      elementCount = malloc_call->getOperand(0);  // get the element count in calloc call
     } else if (malloc.kind == MemOpKind::REALLOC) {
-      auto mArg    = mallocInst->getOperand(1);
+      auto mArg    = malloc_call->getOperand(1);
       elementCount = IRB.CreateUDiv(mArg, typeSizeConst);
 
-      IRBuilder<> FreeB(mallocInst);
-      auto addrOp = mallocInst->getOperand(0);
+      IRBuilder<> FreeB(malloc_call);
+      auto addrOp = malloc_call->getOperand(0);
       FreeB.CreateCall(typeart_free.f, ArrayRef<Value*>{addrOp});
 
     } else {
-      LOG_ERROR("Unknown malloc kind. Not instrumenting. " << util::dump(*mallocInst));
+      LOG_ERROR("Unknown malloc kind. Not instrumenting. " << util::dump(*malloc_call));
       return false;
     }
 
-    IRB.CreateCall(typeart_alloc.f, ArrayRef<Value*>{mallocInst, typeIdConst, elementCount});
+    IRB.CreateCall(typeart_alloc.f, ArrayRef<Value*>{malloc_call, typeIdConst, elementCount});
 
     return true;
   };
 
-  const auto instrumentFree = [&](const auto& free_inst) -> bool {
-    // Pointer address:
-    auto freeArg = free_inst->getOperand(0);
-    IRBuilder<> IRB(free_inst->getNextNode());
+  const auto instrumentFree = [&](const auto& free_data) -> bool {
+    auto free_call    = free_data.call;
+    auto freeArg      = free_call->getOperand(0);
+    auto insertBefore = free_call->getNextNode();
+    if (free_data.is_invoke) {
+      InvokeInst* inv = dyn_cast<InvokeInst>(free_call);
+      insertBefore    = &(*inv->getNormalDest()->getFirstInsertionPt());
+    }
+    IRBuilder<> IRB(insertBefore);
     IRB.CreateCall(typeart_free.f, ArrayRef<Value*>{freeArg});
 
     return true;
@@ -248,7 +264,7 @@ bool TypeArtPass::runOnFunc(Function& f) {
       // This should not happen in generated IR code
       assert(!elementType->isArrayTy() && "VLAs of array types are currently not supported.");
     } else {
-      size_t arraySize = allocaData.arraySize;
+      size_t arraySize = allocaData.array_size;
       if (elementType->isArrayTy()) {
         arraySize   = arraySize * tu::getArrayLengthFlattened(elementType);
         elementType = tu::getArrayElementType(elementType);
@@ -278,18 +294,18 @@ bool TypeArtPass::runOnFunc(Function& f) {
 
   if (!ClIgnoreHeap) {
     // instrument collected calls of bb:
-    for (const auto& malloc : listMalloc) {
+    for (const auto& malloc : mallocs) {
       ++NumInstrumentedMallocs;
       mod |= instrumentMalloc(malloc);
     }
 
-    for (auto* free : listFree) {
+    for (auto& free : frees) {
       ++NumInstrumentedFrees;
       mod |= instrumentFree(free);
     }
   }
   if (ClTypeArtAlloca) {
-    const bool instrumented_alloca = std::count_if(listAlloca.begin(), listAlloca.end(), instrumentAlloca) > 0;
+    const bool instrumented_alloca = std::count_if(allocas.begin(), allocas.end(), instrumentAlloca) > 0;
     mod |= instrumented_alloca;
 
     if (instrumented_alloca) {
@@ -321,7 +337,7 @@ bool TypeArtPass::runOnFunc(Function& f) {
       }
     }
   } else {
-    NumInstrumentedAlloca += listAlloca.size();
+    NumInstrumentedAlloca += allocas.size();
   }
 
   return mod;
