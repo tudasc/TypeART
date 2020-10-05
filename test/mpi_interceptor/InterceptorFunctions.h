@@ -93,7 +93,7 @@ int ta_check_buffer(const char* mpi_name, const void* called_from, const void* b
     return -1;
   }
   int typeId;
-  size_t count = 0;
+  size_t count                    = 0;
   typeart_status typeart_status_v = typeart_get_type(buf, &typeId, &count);
   if (typeart_status_v != TA_OK) {
     ++mcounter.error;

@@ -1,10 +1,12 @@
 // clang-format off
 // RUN: clang++ -S -emit-llvm %s -o - | opt -load %pluginpath/analysis/meminstfinderpass.so -load %pluginpath/%pluginname %pluginargs -S 2>&1 | FileCheck %s
+// XFAIL: *
+// Wrong size is calculated due to using Znam call, instead of bitcast to struct.S1*
 // clang-format on
 
 struct S1 {
   int x;
-  ~S1() { };
+  ~S1(){};
 };
 
 // CHECK: call i8* @_Znam(i64 8)

@@ -235,7 +235,6 @@ bool TypeArtPass::runOnFunc(Function& f) {
 
     return true;
   };
-
   const auto instrumentFree = [&](const auto& free_data) -> bool {
     auto free_call    = free_data.call;
     auto freeArg      = free_call->getOperand(0);

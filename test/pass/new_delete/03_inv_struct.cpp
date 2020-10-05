@@ -13,11 +13,10 @@ struct S1 {
 // CHECK: call void @__typeart_alloc(i8* [[POINTER:%[0-9]+]], i32 {{2[0-9]+}}, i64 1)
 // CHECK: bitcast i8* [[POINTER]] to %struct.S1*
 int main() {
-    try{
-        S1* ss = new S1;
-    } catch (...) {
-        
-    }
+  try {
+    S1* ss = new S1;
+  } catch (...) {
+  }
 
   return 0;
 }

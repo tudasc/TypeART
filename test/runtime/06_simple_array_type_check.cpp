@@ -1,29 +1,28 @@
 // RUN: %scriptpath/applyAndRun.sh %s %pluginpath "-typeart-alloca" %rtpath 2>&1 | FileCheck %s
 
-#include <stdlib.h>
-#include <stdint.h>
-#include "util.h"
 #include "../../typelib/TypeInterface.h"
+#include "util.h"
 
-template<typename T>
+#include <stdint.h>
+#include <stdlib.h>
+
+template <typename T>
 void performTypeChecks(int n, typeart_builtin_type typeId) {
-  T* p = (T*) malloc(n * sizeof(T));
-  check(p - 1, typeId, 1, 1);  // Unknown address
-  check(p, typeId, n, 1);  // Ok
-  check(p + n/2, typeId, n - n/2, 1); // Ok
-  check(p + n-1, typeId, 1, 1); // Ok
-  check(p + n, typeId, 1, 1); // Error: Unknown address
-  check(((uint8_t*)p) + 1, typeId, n-1, 1); // Fails for sizeof(T) > 1
-  check(((uint8_t*) (p + n/2)) + 1, typeId, n - n/2 - 1, 1); // Fails for sizeof(T) > 1
-  check(((uint8_t*)p) + 2, typeId, n-2/sizeof(T), 1); // Fails for sizeof(T) > 2
-  check(((uint8_t*)p) + 4, typeId, n-4/sizeof(T), 1); // Fails for sizeof(T) > 4
-  check(((uint8_t*)p) + 8, typeId, n-8/sizeof(T), 1); // Fails for sizeof(T) > 8
+  T* p = (T*)malloc(n * sizeof(T));
+  check(p - 1, typeId, 1, 1);                                    // Unknown address
+  check(p, typeId, n, 1);                                        // Ok
+  check(p + n / 2, typeId, n - n / 2, 1);                        // Ok
+  check(p + n - 1, typeId, 1, 1);                                // Ok
+  check(p + n, typeId, 1, 1);                                    // Error: Unknown address
+  check(((uint8_t*)p) + 1, typeId, n - 1, 1);                    // Fails for sizeof(T) > 1
+  check(((uint8_t*)(p + n / 2)) + 1, typeId, n - n / 2 - 1, 1);  // Fails for sizeof(T) > 1
+  check(((uint8_t*)p) + 2, typeId, n - 2 / sizeof(T), 1);        // Fails for sizeof(T) > 2
+  check(((uint8_t*)p) + 4, typeId, n - 4 / sizeof(T), 1);        // Fails for sizeof(T) > 4
+  check(((uint8_t*)p) + 8, typeId, n - 8 / sizeof(T), 1);        // Fails for sizeof(T) > 8
   free(p);
 }
 
-
 int main(int argc, char** argv) {
-
   const int n = 42;
 
   // CHECK: [Trace] Alloc 0x{{.*}} int8 1 42

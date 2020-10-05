@@ -17,7 +17,7 @@ endfunction()
 
 add_format_target(format-tests
     "Formats project test source files"
-    TARGETS *.c
+    TARGETS *.c *.cpp *.h
     )
 
 configure_typeart_lit_site_cfg(
