@@ -85,28 +85,41 @@ void __tycart_register_FTI_t_stub(void* ptr);
 
 // clang-format off
 //
+
+// Common interface to init the different libraries
+#define TY_init(__cfg_file) __tycart_init(__cfg_file);
+
+// mark a pointer for checkpointing
 #define TY_protect(id, pointer, count, type)                            \
   {                                                                         \
     type* PASTELINE(__stub_ptr_, __LINE__) = NULL; __tycart_assert_stub((void*)pointer, PASTELINE(__stub_ptr_, __LINE__), count, id); \
   }
 
+// mark a pointer for checkpointing. TyCart determines the size of the allocation
 #define TY_protect_auto(id, pointer, type)                            \
   {                                                                         \
     type* PASTELINE(__stub_ptr_, __LINE__) = NULL; __tycart_assert_auto_stub((void*)pointer, PASTELINE(__stub_ptr_, __LINE__), id); \
   }
 
+// Take the ckeckpoint
 #define TY_checkpoint(name, id, version, level) \
   __tycart_cp_assert();                         \
   VELOC_CP(name, version)                      \
   FTI_CP(id, level)                            \
   MCPR_CP(name, version)
 
+// Specifically for FTI: register a type
 #define TY_register_type(type)                            \
   {                                                       \
     type* PASTELINE(__stub_ptr_, __LINE__) ; __tycart_register_FTI_t_stub((void*) PASTELINE(__stub_ptr_, __LINE__) ); \
   }
 
+// Remove a region from being marked for checkpointing
 #define TY_unregister_mem(id) __tycart_deregister_mem(id);
+
+// Common API for restart
+#define TY_recover() { __tycart_cp_recover(); }
+
 //
 // clang-format on
 

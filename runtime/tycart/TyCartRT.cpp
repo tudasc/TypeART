@@ -352,3 +352,49 @@ void __tycart_register_FTI_t(int typeId) {
   (void)typeId;
 #endif
 }
+
+void __tycart_init(const char *cfgFile) {
+#ifdef WITH_FTI
+  auto res = FTI_Init(cfgFile, MPI_COMM_WORLD);
+  // double check: from example https://github.com/leobago/fti/blob/master/testing/suites/features/recoverVar/checkRecoverVar.c
+  if (res == FTI_NREC) {
+    std::exit(res);
+  }
+#endif
+#ifdef WITH_VELOC
+  auto res = VELOC_Init(MPI_COMM_WORLD, cfgFile);
+  if (res == VELOC_FAILURE) {
+    std::exit(res);
+  }
+#endif
+#ifdef WITH_MINI_CPR
+  auto res = mini_cpr_init(cfgFile);
+  if (res != 0) {
+    std::exit(res);
+  }
+#endif
+}
+
+void __tycart_cp_recover(const char*name, int version) {
+#ifdef WITH_FTI
+  #error Currently not implemented with FTI
+#endif
+#ifdef WITH_VELOC
+  int verCP = VELOC_Restart_test(name, version);
+  if (verCP >= 0) {
+    auto res = VELOC_Restart(name, verCP);
+    if (res == VELOC_FAILURE) {
+      std::exit(res);
+    }
+  }
+#endif
+#ifdef WITH_MINI_CPR
+  int verCP = mini_cpr_restart_check(name, version);
+  if (verCP >= 0) {
+    auto res = mini_cpr_restart(name, verCP);
+    if (res != 0) {
+      std::exit(res);
+    }
+  }
+#endif
+}
