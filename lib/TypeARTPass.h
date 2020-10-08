@@ -3,7 +3,7 @@
 
 #include "TypeDB.h"
 #include "TypeManager.h"
-#include "support/InstrumentationHelper.h"
+#include "instrumentation/InstrumentationHelper.h"
 
 #include "llvm/Pass.h"
 

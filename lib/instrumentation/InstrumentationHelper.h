@@ -37,17 +37,17 @@ enum class IType {
   function_id,  // Type for identifying a function
   type_id,      // Type for identifying a type
   extent,       // Type for identifying an array length
-  alloca_id,    // Type for identifying a memory allocaion
+  alloca_id,    // Type for identifying a memory allocation
   stack_count,  // Type for identifying a count of stack alloca instructions
 };
 
 class InstrumentationHelper {
   llvm::Module* module{nullptr};
-  std::map<std::string, llvm::Function*> f_map;
 
  public:
   InstrumentationHelper();
   void setModule(llvm::Module& m);
+  const llvm::Module* getModule() const;
   llvm::Function* make_function(llvm::StringRef name, llvm::ArrayRef<llvm::Type*> args, bool fixed_name = true);
   static llvm::SmallVector<llvm::Type*, 8> make_signature(const llvm::ArrayRef<llvm::Value*>& args);
 

@@ -63,55 +63,8 @@ void InstrumentationHelper::setModule(llvm::Module& m) {
   module = &m;
 }
 
-llvm::Function* InstrumentationHelper::make_function(llvm::StringRef basename, llvm::ArrayRef<llvm::Type*> args,
-                                                     bool fixed_name) {
-  const auto make_fname = [&fixed_name](llvm::StringRef name, llvm::ArrayRef<llvm::Type*> args) {
-    if (fixed_name) {
-      return std::string(name.str());
-    }
-    return std::string((name + "_" + std::to_string(args.size())).str());
-  };
-
-  const auto name = make_fname(basename, args);
-  if (auto it = f_map.find(name); it != f_map.end()) {
-    return it->second;
-  }
-
-  auto& m                           = *module;
-  auto& c                           = m.getContext();
-  const auto addOptimizerAttributes = [&](llvm::Function* f) {
-    for (Argument& arg : f->args()) {
-      if (arg.getType()->isPointerTy()) {
-        arg.addAttr(Attribute::NoCapture);
-        arg.addAttr(Attribute::ReadOnly);
-      }
-    }
-  };
-  const auto setFunctionLinkageExternal = [](llvm::Function* f) {
-    f->setLinkage(GlobalValue::ExternalLinkage);
-    //     f->setLinkage(GlobalValue::ExternalWeakLinkage);
-  };
-  const auto do_make = [&](auto& name, auto f_type) {
-    auto fc = m.getOrInsertFunction(name, f_type);
-#if LLVM_VERSION >= 10
-    auto f = dyn_cast<Function>(fc.getCallee());
-#else
-    auto f = dyn_cast<Function>(fc);
-#endif
-    setFunctionLinkageExternal(f);
-    addOptimizerAttributes(f);
-    return f;
-  };
-
-  auto f = do_make(name, FunctionType::get(Type::getVoidTy(c), args, false));
-
-  f_map[name] = f;
-
-  return f;
-}
-
-const std::map<std::string, llvm::Function*>& InstrumentationHelper::getFunctionMap() const {
-  return f_map;
+const llvm::Module* InstrumentationHelper::getModule() const {
+  return module;
 }
 
 }  // namespace typeart

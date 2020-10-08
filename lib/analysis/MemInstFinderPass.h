@@ -8,6 +8,7 @@
 #ifndef LIB_ANALYSIS_MEMINSTFINDERPASS_H_
 #define LIB_ANALYSIS_MEMINSTFINDERPASS_H_
 
+#include "MemOpData.h"
 #include "MemOpVisitor.h"
 
 #include "llvm/Pass.h"
