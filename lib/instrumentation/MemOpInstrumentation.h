@@ -9,15 +9,17 @@
 
 namespace typeart {
 class TAFunctionQuery;
+class InstrumentationHelper;
 
 class MemOpInstrumentation final : public MemoryInstrument {
-  TAFunctionQuery& instr;
+  TAFunctionQuery& fquery;
+  InstrumentationHelper& instr;
 
  public:
-  MemOpInstrumentation(TAFunctionQuery& instr);
+  MemOpInstrumentation(TAFunctionQuery& fquery, InstrumentationHelper& instr);
   size_t instrumentHeap(const HeapArgList& heap) override;
   size_t instrumentFree(const FreeArgList& frees) override;
-  size_t instrumentStack(const StackArgList& frees) override;
+  size_t instrumentStack(const StackArgList& stack) override;
   size_t instrumentGlobal(const GlobalArgList& globals) override;
   ~MemOpInstrumentation() override = default;
 };
