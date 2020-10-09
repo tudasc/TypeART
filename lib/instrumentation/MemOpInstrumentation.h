@@ -6,14 +6,15 @@
 #define TYPEART_MEMOPINSTRUMENTATION_H
 
 #include "Instrumentation.h"
+
 namespace typeart {
-class InstrumentationHelper;
+class TAFunctionQuery;
 
 class MemOpInstrumentation final : public MemoryInstrument {
-  InstrumentationHelper& instr;
+  TAFunctionQuery& instr;
 
  public:
-  MemOpInstrumentation(InstrumentationHelper& instr);
+  MemOpInstrumentation(TAFunctionQuery& instr);
   size_t instrumentHeap(const HeapArgList& heap) override;
   size_t instrumentFree(const FreeArgList& frees) override;
   size_t instrumentStack(const StackArgList& frees) override;

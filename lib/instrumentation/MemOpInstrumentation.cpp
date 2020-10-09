@@ -6,6 +6,7 @@
 
 #include "../TypeManager.h"
 #include "InstrumentationHelper.h"
+#include "TypeARTFunctions.h"
 #include "support/Logger.h"
 #include "support/TypeUtil.h"
 #include "support/Util.h"
@@ -16,7 +17,7 @@
 using namespace llvm;
 
 namespace typeart {
-MemOpInstrumentation::MemOpInstrumentation(InstrumentationHelper& instr) : MemoryInstrument(), instr(instr) {
+MemOpInstrumentation::MemOpInstrumentation(TAFunctionQuery& instr) : MemoryInstrument(), instr(instr) {
 }
 
 size_t MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
@@ -54,7 +55,7 @@ size_t MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
 
         elementCount = IRB.CreateUDiv(mArg, typeSizeConst);
         IRBuilder<> FreeB(malloc_call);
-        // FreeB.CreateCall(typeart_free.f, ArrayRef<Value*>{addrOp});
+        FreeB.CreateCall(instr.getFunctionFor(IFunc::free), ArrayRef<Value*>{addrOp});
         break;
       }
       default:
@@ -62,7 +63,7 @@ size_t MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
         continue;
     }
 
-    // IRB.CreateCall(typeart_alloc.f, ArrayRef<Value*>{malloc_call, typeIdConst, elementCount});
+    IRB.CreateCall(instr.getFunctionFor(IFunc::heap), ArrayRef<Value*>{malloc_call, typeIdConst, elementCount});
   }
   return 0;
 }

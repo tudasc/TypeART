@@ -68,4 +68,15 @@ llvm::Function* TAFunctionDeclarator::make_function(llvm::StringRef basename, ll
 const llvm::StringMap<llvm::Function*>& TAFunctionDeclarator::getFunctionMap() const {
   return f_map;
 }
+
+TAFunctions::TAFunctions() = default;
+
+Function* TAFunctions::getFunctionFor(IFunc id) {
+  return typeart_callbacks[id];
+}
+
+void TAFunctions::putFunctionFor(IFunc id, llvm::Function* f) {
+  typeart_callbacks[id] = f;
+}
+
 }  // namespace typeart
