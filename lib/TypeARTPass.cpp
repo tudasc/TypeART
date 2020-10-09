@@ -366,17 +366,17 @@ void TypeArtPass::declareInstrumentationFunctions(Module& m) {
     return;
   }
 
-  TAFunctionDeclarator decl(m, instr);
+  TAFunctionDeclarator decl(m, instr, functions);
 
   auto alloc_arg_types      = instr.make_parameters(IType::ptr, IType::type_id, IType::extent);
   auto free_arg_types       = instr.make_parameters(IType::ptr);
   auto leavescope_arg_types = instr.make_parameters(IType::stack_count);
 
-  typeart_alloc.f        = decl.make_function(typeart_alloc.name, alloc_arg_types);
-  typeart_alloc_stack.f  = decl.make_function(typeart_alloc_stack.name, alloc_arg_types);
-  typeart_alloc_global.f = decl.make_function(typeart_alloc_global.name, alloc_arg_types);
-  typeart_free.f         = decl.make_function(typeart_free.name, free_arg_types);
-  typeart_leave_scope.f  = decl.make_function(typeart_leave_scope.name, leavescope_arg_types);
+  typeart_alloc.f        = decl.make_function(IFunc::heap, typeart_alloc.name, alloc_arg_types);
+  typeart_alloc_stack.f  = decl.make_function(IFunc::stack, typeart_alloc_stack.name, alloc_arg_types);
+  typeart_alloc_global.f = decl.make_function(IFunc::global, typeart_alloc_global.name, alloc_arg_types);
+  typeart_free.f         = decl.make_function(IFunc::free, typeart_free.name, free_arg_types);
+  typeart_leave_scope.f  = decl.make_function(IFunc::scope, typeart_leave_scope.name, leavescope_arg_types);
 }
 
 void TypeArtPass::printStats(llvm::raw_ostream& out) {

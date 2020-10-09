@@ -4,6 +4,8 @@
 
 #include "TypeARTFunctions.h"
 
+//#include "../../../../../../usr/lib/x86_64-linux-gnu/openmpi/include/mpif-externals.h"
+
 #include "llvm/IR/Argument.h"
 #include "llvm/IR/CFG.h"
 #include "llvm/IR/Function.h"
@@ -16,11 +18,12 @@
 using namespace llvm;
 
 namespace typeart {
-TAFunctionDeclarator::TAFunctionDeclarator(Module& m, InstrumentationHelper& instr) : m(m), instr(instr) {
+TAFunctionDeclarator::TAFunctionDeclarator(Module& m, InstrumentationHelper& instr, TAFunctions& tafunc)
+    : m(m), instr(instr), tafunc(tafunc) {
 }
 
-llvm::Function* TAFunctionDeclarator::make_function(llvm::StringRef basename, llvm::ArrayRef<llvm::Type*> args,
-                                                    bool fixed_name) {
+llvm::Function* TAFunctionDeclarator::make_function(IFunc id, llvm::StringRef basename,
+                                                    llvm::ArrayRef<llvm::Type*> args, bool fixed_name) {
   const auto make_fname = [&fixed_name](llvm::StringRef name, llvm::ArrayRef<llvm::Type*> args) {
     if (fixed_name) {
       return std::string(name.str());
@@ -61,6 +64,8 @@ llvm::Function* TAFunctionDeclarator::make_function(llvm::StringRef basename, ll
   auto f = do_make(name, FunctionType::get(Type::getVoidTy(c), args, false));
 
   f_map[name] = f;
+
+  tafunc.putFunctionFor(id, f);
 
   return f;
 }

@@ -131,7 +131,7 @@ size_t MemOpInstrumentation::instrumentGlobal(const GlobalArgList& globals) {
   const auto makeCtorFuncBody = [&]() -> IRBuilder<> {
     auto m                = instr.getModule();
     auto& c               = m->getContext();
-    auto ctorFunctionName = "__typeart_init_module_" + m->getSourceFileName();
+    auto ctorFunctionName = "__typeart_init_module_" + m->getSourceFileName();  // needed -- will not work with piping?
 
     FunctionType* ctorType = FunctionType::get(llvm::Type::getVoidTy(c), false);
     Function* ctorFunction = Function::Create(ctorType, Function::PrivateLinkage, ctorFunctionName, m);
@@ -147,7 +147,7 @@ size_t MemOpInstrumentation::instrumentGlobal(const GlobalArgList& globals) {
   auto IRB = makeCtorFuncBody();
   instrumentGlobalsInCtor(IRB);
   IRB.CreateRetVoid();
-  
+
   return 0;
 }
 }  // namespace typeart

@@ -57,11 +57,13 @@ class TAFunctions : public TAFunctionQuery {
 class TAFunctionDeclarator {
   llvm::Module& m;
   InstrumentationHelper& instr;
+  TAFunctions& tafunc;
   llvm::StringMap<llvm::Function*> f_map;
 
  public:
-  TAFunctionDeclarator(llvm::Module& m, InstrumentationHelper& instr);
-  llvm::Function* make_function(llvm::StringRef basename, llvm::ArrayRef<llvm::Type*> args, bool fixed_name = true);
+  TAFunctionDeclarator(llvm::Module& m, InstrumentationHelper& instr, TAFunctions& tafunc);
+  llvm::Function* make_function(IFunc id, llvm::StringRef basename, llvm::ArrayRef<llvm::Type*> args,
+                                bool fixed_name = true);
   const llvm::StringMap<llvm::Function*>& getFunctionMap() const;
   virtual ~TAFunctionDeclarator() = default;
 };
