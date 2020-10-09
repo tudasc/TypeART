@@ -2,8 +2,9 @@
 // Created by ahueck on 08.10.20.
 //
 
+#include "MemOpArgCollector.h"
+
 #include "../TypeManager.h"
-#include "ArgCollector.h"
 #include "InstrumentationHelper.h"
 #include "support/Logger.h"
 #include "support/TypeUtil.h"
@@ -23,9 +24,9 @@ HeapArgList MemOpArgCollector::collectHeap(const llvm::SmallVectorImpl<MallocDat
   list.reserve(mallocs.size());
   const llvm::DataLayout& dl = instr.getModule()->getDataLayout();
   for (const MallocData& mdata : mallocs) {
+    ArgMapper arg_map;
     const auto malloc_call      = mdata.call;
     BitCastInst* primaryBitcast = mdata.primary;
-    const bool is_invoke        = mdata.is_invoke;
     auto kind                   = mdata.kind;
 
     // Number of bytes allocated
@@ -40,7 +41,6 @@ HeapArgList MemOpArgCollector::collectHeap(const llvm::SmallVectorImpl<MallocDat
 
     // Number of bytes per element, 1 for void*
     unsigned typeSize = tu::getTypeSizeInBytes(malloc_call->getType()->getPointerElementType(), dl);
-    auto insertBefore = malloc_call->getNextNode();
 
     // Use the first cast as the determining type (if there is any)
     if (primaryBitcast) {
@@ -68,33 +68,34 @@ HeapArgList MemOpArgCollector::collectHeap(const llvm::SmallVectorImpl<MallocDat
 
     auto* typeIdConst   = instr.getConstantFor(IType::type_id, typeId);
     auto* typeSizeConst = instr.getConstantFor(IType::extent, typeSize);
-    // Compute element count: count = numBytes / typeSize
-    Value* elementCount = nullptr;
+
+    Value* elementCount{nullptr};
     Value* byte_count{nullptr};
+    Value* realloc_ptr{nullptr};
     switch (kind) {
       case MemOpKind::MALLOC:
-        // elementCount = IRB.CreateUDiv(mallocArg, typeSizeConst);
         byte_count = mallocArg;
+        break;
       case MemOpKind::CALLOC:
-        // elementCount = malloc_call->getOperand(0);  // get the element count in calloc call
-        byte_count = malloc_call->getOperand(0);
+        elementCount = malloc_call->getOperand(0);
+        break;
       case MemOpKind::REALLOC:
-        // auto mArg    = malloc_call->getOperand(1);
-        // elementCount = IRB.CreateUDiv(mArg, typeSizeConst);
-
-        byte_count = malloc_call->getOperand(1);
-
-        // IRBuilder<> FreeB(malloc_call);
-        // auto addrOp = malloc_call->getOperand(0);
-        // FreeB.CreateCall(typeart_free.f, ArrayRef<Value*>{addrOp});
+        realloc_ptr = malloc_call->getOperand(0);
+        byte_count  = malloc_call->getOperand(1);
+        break;
       default:
         LOG_ERROR("Unknown malloc kind. Not instrumenting. " << util::dump(*malloc_call));
         // TODO see above continues
         continue;
     }
 
-    list.emplace_back(HeapArgList::value_type{mdata, {malloc_call, typeIdConst, typeSizeConst, byte_count}});
-    // IRB.CreateCall(typeart_alloc.f, ArrayRef<Value*>{malloc_call, typeIdConst, elementCount});
+    arg_map["pointer"]       = malloc_call;
+    arg_map["type_id"]       = typeIdConst;
+    arg_map["type_size"]     = typeSizeConst;
+    arg_map["byte_count"]    = byte_count;
+    arg_map["element_count"] = elementCount;
+    arg_map["realloc_ptr"]   = realloc_ptr;
+    list.emplace_back(HeapArgList::value_type{mdata, arg_map});
   }
 
   return list;
@@ -103,10 +104,12 @@ FreeArgList MemOpArgCollector::collectFree(const llvm::SmallVectorImpl<FreeData>
   FreeArgList list;
   list.reserve(frees.size());
   for (const FreeData& fdata : frees) {
+    ArgMapper arg_map;
     auto free_call = fdata.call;
     auto freeArg   = free_call->getOperand(0);
 
-    list.emplace_back(FreeArgList::value_type{fdata, {freeArg}});
+    arg_map["pointer"] = freeArg;
+    list.emplace_back(FreeArgList::value_type{fdata, arg_map});
   }
 
   return list;
@@ -118,6 +121,7 @@ StackArgList MemOpArgCollector::collectStack(const llvm::SmallVectorImpl<AllocaD
   const llvm::DataLayout& dl = instr.getModule()->getDataLayout();
 
   for (const AllocaData& adata : allocs) {
+    ArgMapper arg_map;
     auto alloca           = adata.alloca;
     Type* elementType     = alloca->getAllocatedType();
     Value* numElementsVal = nullptr;
@@ -145,7 +149,11 @@ StackArgList MemOpArgCollector::collectStack(const llvm::SmallVectorImpl<AllocaD
 
     auto* typeIdConst = instr.getConstantFor(IType::type_id, typeId);
 
-    list.emplace_back(StackArgList::value_type{adata, {typeIdConst, numElementsVal}});
+    arg_map["pointer"]       = alloca;
+    arg_map["type_id"]       = typeIdConst;
+    arg_map["element_count"] = numElementsVal;
+
+    list.emplace_back(StackArgList::value_type{adata, arg_map});
   }
 
   return list;
@@ -153,7 +161,29 @@ StackArgList MemOpArgCollector::collectStack(const llvm::SmallVectorImpl<AllocaD
 GlobalArgList MemOpArgCollector::collectGlobal(const llvm::SmallVectorImpl<GlobalData>& globals) {
   GlobalArgList list;
   list.reserve(globals.size());
+  const llvm::DataLayout& dl = instr.getModule()->getDataLayout();
+
   for (const GlobalData& gdata : globals) {
+    ArgMapper arg_map;
+    auto global = gdata.global;
+    auto type   = global->getValueType();
+
+    unsigned numElements = 1;
+    if (type->isArrayTy()) {
+      numElements = tu::getArrayLengthFlattened(type);
+      type        = tu::getArrayElementType(type);
+    }
+
+    int typeId             = tm.getOrRegisterType(type, dl);
+    auto* typeIdConst      = instr.getConstantFor(IType::type_id, typeId);
+    auto* numElementsConst = instr.getConstantFor(IType::extent, numElements);
+    // auto globalPtr         = IRB.CreateBitOrPointerCast(global, instr.getTypeFor(IType::ptr));
+
+    arg_map["pointer"]       = global;
+    arg_map["type_id"]       = typeIdConst;
+    arg_map["element_count"] = numElementsConst;
+
+    list.emplace_back(GlobalArgList::value_type{gdata, arg_map});
   }
 
   return list;

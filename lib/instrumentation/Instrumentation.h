@@ -8,17 +8,51 @@
 #include "../analysis/MemOpData.h"
 
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/ADT/StringMap.h"
+#include "llvm/Support/Casting.h"
 
 namespace llvm {
 class Value;
 }
 
 namespace typeart {
+
+struct ArgMapper {
+  using ArgsContainer = llvm::StringMap<llvm::Value*>;
+  ArgsContainer args;
+
+  ArgsContainer::mapped_type& operator[](ArgsContainer::key_type key) {
+    return args[key];
+  }
+
+  /*
+  const llvm::Optional<ArgsContainer::mapped_type> operator[](ArgsContainer::key_type key) const {
+    auto it = args.find(key);
+    if (it != args.end()) {
+      return {it->second};
+    }
+    return llvm::None;
+  }*/
+
+  template <typename T>
+  T* get_as(ArgsContainer::key_type key) const {
+    T* elem{nullptr};
+    if (auto it = args.find(key); it != args.end()) {
+      elem = llvm::dyn_cast<T>(it->second);
+    }
+    return elem;
+  }
+
+  llvm::Value* get_value(ArgsContainer::key_type key) const {
+    return get_as<llvm::Value>(key);
+  }
+};
+
 namespace detail {
 template <typename Data>
 struct MemContainer {
   Data mem_data;
-  llvm::SmallVector<llvm::Value*, 8> args;
+  ArgMapper args;
 };
 }  // namespace detail
 

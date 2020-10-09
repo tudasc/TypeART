@@ -10,6 +10,7 @@ set(PASS_SOURCES
   instrumentation/TypeARTFunctions.cpp
   TypeManager.cpp
   instrumentation/MemOpArgCollector.cpp
+  instrumentation/MemOpInstrumentation.cpp
 )
 
 make_llvm_module(typeartpass

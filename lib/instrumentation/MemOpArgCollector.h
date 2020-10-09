@@ -2,8 +2,8 @@
 // Created by ahueck on 08.10.20.
 //
 
-#ifndef TYPEART_ARGCOLLECTOR_H
-#define TYPEART_ARGCOLLECTOR_H
+#ifndef TYPEART_MEMOPARGCOLLECTOR_H
+#define TYPEART_MEMOPARGCOLLECTOR_H
 
 #include "Instrumentation.h"
 
@@ -25,4 +25,4 @@ class MemOpArgCollector final : public ArgumentCollector {
 };
 }  // namespace typeart
 
-#endif  // TYPEART_ARGCOLLECTOR_H
+#endif  // TYPEART_MEMOPARGCOLLECTOR_H
