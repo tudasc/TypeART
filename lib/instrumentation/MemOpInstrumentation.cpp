@@ -14,6 +14,8 @@
 
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Instructions.h"
+#include "llvm/Transforms/Utils/CtorUtils.h"
+#include "llvm/Transforms/Utils/ModuleUtils.h"
 
 using namespace llvm;
 
@@ -110,13 +112,42 @@ size_t MemOpInstrumentation::instrumentStack(const StackArgList& stack) {
   }
 
   StackCounter scount(*f, instr, fquery);
-  scount.stack_counting(allocCounts);
+  scount.addStackHandling(allocCounts);
 
   return 0;
 }
 size_t MemOpInstrumentation::instrumentGlobal(const GlobalArgList& globals) {
-  for (auto& [gdata, args] : globals) {
-  }
+  const auto instrumentGlobalsInCtor = [&](auto& IRB) {
+    for (auto& [gdata, args] : globals) {
+      // Instruction* global = args.get_as<llvm::Instruction>("pointer");
+      auto global         = gdata.global;
+      auto typeIdConst    = args.get_value("type_id");
+      auto numElementsVal = args.get_value("element_count");
+      auto globalPtr      = IRB.CreateBitOrPointerCast(global, instr.getTypeFor(IType::ptr));
+      IRB.CreateCall(fquery.getFunctionFor(IFunc::global), ArrayRef<Value*>{globalPtr, typeIdConst, numElementsVal});
+    }
+  };
+
+  const auto makeCtorFuncBody = [&]() -> IRBuilder<> {
+    auto m                = instr.getModule();
+    auto& c               = m->getContext();
+    auto ctorFunctionName = "__typeart_init_module_" + m->getSourceFileName();
+
+    FunctionType* ctorType = FunctionType::get(llvm::Type::getVoidTy(c), false);
+    Function* ctorFunction = Function::Create(ctorType, Function::PrivateLinkage, ctorFunctionName, m);
+
+    BasicBlock* entry = BasicBlock::Create(c, "entry", ctorFunction);
+
+    llvm::appendToGlobalCtors(*m, ctorFunction, 0, nullptr);
+
+    IRBuilder<> IRB(entry);
+    return IRB;
+  };
+
+  auto IRB = makeCtorFuncBody();
+  instrumentGlobalsInCtor(IRB);
+  IRB.CreateRetVoid();
+  
   return 0;
 }
 }  // namespace typeart

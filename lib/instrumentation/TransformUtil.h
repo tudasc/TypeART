@@ -29,7 +29,7 @@ struct StackCounter {
       : f(f), instr(instr), query(query) {
   }
 
-  void stack_counting(StackOpCounter& allocCounts) {
+  void addStackHandling(StackOpCounter& allocCounts) {
     using namespace llvm;
     //      LOG_DEBUG("Add alloca counter")
     // counter = 0 at beginning of function

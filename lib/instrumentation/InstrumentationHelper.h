@@ -47,7 +47,7 @@ class InstrumentationHelper {
  public:
   InstrumentationHelper();
   void setModule(llvm::Module& m);
-  const llvm::Module* getModule() const;
+  llvm::Module* getModule() const;
   static llvm::SmallVector<llvm::Type*, 8> make_signature(const llvm::ArrayRef<llvm::Value*>& args);
 
   template <typename... Types>

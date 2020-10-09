@@ -63,7 +63,7 @@ void InstrumentationHelper::setModule(llvm::Module& m) {
   module = &m;
 }
 
-const llvm::Module* InstrumentationHelper::getModule() const {
+llvm::Module* InstrumentationHelper::getModule() const {
   return module;
 }
 
