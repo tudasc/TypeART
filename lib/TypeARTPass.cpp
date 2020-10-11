@@ -84,60 +84,22 @@ bool TypeArtPass::doInitialization(Module& m) {
 }
 
 bool TypeArtPass::runOnModule(Module& m) {
-  bool globalInstro{false};
+  bool instrumented_global{false};
   if (ClIgnoreHeap) {
     declareInstrumentationFunctions(m);
 
-    DataLayout dl(&m);
-
-    auto& c = m.getContext();
-
-    const auto instrumentGlobal = [&](auto& global_data, auto& IRB) {
-      auto global = global_data.global;
-      auto type   = global->getValueType();
-
-      unsigned numElements = 1;
-      if (type->isArrayTy()) {
-        numElements = tu::getArrayLengthFlattened(type);
-        type        = tu::getArrayElementType(type);
-      }
-
-      int typeId             = typeManager.getOrRegisterType(type, dl);
-      auto* typeIdConst      = instrumentation_helper.getConstantFor(IType::type_id, typeId);
-      auto* numElementsConst = instrumentation_helper.getConstantFor(IType::extent, numElements);
-      auto globalPtr         = IRB.CreateBitOrPointerCast(global, instrumentation_helper.getTypeFor(IType::ptr));
-
-      LOG_DEBUG("Instrumenting global variable: " << util::dump(*global));
-
-      IRB.CreateCall(typeart_alloc_global.f, ArrayRef<Value*>{globalPtr, typeIdConst, numElementsConst});
-      return true;
-    };
-
-    const auto makeCtorFunc = [&]() -> IRBuilder<> {
-      auto ctorFunctionName = "__typeart_init_module_" + m.getSourceFileName();
-
-      FunctionType* ctorType = FunctionType::get(llvm::Type::getVoidTy(c), false);
-      Function* ctorFunction = Function::Create(ctorType, Function::PrivateLinkage, ctorFunctionName, &m);
-
-      BasicBlock* entry = BasicBlock::Create(c, "entry", ctorFunction);
-
-      llvm::appendToGlobalCtors(m, ctorFunction, 0, nullptr);
-
-      IRBuilder<> IRB(entry);
-      return IRB;
-    };
-
     const auto& globalsList = getAnalysis<MemInstFinderPass>().getModuleGlobals();
     if (!globalsList.empty()) {
-      auto IRB              = makeCtorFunc();
-      auto instrGlobalCount = llvm::count_if(globalsList, [&](auto g) { return instrumentGlobal(g, IRB); });
-      NumInstrumentedGlobal += instrGlobalCount;
-      globalInstro = instrGlobalCount > 0;
-      IRB.CreateRetVoid();
+      auto global_args = arg_collector->collectGlobal(globalsList);
+
+      const auto global_count = mem_instrument->instrumentGlobal(global_args);
+      NumInstrumentedGlobal += global_count;
+      instrumented_global = global_count > 0;
     }
   }
-  const auto instrumentedF = llvm::count_if(m.functions(), [&](auto& f) { return runOnFunc(f); }) > 0;
-  return instrumentedF || globalInstro;
+  
+  const auto instrumented_function = llvm::count_if(m.functions(), [&](auto& f) { return runOnFunc(f); }) > 0;
+  return instrumented_function || instrumented_global;
 }
 
 bool TypeArtPass::runOnFunc(Function& f) {
@@ -179,11 +141,14 @@ bool TypeArtPass::runOnFunc(Function& f) {
 
     NumInstrumentedMallocs += heap_count;
     NumInstrumentedFrees += free_count;
+
+    mod |= heap_count > 0 || free_count > 0;
   }
   if (ClTypeArtAlloca) {
     auto stack_args        = arg_collector->collectStack(allocas);
     const auto stack_count = mem_instrument->instrumentStack(stack_args);
     NumInstrumentedAlloca += stack_count;
+    mod |= stack_count > 0;
   } else {
     NumInstrumentedAlloca += allocas.size();
   }

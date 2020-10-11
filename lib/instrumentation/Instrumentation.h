@@ -32,7 +32,7 @@ struct ArgMap {
   using Key           = ArgsContainer::key_type;
   ArgsContainer args;
 
-  ArgsContainer::mapped_type& operator[](ArgsContainer::key_type key) {
+  ArgsContainer::mapped_type& operator[](Key key) {
     return args[key];
   }
 
