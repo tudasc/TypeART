@@ -30,7 +30,7 @@ jobs:
         run: sudo apt-get install libllvm10 llvm-10 llvm-10-dev
 
       - name: Install Clang
-        run: sudo apt-get install clang-10
+        run: sudo apt-get install clang-10 clang-tidy-10
 
       - name: Install OpenMPI
         run: sudo apt-get install libopenmpi-dev openmpi-bin
@@ -41,14 +41,16 @@ jobs:
           sudo ln -f -s /usr/bin/clang++-10 /usr/bin/clang++
           sudo ln -f -s /usr/bin/opt-10 /usr/bin/opt
           sudo ln -f -s /usr/bin/llc-10 /usr/bin/llc
-          echo "::set-env name=CC::clang-10"
-          echo "::set-env name=CXX::clang++-10"
+          sudo ln -f -s /usr/bin/clang-tidy-10 /usr/bin/clang-tidy
+          echo "CC=clang-10" >> $GITHUB_ENV
+          echo "CXX=clang++-10" >> $GITHUB_ENV
+          echo "EXTERNAL_LIT=/usr/lib/llvm-10/build/utils/lit/lit.py" >> $GITHUB_ENV
 
       - name: Build & install TypeART
         run: |
           cmake -B build -DCMAKE_BUILD_TYPE=Release -DMPI_INTERCEPT_LIB=ON -DSHOW_STATS=ON
           cmake --build build --parallel --target install
-          echo "::set-env name=TYPEART_PATH::${GITHUB_WORKSPACE}/install/typeart"
+          echo "TYPEART_PATH=${GITHUB_WORKSPACE}/install/typeart" >> $GITHUB_ENV
 
       - name: Setup tests
         working-directory: test-bench
