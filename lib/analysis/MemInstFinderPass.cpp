@@ -325,21 +325,22 @@ void MemInstFinderPass::getAnalysisUsage(llvm::AnalysisUsage& info) const {
 
 bool MemInstFinderPass::runOnModule(Module& m) {
   mOpsCollector.visitModuleGlobals(m);
-  auto& globals = mOpsCollector.listGlobals;
+  auto& globals = mOpsCollector.globals;
   NumDetectedGlobals += globals.size();
   if (ClFilterGlobal && !ClFilterNonArrayAlloca) {
     globals.erase(
         llvm::remove_if(
             globals,
-            [&](const auto g) {
-              const auto name = g->getName();
+            [&](const auto gdata) {
+              auto global     = gdata.global;
+              const auto name = global->getName();
               if (name.startswith("llvm.") || name.startswith("__llvm_gcov") || name.startswith("__llvm_gcda")) {
                 // 2nd and 3rd check: Check if the global is private gcov data.
                 return true;
               }
 
-              if (g->hasInitializer()) {
-                auto* ini          = g->getInitializer();
+              if (global->hasInitializer()) {
+                auto* ini          = global->getInitializer();
                 StringRef ini_name = util::dump(*ini);
 
                 if (ini_name.contains("std::ios_base::Init")) {
@@ -350,8 +351,8 @@ bool MemInstFinderPass::runOnModule(Module& m) {
               //                return true;
               //              }
 
-              if (g->hasSection()) {
-                StringRef Section = g->getSection();
+              if (global->hasSection()) {
+                StringRef Section = global->getSection();
 
                 // Globals from llvm.metadata aren't emitted, do not instrument them.
                 if (Section == "llvm.metadata") {
@@ -369,11 +370,12 @@ bool MemInstFinderPass::runOnModule(Module& m) {
                 //                }
               }
 
-              if (g->getLinkage() == GlobalValue::ExternalLinkage || g->getLinkage() == GlobalValue::PrivateLinkage) {
+              if (global->getLinkage() == GlobalValue::ExternalLinkage ||
+                  global->getLinkage() == GlobalValue::PrivateLinkage) {
                 return true;
               }
 
-              Type* t = g->getValueType();
+              Type* t = global->getValueType();
               if (!t->isSized()) {
                 return true;
               }
@@ -394,7 +396,7 @@ bool MemInstFinderPass::runOnModule(Module& m) {
     const auto beforeCallFilter = globals.size();
     NumFilteredGlobals          = NumDetectedGlobals - beforeCallFilter;
 
-    globals.erase(llvm::remove_if(globals, [&](const auto g) { return filter(g); }), globals.end());
+    globals.erase(llvm::remove_if(globals, [&](const auto g) { return filter(g.global); }), globals.end());
 
     NumCallFilteredGlobals = beforeCallFilter - globals.size();
     NumFilteredGlobals += NumCallFilteredGlobals;
@@ -413,12 +415,15 @@ bool MemInstFinderPass::runOnFunc(llvm::Function& f) {
   LOG_DEBUG("Running on function: " << f.getName())
 
   const auto checkAmbigiousMalloc = [](const MallocData& mallocData) {
+    using namespace typeart::util::type;
     auto primaryBitcast = mallocData.primary;
     if (primaryBitcast) {
       const auto& bitcasts = mallocData.bitcasts;
       std::for_each(bitcasts.begin(), bitcasts.end(), [&](auto bitcastInst) {
-        if (bitcastInst != primaryBitcast && (!typeart::util::type::isVoidPtr(bitcastInst->getDestTy()) &&
-                                              primaryBitcast->getDestTy() != bitcastInst->getDestTy())) {
+        auto dest = bitcastInst->getDestTy();
+        if (bitcastInst != primaryBitcast &&
+            (!isVoidPtr(dest) && !isi64Ptr(dest) &&
+             primaryBitcast->getDestTy() != dest)) {  // void* and i64* are used by LLVM
           // Second non-void* bitcast detected - semantics unclear
           LOG_WARNING("Encountered ambiguous pointer type in allocation: " << util::dump(*(mallocData.call)));
           LOG_WARNING("  Primary cast: " << util::dump(*primaryBitcast));
@@ -428,13 +433,13 @@ bool MemInstFinderPass::runOnFunc(llvm::Function& f) {
     }
   };
 
-  NumDetectedAllocs += mOpsCollector.listAlloca.size();
+  NumDetectedAllocs += mOpsCollector.allocas.size();
 
   if (ClFilterNonArrayAlloca) {
-    auto& allocs = mOpsCollector.listAlloca;
+    auto& allocs = mOpsCollector.allocas;
     allocs.erase(llvm::remove_if(allocs,
                                  [&](const auto& data) {
-                                   if (!data.alloca->getAllocatedType()->isArrayTy() && data.arraySize == 1) {
+                                   if (!data.alloca->getAllocatedType()->isArrayTy() && data.array_size == 1) {
                                      ++NumFilteredNonArrayAllocs;
                                      return true;
                                    }
@@ -444,23 +449,23 @@ bool MemInstFinderPass::runOnFunc(llvm::Function& f) {
   }
 
   if (ClFilterMallocAllocPair) {
-    auto& allocs = mOpsCollector.listAlloca;
-    auto& mlist  = mOpsCollector.listMalloc;
+    auto& allocs  = mOpsCollector.allocas;
+    auto& mallocs = mOpsCollector.mallocs;
 
-    const auto filterMallocAllocPairing = [&mlist](const auto alloc) {
+    const auto filterMallocAllocPairing = [&mallocs](const auto alloc) {
       // Only look for the direct users of the alloc:
       // TODO is a deeper analysis required?
       for (auto inst : alloc->users()) {
         if (StoreInst* store = dyn_cast<StoreInst>(inst)) {
           const auto source = store->getValueOperand();
           if (isa<BitCastInst>(source)) {
-            for (auto& mdata : mlist) {
+            for (auto& mdata : mallocs) {
               // is it a bitcast we already collected? if yes, we can filter the alloc
               return std::any_of(mdata.bitcasts.begin(), mdata.bitcasts.end(),
                                  [&source](const auto bcast) { return bcast == source; });
             }
           } else if (isa<CallInst>(source)) {
-            return std::any_of(mlist.begin(), mlist.end(),
+            return std::any_of(mallocs.begin(), mallocs.end(),
                                [&source](const auto& mdata) { return mdata.call == source; });
           }
         }
@@ -480,7 +485,7 @@ bool MemInstFinderPass::runOnFunc(llvm::Function& f) {
   }
 
   if (ClCallFilter) {
-    auto& allocs = mOpsCollector.listAlloca;
+    auto& allocs = mOpsCollector.allocas;
     allocs.erase(llvm::remove_if(allocs,
                                  [&](const auto& data) {
                                    if (filter(data.alloca)) {
@@ -493,14 +498,14 @@ bool MemInstFinderPass::runOnFunc(llvm::Function& f) {
     //    LOG_DEBUG(allocs.size() << " allocas to instrument : " << util::dump(allocs));
   }
 
-  auto& mallocs = mOpsCollector.listMalloc;
+  auto& mallocs = mOpsCollector.mallocs;
   NumDetectedHeap += mallocs.size();
 
   for (const auto& mallocData : mallocs) {
     checkAmbigiousMalloc(mallocData);
   }
 
-  FunctionData d{mOpsCollector.listMalloc, mOpsCollector.listFree, mOpsCollector.listAlloca};
+  FunctionData d{mOpsCollector.mallocs, mOpsCollector.frees, mOpsCollector.allocas};
   functionMap[&f] = d;
 
   mOpsCollector.clear();
@@ -574,8 +579,8 @@ const FunctionData& MemInstFinderPass::getFunctionData(Function* f) const {
   return iter->second;
 }
 
-const llvm::SmallVector<llvm::GlobalVariable*, 8>& MemInstFinderPass::getModuleGlobals() const {
-  return mOpsCollector.listGlobals;
+const llvm::SmallVectorImpl<GlobalData>& MemInstFinderPass::getModuleGlobals() const {
+  return mOpsCollector.globals;
 }
 
 }  // namespace typeart

@@ -6,8 +6,11 @@ add_subdirectory(analysis)
 set(PASS_SOURCES
   TypeARTPass.cpp
   support/TypeUtil.cpp
-  support/InstrumentationHelper.cpp
+  instrumentation/InstrumentationHelper.cpp
+  instrumentation/TypeARTFunctions.cpp
   TypeManager.cpp
+  instrumentation/MemOpArgCollector.cpp
+  instrumentation/MemOpInstrumentation.cpp
 )
 
 make_llvm_module(typeartpass
@@ -20,6 +23,7 @@ make_llvm_module(typeartpass
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${PROJECT_SOURCE_DIR}/typelib
     ${PROJECT_SOURCE_DIR}/runtime
+    ${PROJECT_SOURCE_DIR}/instrumentation
 )
 
 target_project_compile_options(typeartpass)

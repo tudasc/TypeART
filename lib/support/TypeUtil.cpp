@@ -13,6 +13,10 @@ namespace typeart {
 namespace util {
 namespace type {
 
+bool isi64Ptr(llvm::Type* type) {
+  return type->isPointerTy() && type->getPointerElementType()->isIntegerTy(64);
+}
+
 bool isVoidPtr(llvm::Type* type) {
   return type->isPointerTy() && type->getPointerElementType()->isIntegerTy(8);
 }

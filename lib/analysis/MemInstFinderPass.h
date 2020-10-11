@@ -8,6 +8,7 @@
 #ifndef LIB_ANALYSIS_MEMINSTFINDERPASS_H_
 #define LIB_ANALYSIS_MEMINSTFINDERPASS_H_
 
+#include "MemOpData.h"
 #include "MemOpVisitor.h"
 
 #include "llvm/Pass.h"
@@ -44,9 +45,9 @@ class CallFilter {
 }  // namespace filter
 
 struct FunctionData {
-  llvm::SmallVector<MallocData, 8> listMalloc;
-  llvm::SmallPtrSet<llvm::CallInst*, 8> listFree;
-  llvm::SmallVector<AllocaData, 8> listAlloca;
+  llvm::SmallVector<MallocData, 8> mallocs;
+  llvm::SmallVector<FreeData, 8> frees;
+  llvm::SmallVector<AllocaData, 8> allocas;
 };
 
 class MemInstFinderPass : public llvm::ModulePass {
@@ -65,7 +66,7 @@ class MemInstFinderPass : public llvm::ModulePass {
   bool doFinalization(llvm::Module&) override;
   bool hasFunctionData(llvm::Function*) const;
   const FunctionData& getFunctionData(llvm::Function*) const;
-  const llvm::SmallVector<llvm::GlobalVariable*, 8>& getModuleGlobals() const;
+  const llvm::SmallVectorImpl<GlobalData>& getModuleGlobals() const;
 
  private:
   void printStats(llvm::raw_ostream&);
