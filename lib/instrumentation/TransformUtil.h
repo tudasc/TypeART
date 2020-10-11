@@ -12,9 +12,6 @@
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/Transforms/Utils/EscapeEnumerator.h"
-//#include "llvm/Transforms/Utils/CtorUtils.h"
-//#include "llvm/Transforms/Utils/EscapeEnumerator.h"
-//#include "llvm/Transforms/Utils/ModuleUtils.h"
 
 namespace typeart {
 namespace transform {

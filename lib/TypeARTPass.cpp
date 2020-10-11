@@ -2,26 +2,18 @@
 
 #include "RuntimeInterface.h"
 #include "TypeIO.h"
-#include "TypeInterface.h"
 #include "analysis/MemInstFinderPass.h"
-#include "instrumentation/Instrumentation.h"
 #include "instrumentation/MemOpArgCollector.h"
 #include "instrumentation/MemOpInstrumentation.h"
 #include "instrumentation/TypeARTFunctions.h"
 #include "support/Logger.h"
-#include "support/TypeUtil.h"
-#include "support/Util.h"
 
 #include "llvm/ADT/Statistic.h"
-#include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Format.h"
-#include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/Transforms/Utils/CtorUtils.h"
-#include "llvm/Transforms/Utils/EscapeEnumerator.h"
-#include "llvm/Transforms/Utils/ModuleUtils.h"
 
 #include <string>
 
@@ -47,8 +39,6 @@ STATISTIC(NumInstrumentedMallocs, "Number of instrumented mallocs");
 STATISTIC(NumInstrumentedFrees, "Number of instrumented frees");
 STATISTIC(NumInstrumentedAlloca, "Number of instrumented (stack) allocas");
 STATISTIC(NumInstrumentedGlobal, "Number of instrumented globals");
-
-namespace tu = typeart::util::type;
 
 namespace typeart {
 namespace pass {
@@ -97,7 +87,7 @@ bool TypeArtPass::runOnModule(Module& m) {
       instrumented_global = global_count > 0;
     }
   }
-  
+
   const auto instrumented_function = llvm::count_if(m.functions(), [&](auto& f) { return runOnFunc(f); }) > 0;
   return instrumented_function || instrumented_global;
 }
@@ -150,6 +140,7 @@ bool TypeArtPass::runOnFunc(Function& f) {
     NumInstrumentedAlloca += stack_count;
     mod |= stack_count > 0;
   } else {
+    // FIXME this is required by some unit tests
     NumInstrumentedAlloca += allocas.size();
   }
 

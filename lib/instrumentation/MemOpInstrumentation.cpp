@@ -9,7 +9,6 @@
 #include "TransformUtil.h"
 #include "TypeARTFunctions.h"
 #include "support/Logger.h"
-#include "support/TypeUtil.h"
 #include "support/Util.h"
 
 #include "llvm/IR/IRBuilder.h"

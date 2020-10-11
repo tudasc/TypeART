@@ -8,8 +8,6 @@
 #ifndef LIB_INSTRUMENTATIONHELPER_H_
 #define LIB_INSTRUMENTATIONHELPER_H_
 
-// #include "llvm/IR/LLVMContext.h"
-
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/Optional.h"
 #include "llvm/ADT/SmallVector.h"
