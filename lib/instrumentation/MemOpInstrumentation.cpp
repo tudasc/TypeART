@@ -27,7 +27,7 @@ MemOpInstrumentation::MemOpInstrumentation(TAFunctionQuery& fquery, Instrumentat
 size_t MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
   for (auto& [malloc, args] : heap) {
     auto kind                = malloc.kind;
-    Instruction* malloc_call = args.get_as<Instruction>("pointer");
+    Instruction* malloc_call = args.get_as<Instruction>(ArgMap::ID::pointer);
 
     Instruction* insertBefore = malloc_call->getNextNode();
     if (malloc.is_invoke) {
@@ -37,23 +37,23 @@ size_t MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
 
     IRBuilder<> IRB(insertBefore);
 
-    auto typeIdConst   = args.get_value("type_id");
-    auto typeSizeConst = args.get_value("type_size");
+    auto typeIdConst   = args.get_value(ArgMap::ID::type_id);
+    auto typeSizeConst = args.get_value(ArgMap::ID::type_size);
     Value* elementCount{nullptr};
 
     switch (kind) {
       case MemOpKind::MALLOC: {
-        auto bytes   = args.get_value("byte_count");  // can be null (for calloc, realloc)
+        auto bytes   = args.get_value(ArgMap::ID::byte_count);  // can be null (for calloc, realloc)
         elementCount = IRB.CreateUDiv(bytes, typeSizeConst);
         break;
       }
       case MemOpKind::CALLOC: {
-        elementCount = args.get_value("element_count");
+        elementCount = args.get_value(ArgMap::ID::element_count);
         break;
       }
       case MemOpKind::REALLOC: {
-        auto mArg   = args.get_value("element_count");
-        auto addrOp = args.get_value("realloc_ptr");
+        auto mArg   = args.get_value(ArgMap::ID::element_count);
+        auto addrOp = args.get_value(ArgMap::ID::realloc_ptr);
 
         elementCount = IRB.CreateUDiv(mArg, typeSizeConst);
         IRBuilder<> FreeB(malloc_call);
@@ -80,7 +80,7 @@ size_t MemOpInstrumentation::instrumentFree(const FreeArgList& frees) {
       insertBefore    = &(*inv->getNormalDest()->getFirstInsertionPt());
     }
 
-    auto free_arg = args.get_value("pointer");
+    auto free_arg = args.get_value(ArgMap::ID::pointer);
 
     IRBuilder<> IRB(insertBefore);
     IRB.CreateCall(fquery.getFunctionFor(IFunc::free), ArrayRef<Value*>{free_arg});
@@ -94,12 +94,12 @@ size_t MemOpInstrumentation::instrumentStack(const StackArgList& stack) {
   Function* f{nullptr};
   for (auto& [sdata, args] : stack) {
     // auto alloca = sdata.alloca;
-    Instruction* alloca = args.get_as<Instruction>("pointer");
+    Instruction* alloca = args.get_as<Instruction>(ArgMap::ID::pointer);
 
     IRBuilder<> IRB(alloca->getNextNode());
 
-    auto typeIdConst    = args.get_value("type_id");
-    auto numElementsVal = args.get_value("element_count");
+    auto typeIdConst    = args.get_value(ArgMap::ID::type_id);
+    auto numElementsVal = args.get_value(ArgMap::ID::element_count);
     auto arrayPtr       = IRB.CreateBitOrPointerCast(alloca, instr.getTypeFor(IType::ptr));
 
     IRB.CreateCall(fquery.getFunctionFor(IFunc::stack), ArrayRef<Value*>{arrayPtr, typeIdConst, numElementsVal});
@@ -121,8 +121,8 @@ size_t MemOpInstrumentation::instrumentGlobal(const GlobalArgList& globals) {
     for (auto& [gdata, args] : globals) {
       // Instruction* global = args.get_as<llvm::Instruction>("pointer");
       auto global         = gdata.global;
-      auto typeIdConst    = args.get_value("type_id");
-      auto numElementsVal = args.get_value("element_count");
+      auto typeIdConst    = args.get_value(ArgMap::ID::type_id);
+      auto numElementsVal = args.get_value(ArgMap::ID::element_count);
       auto globalPtr      = IRB.CreateBitOrPointerCast(global, instr.getTypeFor(IType::ptr));
       IRB.CreateCall(fquery.getFunctionFor(IFunc::global), ArrayRef<Value*>{globalPtr, typeIdConst, numElementsVal});
     }

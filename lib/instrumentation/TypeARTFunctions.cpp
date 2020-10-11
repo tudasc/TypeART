@@ -4,8 +4,6 @@
 
 #include "TypeARTFunctions.h"
 
-//#include "../../../../../../usr/lib/x86_64-linux-gnu/openmpi/include/mpif-externals.h"
-
 #include "llvm/IR/Argument.h"
 #include "llvm/IR/CFG.h"
 #include "llvm/IR/Function.h"

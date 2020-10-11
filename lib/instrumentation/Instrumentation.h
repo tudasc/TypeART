@@ -17,9 +17,20 @@ class Value;
 
 namespace typeart {
 
-struct ArgMapper {
+struct ArgStrId {
+  static constexpr char pointer[]       = "pointer";
+  static constexpr char type_id[]       = "type_id";
+  static constexpr char type_size[]     = "type_size";
+  static constexpr char byte_count[]    = "byte_count";
+  static constexpr char element_count[] = "element_count";
+  static constexpr char realloc_ptr[]   = "realloc_ptr";
+};
+
+struct ArgMap {
+  using ID            = ArgStrId;
   using ArgsContainer = llvm::StringMap<llvm::Value*>;
   ArgsContainer args;
+  // static ID id;
 
   ArgsContainer::mapped_type& operator[](ArgsContainer::key_type key) {
     return args[key];
@@ -52,7 +63,7 @@ namespace detail {
 template <typename Data>
 struct MemContainer {
   Data mem_data;
-  ArgMapper args;
+  ArgMap args;
 };
 }  // namespace detail
 

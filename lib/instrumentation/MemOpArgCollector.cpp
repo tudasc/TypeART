@@ -24,7 +24,7 @@ HeapArgList MemOpArgCollector::collectHeap(const llvm::SmallVectorImpl<MallocDat
   list.reserve(mallocs.size());
   const llvm::DataLayout& dl = instr.getModule()->getDataLayout();
   for (const MallocData& mdata : mallocs) {
-    ArgMapper arg_map;
+    ArgMap arg_map;
     const auto malloc_call      = mdata.call;
     BitCastInst* primaryBitcast = mdata.primary;
     auto kind                   = mdata.kind;
@@ -89,12 +89,12 @@ HeapArgList MemOpArgCollector::collectHeap(const llvm::SmallVectorImpl<MallocDat
         continue;
     }
 
-    arg_map["pointer"]       = malloc_call;
-    arg_map["type_id"]       = typeIdConst;
-    arg_map["type_size"]     = typeSizeConst;
-    arg_map["byte_count"]    = byte_count;
-    arg_map["element_count"] = elementCount;
-    arg_map["realloc_ptr"]   = realloc_ptr;
+    arg_map[ArgMap::ID::pointer]       = malloc_call;
+    arg_map[ArgMap::ID::type_id]       = typeIdConst;
+    arg_map[ArgMap::ID::type_size]     = typeSizeConst;
+    arg_map[ArgMap::ID::byte_count]    = byte_count;
+    arg_map[ArgMap::ID::element_count] = elementCount;
+    arg_map[ArgMap::ID::realloc_ptr]   = realloc_ptr;
     list.emplace_back(HeapArgList::value_type{mdata, arg_map});
   }
 
@@ -104,11 +104,11 @@ FreeArgList MemOpArgCollector::collectFree(const llvm::SmallVectorImpl<FreeData>
   FreeArgList list;
   list.reserve(frees.size());
   for (const FreeData& fdata : frees) {
-    ArgMapper arg_map;
+    ArgMap arg_map;
     auto free_call = fdata.call;
     auto freeArg   = free_call->getOperand(0);
 
-    arg_map["pointer"] = freeArg;
+    arg_map[ArgMap::ID::pointer] = freeArg;
     list.emplace_back(FreeArgList::value_type{fdata, arg_map});
   }
 
@@ -121,7 +121,7 @@ StackArgList MemOpArgCollector::collectStack(const llvm::SmallVectorImpl<AllocaD
   const llvm::DataLayout& dl = instr.getModule()->getDataLayout();
 
   for (const AllocaData& adata : allocs) {
-    ArgMapper arg_map;
+    ArgMap arg_map;
     auto alloca           = adata.alloca;
     Type* elementType     = alloca->getAllocatedType();
     Value* numElementsVal = nullptr;
@@ -149,9 +149,9 @@ StackArgList MemOpArgCollector::collectStack(const llvm::SmallVectorImpl<AllocaD
 
     auto* typeIdConst = instr.getConstantFor(IType::type_id, typeId);
 
-    arg_map["pointer"]       = alloca;
-    arg_map["type_id"]       = typeIdConst;
-    arg_map["element_count"] = numElementsVal;
+    arg_map[ArgMap::ID::pointer]       = alloca;
+    arg_map[ArgMap::ID::type_id]       = typeIdConst;
+    arg_map[ArgMap::ID::element_count] = numElementsVal;
 
     list.emplace_back(StackArgList::value_type{adata, arg_map});
   }
@@ -164,7 +164,7 @@ GlobalArgList MemOpArgCollector::collectGlobal(const llvm::SmallVectorImpl<Globa
   const llvm::DataLayout& dl = instr.getModule()->getDataLayout();
 
   for (const GlobalData& gdata : globals) {
-    ArgMapper arg_map;
+    ArgMap arg_map;
     auto global = gdata.global;
     auto type   = global->getValueType();
 
@@ -179,9 +179,9 @@ GlobalArgList MemOpArgCollector::collectGlobal(const llvm::SmallVectorImpl<Globa
     auto* numElementsConst = instr.getConstantFor(IType::extent, numElements);
     // auto globalPtr         = IRB.CreateBitOrPointerCast(global, instr.getTypeFor(IType::ptr));
 
-    arg_map["pointer"]       = global;
-    arg_map["type_id"]       = typeIdConst;
-    arg_map["element_count"] = numElementsConst;
+    arg_map[ArgMap::ID::pointer]       = global;
+    arg_map[ArgMap::ID::type_id]       = typeIdConst;
+    arg_map[ArgMap::ID::element_count] = numElementsConst;
 
     list.emplace_back(GlobalArgList::value_type{gdata, arg_map});
   }
