@@ -29,8 +29,8 @@ struct ArgStrId {
 struct ArgMap {
   using ID            = ArgStrId;
   using ArgsContainer = llvm::StringMap<llvm::Value*>;
+  using Key           = ArgsContainer::key_type;
   ArgsContainer args;
-  // static ID id;
 
   ArgsContainer::mapped_type& operator[](ArgsContainer::key_type key) {
     return args[key];
@@ -46,7 +46,7 @@ struct ArgMap {
   }*/
 
   template <typename T>
-  T* get_as(ArgsContainer::key_type key) const {
+  T* get_as(Key key) const {
     T* elem{nullptr};
     if (auto it = args.find(key); it != args.end()) {
       elem = llvm::dyn_cast<T>(it->second);
@@ -54,7 +54,7 @@ struct ArgMap {
     return elem;
   }
 
-  llvm::Value* get_value(ArgsContainer::key_type key) const {
+  llvm::Value* get_value(Key key) const {
     return get_as<llvm::Value>(key);
   }
 };

@@ -5,6 +5,8 @@
 #include "TypeInterface.h"
 #include "analysis/MemInstFinderPass.h"
 #include "instrumentation/Instrumentation.h"
+#include "instrumentation/MemOpArgCollector.h"
+#include "instrumentation/MemOpInstrumentation.h"
 #include "instrumentation/TypeARTFunctions.h"
 #include "support/Logger.h"
 #include "support/TypeUtil.h"
@@ -21,8 +23,6 @@
 #include "llvm/Transforms/Utils/EscapeEnumerator.h"
 #include "llvm/Transforms/Utils/ModuleUtils.h"
 
-#include <iostream>
-#include <sstream>
 #include <string>
 
 using namespace llvm;
@@ -68,7 +68,7 @@ void TypeArtPass::getAnalysisUsage(llvm::AnalysisUsage& info) const {
 }
 
 bool TypeArtPass::doInitialization(Module& m) {
-  instr.setModule(m);
+  instrumentation_helper.setModule(m);
 
   LOG_DEBUG("Propagating type infos.");
   if (typeManager.load()) {
@@ -76,6 +76,9 @@ bool TypeArtPass::doInitialization(Module& m) {
   } else {
     LOG_DEBUG("No valid existing type configuration found: " << ClTypeFile.getValue());
   }
+
+  arg_collector  = std::make_unique<MemOpArgCollector>(typeManager, instrumentation_helper);
+  mem_instrument = std::make_unique<MemOpInstrumentation>(functions, instrumentation_helper);
 
   return true;
 }
@@ -100,9 +103,9 @@ bool TypeArtPass::runOnModule(Module& m) {
       }
 
       int typeId             = typeManager.getOrRegisterType(type, dl);
-      auto* typeIdConst      = instr.getConstantFor(IType::type_id, typeId);
-      auto* numElementsConst = instr.getConstantFor(IType::extent, numElements);
-      auto globalPtr         = IRB.CreateBitOrPointerCast(global, instr.getTypeFor(IType::ptr));
+      auto* typeIdConst      = instrumentation_helper.getConstantFor(IType::type_id, typeId);
+      auto* numElementsConst = instrumentation_helper.getConstantFor(IType::extent, numElements);
+      auto globalPtr         = IRB.CreateBitOrPointerCast(global, instrumentation_helper.getTypeFor(IType::ptr));
 
       LOG_DEBUG("Instrumenting global variable: " << util::dump(*global));
 
@@ -166,174 +169,21 @@ bool TypeArtPass::runOnFunc(Function& f) {
   const auto& allocas = fData.allocas;
   const auto& frees   = fData.frees;
 
-  const auto instrumentMalloc = [&](const auto& malloc) -> bool {
-    const auto malloc_call      = malloc.call;
-    BitCastInst* primaryBitcast = malloc.primary;
-
-    // Number of bytes allocated
-    auto mallocArg = malloc_call->getOperand(0);
-    int typeId     = typeManager.getOrRegisterType(malloc_call->getType()->getPointerElementType(),
-                                               dl);  // retrieveTypeID(tu::getVoidType(c));
-    if (typeId == TA_UNKNOWN_TYPE) {
-      LOG_ERROR("Unknown allocated type. Not instrumenting. " << util::dump(*malloc_call));
-      return false;
-    }
-
-    // Number of bytes per element, 1 for void*
-    unsigned typeSize = tu::getTypeSizeInBytes(malloc_call->getType()->getPointerElementType(), dl);
-    auto insertBefore = malloc_call->getNextNode();
-
-    // Use the first cast as the determining type (if there is any)
-    if (primaryBitcast) {
-      auto* dstPtrType = primaryBitcast->getDestTy()->getPointerElementType();
-
-      typeSize = tu::getTypeSizeInBytes(dstPtrType, dl);
-
-      // Resolve arrays
-      // TODO: Write tests for this case
-      if (dstPtrType->isArrayTy()) {
-        dstPtrType = tu::getArrayElementType(dstPtrType);
-      }
-
-      typeId = typeManager.getOrRegisterType(dstPtrType, dl);
-      if (typeId == TA_UNKNOWN_TYPE) {
-        LOG_ERROR("Target type of casted allocation is unknown. Not instrumenting. " << util::dump(*malloc_call));
-        LOG_ERROR("Cast: " << util::dump(*primaryBitcast));
-        LOG_ERROR("Target type: " << util::dump(*dstPtrType));
-        return false;
-      }
-    } else {
-      LOG_ERROR("Primary bitcast is null. malloc: " << util::dump(*malloc_call))
-    }
-
-    if (malloc.is_invoke) {
-      InvokeInst* inv = dyn_cast<InvokeInst>(malloc_call);
-      insertBefore    = &(*inv->getNormalDest()->getFirstInsertionPt());
-    }
-
-    IRBuilder<> IRB(insertBefore);
-    auto* typeIdConst   = instr.getConstantFor(IType::type_id, typeId);
-    auto* typeSizeConst = instr.getConstantFor(IType::extent, typeSize);
-    // Compute element count: count = numBytes / typeSize
-    Value* elementCount = nullptr;
-    if (malloc.kind == MemOpKind::MALLOC) {
-      elementCount = IRB.CreateUDiv(mallocArg, typeSizeConst);
-    } else if (malloc.kind == MemOpKind::CALLOC) {
-      elementCount = malloc_call->getOperand(0);  // get the element count in calloc call
-    } else if (malloc.kind == MemOpKind::REALLOC) {
-      auto mArg    = malloc_call->getOperand(1);
-      elementCount = IRB.CreateUDiv(mArg, typeSizeConst);
-
-      IRBuilder<> FreeB(malloc_call);
-      auto addrOp = malloc_call->getOperand(0);
-      FreeB.CreateCall(typeart_free.f, ArrayRef<Value*>{addrOp});
-
-    } else {
-      LOG_ERROR("Unknown malloc kind. Not instrumenting. " << util::dump(*malloc_call));
-      return false;
-    }
-
-    IRB.CreateCall(typeart_alloc.f, ArrayRef<Value*>{malloc_call, typeIdConst, elementCount});
-
-    return true;
-  };
-  const auto instrumentFree = [&](const auto& free_data) -> bool {
-    auto free_call    = free_data.call;
-    auto freeArg      = free_call->getOperand(0);
-    auto insertBefore = free_call->getNextNode();
-    if (free_data.is_invoke) {
-      InvokeInst* inv = dyn_cast<InvokeInst>(free_call);
-      insertBefore    = &(*inv->getNormalDest()->getFirstInsertionPt());
-    }
-    IRBuilder<> IRB(insertBefore);
-    IRB.CreateCall(typeart_free.f, ArrayRef<Value*>{freeArg});
-
-    return true;
-  };
-
-  const auto instrumentAlloca = [&](const auto& allocaData) -> bool {
-    auto alloca           = allocaData.alloca;
-    Type* elementType     = alloca->getAllocatedType();
-    Value* numElementsVal = nullptr;
-    // The length can be specified statically through the array type or as a separate argument.
-    // Both cases are handled here.
-    if (allocaData.is_vla) {
-      numElementsVal = alloca->getArraySize();
-      // This should not happen in generated IR code
-      assert(!elementType->isArrayTy() && "VLAs of array types are currently not supported.");
-    } else {
-      size_t arraySize = allocaData.array_size;
-      if (elementType->isArrayTy()) {
-        arraySize   = arraySize * tu::getArrayLengthFlattened(elementType);
-        elementType = tu::getArrayElementType(elementType);
-      }
-      numElementsVal = instr.getConstantFor(IType::extent, arraySize);
-    }
-
-    IRBuilder<> IRB(alloca->getNextNode());
-
-    // unsigned typeSize = tu::getTypeSizeInBytes(elementType, dl);
-    int typeId = typeManager.getOrRegisterType(elementType, dl);
-
-    if (typeId == TA_UNKNOWN_TYPE) {
-      LOG_ERROR("Type is not supported: " << util::dump(*elementType));
-    }
-
-    auto* typeIdConst = instr.getConstantFor(IType::type_id, typeId);
-    auto arrayPtr     = IRB.CreateBitOrPointerCast(alloca, instr.getTypeFor(IType::ptr));
-
-    IRB.CreateCall(typeart_alloc_stack.f, ArrayRef<Value*>{arrayPtr, typeIdConst, numElementsVal});
-
-    allocCounts[alloca->getParent()]++;
-
-    ++NumInstrumentedAlloca;
-    return true;
-  };
-
   if (!ClIgnoreHeap) {
     // instrument collected calls of bb:
-    for (const auto& malloc : mallocs) {
-      ++NumInstrumentedMallocs;
-      mod |= instrumentMalloc(malloc);
-    }
+    auto heap_args = arg_collector->collectHeap(mallocs);
+    auto free_args = arg_collector->collectFree(frees);
 
-    for (auto& free : frees) {
-      ++NumInstrumentedFrees;
-      mod |= instrumentFree(free);
-    }
+    const auto heap_count = mem_instrument->instrumentHeap(heap_args);
+    const auto free_count = mem_instrument->instrumentFree(free_args);
+
+    NumInstrumentedMallocs += heap_count;
+    NumInstrumentedFrees += free_count;
   }
   if (ClTypeArtAlloca) {
-    const bool instrumented_alloca = std::count_if(allocas.begin(), allocas.end(), instrumentAlloca) > 0;
-    mod |= instrumented_alloca;
-
-    if (instrumented_alloca) {
-      //      LOG_DEBUG("Add alloca counter")
-      // counter = 0 at beginning of function
-      IRBuilder<> CBuilder(f.getEntryBlock().getFirstNonPHI());
-      auto* counter = CBuilder.CreateAlloca(instr.getTypeFor(IType::stack_count), nullptr, "__ta_alloca_counter");
-      CBuilder.CreateStore(instr.getConstantFor(IType::stack_count), counter);
-
-      // In each basic block: counter =+ num_alloca (in BB)
-      for (auto data : allocCounts) {
-        IRBuilder<> IRB(data.first->getTerminator());
-        auto* load_counter       = IRB.CreateLoad(counter);
-        Value* increment_counter = IRB.CreateAdd(instr.getConstantFor(IType::stack_count, data.second), load_counter);
-        IRB.CreateStore(increment_counter, counter);
-      }
-
-      // Find return instructions:
-      // if(counter > 0) call runtime for stack cleanup
-      EscapeEnumerator ee(f);
-      while (IRBuilder<>* irb = ee.Next()) {
-        auto* I = &(*irb->GetInsertPoint());
-
-        auto* counter_load = irb->CreateLoad(counter, "__ta_counter_load");
-        auto* cond         = irb->CreateICmpNE(counter_load, instr.getConstantFor(IType::stack_count), "__ta_cond");
-        auto* then_term    = SplitBlockAndInsertIfThen(cond, I, false);
-        irb->SetInsertPoint(then_term);
-        irb->CreateCall(typeart_leave_scope.f, ArrayRef<Value*>{counter_load});
-      }
-    }
+    auto stack_args        = arg_collector->collectStack(allocas);
+    const auto stack_count = mem_instrument->instrumentStack(stack_args);
+    NumInstrumentedAlloca += stack_count;
   } else {
     NumInstrumentedAlloca += allocas.size();
   }
@@ -366,11 +216,11 @@ void TypeArtPass::declareInstrumentationFunctions(Module& m) {
     return;
   }
 
-  TAFunctionDeclarator decl(m, instr, functions);
+  TAFunctionDeclarator decl(m, instrumentation_helper, functions);
 
-  auto alloc_arg_types      = instr.make_parameters(IType::ptr, IType::type_id, IType::extent);
-  auto free_arg_types       = instr.make_parameters(IType::ptr);
-  auto leavescope_arg_types = instr.make_parameters(IType::stack_count);
+  auto alloc_arg_types      = instrumentation_helper.make_parameters(IType::ptr, IType::type_id, IType::extent);
+  auto free_arg_types       = instrumentation_helper.make_parameters(IType::ptr);
+  auto leavescope_arg_types = instrumentation_helper.make_parameters(IType::stack_count);
 
   typeart_alloc.f        = decl.make_function(IFunc::heap, typeart_alloc.name, alloc_arg_types);
   typeart_alloc_stack.f  = decl.make_function(IFunc::stack, typeart_alloc_stack.name, alloc_arg_types);
@@ -380,8 +230,8 @@ void TypeArtPass::declareInstrumentationFunctions(Module& m) {
 }
 
 void TypeArtPass::printStats(llvm::raw_ostream& out) {
-  const unsigned max_string{12u};
-  const unsigned max_val{5u};
+  const unsigned max_string{12U};
+  const unsigned max_val{5U};
   std::string line(22, '-');
   line += "\n";
   const auto make_format = [&](const char* desc, const auto val) {

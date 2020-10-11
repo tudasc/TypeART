@@ -25,6 +25,7 @@ MemOpInstrumentation::MemOpInstrumentation(TAFunctionQuery& fquery, Instrumentat
 }
 
 size_t MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
+  unsigned counter{0};
   for (auto& [malloc, args] : heap) {
     auto kind                = malloc.kind;
     Instruction* malloc_call = args.get_as<Instruction>(ArgMap::ID::pointer);
@@ -52,7 +53,7 @@ size_t MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
         break;
       }
       case MemOpKind::REALLOC: {
-        auto mArg   = args.get_value(ArgMap::ID::element_count);
+        auto mArg   = args.get_value(ArgMap::ID::byte_count);
         auto addrOp = args.get_value(ArgMap::ID::realloc_ptr);
 
         elementCount = IRB.CreateUDiv(mArg, typeSizeConst);
@@ -66,10 +67,13 @@ size_t MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
     }
 
     IRB.CreateCall(fquery.getFunctionFor(IFunc::heap), ArrayRef<Value*>{malloc_call, typeIdConst, elementCount});
+    ++counter;
   }
-  return 0;
+
+  return counter;
 }
 size_t MemOpInstrumentation::instrumentFree(const FreeArgList& frees) {
+  unsigned counter{0};
   for (auto& [fdata, args] : frees) {
     auto free_call       = fdata.call;
     const bool is_invoke = fdata.is_invoke;
@@ -84,12 +88,14 @@ size_t MemOpInstrumentation::instrumentFree(const FreeArgList& frees) {
 
     IRBuilder<> IRB(insertBefore);
     IRB.CreateCall(fquery.getFunctionFor(IFunc::free), ArrayRef<Value*>{free_arg});
+    ++counter;
   }
 
-  return 0;
+  return counter;
 }
 size_t MemOpInstrumentation::instrumentStack(const StackArgList& stack) {
   using namespace transform;
+  unsigned counter{0};
   StackCounter::StackOpCounter allocCounts;
   Function* f{nullptr};
   for (auto& [sdata, args] : stack) {
@@ -103,6 +109,7 @@ size_t MemOpInstrumentation::instrumentStack(const StackArgList& stack) {
     auto arrayPtr       = IRB.CreateBitOrPointerCast(alloca, instr.getTypeFor(IType::ptr));
 
     IRB.CreateCall(fquery.getFunctionFor(IFunc::stack), ArrayRef<Value*>{arrayPtr, typeIdConst, numElementsVal});
+    ++counter;
 
     auto bb = alloca->getParent();
     allocCounts[bb]++;
@@ -111,12 +118,16 @@ size_t MemOpInstrumentation::instrumentStack(const StackArgList& stack) {
     }
   }
 
-  StackCounter scount(*f, instr, fquery);
-  scount.addStackHandling(allocCounts);
+  if (f) {
+    StackCounter scount(f, instr, fquery);
+    scount.addStackHandling(allocCounts);
+  }
 
-  return 0;
+  return counter;
 }
 size_t MemOpInstrumentation::instrumentGlobal(const GlobalArgList& globals) {
+  unsigned counter{0};
+
   const auto instrumentGlobalsInCtor = [&](auto& IRB) {
     for (auto& [gdata, args] : globals) {
       // Instruction* global = args.get_as<llvm::Instruction>("pointer");
@@ -125,6 +136,7 @@ size_t MemOpInstrumentation::instrumentGlobal(const GlobalArgList& globals) {
       auto numElementsVal = args.get_value(ArgMap::ID::element_count);
       auto globalPtr      = IRB.CreateBitOrPointerCast(global, instr.getTypeFor(IType::ptr));
       IRB.CreateCall(fquery.getFunctionFor(IFunc::global), ArrayRef<Value*>{globalPtr, typeIdConst, numElementsVal});
+      ++counter;
     }
   };
 
@@ -148,6 +160,6 @@ size_t MemOpInstrumentation::instrumentGlobal(const GlobalArgList& globals) {
   instrumentGlobalsInCtor(IRB);
   IRB.CreateRetVoid();
 
-  return 0;
+  return counter;
 }
 }  // namespace typeart

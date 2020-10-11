@@ -21,11 +21,11 @@ namespace transform {
 
 struct StackCounter {
   using StackOpCounter = llvm::SmallDenseMap<llvm::BasicBlock*, size_t>;
-  llvm::Function& f;
+  llvm::Function* f;
   InstrumentationHelper& instr;
   TAFunctionQuery& query;
 
-  StackCounter(llvm::Function& f, InstrumentationHelper& instr, TAFunctionQuery& query)
+  StackCounter(llvm::Function* f, InstrumentationHelper& instr, TAFunctionQuery& query)
       : f(f), instr(instr), query(query) {
   }
 
@@ -33,7 +33,7 @@ struct StackCounter {
     using namespace llvm;
     //      LOG_DEBUG("Add alloca counter")
     // counter = 0 at beginning of function
-    IRBuilder<> CBuilder(f.getEntryBlock().getFirstNonPHI());
+    IRBuilder<> CBuilder(f->getEntryBlock().getFirstNonPHI());
     auto* counter = CBuilder.CreateAlloca(instr.getTypeFor(IType::stack_count), nullptr, "__ta_alloca_counter");
     CBuilder.CreateStore(instr.getConstantFor(IType::stack_count), counter);
 
@@ -47,7 +47,7 @@ struct StackCounter {
 
     // Find return instructions:
     // if(counter > 0) call runtime for stack cleanup
-    EscapeEnumerator ee(f);
+    EscapeEnumerator ee(*f);
     while (IRBuilder<>* irb = ee.Next()) {
       auto* I = &(*irb->GetInsertPoint());
 
