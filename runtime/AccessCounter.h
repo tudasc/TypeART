@@ -248,10 +248,11 @@ struct Table {
 namespace memory {
 struct MemOverhead {
   static constexpr auto pointerMapSize = sizeof(RuntimeT::PointerMap);  // Map overhead
-  static constexpr auto perNodeSizeMap = sizeof(
-      std::remove_pointer<std::map<MemAddr, PointerInfo>::iterator::_Link_type>::type);  // not applicable to btree
-  static constexpr auto stackVectorSize  = sizeof(RuntimeT::Stack);                      // Stack overhead
-  static constexpr auto perNodeSizeStack = sizeof(RuntimeT::Stack::value_type);          // Stack allocs
+  static constexpr auto perNodeSizeMap =
+      sizeof(std::remove_pointer<std::map<MemAddr, PointerInfo>::iterator::_Link_type>::type) +
+      sizeof(RuntimeT::MapEntry);                                         // not applicable to btree
+  static constexpr auto stackVectorSize  = sizeof(RuntimeT::Stack);       // Stack overhead
+  static constexpr auto perNodeSizeStack = sizeof(RuntimeT::StackEntry);  // Stack allocs
   double stack{0};
   double map{0};
 };
@@ -261,7 +262,6 @@ inline MemOverhead estimate(long long stack_max, long long heap_max, long long g
   mem.stack = double(MemOverhead::stackVectorSize +
                      MemOverhead::perNodeSizeStack * std::max<size_t>(RuntimeT::StackReserve, stack_max)) /
               scale;
-  // this should probably be based on total heap, stack, global?
   mem.map =
       double(MemOverhead::pointerMapSize + MemOverhead::perNodeSizeMap * (stack_max + heap_max + global_max)) / scale;
   return mem;
@@ -282,12 +282,14 @@ void serialise(const Recorder& r, llvm::raw_ostream& buf) {
   t.put(Row::make("Total global", r.globalAllocs, r.global_array));
   t.put(Row::make("Max. Heap Allocs", r.maxHeapAllocs));
   t.put(Row::make("Max. Stack Allocs", r.maxStackAllocs));
+  t.put(Row::make("Addresses checked", r.addrChecked));
+  t.put(Row::make("Distinct Addresses checked", r.seen.size()));
   t.put(Row::make("Addresses re-used", r.addrReuses));
   t.put(Row::make("Addresses missed", r.addrMissing));
   t.put(Row::make("Distinct Addresses missed", r.missing.size()));
-  t.put(Row::make("Addresses checked", r.addrChecked));
-  t.put(Row::make("Distinct Addresses checked", r.seen.size()));
   t.put(Row::make("Estimated memory use (KiB)", size_t(std::round(memory_use.map + memory_use.stack))));
+  t.put(Row::make("Bytes per node map/stack", memory::MemOverhead::perNodeSizeMap,
+                  memory::MemOverhead::perNodeSizeStack));
 
   t.print(buf);
 
