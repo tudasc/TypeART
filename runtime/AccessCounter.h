@@ -12,9 +12,11 @@
 #include "llvm/Support/Format.h"
 #include "llvm/Support/raw_ostream.h"
 
+#include <map>
 #include <set>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -23,8 +25,8 @@ namespace softcounter {
 
 class AccessRecorder {
  public:
-  using type_count_map = std::unordered_map<int, long long>;
-  ~AccessRecorder()    = default;
+  using TypeCountMap = std::unordered_map<int, long long>;
+  ~AccessRecorder()  = default;
 
   inline void incHeapAlloc(int typeId, size_t count) {
     ++curHeapAllocs;
@@ -106,9 +108,9 @@ class AccessRecorder {
   long long global_array{0};
   std::unordered_set<const void*> missing;
   std::unordered_set<const void*> seen;
-  type_count_map stack;
-  type_count_map heap;
-  type_count_map global;
+  TypeCountMap stack;
+  TypeCountMap heap;
+  TypeCountMap global;
 
   template <typename Recorder>
   friend void serialise(const Recorder& r, llvm::raw_ostream& buf);
@@ -144,18 +146,18 @@ class NoneRecorder {
 };
 
 struct Cell {
-  enum align_as { left, right, center };
+  enum align_as { left, right };
 
-  Cell(std::string v) : c(v), w(c.size()), align(left) {
+  explicit Cell(std::string v) : c(v), w(c.size()), align(left) {
     w     = c.size();
     align = left;
   }
 
-  Cell(const char* v) : Cell(std::string(v)) {
+  explicit Cell(const char* v) : Cell(std::string(v)) {
   }
 
   template <typename number>
-  Cell(number v) : Cell(std::to_string(v)) {
+  explicit Cell(number v) : Cell(std::to_string(v)) {
     align = right;
   }
 
@@ -165,13 +167,14 @@ struct Cell {
 };
 
 struct Row {
-  Row(std::string name) : id(name) {
-  }
   Cell id;
-  std::vector<Cell> numbers;
+  std::vector<Cell> cells;
+
+  explicit Row(std::string name) : id(name) {
+  }
 
   Row& put(Cell c) {
-    numbers.emplace_back(c);
+    cells.emplace_back(c);
     return *this;
   }
 
@@ -196,12 +199,12 @@ struct Table {
   unsigned max_row_label_width{1};
   char separator{'-'};
 
-  Table(std::string name) : name(name) {
+  explicit Table(std::string name) : name(name) {
   }
 
   void put(Row r) {
     row_vec.emplace_back(r);
-    columns = std::max<unsigned>(columns, r.numbers.size());
+    columns = std::max<unsigned>(columns, r.cells.size());
     ++rows;
     max_row_label_width = std::max<unsigned>(max_row_label_width, r.id.w);
   }
@@ -209,10 +212,11 @@ struct Table {
   void print(llvm::raw_ostream& s) {
     auto max_row_id = max_row_label_width + 1;
 
+    // determine per column width
     std::vector<unsigned> col_width(columns, 4);
     for (const auto& row : row_vec) {
       unsigned col_num{0};
-      for (const auto& col : row.numbers) {
+      for (const auto& col : row.cells) {
         col_width[col_num] = (std::max<unsigned>(col_width[col_num], col.w + 1));
         ++col_num;
       }
@@ -224,14 +228,14 @@ struct Table {
     for (const auto& row : row_vec) {
       s << llvm::left_justify(row.id.c, max_row_id) << ":";
 
-      if (row.numbers.empty()) {
+      if (row.cells.empty()) {
         s << "\n";
         continue;
       }
       unsigned col_num{0};
-      auto num_beg = std::begin(row.numbers);
+      auto num_beg = std::begin(row.cells);
       s << llvm::right_justify(num_beg->c, col_width[col_num]);
-      std::for_each(std::next(num_beg), std::end(row.numbers), [&](const auto& v) {
+      std::for_each(std::next(num_beg), std::end(row.cells), [&](const auto& v) {
         const auto width   = col_width[++col_num];
         const auto aligned = v.align == Cell::right ? llvm::right_justify(v.c, width) : llvm::left_justify(v.c, width);
         s << " , " << aligned;
@@ -241,11 +245,36 @@ struct Table {
   }
 };
 
+namespace memory {
+struct MemOverhead {
+  static constexpr auto pointerMapSize = sizeof(RuntimeT::PointerMap);  // Map overhead
+  static constexpr auto perNodeSizeMap = sizeof(
+      std::remove_pointer<std::map<MemAddr, PointerInfo>::iterator::_Link_type>::type);  // not applicable to btree
+  static constexpr auto stackVectorSize  = sizeof(RuntimeT::Stack);                      // Stack overhead
+  static constexpr auto perNodeSizeStack = sizeof(RuntimeT::Stack::value_type);          // Stack allocs
+  double stack{0};
+  double map{0};
+};
+inline MemOverhead estimate(long long stack_max, long long heap_max, long long global_max,
+                            const double scale = 1024.0) {
+  MemOverhead mem;
+  mem.stack = double(MemOverhead::stackVectorSize +
+                     MemOverhead::perNodeSizeStack * std::max<size_t>(RuntimeT::StackReserve, stack_max)) /
+              scale;
+  // this should probably be based on total heap, stack, global?
+  mem.map =
+      double(MemOverhead::pointerMapSize + MemOverhead::perNodeSizeMap * (stack_max + heap_max + global_max)) / scale;
+  return mem;
+}
+}  // namespace memory
+
 template <typename Recorder>
 void serialise(const Recorder& r, llvm::raw_ostream& buf) {
   if constexpr (std::is_same_v<Recorder, NoneRecorder>) {
     return;
   }
+
+  const auto memory_use = memory::estimate(r.maxStackAllocs, r.maxHeapAllocs, r.globalAllocs);
 
   Table t("Alloc Stats from softcounters");
   t.put(Row::make("Total heap", r.heapAllocs, r.heap_array));
@@ -255,13 +284,10 @@ void serialise(const Recorder& r, llvm::raw_ostream& buf) {
   t.put(Row::make("Max. Stack Allocs", r.maxStackAllocs));
   t.put(Row::make("Addresses re-used", r.addrReuses));
   t.put(Row::make("Addresses missed", r.addrMissing));
-  t.put(Row::make("Distinct Addresses checked", r.seen.size()));
-  t.put(Row::make("Addresses checked", r.addrChecked));
   t.put(Row::make("Distinct Addresses missed", r.missing.size()));
-  //      << "Estimated mem consumption:\t" << estMemConsumption << " bytes = " << getStr(estMemConsumptionKByte)
-  //      << " kiB\n"
-  //      << "vector overhead: " << r.vectorSize << " bytes\tmap overhead: " << r.mapSize
-  //      << " bytes\tnode overhead: " << r.mapNodeSizeInBytes << "\n";
+  t.put(Row::make("Addresses checked", r.addrChecked));
+  t.put(Row::make("Distinct Addresses checked", r.seen.size()));
+  t.put(Row::make("Estimated memory use (KiB)", size_t(std::round(memory_use.map + memory_use.stack))));
 
   t.print(buf);
 

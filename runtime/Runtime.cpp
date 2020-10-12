@@ -83,7 +83,7 @@ TypeArtRT::TypeArtRT(Recorder& counter) : counter(counter) {
   }
   LOG_INFO("Recorded types: " << ss.str());
 
-  stackVars.reserve(1024);
+  stackVars.reserve(RuntimeT::StackReserve);
 
   printTraceStart();
 }

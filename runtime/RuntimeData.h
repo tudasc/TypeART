@@ -30,7 +30,8 @@ struct PointerInfo final {
 };
 
 struct RuntimeT {
-  using Stack                       = std::vector<MemAddr>;
+  using Stack = std::vector<MemAddr>;
+  static constexpr auto StackReserve{512U};
   static constexpr char StackName[] = "std::vector";
 #ifdef USE_BTREE
   using PointerMap                = btree::btree_map<MemAddr, PointerInfo>;
