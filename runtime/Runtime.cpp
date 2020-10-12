@@ -89,8 +89,12 @@ TypeArtRT::TypeArtRT(Recorder& counter) : counter(counter) {
 }
 
 TypeArtRT::~TypeArtRT() {
-  auto stats = softcounter::serialise(Recorder::get());
-  LOG_MSG(stats);
+  std::string stats;
+  llvm::raw_string_ostream stream(stats);
+  softcounter::serialise(counter, stream);
+  if (!stats.empty()) {
+    LOG_MSG(stats);
+  }
 }
 
 bool TypeArtRT::loadTypes(const std::string& file) {
@@ -105,7 +109,7 @@ void TypeArtRT::printTraceStart() const {
   LOG_TRACE("-----------------------------------------------------------");
 }
 
-llvm::Optional<TypeArtRT::MapEntry> TypeArtRT::findBaseAddress(const void* addr) const {
+llvm::Optional<RuntimeT::MapEntry> TypeArtRT::findBaseAddress(const void* addr) const {
   if (typeMap.empty() || addr < typeMap.begin()->first) {
     return llvm::None;
   }

@@ -6,7 +6,7 @@
 #define TYPEART_ACCESSCOUNTER_H
 
 #include "Logger.h"
-#include "Runtime.h"
+#include "RuntimeData.h"
 #include "RuntimeInterface.h"
 
 #include "llvm/Support/Format.h"
@@ -111,7 +111,7 @@ class AccessRecorder {
   type_count_map global;
 
   template <typename Recorder>
-  friend std::string serialise(const Recorder& r);
+  friend void serialise(const Recorder& r, llvm::raw_ostream& buf);
 };
 
 /**
@@ -144,15 +144,24 @@ class NoneRecorder {
 };
 
 struct Cell {
+  enum align_as { left, right, center };
+
+  Cell(std::string v) : c(v), w(c.size()), align(left) {
+    w     = c.size();
+    align = left;
+  }
+
+  Cell(const char* v) : Cell(std::string(v)) {
+  }
+
   template <typename number>
-  Cell(number v) : c(std::to_string(v)) {
-    w = c.size();
+  Cell(number v) : Cell(std::to_string(v)) {
+    align = right;
   }
-  Cell(std::string v) : c(v) {
-    w = c.size();
-  }
+
   std::string c;
   unsigned w;
+  align_as align;
 };
 
 struct Row {
@@ -184,6 +193,8 @@ struct Table {
   std::vector<Row> row_vec;
   unsigned columns{1};
   unsigned rows{0};
+  unsigned max_row_label_width{1};
+  char separator{'-'};
 
   Table(std::string name) : name(name) {
   }
@@ -192,14 +203,22 @@ struct Table {
     row_vec.emplace_back(r);
     columns = std::max<unsigned>(columns, r.numbers.size());
     ++rows;
+    max_row_label_width = std::max<unsigned>(max_row_label_width, r.id.w);
   }
 
   void print(llvm::raw_ostream& s) {
-    auto max_it     = std::max_element(std::begin(row_vec), std::end(row_vec),
-                                   [](const auto& a, const auto& b) { return a.id.w < b.id.w; });
-    auto max_row_id = max_it->id.w + 1;
+    auto max_row_id = max_row_label_width + 1;
 
-    s << std::string(std::max<unsigned>(max_row_id, name.size()), '-') << "\n";
+    std::vector<unsigned> col_width(columns, 4);
+    for (const auto& row : row_vec) {
+      unsigned col_num{0};
+      for (const auto& col : row.numbers) {
+        col_width[col_num] = (std::max<unsigned>(col_width[col_num], col.w + 1));
+        ++col_num;
+      }
+    }
+
+    s << std::string(std::max<unsigned>(max_row_id, name.size()), separator) << "\n";
     s << name;
     s << "\n";
     for (const auto& row : row_vec) {
@@ -209,11 +228,13 @@ struct Table {
         s << "\n";
         continue;
       }
+      unsigned col_num{0};
       auto num_beg = std::begin(row.numbers);
-      s << llvm::right_justify(num_beg->c, 8);
-      std::for_each(std::next(num_beg), std::end(row.numbers), [&s](const auto& v) {
-        s << " , " << llvm::right_justify(v.c, 8);
-        ;
+      s << llvm::right_justify(num_beg->c, col_width[col_num]);
+      std::for_each(std::next(num_beg), std::end(row.numbers), [&](const auto& v) {
+        const auto width   = col_width[++col_num];
+        const auto aligned = v.align == Cell::right ? llvm::right_justify(v.c, width) : llvm::left_justify(v.c, width);
+        s << " , " << aligned;
       });
       s << "\n";
     }
@@ -221,27 +242,14 @@ struct Table {
 };
 
 template <typename Recorder>
-std::string serialise(const Recorder& r) {
+void serialise(const Recorder& r, llvm::raw_ostream& buf) {
   if constexpr (std::is_same_v<Recorder, NoneRecorder>) {
-    return "";
+    return;
   }
 
-  std::string s;
-  llvm::raw_string_ostream buf(s);
-  //  auto estMemConsumption = (r.maxHeapAllocs + r.maxStackAllocs) * r.memPerEntry;
-  //  estMemConsumption += (r.maxStackAllocs * r.memInStack);
-  //  estMemConsumption += (r.vectorSize + r.mapSize);
-  //  estMemConsumption += r.mapNodeSizeInBytes * r.maxHeapAllocs;
-  //  auto estMemConsumptionKByte = estMemConsumption / 1024.0;
-
-  const auto getStr = [&](const auto memConsKB) {
-    auto memStr = std::to_string(memConsKB);
-    return memStr.substr(0, memStr.find('.') + 2);
-  };
-
   Table t("Alloc Stats from softcounters");
-  t.put(Row::make_row("Total heap").put({r.heapAllocs}).put({r.heap_array}));
-  t.put(Row::make_row("Total stack").put({r.stackAllocs}).put({r.stack_array}));
+  t.put(Row::make("Total heap", r.heapAllocs, r.heap_array));
+  t.put(Row::make("Total stack", r.stackAllocs, r.stack_array));
   t.put(Row::make("Total global", r.globalAllocs, r.global_array));
   t.put(Row::make("Max. Heap Allocs", r.maxHeapAllocs));
   t.put(Row::make("Max. Stack Allocs", r.maxStackAllocs));
@@ -275,13 +283,16 @@ std::string serialise(const Recorder& r) {
     return 0ll;
   };
 
-  buf << "Allocation type detail (heap, stack, global):\n";
+  Table type_table("Allocation type detail (heap, stack, global)");
+  type_table.separator = '#';
   for (auto type_id : type_id_set) {
-    buf << typeart_get_type_name(type_id) << ": " << count(r.heap, type_id) << ", " << count(r.stack, type_id) << ", "
-        << count(r.global, type_id) << "\n";
+    type_table.put(Row::make(std::to_string(type_id), count(r.heap, type_id), count(r.stack, type_id),
+                             count(r.global, type_id), typeart_get_type_name(type_id)));
   }
 
-  return buf.str();
+  type_table.print(buf);
+
+  buf.flush();
 }
 
 }  // namespace softcounter
