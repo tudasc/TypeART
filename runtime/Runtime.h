@@ -1,6 +1,7 @@
 #ifndef RUNTIME_RUNTIME_H_
 #define RUNTIME_RUNTIME_H_
 
+#include "AccessCounter.h"
 #include "RuntimeInterface.h"
 #include "TypeDB.h"
 
@@ -61,7 +62,7 @@ class TypeArtRT final {
   using MapEntry = PointerMap::value_type;
 
   static TypeArtRT& get() {
-    static TypeArtRT instance;
+    static TypeArtRT instance(Recorder::get());
     return instance;
   }
 
@@ -182,7 +183,8 @@ class TypeArtRT final {
   void onLeaveScope(size_t alloca_count, const void* retAddr);
 
  private:
-  TypeArtRT();
+  TypeArtRT(Recorder& counter);
+  ~TypeArtRT();
 
   /**
    * If a given address points inside a known struct, this method is used to recursively resolve the exact member type.
@@ -216,6 +218,7 @@ class TypeArtRT final {
   PointerMap typeMap;
   Stack stackVars;
   TypeDB typeDB;
+  Recorder& counter;
 
   static std::string defaultTypeFileName;
 };
