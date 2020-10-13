@@ -218,15 +218,16 @@ struct Row {
 };
 
 struct Table {
-  std::string name{"Table"};
+  std::string title{"Table"};
   std::vector<Row> row_vec;
   int columns{0};
   int rows{0};
   int max_row_label_width{1};
+  std::string cell_sep{" , "};
+  std::string empty_cell{"-"};
   char table_header{'-'};
-  char empty{'-'};
 
-  explicit Table(std::string name) : name(std::move(name)) {
+  explicit Table(std::string title) : title(std::move(title)) {
   }
 
   void put(const Row& r) {
@@ -237,8 +238,8 @@ struct Table {
   }
 
   template <typename... Rows>
-  static Table make(std::string name, Rows... r) {
-    Table t(name);
+  static Table make(std::string title, Rows... r) {
+    Table t(title);
     (t.put(Row(r)), ...);
     return t;
   }
@@ -256,35 +257,44 @@ struct Table {
       }
     }
 
-    s << std::string(std::max<int>(max_row_id, name.size()), table_header) << "\n";
-    s << name;
-    s << "\n";
+    s << std::string(std::max<int>(max_row_id, title.size()), table_header) << "\n";
+    s << title << "\n";
     for (const auto& row : row_vec) {
       s << llvm::left_justify(row.label.c, max_row_id) << ":";
 
-      if (row.cells.empty()) {
-        s << "\n";
-        continue;
-      }
+      //      if (row.cells.empty()) {
+      //        s << "\n";
+      //        continue;
+      //      }
 
       int col_num{0};
-      auto num_beg = std::begin(row.cells);
-      s << llvm::right_justify(num_beg->c, col_width[col_num]);
-      std::for_each(std::next(num_beg), std::end(row.cells), [&](const auto& v) {
-        const auto width = col_width[++col_num];
-        const auto aligned_cell =
-            v.align == Cell::right ? llvm::right_justify(v.c, width) : llvm::left_justify(v.c, width);
-        s << " , " << aligned_cell;
-      });
+      auto num_beg         = std::begin(row.cells);
+      const auto has_cells = num_beg != std::end(row.cells);
 
-      // fill up empty columns with empty-char
+      if (has_cells) {
+        s << llvm::right_justify(num_beg->c, col_width[col_num]);
+        std::for_each(std::next(num_beg), std::end(row.cells), [&](const auto& v) {
+          const auto width = col_width[++col_num];
+          const auto aligned_cell =
+              v.align == Cell::right ? llvm::right_justify(v.c, width) : llvm::left_justify(v.c, width);
+          s << cell_sep << aligned_cell;
+        });
+      }
+
+      // fill up empty columns with empty_cell
       const int padding = columns - col_num - 1;
       if (padding > 0) {
-        std::string empty_s(1, empty);
-        for (int pad = 0; pad < padding; ++pad) {
+        const auto iterate_w = [&]() -> int {
           const auto width = col_width[col_num];
-          s << " , " << llvm::right_justify(empty_s, width);
           ++col_num;
+          return width;
+        };
+
+        if (!has_cells) {
+          s << llvm::right_justify(empty_cell, iterate_w());
+        }
+        for (int pad = 0; pad < padding; ++pad) {
+          s << cell_sep << llvm::right_justify(empty_cell, iterate_w());
         }
       }
       s << "\n";
@@ -318,68 +328,68 @@ template <typename Recorder>
 void serialise(const Recorder& r, llvm::raw_ostream& buf) {
   if constexpr (std::is_same_v<Recorder, NoneRecorder>) {
     return;
-  }
+  } else {
+    const auto memory_use = memory::estimate(r.maxStackAllocs, r.maxHeapAllocs, r.globalAllocs);
 
-  const auto memory_use = memory::estimate(r.maxStackAllocs, r.maxHeapAllocs, r.globalAllocs);
+    Table t("Alloc Stats from softcounters");
+    t.put(Row::make("Total heap", r.heapAllocs, r.heapArray));
+    t.put(Row::make("Total stack", r.stackAllocs, r.stackArray));
+    t.put(Row::make("Total global", r.globalAllocs, r.globalArray));
+    t.put(Row::make("Max. Heap Allocs", r.maxHeapAllocs));
+    t.put(Row::make("Max. Stack Allocs", r.maxStackAllocs));
+    t.put(Row::make("Addresses checked", r.addrChecked));
+    t.put(Row::make("Distinct Addresses checked", r.seen.size()));
+    t.put(Row::make("Addresses re-used", r.addrReuses));
+    t.put(Row::make("Addresses missed", r.addrMissing));
+    t.put(Row::make("Distinct Addresses missed", r.missing.size()));
+    t.put(Row::make("Total free heap", r.heapAllocsFree, r.heapArrayFree));
+    t.put(Row::make("Total free stack", r.stackAllocsFree, r.stackArrayFree));
+    t.put(Row::make("Estimated memory use (KiB)", size_t(std::round(memory_use.map + memory_use.stack))));
+    t.put(Row::make("Bytes per node map/stack", memory::MemOverhead::perNodeSizeMap,
+                    memory::MemOverhead::perNodeSizeStack));
 
-  Table t("Alloc Stats from softcounters");
-  t.put(Row::make("Total heap", r.heapAllocs, r.heapArray));
-  t.put(Row::make("Total stack", r.stackAllocs, r.stackArray));
-  t.put(Row::make("Total global", r.globalAllocs, r.globalArray));
-  t.put(Row::make("Max. Heap Allocs", r.maxHeapAllocs));
-  t.put(Row::make("Max. Stack Allocs", r.maxStackAllocs));
-  t.put(Row::make("Addresses checked", r.addrChecked));
-  t.put(Row::make("Distinct Addresses checked", r.seen.size()));
-  t.put(Row::make("Addresses re-used", r.addrReuses));
-  t.put(Row::make("Addresses missed", r.addrMissing));
-  t.put(Row::make("Distinct Addresses missed", r.missing.size()));
-  t.put(Row::make("Total free heap", r.heapAllocsFree, r.heapArrayFree));
-  t.put(Row::make("Total free stack", r.stackAllocsFree, r.stackArrayFree));
-  t.put(Row::make("Estimated memory use (KiB)", size_t(std::round(memory_use.map + memory_use.stack))));
-  t.put(Row::make("Bytes per node map/stack", memory::MemOverhead::perNodeSizeMap,
-                  memory::MemOverhead::perNodeSizeStack));
+    t.print(buf);
 
-  t.print(buf);
+    std::set<int> type_id_set;
+    const auto fill_set = [&type_id_set](const auto& map) {
+      for (const auto& [key, val] : map) {
+        type_id_set.insert(key);
+      }
+    };
+    fill_set(r.heapAlloc);
+    fill_set(r.globalAlloc);
+    fill_set(r.stackAlloc);
+    fill_set(r.heapFree);
+    fill_set(r.stackFree);
 
-  std::set<int> type_id_set;
-  const auto fill_set = [&type_id_set](const auto& map) {
-    for (const auto& [key, val] : map) {
-      type_id_set.insert(key);
+    const auto count = [](const auto& map, auto id) {
+      auto it = map.find(id);
+      if (it != map.end()) {
+        return it->second;
+      }
+      return 0ll;
+    };
+
+    Table type_table("Allocation type detail (heap, stack, global)");
+    type_table.table_header = '#';
+    for (auto type_id : type_id_set) {
+      type_table.put(Row::make(std::to_string(type_id), count(r.heapAlloc, type_id), count(r.stackAlloc, type_id),
+                               count(r.globalAlloc, type_id), typeart_get_type_name(type_id)));
     }
-  };
-  fill_set(r.heapAlloc);
-  fill_set(r.globalAlloc);
-  fill_set(r.stackAlloc);
-  fill_set(r.heapFree);
-  fill_set(r.stackFree);
 
-  const auto count = [](const auto& map, auto id) {
-    auto it = map.find(id);
-    if (it != map.end()) {
-      return it->second;
+    type_table.print(buf);
+
+    Table type_table_free("Free allocation type detail (heap, stack)");
+    type_table_free.table_header = '#';
+    for (auto type_id : type_id_set) {
+      type_table_free.put(Row::make(std::to_string(type_id), count(r.heapFree, type_id), count(r.stackFree, type_id),
+                                    typeart_get_type_name(type_id)));
     }
-    return 0ll;
-  };
 
-  Table type_table("Allocation type detail (heap, stack, global)");
-  type_table.table_header = '#';
-  for (auto type_id : type_id_set) {
-    type_table.put(Row::make(std::to_string(type_id), count(r.heapAlloc, type_id), count(r.stackAlloc, type_id),
-                             count(r.globalAlloc, type_id), typeart_get_type_name(type_id)));
+    type_table_free.print(buf);
+
+    buf.flush();
   }
-
-  type_table.print(buf);
-
-  Table type_table_free("Free allocation type detail (heap, stack)");
-  type_table_free.table_header = '#';
-  for (auto type_id : type_id_set) {
-    type_table_free.put(Row::make(std::to_string(type_id), count(r.heapFree, type_id), count(r.stackFree, type_id),
-                                  typeart_get_type_name(type_id)));
-  }
-
-  type_table_free.print(buf);
-
-  buf.flush();
 }
 
 }  // namespace softcounter

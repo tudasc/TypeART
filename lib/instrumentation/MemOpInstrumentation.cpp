@@ -130,7 +130,7 @@ size_t MemOpInstrumentation::instrumentGlobal(const GlobalArgList& globals) {
   const auto instrumentGlobalsInCtor = [&](auto& IRB) {
     for (auto& [gdata, args] : globals) {
       // Instruction* global = args.get_as<llvm::Instruction>("pointer");
-      auto global         = gdata.globalAlloc;
+      auto global         = gdata.global;
       auto typeIdConst    = args.get_value(ArgMap::ID::type_id);
       auto numElementsVal = args.get_value(ArgMap::ID::element_count);
       auto globalPtr      = IRB.CreateBitOrPointerCast(global, instr.getTypeFor(IType::ptr));

@@ -332,7 +332,7 @@ bool MemInstFinderPass::runOnModule(Module& m) {
         llvm::remove_if(
             globals,
             [&](const auto gdata) {
-              auto global     = gdata.globalAlloc;
+              auto global     = gdata.global;
               const auto name = global->getName();
               if (name.startswith("llvm.") || name.startswith("__llvm_gcov") || name.startswith("__llvm_gcda")) {
                 // 2nd and 3rd check: Check if the global is private gcov data.
@@ -396,7 +396,7 @@ bool MemInstFinderPass::runOnModule(Module& m) {
     const auto beforeCallFilter = globals.size();
     NumFilteredGlobals          = NumDetectedGlobals - beforeCallFilter;
 
-    globals.erase(llvm::remove_if(globals, [&](const auto g) { return filter(g.globalAlloc); }), globals.end());
+    globals.erase(llvm::remove_if(globals, [&](const auto g) { return filter(g.global); }), globals.end());
 
     NumCallFilteredGlobals = beforeCallFilter - globals.size();
     NumFilteredGlobals += NumCallFilteredGlobals;
