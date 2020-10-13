@@ -438,7 +438,16 @@ void TypeArtRT::onFree(const void* addr, const void* retAddr) {
   auto it = typeMap.find(addr);
   if (it != typeMap.end()) {
     LOG_TRACE("Free " << toString((*it).first, (*it).second));
+    const auto typeId = it->second.typeId;
+    const auto count  = it->second.count;
+
     typeMap.erase(it);
+
+    if (!isStack) {
+      Recorder::get().incHeapFree(typeId, count);
+    } else {
+      Recorder::get().incStackFree(typeId, count);
+    }
   } else if (!isStack) {
     LOG_ERROR("Free recorded on unregistered address " << addr << ", called from " << retAddr);
   }

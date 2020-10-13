@@ -23,35 +23,53 @@
 namespace typeart {
 namespace softcounter {
 
+using Counter = long long int;
+
 class AccessRecorder {
  public:
-  using TypeCountMap = std::unordered_map<int, long long>;
+  using TypeCountMap = std::unordered_map<int, Counter>;
   ~AccessRecorder()  = default;
 
   inline void incHeapAlloc(int typeId, size_t count) {
     ++curHeapAllocs;
     ++heapAllocs;
     if (count > 1) {
-      ++heap_array;
+      ++heapArray;
     }
-    ++heap[typeId];
+    ++heapAlloc[typeId];
   }
 
   inline void incStackAlloc(int typeId, size_t count) {
     ++curStackAllocs;
     ++stackAllocs;
     if (count > 1) {
-      ++stack_array;
+      ++stackArray;
     }
-    ++stack[typeId];
+    ++stackAlloc[typeId];
   }
 
   inline void incGlobalAlloc(int typeId, size_t count) {
     ++globalAllocs;
     if (count > 1) {
-      ++global_array;
+      ++globalArray;
     }
-    ++global[typeId];
+    ++globalAlloc[typeId];
+  }
+
+  inline void incStackFree(int typeId, size_t count) {
+    ++stackAllocsFree;
+    if (count > 1) {
+      ++stackArrayFree;
+    }
+    ++stackFree[typeId];
+  }
+
+  inline void incHeapFree(int typeId, size_t count) {
+    ++heapAllocsFree;
+    if (count > 1) {
+      ++heapArrayFree;
+    }
+    ++heapFree[typeId];
   }
 
   inline void decHeapAlloc() {
@@ -68,7 +86,7 @@ class AccessRecorder {
     curStackAllocs -= amount;
   }
 
-  inline void incUsedInRequest(const void* addr) {
+  inline void incUsedInRequest(MemAddr addr) {
     ++addrChecked;
     seen.insert(addr);
   }
@@ -77,7 +95,7 @@ class AccessRecorder {
     ++addrReuses;
   }
 
-  inline void incAddrMissing(const void* addr) {
+  inline void incAddrMissing(MemAddr addr) {
     ++addrMissing;
     missing.insert(addr);
   }
@@ -92,25 +110,30 @@ class AccessRecorder {
   AccessRecorder(AccessRecorder& other)  = default;
   AccessRecorder(AccessRecorder&& other) = default;
 
-  long long heapAllocs     = 0;
-  long long stackAllocs    = 0;
-  long long globalAllocs   = 0;
-  long long maxHeapAllocs  = 0;
-  long long maxStackAllocs = 0;
-  long long curHeapAllocs  = 0;
-  long long curStackAllocs = 0;
-  long long addrReuses     = 0;
-  long long addrMissing    = 0;
-  long long addrChecked    = 0;
-
-  long long stack_array{0};
-  long long heap_array{0};
-  long long global_array{0};
-  std::unordered_set<const void*> missing;
-  std::unordered_set<const void*> seen;
-  TypeCountMap stack;
-  TypeCountMap heap;
-  TypeCountMap global;
+  Counter heapAllocs      = 0;
+  Counter stackAllocs     = 0;
+  Counter globalAllocs    = 0;
+  Counter maxHeapAllocs   = 0;
+  Counter maxStackAllocs  = 0;
+  Counter curHeapAllocs   = 0;
+  Counter curStackAllocs  = 0;
+  Counter addrReuses      = 0;
+  Counter addrMissing     = 0;
+  Counter addrChecked     = 0;
+  Counter stackArray      = 0;
+  Counter heapArray       = 0;
+  Counter globalArray     = 0;
+  Counter stackAllocsFree = 0;
+  Counter stackArrayFree  = 0;
+  Counter heapAllocsFree  = 0;
+  Counter heapArrayFree   = 0;
+  std::unordered_set<MemAddr> missing;
+  std::unordered_set<MemAddr> seen;
+  TypeCountMap stackAlloc;
+  TypeCountMap heapAlloc;
+  TypeCountMap globalAlloc;
+  TypeCountMap stackFree;
+  TypeCountMap heapFree;
 
   template <typename Recorder>
   friend void serialise(const Recorder& r, llvm::raw_ostream& buf);
@@ -121,24 +144,27 @@ class AccessRecorder {
  */
 class NoneRecorder {
  public:
-  inline void incHeapAlloc(int, size_t) {
+  [[maybe_unused]] inline void incHeapAlloc(int, size_t) {
   }
-  inline void incStackAlloc(int, size_t) {
+  [[maybe_unused]] inline void incStackAlloc(int, size_t) {
   }
-  inline void incGlobalAlloc(int, size_t) {
+  [[maybe_unused]] inline void incGlobalAlloc(int, size_t) {
   }
-  inline void incUsedInRequest(const void*) {
+  [[maybe_unused]] inline void incUsedInRequest(MemAddr) {
   }
-  inline void decHeapAlloc() {
+  [[maybe_unused]] inline void decHeapAlloc() {
   }
-  inline void decStackAlloc(size_t) {
+  [[maybe_unused]] inline void decStackAlloc(size_t) {
   }
-  inline void incAddrReuse() {
+  [[maybe_unused]] inline void incAddrReuse() {
   }
-  inline void incAddrMissing(const void*) {
+  [[maybe_unused]] inline void incAddrMissing(MemAddr) {
   }
-  inline void printStats() const {
+  [[maybe_unused]] inline void incStackFree(int, size_t) {
   }
+  [[maybe_unused]] inline void incHeapFree(int, size_t) {
+  }
+
   static NoneRecorder& get() {
     static NoneRecorder instance;
     return instance;
@@ -148,7 +174,11 @@ class NoneRecorder {
 struct Cell {
   enum align_as { left, right };
 
-  explicit Cell(std::string v) : c(v), w(c.size()), align(left) {
+  std::string c;
+  int w;
+  align_as align;
+
+  explicit Cell(std::string v) : c(std::move(v)), w(c.size()), align(left) {
     w     = c.size();
     align = left;
   }
@@ -160,32 +190,28 @@ struct Cell {
   explicit Cell(number v) : Cell(std::to_string(v)) {
     align = right;
   }
-
-  std::string c;
-  unsigned w;
-  align_as align;
 };
 
 struct Row {
-  Cell id;
+  Cell label;
   std::vector<Cell> cells;
 
-  explicit Row(std::string name) : id(name) {
+  explicit Row(std::string name) : label(std::move(name)) {
   }
 
-  Row& put(Cell c) {
+  Row& put(const Cell& c) {
     cells.emplace_back(c);
     return *this;
   }
 
   static Row make_row(std::string name) {
-    auto r = Row(name);
+    auto r = Row(std::move(name));
     return r;
   }
 
   template <typename... Cells>
   static Row make(std::string name, Cells... c) {
-    auto r = Row(name);
+    auto r = make_row(std::move(name));
     (r.put(Cell(c)), ...);
     return r;
   }
@@ -194,52 +220,73 @@ struct Row {
 struct Table {
   std::string name{"Table"};
   std::vector<Row> row_vec;
-  unsigned columns{1};
-  unsigned rows{0};
-  unsigned max_row_label_width{1};
-  char separator{'-'};
+  int columns{0};
+  int rows{0};
+  int max_row_label_width{1};
+  char table_header{'-'};
+  char empty{'-'};
 
-  explicit Table(std::string name) : name(name) {
+  explicit Table(std::string name) : name(std::move(name)) {
   }
 
-  void put(Row r) {
+  void put(const Row& r) {
     row_vec.emplace_back(r);
-    columns = std::max<unsigned>(columns, r.cells.size());
+    columns = std::max<int>(columns, r.cells.size());
     ++rows;
-    max_row_label_width = std::max<unsigned>(max_row_label_width, r.id.w);
+    max_row_label_width = std::max<int>(max_row_label_width, r.label.w);
+  }
+
+  template <typename... Rows>
+  static Table make(std::string name, Rows... r) {
+    Table t(name);
+    (t.put(Row(r)), ...);
+    return t;
   }
 
   void print(llvm::raw_ostream& s) {
-    auto max_row_id = max_row_label_width + 1;
+    const auto max_row_id = max_row_label_width + 1;
 
     // determine per column width
-    std::vector<unsigned> col_width(columns, 4);
+    std::vector<int> col_width(columns, 4);
     for (const auto& row : row_vec) {
-      unsigned col_num{0};
+      int col_num{0};
       for (const auto& col : row.cells) {
-        col_width[col_num] = (std::max<unsigned>(col_width[col_num], col.w + 1));
+        col_width[col_num] = (std::max<int>(col_width[col_num], col.w + 1));
         ++col_num;
       }
     }
 
-    s << std::string(std::max<unsigned>(max_row_id, name.size()), separator) << "\n";
+    s << std::string(std::max<int>(max_row_id, name.size()), table_header) << "\n";
     s << name;
     s << "\n";
     for (const auto& row : row_vec) {
-      s << llvm::left_justify(row.id.c, max_row_id) << ":";
+      s << llvm::left_justify(row.label.c, max_row_id) << ":";
 
       if (row.cells.empty()) {
         s << "\n";
         continue;
       }
-      unsigned col_num{0};
+
+      int col_num{0};
       auto num_beg = std::begin(row.cells);
       s << llvm::right_justify(num_beg->c, col_width[col_num]);
       std::for_each(std::next(num_beg), std::end(row.cells), [&](const auto& v) {
-        const auto width   = col_width[++col_num];
-        const auto aligned = v.align == Cell::right ? llvm::right_justify(v.c, width) : llvm::left_justify(v.c, width);
-        s << " , " << aligned;
+        const auto width = col_width[++col_num];
+        const auto aligned_cell =
+            v.align == Cell::right ? llvm::right_justify(v.c, width) : llvm::left_justify(v.c, width);
+        s << " , " << aligned_cell;
       });
+
+      // fill up empty columns with empty-char
+      const int padding = columns - col_num - 1;
+      if (padding > 0) {
+        std::string empty_s(1, empty);
+        for (int pad = 0; pad < padding; ++pad) {
+          const auto width = col_width[col_num];
+          s << " , " << llvm::right_justify(empty_s, width);
+          ++col_num;
+        }
+      }
       s << "\n";
     }
   }
@@ -256,8 +303,7 @@ struct MemOverhead {
   double stack{0};
   double map{0};
 };
-inline MemOverhead estimate(long long stack_max, long long heap_max, long long global_max,
-                            const double scale = 1024.0) {
+inline MemOverhead estimate(Counter stack_max, Counter heap_max, Counter global_max, const double scale = 1024.0) {
   MemOverhead mem;
   mem.stack = double(MemOverhead::stackVectorSize +
                      MemOverhead::perNodeSizeStack * std::max<size_t>(RuntimeT::StackReserve, stack_max)) /
@@ -277,9 +323,9 @@ void serialise(const Recorder& r, llvm::raw_ostream& buf) {
   const auto memory_use = memory::estimate(r.maxStackAllocs, r.maxHeapAllocs, r.globalAllocs);
 
   Table t("Alloc Stats from softcounters");
-  t.put(Row::make("Total heap", r.heapAllocs, r.heap_array));
-  t.put(Row::make("Total stack", r.stackAllocs, r.stack_array));
-  t.put(Row::make("Total global", r.globalAllocs, r.global_array));
+  t.put(Row::make("Total heap", r.heapAllocs, r.heapArray));
+  t.put(Row::make("Total stack", r.stackAllocs, r.stackArray));
+  t.put(Row::make("Total global", r.globalAllocs, r.globalArray));
   t.put(Row::make("Max. Heap Allocs", r.maxHeapAllocs));
   t.put(Row::make("Max. Stack Allocs", r.maxStackAllocs));
   t.put(Row::make("Addresses checked", r.addrChecked));
@@ -287,6 +333,8 @@ void serialise(const Recorder& r, llvm::raw_ostream& buf) {
   t.put(Row::make("Addresses re-used", r.addrReuses));
   t.put(Row::make("Addresses missed", r.addrMissing));
   t.put(Row::make("Distinct Addresses missed", r.missing.size()));
+  t.put(Row::make("Total free heap", r.heapAllocsFree, r.heapArrayFree));
+  t.put(Row::make("Total free stack", r.stackAllocsFree, r.stackArrayFree));
   t.put(Row::make("Estimated memory use (KiB)", size_t(std::round(memory_use.map + memory_use.stack))));
   t.put(Row::make("Bytes per node map/stack", memory::MemOverhead::perNodeSizeMap,
                   memory::MemOverhead::perNodeSizeStack));
@@ -299,9 +347,11 @@ void serialise(const Recorder& r, llvm::raw_ostream& buf) {
       type_id_set.insert(key);
     }
   };
-  fill_set(r.heap);
-  fill_set(r.global);
-  fill_set(r.stack);
+  fill_set(r.heapAlloc);
+  fill_set(r.globalAlloc);
+  fill_set(r.stackAlloc);
+  fill_set(r.heapFree);
+  fill_set(r.stackFree);
 
   const auto count = [](const auto& map, auto id) {
     auto it = map.find(id);
@@ -312,13 +362,22 @@ void serialise(const Recorder& r, llvm::raw_ostream& buf) {
   };
 
   Table type_table("Allocation type detail (heap, stack, global)");
-  type_table.separator = '#';
+  type_table.table_header = '#';
   for (auto type_id : type_id_set) {
-    type_table.put(Row::make(std::to_string(type_id), count(r.heap, type_id), count(r.stack, type_id),
-                             count(r.global, type_id), typeart_get_type_name(type_id)));
+    type_table.put(Row::make(std::to_string(type_id), count(r.heapAlloc, type_id), count(r.stackAlloc, type_id),
+                             count(r.globalAlloc, type_id), typeart_get_type_name(type_id)));
   }
 
   type_table.print(buf);
+
+  Table type_table_free("Free allocation type detail (heap, stack)");
+  type_table_free.table_header = '#';
+  for (auto type_id : type_id_set) {
+    type_table_free.put(Row::make(std::to_string(type_id), count(r.heapFree, type_id), count(r.stackFree, type_id),
+                                  typeart_get_type_name(type_id)));
+  }
+
+  type_table_free.print(buf);
 
   buf.flush();
 }
