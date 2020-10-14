@@ -142,7 +142,6 @@ bool TypeArtPass::runOnFunc(Function& f) {
     mod |= stack_count > 0;
   } else {
     // FIXME this is required by some unit tests
-    LOG_MSG(allocas.size());
     NumInstrumentedAlloca += allocas.size();
   }
 
