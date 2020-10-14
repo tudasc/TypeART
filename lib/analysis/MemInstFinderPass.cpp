@@ -9,6 +9,7 @@
 
 #include "MemOpVisitor.h"
 #include "support/Logger.h"
+#include "support/Table.h"
 #include "support/TypeUtil.h"
 #include "support/Util.h"
 
@@ -522,51 +523,40 @@ bool MemInstFinderPass::doFinalization(llvm::Module&) {
 }
 
 void MemInstFinderPass::printStats(llvm::raw_ostream& out) {
-  const unsigned max_string{28u};
-  const unsigned max_val{5u};
-  std::string line(42, '-');
-  line += "\n";
-  const auto make_format = [&](const char* desc, const auto val) {
-    return format("%-*s: %*.1f\n", max_string, desc, max_val, val);
-  };
-
   auto all_stack          = double(NumDetectedAllocs.getValue());
   auto nonarray_stack     = double(NumFilteredNonArrayAllocs.getValue());
   auto malloc_alloc_stack = double(NumFilteredMallocAllocs.getValue());
   auto call_filter_stack  = double(NumCallFilteredAllocs.getValue());
 
-  out << line;
-  out << "   MemInstFinderPass\n";
-  out << line;
-  out << "Heap Memory\n";
-  out << line;
-  out << make_format("Heap alloc", double(NumDetectedHeap.getValue()));
-  out << make_format(
-      "% call filtered",
-      (double(NumFilteredDetectedHeap.getValue()) / std::max(1.0, double(NumDetectedHeap.getValue()))) * 100.0);
-  out << line;
-  out << "Stack Memory\n";
-  out << line;
-  out << make_format("Alloca", all_stack);
-  out << make_format("% non array filtered", (nonarray_stack / std::max(1.0, all_stack)) * 100.0);
-  out << make_format("% malloc-alloc filtered",
-                     (malloc_alloc_stack / std::max(1.0, all_stack - nonarray_stack)) * 100.0);
-  out << make_format("% call filtered",
-                     (call_filter_stack / std::max(1.0, all_stack - nonarray_stack - malloc_alloc_stack)) * 100.0);
-  out << line;
-  out << "Global Memory\n";
-  out << line;
-  out << make_format("Global", double(NumDetectedGlobals.getValue()));
-  out << make_format("Global total filtered", double(NumFilteredGlobals.getValue()));
-  out << make_format("Global Call Filtered", double(NumCallFilteredGlobals.getValue()));
-  out << make_format(
-      "% global call filtered",
-      (double(NumCallFilteredGlobals.getValue()) / std::max(1.0, double(NumDetectedGlobals.getValue()))) * 100.0);
-  out << make_format(
-      "% global filtered",
-      (double(NumFilteredGlobals.getValue()) / std::max(1.0, double(NumDetectedGlobals.getValue()))) * 100.0);
-  out << line;
-  out.flush();
+  const auto call_filter_stack_p =
+      (call_filter_stack / std::max<double>(1.0, all_stack - nonarray_stack - malloc_alloc_stack)) * 100.0;
+
+  const auto call_filter_heap_p =
+      (double(NumFilteredDetectedHeap.getValue()) / std::max<double>(1.0, double(NumDetectedHeap.getValue()))) * 100.0;
+
+  const auto call_filter_global_p =
+      (double(NumCallFilteredGlobals.getValue()) / std::max(1.0, double(NumDetectedGlobals.getValue()))) * 100.0;
+
+  const auto call_filter_global_nocallfilter_p =
+      (double(NumFilteredGlobals.getValue()) / std::max(1.0, double(NumDetectedGlobals.getValue()))) * 100.0;
+
+  Table stats("MemInstFinderPass");
+  stats.wrap_header = true;
+  stats.wrap_length = true;
+  stats.put(Row::make("Filter string", ClCallFilterGlob.getValue()));
+  stats.put(Row::make_row("> Heap Memory"));
+  stats.put(Row::make("Heap alloc", NumDetectedHeap.getValue()));
+  stats.put(Row::make("Heap call filtered %", call_filter_heap_p));
+  stats.put(Row::make_row("> Stack Memory"));
+  stats.put(Row::make("Alloca", all_stack));
+  stats.put(Row::make("Stack call filtered %", call_filter_stack_p));
+  stats.put(Row::make_row("> Global Memory"));
+  stats.put(Row::make("Global", NumDetectedGlobals.getValue()));
+  stats.put(Row::make("Global filter total", NumFilteredGlobals.getValue()));
+  stats.put(Row::make("Global call filtered %", call_filter_global_p));
+  stats.put(Row::make("Global filtered %", call_filter_global_nocallfilter_p));
+
+  stats.print(out);
 }
 
 bool MemInstFinderPass::hasFunctionData(Function* f) const {

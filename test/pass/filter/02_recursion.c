@@ -12,4 +12,5 @@ void foo(int x) {
   }
 }
 
-// CHECK: % call filtered             : 100.0
+// CHECK: MemInstFinderPass
+// CHECK: Stack call filtered %{{[ :]+}}100.0

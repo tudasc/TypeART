@@ -7,6 +7,7 @@
 #include "instrumentation/MemOpInstrumentation.h"
 #include "instrumentation/TypeARTFunctions.h"
 #include "support/Logger.h"
+#include "support/Table.h"
 
 #include "llvm/ADT/Statistic.h"
 #include "llvm/IR/Instructions.h"
@@ -186,31 +187,17 @@ void TypeArtPass::declareInstrumentationFunctions(Module& m) {
 }
 
 void TypeArtPass::printStats(llvm::raw_ostream& out) {
-  const unsigned max_string{12U};
-  const unsigned max_val{5U};
-  std::string line(22, '-');
-  line += "\n";
-  const auto make_format = [&](const char* desc, const auto val) {
-    return format("%-*s: %*u\n", max_string, desc, max_val, val);
-  };
+  const bool heap_ignore = ClIgnoreHeap.getValue();
 
-  out << line;
-  out << "   TypeArtPass\n";
-  out << line;
-  out << "Heap Memory\n";
-  out << line;
-  out << make_format("Malloc", NumInstrumentedMallocs.getValue());
-  out << make_format("Free", NumInstrumentedFrees.getValue());
-  out << line;
-  out << "Stack Memory\n";
-  out << line;
-  out << make_format("Alloca", NumInstrumentedAlloca.getValue());
-  out << line;
-  out << "Global Memory\n";
-  out << line;
-  out << make_format("Global", NumInstrumentedGlobal.getValue());
-  out << line;
-  out.flush();
+  Table stats("TypeArtPass");
+  stats.wrap_header = true;
+  stats.title += (heap_ignore ? " [Stack]" : " [Heap]");
+  stats.put(Row::make("Malloc", NumInstrumentedMallocs.getValue()));
+  stats.put(Row::make("Free", NumInstrumentedFrees.getValue()));
+  stats.put(Row::make("Alloca", NumInstrumentedAlloca.getValue()));
+  stats.put(Row::make("Global", NumInstrumentedGlobal.getValue()));
+
+  stats.print(out);
 }
 
 }  // namespace pass

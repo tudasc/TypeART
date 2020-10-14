@@ -62,6 +62,11 @@ target_include_directories(typeart-rt
 )
 
 target_include_directories(typeart-rt
+    PRIVATE
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/support>
+    )
+
+target_include_directories(typeart-rt
   SYSTEM 
   PRIVATE
     ${LLVM_INCLUDE_DIRS}

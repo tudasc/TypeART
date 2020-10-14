@@ -1,22 +1,10 @@
 #ifndef RUNTIME_RUNTIME_H_
 #define RUNTIME_RUNTIME_H_
 
+#include "AccessCounter.h"
+#include "RuntimeData.h"
 #include "RuntimeInterface.h"
 #include "TypeDB.h"
-
-#ifdef USE_BTREE
-#ifdef USE_ABSL
-#error TypeART-RT: Set BTREE and ABSL, mutually exclusive.
-#endif
-#include "btree_map.h"
-#endif
-
-#ifdef USE_ABSL
-#ifdef USE_BTREE
-#error TypeART-RT: Set ABSL and BTREE, mutually exclusive.
-#endif
-#include "absl/container/btree_map.h"
-#endif
 
 #if !defined(USE_BTREE) && !defined(USE_ABSL)
 #include <map>
@@ -39,29 +27,12 @@ class Optional;
 
 namespace typeart {
 
-struct PointerInfo final {
-  int typeId{-1};
-  size_t count{0};
-  const void* debug{nullptr};
-};
-
 class TypeArtRT final {
  public:
   using TypeArtStatus = typeart_status;
-  using Stack         = std::vector<const void*>;
-#ifdef USE_BTREE
-  using PointerMap = btree::btree_map<const void*, PointerInfo>;
-#endif
-#ifdef USE_ABSL
-  using PointerMap = absl::btree_map<const void*, PointerInfo>;
-#endif
-#if !defined(USE_BTREE) && !defined(USE_ABSL)
-  using PointerMap = std::map<const void*, PointerInfo>;
-#endif
-  using MapEntry = PointerMap::value_type;
 
   static TypeArtRT& get() {
-    static TypeArtRT instance;
+    static TypeArtRT instance(Recorder::get());
     return instance;
   }
 
@@ -182,7 +153,8 @@ class TypeArtRT final {
   void onLeaveScope(size_t alloca_count, const void* retAddr);
 
  private:
-  TypeArtRT();
+  TypeArtRT(Recorder& counter);
+  ~TypeArtRT();
 
   /**
    * If a given address points inside a known struct, this method is used to recursively resolve the exact member type.
@@ -210,12 +182,13 @@ class TypeArtRT final {
    * Given an address, this method searches for the pointer that corresponds to the start of the allocated block.
    * Returns null if the memory location is not registered as allocated.
    */
-  llvm::Optional<MapEntry> findBaseAddress(const void* addr) const;
+  llvm::Optional<RuntimeT::MapEntry> findBaseAddress(const void* addr) const;
 
   // Class members
-  PointerMap typeMap;
-  Stack stackVars;
+  RuntimeT::PointerMap typeMap;
+  RuntimeT::Stack stackVars;
   TypeDB typeDB;
+  Recorder& counter;
 
   static std::string defaultTypeFileName;
 };

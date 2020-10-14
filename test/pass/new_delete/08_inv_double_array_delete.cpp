@@ -34,6 +34,7 @@ void foo() {
   }
 }
 
-// CHECK: Malloc{{[ ]*}}:{{[ ]*}}2
-// CHECK: Free{{[ ]*}}:{{[ ]*}}2
-// CHECK: Alloca{{[ ]*}}:{{[ ]*}}0
+// CHECK: TypeArtPass [Heap]
+// CHECK-NEXT: Malloc{{[ ]*}}:{{[ ]*}}2
+// CHECK-NEXT: Free{{[ ]*}}:{{[ ]*}}2
+// CHECK-NEXT: Alloca{{[ ]*}}:{{[ ]*}}0

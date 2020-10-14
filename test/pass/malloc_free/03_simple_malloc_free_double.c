@@ -7,6 +7,7 @@ void test() {
   free(p);
 }
 
-// CHECK: Malloc{{[ ]*}}:{{[ ]*}}1
-// CHECK: Free{{[ ]*}}:{{[ ]*}}1
-// CHECK: Alloca{{[ ]*}}:{{[ ]*}}0
+// CHECK: TypeArtPass [Heap]
+// CHECK-NEXT: Malloc{{[ ]*}}:{{[ ]*}}1
+// CHECK-NEXT: Free{{[ ]*}}:{{[ ]*}}1
+// CHECK-NEXT: Alloca{{[ ]*}}:{{[ ]*}}0
