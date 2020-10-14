@@ -100,6 +100,18 @@ class AccessRecorder {
     missing.insert(addr);
   }
 
+  inline void incNullAddr() {
+    ++nullAlloc;
+  }
+
+  inline void incZeroLengthAddr() {
+    ++zeroAlloc;
+  }
+
+  inline void incZeroLengthAndNullAddr() {
+    ++nullAndZeroAlloc;
+  }
+
   static AccessRecorder& get() {
     static AccessRecorder instance;
     return instance;
@@ -110,23 +122,26 @@ class AccessRecorder {
   AccessRecorder(AccessRecorder& other)  = default;
   AccessRecorder(AccessRecorder&& other) = default;
 
-  Counter heapAllocs      = 0;
-  Counter stackAllocs     = 0;
-  Counter globalAllocs    = 0;
-  Counter maxHeapAllocs   = 0;
-  Counter maxStackAllocs  = 0;
-  Counter curHeapAllocs   = 0;
-  Counter curStackAllocs  = 0;
-  Counter addrReuses      = 0;
-  Counter addrMissing     = 0;
-  Counter addrChecked     = 0;
-  Counter stackArray      = 0;
-  Counter heapArray       = 0;
-  Counter globalArray     = 0;
-  Counter stackAllocsFree = 0;
-  Counter stackArrayFree  = 0;
-  Counter heapAllocsFree  = 0;
-  Counter heapArrayFree   = 0;
+  Counter heapAllocs       = 0;
+  Counter stackAllocs      = 0;
+  Counter globalAllocs     = 0;
+  Counter maxHeapAllocs    = 0;
+  Counter maxStackAllocs   = 0;
+  Counter curHeapAllocs    = 0;
+  Counter curStackAllocs   = 0;
+  Counter addrReuses       = 0;
+  Counter addrMissing      = 0;
+  Counter addrChecked      = 0;
+  Counter stackArray       = 0;
+  Counter heapArray        = 0;
+  Counter globalArray      = 0;
+  Counter stackAllocsFree  = 0;
+  Counter stackArrayFree   = 0;
+  Counter heapAllocsFree   = 0;
+  Counter heapArrayFree    = 0;
+  Counter nullAlloc        = 0;
+  Counter zeroAlloc        = 0;
+  Counter nullAndZeroAlloc = 0;
   std::unordered_set<MemAddr> missing;
   std::unordered_set<MemAddr> seen;
   TypeCountMap stackAlloc;
@@ -163,6 +178,12 @@ class NoneRecorder {
   [[maybe_unused]] inline void incStackFree(int, size_t) {
   }
   [[maybe_unused]] inline void incHeapFree(int, size_t) {
+  }
+  [[maybe_unused]] inline void incNullAddr() {
+  }
+  [[maybe_unused]] inline void incZeroLengthAddr() {
+  }
+  [[maybe_unused]] inline void incZeroLengthAndNullAddr() {
   }
 
   static NoneRecorder& get() {
@@ -252,7 +273,7 @@ struct Table {
     for (const auto& row : row_vec) {
       int col_num{0};
       for (const auto& col : row.cells) {
-        col_width[col_num] = (std::max<int>(col_width[col_num], col.w + 1));
+        col_width[col_num] = std::max<int>(col_width[col_num], col.w + 1);
         ++col_num;
       }
     }
@@ -261,11 +282,6 @@ struct Table {
     s << title << "\n";
     for (const auto& row : row_vec) {
       s << llvm::left_justify(row.label.c, max_row_id) << ":";
-
-      //      if (row.cells.empty()) {
-      //        s << "\n";
-      //        continue;
-      //      }
 
       int col_num{0};
       auto num_beg         = std::begin(row.cells);
@@ -283,10 +299,10 @@ struct Table {
 
       // fill up empty columns with empty_cell
       const int padding = columns - col_num - 1;
-      if (padding > 0) {
+      if (padding > 0 && empty_cell != "") {
         const auto iterate_w = [&]() -> int {
-          const auto width = col_width[col_num];
-          ++col_num;
+          const auto width = col_width[++col_num];
+
           return width;
         };
 
@@ -344,6 +360,7 @@ void serialise(const Recorder& r, llvm::raw_ostream& buf) {
     t.put(Row::make("Distinct Addresses missed", r.missing.size()));
     t.put(Row::make("Total free heap", r.heapAllocsFree, r.heapArrayFree));
     t.put(Row::make("Total free stack", r.stackAllocsFree, r.stackArrayFree));
+    t.put(Row::make("Null/Zero/NullZero Addr", r.nullAlloc, r.zeroAlloc, r.nullAndZeroAlloc));
     t.put(Row::make("Estimated memory use (KiB)", size_t(std::round(memory_use.map + memory_use.stack))));
     t.put(Row::make("Bytes per node map/stack", memory::MemOverhead::perNodeSizeMap,
                     memory::MemOverhead::perNodeSizeStack));
