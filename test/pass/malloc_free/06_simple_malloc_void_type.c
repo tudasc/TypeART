@@ -5,5 +5,8 @@
 void test() {
   void* p = malloc(42 * sizeof(int));  // LLVM-IR: lacks a bitcast
 }
-// CHECK: Malloc{{[ ]*}}:{{[ ]*}}1
-// CHECK: Alloca{{[ ]*}}:{{[ ]*}}0
+
+// CHECK: TypeArtPass [Heap]
+// CHECK-NEXT: Malloc{{[ ]*}}:{{[ ]*}}1
+// CHECK-NEXT: Free
+// CHECK-NEXT: Alloca{{[ ]*}}:{{[ ]*}}0

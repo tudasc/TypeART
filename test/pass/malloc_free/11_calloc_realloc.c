@@ -11,5 +11,7 @@ int main() {
   return 0;
 }
 
-// CHECK: Malloc{{[ ]*}}:{{[ ]*}}2
-// CHECK: Alloca{{[ ]*}}:{{[ ]*}}0
+// CHECK: TypeArtPass [Heap]
+// CHECK-NEXT: Malloc{{[ ]*}}:{{[ ]*}}2
+// CHECK-NEXT: Free
+// CHECK-NEXT: Alloca{{[ ]*}}:{{[ ]*}}0

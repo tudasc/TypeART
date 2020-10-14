@@ -383,8 +383,8 @@ void TypeArtRT::doAlloc(const void* addr, int typeId, size_t count, const void* 
   // On the other hand, an allocation on address 0x0 with size > 0 is an actual error.
   if (count == 0) {
     Recorder::get().incZeroLengthAddr();
-    LOG_ERROR("Zero-size allocation (id=" << typeId << ") recorded at " << addr << " [" << reg << "], called from "
-                                          << retAddr);
+    LOG_WARNING("Zero-size allocation (id=" << typeId << ") recorded at " << addr << " [" << reg << "], called from "
+                                            << retAddr);
 
     if (addr == nullptr) {
       Recorder::get().incZeroLengthAndNullAddr();

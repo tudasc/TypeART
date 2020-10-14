@@ -44,6 +44,7 @@ int main() {
 // CHECK: call void @_ZdlPv(i8* [[POINTER2:%[0-9]+]])
 // CHECK-NEXT: call void @__typeart_free(i8* {{.*}}[[POINTER2]])
 
-// CHECK: Malloc{{[ ]*}}:{{[ ]*}}2
-// CHECK: Free{{[ ]*}}:{{[ ]*}}1
-// CHECK: Alloca{{[ ]*}}:{{[ ]*}}0
+// CHECK: TypeArtPass [Heap]
+// CHECK-NEXT: Malloc{{[ ]*}}:{{[ ]*}}2
+// CHECK-NEXT: Free{{[ ]*}}:{{[ ]*}}1
+// CHECK-NEXT: Alloca{{[ ]*}}:{{[ ]*}}0

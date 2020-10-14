@@ -7,5 +7,7 @@ void test() {
   double* pd = (double*)malloc(42 * sizeof(double));
 }
 
-// CHECK: Malloc{{[ ]*}}:{{[ ]*}}2
-// CHECK: Alloca{{[ ]*}}:{{[ ]*}}0
+// CHECK: TypeArtPass [Heap]
+// CHECK-NEXT: Malloc{{[ ]*}}:{{[ ]*}}2
+// CHECK-NEXT: Free
+// CHECK-NEXT: Alloca{{[ ]*}}:{{[ ]*}}0
