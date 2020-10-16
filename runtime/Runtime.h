@@ -10,15 +10,9 @@
 #include <map>
 #endif
 
-#include <vector>
+#include "CallbackInterface.h"
 
-extern "C" {
-void __typeart_alloc(void* addr, int typeId, size_t count);
-void __typeart_alloc_stack(void* addr, int typeId, size_t count);
-void __typeart_alloc_global(void* addr, int typeId, size_t count);
-void __typeart_free(void* addr);
-void __typeart_leave_scope(size_t alloca_count);
-}
+#include <vector>
 
 namespace llvm {
 template <typename T>
@@ -147,10 +141,28 @@ class TypeArtRT final {
 
   void onAllocGlobal(const void* addr, int typeID, size_t count, const void* retAddr);
 
-  template <bool isStack>
-  void onFree(const void* addr, const void* retAddr);
+  void onFreeHeap(const void* addr, const void* retAddr);
 
   void onLeaveScope(size_t alloca_count, const void* retAddr);
+
+  enum class AllocState : unsigned {
+    NO_INIT      = 1 << 0,
+    OK           = 1 << 1,
+    ADDR_SKIPPED = 1 << 2,
+    NULL_PTR     = 1 << 3,
+    ZERO_COUNT   = 1 << 4,
+    NULL_ZERO    = 1 << 5,
+    ADDR_REUSE   = 1 << 6,
+    UNKNOWN_ID   = 1 << 7
+  };
+
+  enum class FreeState : unsigned {
+    NO_INIT      = 1 << 0,
+    OK           = 1 << 1,
+    ADDR_SKIPPED = 1 << 2,
+    NULL_PTR     = 1 << 3,
+    UNREG_ADDR   = 1 << 4,
+  };
 
  private:
   TypeArtRT(Recorder& counter);
@@ -176,7 +188,10 @@ class TypeArtRT final {
    */
   bool loadTypes(const std::string& file);
 
-  inline void doAlloc(const void* addr, int typeID, size_t count, const void* retAddr, const char reg = 'H');
+  inline AllocState doAlloc(const void* addr, int typeID, size_t count, const void* retAddr);
+
+  template <bool stack>
+  inline FreeState doFree(const void* addr, const void* retAddr);
 
   /**
    * Given an address, this method searches for the pointer that corresponds to the start of the allocated block.
@@ -189,8 +204,7 @@ class TypeArtRT final {
   RuntimeT::Stack stackVars;
   TypeDB typeDB;
   Recorder& counter;
-
-  static std::string defaultTypeFileName;
+  static constexpr const char* defaultTypeFileName = "types.yaml";
 };
 
 }  // namespace typeart
