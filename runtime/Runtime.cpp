@@ -44,13 +44,13 @@ inline const void* addByteOffset(const void* addr, T offset) {
   return static_cast<const void*>(static_cast<const uint8_t*>(addr) + offset);
 }
 
+namespace debug {
 inline static std::string toString(const void* memAddr, int typeId, size_t count, size_t typeSize,
                                    const void* calledFrom) {
   std::string buf;
   llvm::raw_string_ostream s(buf);
   const auto name = TypeArtRT::get().getTypeName(typeId);
-  s << memAddr << " " << typeId << " " << name << " " << typeSize << " "
-    << " " << count << " (" << calledFrom << ")";
+  s << memAddr << " " << typeId << " " << name << " " << typeSize << " " << count << " (" << calledFrom << ")";
   return s.str();
 }
 
@@ -60,9 +60,16 @@ inline static std::string toString(const void* memAddr, int typeId, size_t count
 }
 
 inline static std::string toString(const void* addr, const PointerInfo& info) {
-  auto typeSize = TypeArtRT::get().getTypeSize(info.typeId);
-  return toString(addr, info.typeId, info.count, typeSize, info.debug);
+  return toString(addr, info.typeId, info.count, info.debug);
 }
+
+void printTraceStart() {
+  LOG_TRACE("TypeART Runtime Trace");
+  LOG_TRACE("*********************");
+  LOG_TRACE("Operation  Address   Type   Size   Count   (CallAddr)   Stack/Heap/Global");
+  LOG_TRACE("-------------------------------------------------------------------------");
+}
+}  // namespace debug
 
 namespace detail {
 template <class...>
@@ -109,6 +116,8 @@ inline typename std::underlying_type<Enum>::type operator==(Enum lhs, Enum rhs) 
   }
 }
 
+using namespace debug;
+
 TypeArtRT::TypeArtRT(Recorder& counter) : counter(counter) {
   // Try to load types from specified file first.
   // Then look at default location.
@@ -135,7 +144,7 @@ TypeArtRT::TypeArtRT(Recorder& counter) : counter(counter) {
 
   stackVars.reserve(RuntimeT::StackReserve);
 
-  printTraceStart();
+  debug::printTraceStart();
 }
 
 TypeArtRT::~TypeArtRT() {
@@ -151,13 +160,6 @@ TypeArtRT::~TypeArtRT() {
 bool TypeArtRT::loadTypes(const std::string& file) {
   TypeIO cio(typeDB);
   return cio.load(file);
-}
-
-void TypeArtRT::printTraceStart() const {
-  LOG_TRACE("TypeART Runtime Trace");
-  LOG_TRACE("**************************");
-  LOG_TRACE("Operation  Address   Type   Size   Count  Stack/Heap/Global");
-  LOG_TRACE("-----------------------------------------------------------");
 }
 
 llvm::Optional<RuntimeT::MapEntry> TypeArtRT::findBaseAddress(const void* addr) const {

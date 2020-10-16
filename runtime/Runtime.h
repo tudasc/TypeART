@@ -2,15 +2,10 @@
 #define RUNTIME_RUNTIME_H_
 
 #include "AccessCounter.h"
+#include "CallbackInterface.h"
 #include "RuntimeData.h"
 #include "RuntimeInterface.h"
 #include "TypeDB.h"
-
-#if !defined(USE_BTREE) && !defined(USE_ABSL)
-#include <map>
-#endif
-
-#include "CallbackInterface.h"
 
 #include <vector>
 
@@ -180,8 +175,6 @@ class TypeArtRT final {
    * Therefore, the caller must either ensure that the given offset is valid or explicitly check for this case.
    */
   size_t getMemberIndex(typeart_struct_layout structInfo, size_t offset) const;
-
-  void printTraceStart() const;
 
   /**
    * Loads the type file created by the LLVM pass.

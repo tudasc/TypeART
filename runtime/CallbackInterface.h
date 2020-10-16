@@ -11,6 +11,7 @@
 #include <stddef.h>
 #endif
 
+// Callback function signatures invoked by the LLVM pass
 #ifdef __cplusplus
 extern "C" {
 #endif
