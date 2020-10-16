@@ -118,7 +118,10 @@ inline typename std::underlying_type<Enum>::type operator==(Enum lhs, Enum rhs) 
 
 using namespace debug;
 
-TypeArtRT::TypeArtRT(Recorder& counter) : counter(counter) {
+TypeArtRT::TypeArtRT() {
+  // This keeps the destruction order: 1. RT 2. Recorder
+  auto& recorder = Recorder::get();
+
   // Try to load types from specified file first.
   // Then look at default location.
   const char* typeFile = std::getenv("TA_TYPE_FILE");
@@ -137,9 +140,11 @@ TypeArtRT::TypeArtRT(Recorder& counter) : counter(counter) {
   }
 
   std::stringstream ss;
-  for (const auto& structInfo : typeDB.getStructList()) {
+  const auto& typeList = typeDB.getStructList();
+  for (const auto& structInfo : typeList) {
     ss << structInfo.name << ", ";
   }
+  recorder.incUDefTypes(typeList.size());
   LOG_INFO("Recorded types: " << ss.str());
 
   stackVars.reserve(RuntimeT::StackReserve);
@@ -150,7 +155,7 @@ TypeArtRT::TypeArtRT(Recorder& counter) : counter(counter) {
 TypeArtRT::~TypeArtRT() {
   std::string stats;
   llvm::raw_string_ostream stream(stats);
-  softcounter::serialise(counter, stream);
+  softcounter::serialise(Recorder::get(), stream);
   if (!stream.str().empty()) {
     // llvm::errs/LOG will crash with virtual call error
     std::cerr << stream.str();
@@ -589,8 +594,9 @@ typeart_status typeart_get_builtin_type(const void* addr, typeart::BuiltinType* 
 }
 
 typeart_status typeart_get_type(const void* addr, int* type, size_t* count) {
+  typeart_status_t status = typeart::TypeArtRT::get().getTypeInfo(addr, type, count);
   typeart::Recorder::get().incUsedInRequest(addr);
-  return typeart::TypeArtRT::get().getTypeInfo(addr, type, count);
+  return status;
 }
 
 typeart_status typeart_get_containing_type(const void* addr, int* type, size_t* count, const void** base_address,

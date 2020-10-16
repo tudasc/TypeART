@@ -1,7 +1,6 @@
 #ifndef RUNTIME_RUNTIME_H_
 #define RUNTIME_RUNTIME_H_
 
-#include "AccessCounter.h"
 #include "CallbackInterface.h"
 #include "RuntimeData.h"
 #include "RuntimeInterface.h"
@@ -17,11 +16,36 @@ class Optional;
 namespace typeart {
 
 class TypeArtRT final {
+  RuntimeT::PointerMap typeMap;
+  RuntimeT::Stack stackVars;
+  TypeDB typeDB;
+
+  static constexpr const char* defaultTypeFileName = "types.yaml";
+
+  enum class AllocState : unsigned {
+    NO_INIT      = 1 << 0,
+    OK           = 1 << 1,
+    ADDR_SKIPPED = 1 << 2,
+    NULL_PTR     = 1 << 3,
+    ZERO_COUNT   = 1 << 4,
+    NULL_ZERO    = 1 << 5,
+    ADDR_REUSE   = 1 << 6,
+    UNKNOWN_ID   = 1 << 7
+  };
+
+  enum class FreeState : unsigned {
+    NO_INIT      = 1 << 0,
+    OK           = 1 << 1,
+    ADDR_SKIPPED = 1 << 2,
+    NULL_PTR     = 1 << 3,
+    UNREG_ADDR   = 1 << 4,
+  };
+
  public:
   using TypeArtStatus = typeart_status;
 
   static TypeArtRT& get() {
-    static TypeArtRT instance(Recorder::get());
+    static TypeArtRT instance;
     return instance;
   }
 
@@ -140,27 +164,8 @@ class TypeArtRT final {
 
   void onLeaveScope(size_t alloca_count, const void* retAddr);
 
-  enum class AllocState : unsigned {
-    NO_INIT      = 1 << 0,
-    OK           = 1 << 1,
-    ADDR_SKIPPED = 1 << 2,
-    NULL_PTR     = 1 << 3,
-    ZERO_COUNT   = 1 << 4,
-    NULL_ZERO    = 1 << 5,
-    ADDR_REUSE   = 1 << 6,
-    UNKNOWN_ID   = 1 << 7
-  };
-
-  enum class FreeState : unsigned {
-    NO_INIT      = 1 << 0,
-    OK           = 1 << 1,
-    ADDR_SKIPPED = 1 << 2,
-    NULL_PTR     = 1 << 3,
-    UNREG_ADDR   = 1 << 4,
-  };
-
  private:
-  TypeArtRT(Recorder& counter);
+  TypeArtRT();
   ~TypeArtRT();
 
   /**
@@ -191,13 +196,6 @@ class TypeArtRT final {
    * Returns null if the memory location is not registered as allocated.
    */
   llvm::Optional<RuntimeT::MapEntry> findBaseAddress(const void* addr) const;
-
-  // Class members
-  RuntimeT::PointerMap typeMap;
-  RuntimeT::Stack stackVars;
-  TypeDB typeDB;
-  Recorder& counter;
-  static constexpr const char* defaultTypeFileName = "types.yaml";
 };
 
 }  // namespace typeart
