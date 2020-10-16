@@ -22,6 +22,7 @@ class TypeArtRT final {
 
   static constexpr const char* defaultTypeFileName = "types.yaml";
 
+ public:
   enum class AllocState : unsigned {
     NO_INIT      = 1 << 0,
     OK           = 1 << 1,
@@ -41,7 +42,6 @@ class TypeArtRT final {
     UNREG_ADDR   = 1 << 4,
   };
 
- public:
   using TypeArtStatus = typeart_status;
 
   static TypeArtRT& get() {

@@ -37,8 +37,6 @@ static bool typeart_rt_scope{false};
 
 namespace typeart {
 
-// std::string TypeArtRT::defaultTypeFileName{"types.yaml"};
-
 template <typename T>
 inline const void* addByteOffset(const void* addr, T offset) {
   return static_cast<const void*>(static_cast<const uint8_t*>(addr) + offset);
