@@ -535,7 +535,7 @@ void TypeArtRT::onFreeHeap(const void* addr, const void* retAddr) {
 }
 
 void TypeArtRT::onLeaveScope(size_t alloca_count, const void* retAddr) {
-  if (alloca_count > stackVars.size()) {
+  if (unlikely(alloca_count > stackVars.size())) {
     LOG_ERROR("Stack is smaller than requested de-allocation count. alloca_count: " << alloca_count
                                                                                     << ". size: " << stackVars.size());
     alloca_count = stackVars.size();
