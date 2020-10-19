@@ -110,7 +110,11 @@ class AccessRecorder {
     ++nullAndZeroAlloc;
   }
 
-  static AccessRecorder& get() {
+  inline void incUDefTypes(size_t count) {
+    numUDefTypes += count;
+  }
+
+  [[nodiscard]] static AccessRecorder& get() {
     static AccessRecorder instance;
     return instance;
   }
@@ -140,6 +144,7 @@ class AccessRecorder {
   Counter nullAlloc        = 0;
   Counter zeroAlloc        = 0;
   Counter nullAndZeroAlloc = 0;
+  Counter numUDefTypes     = 0;
   std::unordered_set<MemAddr> missing;
   std::unordered_set<MemAddr> seen;
   TypeCountMap stackAlloc;
@@ -182,6 +187,8 @@ class NoneRecorder {
   [[maybe_unused]] inline void incZeroLengthAddr() {
   }
   [[maybe_unused]] inline void incZeroLengthAndNullAddr() {
+  }
+  [[maybe_unused]] inline void incUDefTypes(size_t count) {
   }
 
   static NoneRecorder& get() {
@@ -234,6 +241,7 @@ void serialise(const Recorder& r, llvm::raw_ostream& buf) {
     t.put(Row::make("Total free heap", r.heapAllocsFree, r.heapArrayFree));
     t.put(Row::make("Total free stack", r.stackAllocsFree, r.stackArrayFree));
     t.put(Row::make("Null/Zero/NullZero Addr", r.nullAlloc, r.zeroAlloc, r.nullAndZeroAlloc));
+    t.put(Row::make("User-def. types", r.numUDefTypes));
     t.put(Row::make("Estimated memory use (KiB)", size_t(std::round(memory_use.map + memory_use.stack))));
     t.put(Row::make("Bytes per node map/stack", memory::MemOverhead::perNodeSizeMap,
                     memory::MemOverhead::perNodeSizeStack));

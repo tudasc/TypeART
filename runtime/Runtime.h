@@ -1,24 +1,12 @@
 #ifndef RUNTIME_RUNTIME_H_
 #define RUNTIME_RUNTIME_H_
 
-#include "AccessCounter.h"
+#include "CallbackInterface.h"
 #include "RuntimeData.h"
 #include "RuntimeInterface.h"
 #include "TypeDB.h"
 
-#if !defined(USE_BTREE) && !defined(USE_ABSL)
-#include <map>
-#endif
-
 #include <vector>
-
-extern "C" {
-void __typeart_alloc(void* addr, int typeId, size_t count);
-void __typeart_alloc_stack(void* addr, int typeId, size_t count);
-void __typeart_alloc_global(void* addr, int typeId, size_t count);
-void __typeart_free(void* addr);
-void __typeart_leave_scope(size_t alloca_count);
-}
 
 namespace llvm {
 template <typename T>
@@ -28,11 +16,36 @@ class Optional;
 namespace typeart {
 
 class TypeArtRT final {
+  RuntimeT::PointerMap typeMap;
+  RuntimeT::Stack stackVars;
+  TypeDB typeDB;
+
+  static constexpr const char* defaultTypeFileName = "types.yaml";
+
  public:
+  enum class AllocState : unsigned {
+    NO_INIT      = 1 << 0,
+    OK           = 1 << 1,
+    ADDR_SKIPPED = 1 << 2,
+    NULL_PTR     = 1 << 3,
+    ZERO_COUNT   = 1 << 4,
+    NULL_ZERO    = 1 << 5,
+    ADDR_REUSE   = 1 << 6,
+    UNKNOWN_ID   = 1 << 7
+  };
+
+  enum class FreeState : unsigned {
+    NO_INIT      = 1 << 0,
+    OK           = 1 << 1,
+    ADDR_SKIPPED = 1 << 2,
+    NULL_PTR     = 1 << 3,
+    UNREG_ADDR   = 1 << 4,
+  };
+
   using TypeArtStatus = typeart_status;
 
   static TypeArtRT& get() {
-    static TypeArtRT instance(Recorder::get());
+    static TypeArtRT instance;
     return instance;
   }
 
@@ -147,13 +160,12 @@ class TypeArtRT final {
 
   void onAllocGlobal(const void* addr, int typeID, size_t count, const void* retAddr);
 
-  template <bool isStack>
-  void onFree(const void* addr, const void* retAddr);
+  void onFreeHeap(const void* addr, const void* retAddr);
 
   void onLeaveScope(size_t alloca_count, const void* retAddr);
 
  private:
-  TypeArtRT(Recorder& counter);
+  TypeArtRT();
   ~TypeArtRT();
 
   /**
@@ -169,28 +181,21 @@ class TypeArtRT final {
    */
   size_t getMemberIndex(typeart_struct_layout structInfo, size_t offset) const;
 
-  void printTraceStart() const;
-
   /**
    * Loads the type file created by the LLVM pass.
    */
   bool loadTypes(const std::string& file);
 
-  inline void doAlloc(const void* addr, int typeID, size_t count, const void* retAddr, const char reg = 'H');
+  inline AllocState doAlloc(const void* addr, int typeID, size_t count, const void* retAddr);
+
+  template <bool stack>
+  inline FreeState doFree(const void* addr, const void* retAddr);
 
   /**
    * Given an address, this method searches for the pointer that corresponds to the start of the allocated block.
    * Returns null if the memory location is not registered as allocated.
    */
   llvm::Optional<RuntimeT::MapEntry> findBaseAddress(const void* addr) const;
-
-  // Class members
-  RuntimeT::PointerMap typeMap;
-  RuntimeT::Stack stackVars;
-  TypeDB typeDB;
-  Recorder& counter;
-
-  static std::string defaultTypeFileName;
 };
 
 }  // namespace typeart

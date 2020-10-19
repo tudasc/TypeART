@@ -17,6 +17,9 @@
 using namespace btree;
 #endif
 
+#define likely(x) __builtin_expect(!!(x), 1)
+#define unlikely(x) __builtin_expect(!!(x), 0)
+
 namespace typeart {
 /**
  * Ensures that memory tracking functions do not come from within the runtime.
@@ -34,30 +37,89 @@ static bool typeart_rt_scope{false};
 
 namespace typeart {
 
-std::string TypeArtRT::defaultTypeFileName{"types.yaml"};
-
 template <typename T>
 inline const void* addByteOffset(const void* addr, T offset) {
   return static_cast<const void*>(static_cast<const uint8_t*>(addr) + offset);
 }
 
-inline static std::string toString(const void* addr, int typeId, size_t count, size_t typeSize) {
-  std::stringstream s;
-  // clang-format off
-  s << addr
-    << ". typeId: " << typeId << " (" << TypeArtRT::get().getTypeName(typeId) << ")"
-    << ". count: " << count
-    << ". typeSize " << typeSize;
-  // clang-format on
+namespace debug {
+inline static std::string toString(const void* memAddr, int typeId, size_t count, size_t typeSize,
+                                   const void* calledFrom) {
+  std::string buf;
+  llvm::raw_string_ostream s(buf);
+  const auto name = TypeArtRT::get().getTypeName(typeId);
+  s << memAddr << " " << typeId << " " << name << " " << typeSize << " " << count << " (" << calledFrom << ")";
   return s.str();
 }
 
-inline static std::string toString(const void* addr, const PointerInfo& info) {
-  auto typeSize = TypeArtRT::get().getTypeSize(info.typeId);
-  return toString(addr, info.typeId, info.count, typeSize);
+inline static std::string toString(const void* memAddr, int typeId, size_t count, const void* calledFrom) {
+  const auto typeSize = TypeArtRT::get().getTypeSize(typeId);
+  return toString(memAddr, typeId, count, typeSize, calledFrom);
 }
 
-TypeArtRT::TypeArtRT(Recorder& counter) : counter(counter) {
+inline static std::string toString(const void* addr, const PointerInfo& info) {
+  return toString(addr, info.typeId, info.count, info.debug);
+}
+
+void printTraceStart() {
+  LOG_TRACE("TypeART Runtime Trace");
+  LOG_TRACE("*********************");
+  LOG_TRACE("Operation  Address   Type   Size   Count   (CallAddr)   Stack/Heap/Global");
+  LOG_TRACE("-------------------------------------------------------------------------");
+}
+}  // namespace debug
+
+namespace detail {
+template <class...>
+constexpr std::false_type always_false{};
+}
+
+template <typename Enum>
+inline Enum operator|(Enum lhs, Enum rhs) {
+  if constexpr (std::is_enum_v<Enum> &&
+                (std::is_same_v<Enum, TypeArtRT::AllocState> || std::is_same_v<Enum, TypeArtRT::FreeState>)) {
+    using enum_t = typename std::underlying_type<Enum>::type;
+    return static_cast<Enum>(static_cast<enum_t>(lhs) | static_cast<enum_t>(rhs));
+  } else {
+    static_assert(detail::always_false<Enum>);
+  }
+}
+template <typename Enum>
+inline void operator|=(Enum& lhs, Enum rhs) {
+  if constexpr (std::is_enum_v<Enum> &&
+                (std::is_same_v<Enum, TypeArtRT::AllocState> || std::is_same_v<Enum, TypeArtRT::FreeState>)) {
+    lhs = lhs | rhs;
+  } else {
+    static_assert(detail::always_false<Enum>);
+  }
+}
+
+template <typename Enum>
+inline Enum operator&(Enum lhs, Enum rhs) {
+  if constexpr (std::is_enum_v<Enum> && std::is_same_v<Enum, TypeArtRT::AllocState>) {
+    using enum_t = typename std::underlying_type<Enum>::type;
+    return static_cast<Enum>(static_cast<enum_t>(lhs) & static_cast<enum_t>(rhs));
+  } else {
+    static_assert(detail::always_false<Enum>);
+  }
+}
+
+template <typename Enum>
+inline typename std::underlying_type<Enum>::type operator==(Enum lhs, Enum rhs) {
+  if constexpr (std::is_enum_v<Enum> && std::is_same_v<Enum, TypeArtRT::AllocState>) {
+    using enum_t = typename std::underlying_type<Enum>::type;
+    return static_cast<enum_t>(lhs) & static_cast<enum_t>(rhs);
+  } else {
+    static_assert(detail::always_false<Enum>);
+  }
+}
+
+using namespace debug;
+
+TypeArtRT::TypeArtRT() {
+  // This keeps the destruction order: 1. RT 2. Recorder
+  auto& recorder = Recorder::get();
+
   // Try to load types from specified file first.
   // Then look at default location.
   const char* typeFile = std::getenv("TA_TYPE_FILE");
@@ -76,20 +138,22 @@ TypeArtRT::TypeArtRT(Recorder& counter) : counter(counter) {
   }
 
   std::stringstream ss;
-  for (const auto& structInfo : typeDB.getStructList()) {
+  const auto& typeList = typeDB.getStructList();
+  for (const auto& structInfo : typeList) {
     ss << structInfo.name << ", ";
   }
+  recorder.incUDefTypes(typeList.size());
   LOG_INFO("Recorded types: " << ss.str());
 
   stackVars.reserve(RuntimeT::StackReserve);
 
-  printTraceStart();
+  debug::printTraceStart();
 }
 
 TypeArtRT::~TypeArtRT() {
   std::string stats;
   llvm::raw_string_ostream stream(stats);
-  softcounter::serialise(counter, stream);
+  softcounter::serialise(Recorder::get(), stream);
   if (!stream.str().empty()) {
     // llvm::errs/LOG will crash with virtual call error
     std::cerr << stream.str();
@@ -99,13 +163,6 @@ TypeArtRT::~TypeArtRT() {
 bool TypeArtRT::loadTypes(const std::string& file) {
   TypeIO cio(typeDB);
   return cio.load(file);
-}
-
-void TypeArtRT::printTraceStart() const {
-  LOG_TRACE("TypeART Runtime Trace");
-  LOG_TRACE("**************************");
-  LOG_TRACE("Operation  Address   Type   Size   Count  Stack/Heap/Global");
-  LOG_TRACE("-----------------------------------------------------------");
 }
 
 llvm::Optional<RuntimeT::MapEntry> TypeArtRT::findBaseAddress(const void* addr) const {
@@ -372,91 +429,113 @@ void TypeArtRT::getReturnAddress(const void* addr, const void** retAddr) const {
   }
 }
 
-void TypeArtRT::doAlloc(const void* addr, int typeId, size_t count, const void* retAddr, const char reg) {
-  if (!typeDB.isValid(typeId)) {
-    LOG_ERROR("Allocation of unknown type (id=" << typeId << ") recorded at " << addr << " [" << reg
-                                                << "], called from " << retAddr);
+TypeArtRT::AllocState TypeArtRT::doAlloc(const void* addr, int typeId, size_t count, const void* retAddr) {
+  AllocState status = AllocState::NO_INIT;
+  if (unlikely(!typeDB.isValid(typeId))) {
+    status |= AllocState::UNKNOWN_ID;
+    LOG_ERROR("Allocation of unknown type " << toString(addr, typeId, count, retAddr));
   }
 
   // Calling malloc with size 0 may return a nullptr or some address that can not be written to.
   // In the second case, the allocation is tracked anyway so that onFree() does not report an error.
   // On the other hand, an allocation on address 0x0 with size > 0 is an actual error.
-  if (count == 0) {
+  if (unlikely(count == 0)) {
     Recorder::get().incZeroLengthAddr();
-    LOG_WARNING("Zero-size allocation (id=" << typeId << ") recorded at " << addr << " [" << reg << "], called from "
-                                            << retAddr);
-
+    status |= AllocState::ZERO_COUNT;
+    LOG_WARNING("Zero-size allocation " << toString(addr, typeId, count, retAddr));
     if (addr == nullptr) {
       Recorder::get().incZeroLengthAndNullAddr();
-      return;
+      LOG_ERROR("Zero-size and nullptr allocation " << toString(addr, typeId, count, retAddr));
+      return status | AllocState::NULL_ZERO | AllocState::ADDR_SKIPPED;
     }
-  } else if (addr == nullptr) {
+  } else if (unlikely(addr == nullptr)) {
     Recorder::get().incNullAddr();
-    LOG_ERROR("Nullptr allocation (id=" << typeId << ") recorded at " << addr << " [" << reg << "], called from "
-                                        << retAddr);
-    return;
+    LOG_ERROR("Zero-size allocation " << toString(addr, typeId, count, retAddr));
+    return status | AllocState::NULL_PTR | AllocState::ADDR_SKIPPED;
   }
 
   auto& def = typeMap[addr];
 
-  if (def.typeId == -1) {
-    LOG_TRACE("Alloc " << addr << " " << typeDB.getTypeName(typeId) << " " << typeDB.getTypeSize(typeId) << " " << count
-                       << " " << reg);
-  } else {
+  if (unlikely(def.typeId != -1)) {
     typeart::Recorder::get().incAddrReuse();
-    if (reg == 'G' || reg == 'H') {
-      LOG_ERROR("Already exists (" << retAddr << ", prev=" << def.debug
-                                   << "): " << toString(addr, typeId, count, typeDB.getTypeSize(typeId)));
-      LOG_ERROR("Data in map is: " << toString(addr, def));
-    }
+    status |= AllocState::ADDR_REUSE;
+    LOG_WARNING("Pointer already in map " << toString(addr, typeId, count, retAddr));
+    LOG_WARNING("Overriden data in map " << toString(addr, def));
   }
 
   def.typeId = typeId;
   def.count  = count;
   def.debug  = retAddr;
+
+  return status | AllocState::OK;
 }
 
 void TypeArtRT::onAlloc(const void* addr, int typeId, size_t count, const void* retAddr) {
-  doAlloc(addr, typeId, count, retAddr);
+  const auto status = doAlloc(addr, typeId, count, retAddr);
+  if (status != AllocState::ADDR_SKIPPED) {
+    typeart::Recorder::get().incHeapAlloc(typeId, count);
+  }
+  LOG_TRACE("Alloc " << toString(addr, typeId, count, retAddr) << " " << 'H');
 }
 
 void TypeArtRT::onAllocStack(const void* addr, int typeId, size_t count, const void* retAddr) {
-  doAlloc(addr, typeId, count, retAddr, 'S');
-  stackVars.push_back(addr);
+  const auto status = doAlloc(addr, typeId, count, retAddr);
+  if (status != AllocState::ADDR_SKIPPED) {
+    stackVars.push_back(addr);
+    typeart::Recorder::get().incStackAlloc(typeId, count);
+  }
+  LOG_TRACE("Alloc " << toString(addr, typeId, count, retAddr) << " " << 'S');
 }
 
 void TypeArtRT::onAllocGlobal(const void* addr, int typeId, size_t count, const void* retAddr) {
-  doAlloc(addr, typeId, count, retAddr, 'G');
+  const auto status = doAlloc(addr, typeId, count, retAddr);
+  if (status != AllocState::ADDR_SKIPPED) {
+    typeart::Recorder::get().incGlobalAlloc(typeId, count);
+  }
+  LOG_TRACE("Alloc " << toString(addr, typeId, count, retAddr) << " " << 'G');
 }
 
-template <bool isStack>
-void TypeArtRT::onFree(const void* addr, const void* retAddr) {
-  if (!isStack) {
-    if (addr == nullptr) {
-      LOG_INFO("Recorded free on nullptr, called from " << retAddr);
-      return;
-    }
+template <bool stack>
+TypeArtRT::FreeState TypeArtRT::doFree(const void* addr, const void* retAddr) {
+  if (unlikely(addr == nullptr)) {
+    LOG_ERROR("Free on nullptr "
+              << "(" << retAddr << ")");
+    return FreeState::ADDR_SKIPPED | FreeState::NULL_PTR;
   }
-  auto it = typeMap.find(addr);
-  if (it != typeMap.end()) {
+
+  const auto it = typeMap.find(addr);
+
+  if (likely(it != typeMap.end())) {
     LOG_TRACE("Free " << toString((*it).first, (*it).second));
-    const auto typeId = it->second.typeId;
-    const auto count  = it->second.count;
+
+    if constexpr (!std::is_same_v<Recorder, softcounter::NoneRecorder>) {
+      const auto typeId = it->second.typeId;
+      const auto count  = it->second.count;
+      if (stack) {
+        Recorder::get().incStackFree(typeId, count);
+      } else {
+        Recorder::get().incHeapFree(typeId, count);
+      }
+    }
 
     typeMap.erase(it);
+  } else {
+    LOG_ERROR("Free on unregistered address " << addr << " (" << retAddr << ")");
+    return FreeState::ADDR_SKIPPED | FreeState::UNREG_ADDR;
+  }
 
-    if (!isStack) {
-      Recorder::get().incHeapFree(typeId, count);
-    } else {
-      Recorder::get().incStackFree(typeId, count);
-    }
-  } else if (!isStack) {
-    LOG_ERROR("Free recorded on unregistered address " << addr << ", called from " << retAddr);
+  return FreeState::OK;
+}
+
+void TypeArtRT::onFreeHeap(const void* addr, const void* retAddr) {
+  const auto status = doFree<false>(addr, retAddr);
+  if (FreeState::OK == status) {
+    typeart::Recorder::get().decHeapAlloc();
   }
 }
 
 void TypeArtRT::onLeaveScope(size_t alloca_count, const void* retAddr) {
-  if (alloca_count > stackVars.size()) {
+  if (unlikely(alloca_count > stackVars.size())) {
     LOG_ERROR("Stack is smaller than requested de-allocation count. alloca_count: " << alloca_count
                                                                                     << ". size: " << stackVars.size());
     alloca_count = stackVars.size();
@@ -465,42 +544,39 @@ void TypeArtRT::onLeaveScope(size_t alloca_count, const void* retAddr) {
   const auto cend      = stackVars.cend();
   const auto start_pos = (cend - alloca_count);
   LOG_TRACE("Freeing stack (" << alloca_count << ")  " << std::distance(start_pos, stackVars.cend()))
-  std::for_each(start_pos, cend, [&](const void* addr) { onFree<true>(addr, retAddr); });
+  std::for_each(start_pos, cend, [this, &retAddr](const void* addr) { doFree<true>(addr, retAddr); });
   stackVars.erase(start_pos, cend);
+  typeart::Recorder::get().decStackAlloc(alloca_count);
   LOG_TRACE("Stack after free: " << stackVars.size());
 }
 
 }  // namespace typeart
 
-void __typeart_alloc(void* addr, int typeId, size_t count) {
+void __typeart_alloc(const void* addr, int typeId, size_t count) {
   RUNTIME_GUARD_BEGIN;
   const void* retAddr = __builtin_return_address(0);
   typeart::TypeArtRT::get().onAlloc(addr, typeId, count, retAddr);
-  typeart::Recorder::get().incHeapAlloc(typeId, count);
   RUNTIME_GUARD_END;
 }
 
-void __typeart_alloc_stack(void* addr, int typeId, size_t count) {
+void __typeart_alloc_stack(const void* addr, int typeId, size_t count) {
   RUNTIME_GUARD_BEGIN;
   const void* retAddr = __builtin_return_address(0);
   typeart::TypeArtRT::get().onAllocStack(addr, typeId, count, retAddr);
-  typeart::Recorder::get().incStackAlloc(typeId, count);
   RUNTIME_GUARD_END;
 }
 
-void __typeart_alloc_global(void* addr, int typeId, size_t count) {
+void __typeart_alloc_global(const void* addr, int typeId, size_t count) {
   RUNTIME_GUARD_BEGIN;
   const void* retAddr = __builtin_return_address(0);
   typeart::TypeArtRT::get().onAllocGlobal(addr, typeId, count, retAddr);
-  typeart::Recorder::get().incGlobalAlloc(typeId, count);
   RUNTIME_GUARD_END;
 }
 
-void __typeart_free(void* addr) {
+void __typeart_free(const void* addr) {
   RUNTIME_GUARD_BEGIN;
   const void* retAddr = __builtin_return_address(0);
-  typeart::TypeArtRT::get().onFree<false>(addr, retAddr);
-  typeart::Recorder::get().decHeapAlloc();
+  typeart::TypeArtRT::get().onFreeHeap(addr, retAddr);
   RUNTIME_GUARD_END;
 }
 
@@ -508,7 +584,6 @@ void __typeart_leave_scope(size_t alloca_count) {
   RUNTIME_GUARD_BEGIN;
   const void* retAddr = __builtin_return_address(0);
   typeart::TypeArtRT::get().onLeaveScope(alloca_count, retAddr);
-  typeart::Recorder::get().decStackAlloc(alloca_count);
   RUNTIME_GUARD_END;
 }
 
@@ -517,8 +592,9 @@ typeart_status typeart_get_builtin_type(const void* addr, typeart::BuiltinType* 
 }
 
 typeart_status typeart_get_type(const void* addr, int* type, size_t* count) {
+  typeart_status_t status = typeart::TypeArtRT::get().getTypeInfo(addr, type, count);
   typeart::Recorder::get().incUsedInRequest(addr);
-  return typeart::TypeArtRT::get().getTypeInfo(addr, type, count);
+  return status;
 }
 
 typeart_status typeart_get_containing_type(const void* addr, int* type, size_t* count, const void** base_address,

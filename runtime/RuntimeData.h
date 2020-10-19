@@ -19,6 +19,10 @@
 #include "absl/container/btree_map.h"
 #endif
 
+#if !defined(USE_BTREE) && !defined(USE_ABSL)
+#include <map>
+#endif
+
 namespace typeart {
 
 using MemAddr = const void*;
