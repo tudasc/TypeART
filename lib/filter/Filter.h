@@ -24,12 +24,12 @@ class Filter {
 class NoOpFilter final : public Filter {
  public:
   NoOpFilter() = default;
-  bool filter(llvm::Value*) {
+  bool filter(llvm::Value*) override {
     return false;
   }
-  void setMode(bool) {
+  void setMode(bool) override {
   }
-  void setStartingFunction(llvm::Function*) {
+  void setStartingFunction(llvm::Function*) override {
   }
   ~NoOpFilter() = default;
 };

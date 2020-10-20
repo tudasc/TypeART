@@ -31,11 +31,11 @@ class StandardFilter final : public Filter {
  public:
   explicit StandardFilter(const std::string& glob, bool CallFilterDeep);
 
-  void setMode(bool search_malloc);
+  void setMode(bool search_malloc) override;
 
-  void setStartingFunction(llvm::Function* start);
+  void setStartingFunction(llvm::Function* start) override;
 
-  bool filter(Value* in);
+  bool filter(Value* in) override;
 
  private:
   bool filter(CallSite& csite, Value* in);
