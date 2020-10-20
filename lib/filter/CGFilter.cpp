@@ -212,3 +212,8 @@ std::string typeart::filter::CGFilter::reason() {
 void typeart::filter::CGFilter::clear_trace() {
   reason_trace.clear();
 }
+void typeart::filter::CGFilter::setStartingFunction(llvm::Function* start) {
+  this->start_f = start;
+}
+void typeart::filter::CGFilter::setMode(bool search_malloc) {
+}

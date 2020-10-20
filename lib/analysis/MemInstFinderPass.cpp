@@ -8,6 +8,8 @@
 #include "MemInstFinderPass.h"
 
 #include "MemOpVisitor.h"
+#include "filter/CGFilter.h"
+#include "filter/CGInterface.h"
 #include "filter/Filter.h"
 #include "filter/StandardFilter.h"
 #include "support/Logger.h"
@@ -56,6 +58,8 @@ static cl::opt<bool> ClFilterGlobal("filter-globals", cl::desc("Filter globals o
 static cl::opt<std::string> ClFilterImpl("filter-impl", cl::desc("Select the filter implementation."), cl::Hidden,
                                          cl::init("default"));
 
+static cl::opt<std::string> ClCGFile("cg-file", cl::desc("Location of CG to use."), cl::Hidden, cl::init(""));
+
 STATISTIC(NumDetectedHeap, "Number of detected heap allocs");
 STATISTIC(NumFilteredDetectedHeap, "Number of filtered heap allocs");
 STATISTIC(NumDetectedAllocs, "Number of detected allocs");
@@ -75,11 +79,14 @@ namespace filter {
 static std::unique_ptr<Filter> make_filter(std::string id, std::string glob) {
   const bool deep = ClCallFilterDeep.getValue();
   if (id == "empty" || !ClCallFilter.getValue()) {
-    LOG_DEBUG("Demand empty filter")
+    LOG_DEBUG("Return no-op filter")
     return std::make_unique<NoOpFilter>();
+  } else if (id == "CG" && !ClCGFile.empty()) {
+    LOG_DEBUG("Return CG filter with CG @ " << ClCGFile.getValue())
+    return std::make_unique<CGFilter>(glob, deep, ClCGFile.getValue());
   } else {
     // default
-    LOG_DEBUG("Default filter")
+    LOG_DEBUG("Return default filter")
     return std::make_unique<StandardFilter>(glob, deep);
   }
 }
