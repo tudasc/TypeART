@@ -21,9 +21,9 @@ class Filter {
   virtual ~Filter()                                 = default;
 };
 
-class EmptyFilter final : public Filter {
+class NoOpFilter final : public Filter {
  public:
-  EmptyFilter() = default;
+  NoOpFilter() = default;
   bool filter(llvm::Value*) {
     return false;
   }
@@ -31,7 +31,7 @@ class EmptyFilter final : public Filter {
   }
   void setStartingFunction(llvm::Function*) {
   }
-  ~EmptyFilter() = default;
+  ~NoOpFilter() = default;
 };
 
 }  // namespace filter

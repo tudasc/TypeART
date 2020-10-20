@@ -76,7 +76,7 @@ static std::unique_ptr<Filter> make_filter(std::string id, std::string glob) {
   const bool deep = ClCallFilterDeep.getValue();
   if (id == "empty" || !ClCallFilter.getValue()) {
     LOG_DEBUG("Demand empty filter")
-    return std::make_unique<EmptyFilter>();
+    return std::make_unique<NoOpFilter>();
   } else {
     // default
     LOG_DEBUG("Default filter")
