@@ -11,6 +11,7 @@
 #include "filter/CGFilter.h"
 #include "filter/CGInterface.h"
 #include "filter/Filter.h"
+#include "filter/FilterBase.h"
 #include "filter/StandardFilter.h"
 #include "support/Logger.h"
 #include "support/Table.h"
@@ -84,6 +85,8 @@ static std::unique_ptr<Filter> make_filter(std::string id, std::string glob) {
   } else if (id == "CG" && !ClCGFile.empty()) {
     LOG_DEBUG("Return CG filter with CG @ " << ClCGFile.getValue())
     return std::make_unique<CGFilter>(glob, deep, ClCGFile.getValue());
+  } else if (id == "experimental::default") {
+    return std::make_unique<StandardForwardFilter>(glob);
   } else {
     // default
     LOG_DEBUG("Return default filter")
