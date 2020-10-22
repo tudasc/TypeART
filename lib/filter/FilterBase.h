@@ -86,7 +86,10 @@ class BaseFilter : public Filter {
   llvm::Function* start_f{nullptr};
 
  public:
-  BaseFilter(const std::string& glob) : handler(glob), search_dir() {
+  explicit BaseFilter(const std::string& glob) : handler(glob), search_dir() {
+  }
+
+  explicit BaseFilter(const CallSiteHandler& handler) : handler(handler), search_dir() {
   }
 
   bool filter(llvm::Value* in) override {
@@ -96,6 +99,15 @@ class BaseFilter : public Filter {
     }
 
     /* TODO if(recursion) stop; */
+
+    /* do a pre-flow tracking check of value in  */
+    if constexpr (CallSiteHandler::Support::PreCheck) {
+      auto status = handler.precheck(in);
+      if (FilterAnalysis::filter == status) {
+        return true;
+      }
+    } else {
+    }
 
     DefUseQueue queue(in);
 
@@ -112,8 +124,8 @@ class BaseFilter : public Filter {
 
         // Indirect calls (sth. like function pointers)
         if (indirect_call) {
-          if constexpr (CallSiteHandler::Trait::Indirect::value) {
-            auto status = handler.indirect(in, val, site);
+          if constexpr (CallSiteHandler::Support::Indirect) {
+            auto status = handler.indirect(in, val);
             if (FilterAnalysis::nofilter == status) {
               return false;
             }
@@ -128,23 +140,39 @@ class BaseFilter : public Filter {
         // Handle decl
         if (is_decl) {
           if (is_intrinsic) {
-            continue;  // TODO make that pluggable
+            if constexpr (CallSiteHandler::Support::Intrinsic) {
+              auto status = handler.intrinsic(in, val);
+              if (FilterAnalysis::nofilter == status) {
+                return false;
+              }
+            } else {
+              return false;
+            }
           }
-          // Handle decl (like MPI calls)
-          auto status = handler.decl(in, val, site);
-          if (FilterAnalysis::nofilter == status) {
-            return false;
-          } else if (FilterAnalysis::cont == status) {
-            continue;
-          }
-        }
 
-        // Handle definitions
-        auto status = handler.def(in, val, site);
-        if (FilterAnalysis::nofilter == status) {
-          return false;
-        } else if (FilterAnalysis::cont == status) {
-          continue;
+          // Handle decl (like MPI calls)
+          if constexpr (CallSiteHandler::Support::Declaration) {
+            auto status = handler.decl(in, val);
+            if (FilterAnalysis::nofilter == status) {
+              return false;
+            } else if (FilterAnalysis::cont == status) {
+              continue;
+            }
+          } else {
+            return false;
+          }
+        } else {
+          // Handle definitions
+          if constexpr (CallSiteHandler::Support::Definition) {
+            auto status = handler.def(in, val);
+            if (FilterAnalysis::nofilter == status) {
+              return false;
+            } else if (FilterAnalysis::cont == status) {
+              continue;
+            }
+          } else {
+            return false;
+          }
         }
 
         // TODO handle across function dataflow
@@ -174,27 +202,30 @@ class BaseFilter : public Filter {
 };
 
 struct FilterTrait {
-  using Indirect  = std::true_type::type;
-  using Intrinsic = std::false_type::type;
+  constexpr static bool Indirect    = true;
+  constexpr static bool Intrinsic   = false;
+  constexpr static bool Declaration = true;
+  constexpr static bool Definition  = true;
+  constexpr static bool PreCheck    = false;
 };
 
 struct Handler {
-  using Trait = FilterTrait;
+  using Support = FilterTrait;
 
   std::string filter;
 
-  Handler(std::string filter) : filter(filter) {
+  Handler(std::string filter) : filter(std::move(filter)) {
   }
 
-  FilterAnalysis indirect(Value* in, Value* current, CallSite c) {
+  FilterAnalysis indirect(Value* in, Value* current) {
     return FilterAnalysis::nofilter;
   }
 
-  FilterAnalysis decl(Value* in, Value* current, CallSite c) {
+  FilterAnalysis decl(Value* in, Value* current) {
     return FilterAnalysis::nofilter;
   }
 
-  FilterAnalysis def(Value* in, Value* current, CallSite c) {
+  FilterAnalysis def(Value* in, Value* current) {
     return FilterAnalysis::nofilter;
   }
 };
