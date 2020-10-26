@@ -9,10 +9,11 @@
 
 #include "MemOpVisitor.h"
 #include "filter/CGFilter.h"
+#include "filter/CGForwardFilter.h"
 #include "filter/CGInterface.h"
 #include "filter/Filter.h"
-#include "filter/FilterBase.h"
 #include "filter/StandardFilter.h"
+#include "filter/StdForwardFilter.h"
 #include "support/Logger.h"
 #include "support/Table.h"
 #include "support/TypeUtil.h"
@@ -87,6 +88,8 @@ static std::unique_ptr<Filter> make_filter(std::string id, std::string glob) {
     return std::make_unique<CGFilter>(glob, deep, ClCGFile.getValue());
   } else if (id == "experimental::default") {
     return std::make_unique<StandardForwardFilter>(glob);
+  } else if (id == "experimental::cg") {
+    return std::make_unique<CGForwardFilter>(glob, ClCGFile.getValue());
   } else {
     // default
     LOG_DEBUG("Return default filter")

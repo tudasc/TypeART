@@ -11,7 +11,7 @@ namespace typeart {
 namespace filter {
 class CGInterface {
  public:
-  enum class ReachabilityResult { reaches, maybe_reaches, never_reaches };
+  enum class ReachabilityResult { reaches, maybe_reaches, never_reaches, unknown };
 
   /**
    * \brief Checks if a path exists from source to target

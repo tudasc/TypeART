@@ -4,7 +4,14 @@ set(FILTER_SOURCES
         CGFilter.h
         CGInterface.cpp
         CGInterface.h
-        Filter.h)
+        Filter.h
+        FilterBase.h
+        CGForwardFilter.h
+        CGForwardFilter.cpp
+        StdForwardFilter.h
+        StdForwardFilter.cpp
+        FilterUtil.cpp
+        FilterUtil.h)
 
 add_library(memfilter STATIC
         ${FILTER_SOURCES}
