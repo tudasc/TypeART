@@ -8,6 +8,7 @@
 #include "llvm/IR/CallSite.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Intrinsics.h"
+#include "llvm/Support/raw_ostream.h"
 
 using namespace llvm;
 
@@ -25,6 +26,8 @@ struct FunctionAnalysis {
 
   FunctionCounts analyze(Function* f);
 };
+
+raw_ostream& operator<<(raw_ostream& os, const FunctionAnalysis::FunctionCounts& counts);
 
 struct DefUseQueue {
   llvm::SmallPtrSet<Value*, 16> visited_set;

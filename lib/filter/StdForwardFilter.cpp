@@ -14,10 +14,10 @@ FilterAnalysis filter::Handler::precheck(Value* in, Function* start) {
     FunctionAnalysis analysis;
     analysis.analyze(start);
     if (analysis.empty()) {
-      return FilterAnalysis::skip;
+      return FilterAnalysis::filter;
     }
   }
-  return FilterAnalysis::filter;
+  return FilterAnalysis::cont;
 }
 
 FilterAnalysis filter::Handler::decl(Value* in, CallSite current) {
@@ -26,16 +26,31 @@ FilterAnalysis filter::Handler::decl(Value* in, CallSite current) {
   if (matchSig) {
     return FilterAnalysis::keep;
   }
-  return FilterAnalysis::skip;
+  return FilterAnalysis::keep;
 }
 
 FilterAnalysis filter::Handler::def(Value* in, CallSite current) {
   // scan only first level, TODO recurse all:
+  auto callTarget = current.getCalledFunction();
+
+  if (match(callTarget)) {
+    return FilterAnalysis::keep;
+  }
+
+  // in case of recursive call ...
+  if (auto* inst = llvm::dyn_cast<Instruction>(in)) {
+    auto parentF = inst->getFunction();
+    if (parentF == callTarget) {
+      return FilterAnalysis::skip;
+    }
+  }
+
   FunctionAnalysis analysis;
-  analysis.analyze(current.getCalledFunction());
+  analysis.analyze(callTarget);
   if (analysis.empty()) {
     return FilterAnalysis::skip;
   }
+
   return FilterAnalysis::keep;
 }
 

@@ -112,7 +112,7 @@ class BaseFilter : public Filter {
                 continue;
             }
           } else {
-            LOG_DEBUG("Indirect call, filtering.")
+            LOG_DEBUG("Indirect call, keep.")
             return false;
           }
         }
@@ -170,7 +170,7 @@ class BaseFilter : public Filter {
                 continue;
             }
           } else {
-            LOG_DEBUG("Definition, filter.")
+            LOG_DEBUG("Definition, keep.")
             return false;
           }
         }

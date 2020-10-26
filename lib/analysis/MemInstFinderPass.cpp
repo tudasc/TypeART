@@ -87,8 +87,10 @@ static std::unique_ptr<Filter> make_filter(std::string id, std::string glob) {
     LOG_DEBUG("Return CG filter with CG @ " << ClCGFile.getValue())
     return std::make_unique<CGFilter>(glob, deep, ClCGFile.getValue());
   } else if (id == "experimental::default") {
+    LOG_DEBUG("Return experimental default filter")
     return std::make_unique<StandardForwardFilter>(glob);
   } else if (id == "experimental::cg") {
+    LOG_DEBUG("Return experimental CG filter with CG @ " << ClCGFile.getValue())
     return std::make_unique<CGForwardFilter>(glob, ClCGFile.getValue());
   } else {
     // default

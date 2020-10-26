@@ -88,4 +88,9 @@ Value* DefUseQueue::peek() {
   return *user_iter;
 }
 
+raw_ostream& operator<<(raw_ostream& os, const FunctionAnalysis::FunctionCounts& counts) {
+  os << "[ decl:" << counts.decl << ";def:" << counts.def << ";intr:" << counts.intrinsic
+     << ";indir:" << counts.indirect << " ]";
+  return os;
+}
 }  // namespace typeart::filter
