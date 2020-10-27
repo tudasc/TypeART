@@ -375,7 +375,7 @@ void __tycart_init(const char *cfgFile) {
 #endif
 }
 
-void __tycart_cp_recover(const char*name, int version) {
+void __tycart_cp_recover(const char *name, int version) {
 #ifdef WITH_FTI
   #error Currently not implemented with FTI
 #endif
