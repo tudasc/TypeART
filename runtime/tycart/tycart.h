@@ -50,6 +50,16 @@ void __tycart_register_FTI_t(int typeId);
  */
 void __tycart_register_FTI_t_stub(void* ptr);
 
+/*
+ * Used to recover from a checkpoint
+ */
+void __tycart_cp_recover(const char *name, int version);
+
+/*
+ * Init the different libraries
+ */
+void __tycart_init(const char *cfgFile);
+
 #ifdef __cplusplus
 }
 #endif  // __cplusplus
@@ -118,7 +128,7 @@ void __tycart_register_FTI_t_stub(void* ptr);
 #define TY_unregister_mem(id) __tycart_deregister_mem(id);
 
 // Common API for restart
-#define TY_recover() { __tycart_cp_recover(); }
+#define TY_recover(name, version) { __tycart_cp_recover(name, version); }
 
 //
 // clang-format on
