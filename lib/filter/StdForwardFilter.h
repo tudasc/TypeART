@@ -26,9 +26,9 @@ struct Handler {
 
   FilterAnalysis precheck(Value* in, Function* start);
 
-  FilterAnalysis decl(Value* in, CallSite current);
+  FilterAnalysis decl(CallSite current, const Path& p);
 
-  FilterAnalysis def(Value* in, CallSite current);
+  FilterAnalysis def(CallSite current, const Path& p);
 
  private:
   bool match(Function* callee);

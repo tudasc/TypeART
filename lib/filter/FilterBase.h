@@ -14,7 +14,7 @@
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Intrinsics.h"
 
-#include <llvm/ADT/DepthFirstIterator.h>
+#include <iterator>
 #include <type_traits>
 
 namespace typeart::filter {
@@ -22,6 +22,54 @@ namespace typeart::filter {
 using namespace llvm;
 
 enum class FilterAnalysis { skip = 0, cont, keep, filter };
+
+struct IRPath {
+  using Node = llvm::Value*;
+  std::vector<llvm::Value*> path;
+
+  llvm::Optional<Node> bottom() const {
+    if (path.empty()) {
+      return None;
+    }
+    return *path.begin();
+  }
+
+  llvm::Optional<Node> top() const {
+    if (path.empty()) {
+      return None;
+    }
+    return *path.end();
+  }
+
+  void pop() {
+    if (!path.empty()) {
+      path.pop_back();
+    }
+  }
+
+  void push(Node n) {
+    path.push_back(n);
+  }
+
+  bool contains(Node n) const {
+    return llvm::find_if(path, [&n](const auto* node) { return node == n; }) != std::end(path);
+  }
+};
+
+inline llvm::raw_ostream& operator<<(llvm::raw_ostream& os, const IRPath& p) {
+  const auto& vec = p.path;
+  if (vec.empty()) {
+    os << "path = [ ]";
+    return os;
+  }
+  auto begin = std::begin(vec);
+  os << "path = [" << **begin;
+  std::for_each(std::next(begin), std::end(vec), [&](const auto* v) { os << " ->" << *v; });
+  os << "]";
+  return os;
+}
+
+using Path = IRPath;
 
 struct DefaultSearch {
   auto search(Value* val) -> Optional<decltype(val->users())> {
@@ -85,105 +133,8 @@ class BaseFilter : public Filter {
     } else {
     }
 
-    DefUseQueue queue(in);
-
-    while (!queue.empty()) {
-      auto val = queue.peek();
-      if (!val) {
-        continue;
-      }
-
-      CallSite site(val);
-      if (site.isCall()) {
-        const auto callee        = site.getCalledFunction();
-        const bool indirect_call = callee == nullptr;
-
-        // Indirect calls (sth. like function pointers)
-        if (indirect_call) {
-          if constexpr (CallSiteHandler::Support::Indirect) {
-            auto status = handler.indirect(in, site);
-            switch (status) {
-              case FilterAnalysis::keep:
-                return false;
-              case FilterAnalysis::cont:
-                break;
-              default:
-                LOG_DEBUG("Indirect call, continuing analysis.");
-                continue;
-            }
-          } else {
-            LOG_DEBUG("Indirect call, keep.")
-            return false;
-          }
-        }
-
-        const bool is_decl      = callee->isDeclaration();
-        const bool is_intrinsic = site.getIntrinsicID() != Intrinsic::not_intrinsic;
-
-        // Handle decl
-        if (is_decl) {
-          if (is_intrinsic) {
-            if constexpr (CallSiteHandler::Support::Intrinsic) {
-              auto status = handler.intrinsic(in, site);
-              switch (status) {
-                case FilterAnalysis::keep:
-                  return false;
-                case FilterAnalysis::cont:
-                  break;
-                default:
-                  LOG_DEBUG("Skip Intrinsic call, continuing analysis.");
-                  continue;
-              }
-            } else {
-              LOG_DEBUG("Skip intrinsic.")
-              continue;
-            }
-          }
-
-          // Handle decl (like MPI calls)
-          if constexpr (CallSiteHandler::Support::Declaration) {
-            auto status = handler.decl(in, site);
-            switch (status) {
-              case FilterAnalysis::keep:
-                return false;
-              case FilterAnalysis::cont:
-                break;
-              default:
-                LOG_DEBUG("Decl call, continuing analysis.");
-                continue;
-            }
-          } else {
-            LOG_DEBUG("Declaration, filter.")
-            return false;
-          }
-        } else {
-          // Handle definitions
-          if constexpr (CallSiteHandler::Support::Definition) {
-            auto status = handler.def(in, site);
-            switch (status) {
-              case FilterAnalysis::keep:
-                return false;
-              case FilterAnalysis::cont:
-                break;
-              default:
-                LOG_DEBUG("Defined call, continuing analysis.");
-                continue;
-            }
-          } else {
-            LOG_DEBUG("Definition, keep.")
-            return false;
-          }
-        }
-      }
-
-      // Look forward at dataflow
-      auto values = search_dir.search(val);
-      if (values) {
-        queue.addToWork(values.getValue());
-      }
-    }
-
-    return true;  // no early exit, we should filter
+    Path p;
+    return DFSfilter(in, p);
   }
 
   virtual void setStartingFunction(llvm::Function* f) override {
@@ -193,6 +144,102 @@ class BaseFilter : public Filter {
   virtual void setMode(bool m) override {
     malloc_mode = m;
   };
+
+ private:
+  bool DFSfilter(llvm::Value* current, Path& path) {
+    path.push(current);
+
+    LOG_DEBUG(path);
+
+    bool skip{false};
+    // In-order analysis
+    auto status = callsite(current, path);
+    switch (status) {
+      case FilterAnalysis::keep:
+        path.pop();
+        return false;
+      case FilterAnalysis::skip:
+        skip = true;
+      default:
+        break;
+    }
+
+    auto succs = search_dir.search(current);
+    if (succs && !skip) {
+      for (auto* successor : succs.getValue()) {
+        if (path.contains(successor)) {
+          // Avoid recursion (e.g., with store inst pointer operands pointing to an allocation)
+          continue;
+        }
+        const auto filter = DFSfilter(successor, path);
+        if (!filter) {
+          path.pop();
+          return false;
+        }
+      }
+    }
+
+    path.pop();
+    return true;
+  }
+
+  FilterAnalysis callsite(llvm::Value* val, const Path& path) {
+    CallSite site(val);
+    if (site.isCall()) {
+      const auto callee        = site.getCalledFunction();
+      const bool indirect_call = callee == nullptr;
+
+      // Indirect calls (sth. like function pointers)
+      if (indirect_call) {
+        if constexpr (CallSiteHandler::Support::Indirect) {
+          auto status = handler.indirect(site, path);
+          LOG_DEBUG("Indirect call.")
+          return status;
+        } else {
+          LOG_DEBUG("Indirect call, keep.")
+          return FilterAnalysis::keep;
+        }
+      }
+
+      const bool is_decl      = callee->isDeclaration();
+      const bool is_intrinsic = site.getIntrinsicID() != Intrinsic::not_intrinsic;
+
+      // Handle decl
+      if (is_decl) {
+        if (is_intrinsic) {
+          if constexpr (CallSiteHandler::Support::Intrinsic) {
+            auto status = handler.intrinsic(site, path);
+            LOG_DEBUG("Intrinsic call.")
+            return status;
+          } else {
+            LOG_DEBUG("Skip intrinsic.")
+            return FilterAnalysis::skip;
+          }
+        }
+
+        // Handle decl (like MPI calls)
+        if constexpr (CallSiteHandler::Support::Declaration) {
+          auto status = handler.decl(site, path);
+          LOG_DEBUG("Decl call.")
+          return status;
+        } else {
+          LOG_DEBUG("Declaration, keep.")
+          return FilterAnalysis::keep;
+        }
+      } else {
+        // Handle definitions
+        if constexpr (CallSiteHandler::Support::Definition) {
+          auto status = handler.def(site, path);
+          LOG_DEBUG("Defined call.")
+          return status;
+        } else {
+          LOG_DEBUG("Definition, keep.")
+          return FilterAnalysis::keep;
+        }
+      }
+    }
+    return FilterAnalysis::cont;
+  }
 };
 
 }  // namespace typeart::filter

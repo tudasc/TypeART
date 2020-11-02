@@ -20,7 +20,7 @@ FilterAnalysis filter::Handler::precheck(Value* in, Function* start) {
   return FilterAnalysis::cont;
 }
 
-FilterAnalysis filter::Handler::decl(Value* in, CallSite current) {
+FilterAnalysis filter::Handler::decl(CallSite current, const Path& p) {
   // deeper analysis only possible if we had a path from *in* to *current*
   const bool matchSig = match(current.getCalledFunction());
   if (matchSig) {
@@ -29,7 +29,7 @@ FilterAnalysis filter::Handler::decl(Value* in, CallSite current) {
   return FilterAnalysis::keep;
 }
 
-FilterAnalysis filter::Handler::def(Value* in, CallSite current) {
+FilterAnalysis filter::Handler::def(CallSite current, const Path& p) {
   // scan only first level, TODO recurse all:
   auto callTarget = current.getCalledFunction();
 
@@ -37,11 +37,15 @@ FilterAnalysis filter::Handler::def(Value* in, CallSite current) {
     return FilterAnalysis::keep;
   }
 
+  auto start = p.bottom();
   // in case of recursive call ...
-  if (auto* inst = llvm::dyn_cast<Instruction>(in)) {
-    auto parentF = inst->getFunction();
-    if (parentF == callTarget) {
-      return FilterAnalysis::skip;
+  if (start) {
+    Value* in = start.getValue();
+    if (auto* inst = llvm::dyn_cast<Instruction>(in)) {
+      auto parentF = inst->getFunction();
+      if (parentF == callTarget) {
+        return FilterAnalysis::skip;
+      }
     }
   }
 

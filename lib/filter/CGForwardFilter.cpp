@@ -21,7 +21,7 @@ FilterAnalysis CGFilterImpl::precheck(Value* in, Function* start) {
   return FilterAnalysis::cont;
 }
 
-FilterAnalysis CGFilterImpl::decl(Value* in, CallSite current) {
+FilterAnalysis CGFilterImpl::decl(CallSite current, const Path& p) {
   // deeper analysis only possible if we had a path from *in* to *current*
   const bool matchSig = match(current.getCalledFunction());
   if (matchSig) {
@@ -49,8 +49,8 @@ FilterAnalysis CGFilterImpl::decl(Value* in, CallSite current) {
   return FilterAnalysis::cont;
 }
 
-FilterAnalysis CGFilterImpl::def(Value* in, CallSite current) {
-  return decl(in, current);
+FilterAnalysis CGFilterImpl::def(CallSite current, const Path& p) {
+  return decl(current, p);
 }
 
 bool CGFilterImpl::match(Function* callee) {
