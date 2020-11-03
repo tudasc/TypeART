@@ -25,7 +25,16 @@ FilterAnalysis CGFilterImpl::decl(CallSite current, const Path& p) {
   // deeper analysis only possible if we had a path from *in* to *current*
   const bool matchSig = match(current.getCalledFunction());
   if (matchSig) {
-    return FilterAnalysis::keep;
+    auto result = correlate2void(current, p);
+    switch (result) {
+      case ArgCorrelation::GlobalMismatch:
+        [[fallthrough]];
+      case ArgCorrelation::ExactMismatch:
+        LOG_DEBUG("Correlated, continue search");
+        return FilterAnalysis::cont;
+      default:
+        return FilterAnalysis::keep;
+    }
   }
 
   const auto searchCG = [&](auto from) {

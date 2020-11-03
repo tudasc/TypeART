@@ -1,6 +1,7 @@
 // clang-format off
 // RUN: clang -S -emit-llvm %s -o - | opt -load %pluginpath/analysis/meminstfinderpass.so -load %pluginpath/%pluginname %pluginargs -typeart-alloca -alloca-array-only=false -call-filter -filter-impl=default -call-filter-deep=true -S 2>&1 | FileCheck %s --check-prefix=CHECK-default
 // RUN: clang -S -emit-llvm %s -o - | opt -load %pluginpath/analysis/meminstfinderpass.so -load %pluginpath/%pluginname %pluginargs -typeart-alloca -alloca-array-only=false -call-filter -filter-impl=experimental::default -call-filter-deep=true -S 2>&1 | FileCheck %s --check-prefix=CHECK-exp-default
+// RUN: clang -S -emit-llvm %s -o - | opt -load %pluginpath/analysis/meminstfinderpass.so -load %pluginpath/%pluginname %pluginargs -typeart-alloca -alloca-array-only=false -call-filter -filter-impl=experimental::cg -cg-file=%p/05_cg.ipcg -S 2>&1 | FileCheck %s --check-prefix=CHECK-exp-cg
 // clang-format on
 
 extern void MPI_Mock(int, int, int);
@@ -26,3 +27,8 @@ void foo() {
 // CHECK-exp-default: > Stack Memory
 // CHECK-exp-default-NEXT: Alloca                 :  5.00
 // CHECK-exp-default-NEXT: Stack call filtered %  :  80.00
+
+// CG experimental filter
+// CHECK-exp-cg: > Stack Memory
+// CHECK-exp-cg-NEXT: Alloca                 :  5.00
+// CHECK-exp-cg-NEXT: Stack call filtered %  :  80.00
