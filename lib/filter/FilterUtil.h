@@ -5,6 +5,8 @@
 #ifndef TYPEART_FILTERUTIL_H
 #define TYPEART_FILTERUTIL_H
 
+#include "IRPath.h"
+
 #include "llvm/IR/CallSite.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Intrinsics.h"
@@ -51,6 +53,52 @@ struct DefUseQueue {
 
   Value* peek();
 };
+
+enum class ArgCorrelation {
+  NoMatch,
+  Exact,
+  ExactMismatch,
+  Global,
+  GlobalMismatch,
+};
+
+namespace detail {
+template <typename TypeID>
+ArgCorrelation correlate(CallSite c, const Path& p, TypeID&& isType) {
+  auto arg = p.top2nd();
+  if (!arg) {
+    return ArgCorrelation::NoMatch;
+  }
+
+  Value* in          = arg.getValue();
+  const auto arg_pos = llvm::find_if(c.args(), [&in](const Use& arg_use) -> bool { return arg_use.get() == in; });
+
+  if (arg_pos == c.arg_end()) {
+    const auto count_type_ptr = llvm::count_if(c.args(), [&](const auto& arg) {
+      const auto type = arg->getType();
+      return isType(type);
+    });
+    if (count_type_ptr > 0) {
+      return ArgCorrelation::Global;
+    }
+    return ArgCorrelation::GlobalMismatch;
+  }
+
+  const auto argNum = std::distance(c.arg_begin(), arg_pos);
+  Argument& the_arg = *(c.getCalledFunction()->arg_begin() + argNum);
+  auto type         = the_arg.getType();
+
+  if (isType(type)) {
+    return ArgCorrelation::Exact;
+  } else {
+    return ArgCorrelation::ExactMismatch;
+  }
+}
+}  // namespace detail
+inline ArgCorrelation correlate2void(CallSite c, const Path& p) {
+  return detail::correlate(
+      c, p, [](llvm::Type* type) { return type->isPointerTy() && type->getPointerElementType()->isIntegerTy(8); });
+}
 
 }  // namespace typeart::filter
 

@@ -76,8 +76,13 @@ bool StandardFilter::filter(Value* in) {
       if (is_decl) {
         LOG_DEBUG("Found call with declaration only. Call: " << util::dump(*c.getInstruction()));
         if (c.getIntrinsicID() == Intrinsic::not_intrinsic /*Intrinsic::ID::not_intrinsic*/) {
-          if (ClCallFilterDeep && match(callee) && shouldContinue(c, in)) {
-            continue;
+          LOG_DEBUG("Not intrinsic " << ClCallFilterDeep);
+          if (ClCallFilterDeep && match(callee)) {
+            const bool can_cont = shouldContinue(c, in);
+            LOG_DEBUG("Matched, void* analysis " << can_cont);
+            if (can_cont) {
+              continue;
+            }
           }
           return false;
         } else {

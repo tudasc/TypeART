@@ -4,6 +4,8 @@
 
 #include "StdForwardFilter.h"
 
+#include "../support/TypeUtil.h"
+
 namespace typeart::filter {
 
 filter::Handler::Handler(std::string filter) : filter(util::glob2regex(std::move(filter))) {
@@ -24,7 +26,16 @@ FilterAnalysis filter::Handler::decl(CallSite current, const Path& p) {
   // deeper analysis only possible if we had a path from *in* to *current*
   const bool matchSig = match(current.getCalledFunction());
   if (matchSig) {
-    return FilterAnalysis::keep;
+    auto result = correlate2void(current, p);
+    switch (result) {
+      case ArgCorrelation::GlobalMismatch:
+        [[fallthrough]];
+      case ArgCorrelation::ExactMismatch:
+        LOG_DEBUG("Correlated, continue search");
+        return FilterAnalysis::cont;
+      default:
+        return FilterAnalysis::keep;
+    }
   }
   return FilterAnalysis::keep;
 }

@@ -9,6 +9,7 @@
 #include "../support/Util.h"
 #include "Filter.h"
 #include "FilterUtil.h"
+#include "IRPath.h"
 
 #include "llvm/IR/CallSite.h"
 #include "llvm/IR/Instructions.h"
@@ -22,54 +23,6 @@ namespace typeart::filter {
 using namespace llvm;
 
 enum class FilterAnalysis { skip = 0, cont, keep, filter };
-
-struct IRPath {
-  using Node = llvm::Value*;
-  std::vector<llvm::Value*> path;
-
-  llvm::Optional<Node> bottom() const {
-    if (path.empty()) {
-      return None;
-    }
-    return *path.begin();
-  }
-
-  llvm::Optional<Node> top() const {
-    if (path.empty()) {
-      return None;
-    }
-    return *path.end();
-  }
-
-  void pop() {
-    if (!path.empty()) {
-      path.pop_back();
-    }
-  }
-
-  void push(Node n) {
-    path.push_back(n);
-  }
-
-  bool contains(Node n) const {
-    return llvm::find_if(path, [&n](const auto* node) { return node == n; }) != std::end(path);
-  }
-};
-
-inline llvm::raw_ostream& operator<<(llvm::raw_ostream& os, const IRPath& p) {
-  const auto& vec = p.path;
-  if (vec.empty()) {
-    os << "path = [ ]";
-    return os;
-  }
-  auto begin = std::begin(vec);
-  os << "path = [" << **begin;
-  std::for_each(std::next(begin), std::end(vec), [&](const auto* v) { os << " ->" << *v; });
-  os << "]";
-  return os;
-}
-
-using Path = IRPath;
 
 struct DefaultSearch {
   auto search(Value* val) -> Optional<decltype(val->users())> {
