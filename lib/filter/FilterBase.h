@@ -113,6 +113,7 @@ class BaseFilter : public Filter {
         return false;
       case FilterAnalysis::skip:
         skip = true;
+        break;
       default:
         break;
     }

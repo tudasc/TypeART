@@ -65,7 +65,7 @@ enum class ArgCorrelation {
 namespace detail {
 template <typename TypeID>
 ArgCorrelation correlate(CallSite c, const Path& p, TypeID&& isType) {
-  auto arg = p.top2nd();
+  auto arg = p.getEndPrev();
   if (!arg) {
     return ArgCorrelation::NoMatch;
   }

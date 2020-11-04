@@ -1,5 +1,6 @@
 set(FILTER_SOURCES
         StandardFilter.cpp
+        StandardFilter.h
         CGFilter.cpp
         CGFilter.h
         CGInterface.cpp
@@ -24,6 +25,8 @@ add_library(memfilter STATIC
 #)
 
 target_project_compile_options(memfilter)
+
+target_define_file_basename(memfilter)
 
 target_project_compile_definitions(memfilter
   PRIVATE_DEFS

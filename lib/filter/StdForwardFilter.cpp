@@ -23,7 +23,6 @@ FilterAnalysis filter::Handler::precheck(Value* in, Function* start) {
 }
 
 FilterAnalysis filter::Handler::decl(CallSite current, const Path& p) {
-  // deeper analysis only possible if we had a path from *in* to *current*
   const bool matchSig = match(current.getCalledFunction());
   if (matchSig) {
     auto result = correlate2void(current, p);
@@ -45,10 +44,19 @@ FilterAnalysis filter::Handler::def(CallSite current, const Path& p) {
   auto callTarget = current.getCalledFunction();
 
   if (match(callTarget)) {
-    return FilterAnalysis::keep;
+    auto result = correlate2void(current, p);
+    switch (result) {
+      case ArgCorrelation::GlobalMismatch:
+        [[fallthrough]];
+      case ArgCorrelation::ExactMismatch:
+        LOG_DEBUG("Correlated definition args, continue search");
+        return FilterAnalysis::cont;
+      default:
+        return FilterAnalysis::keep;
+    }
   }
 
-  auto start = p.bottom();
+  auto start = p.getStart();
   // in case of recursive call ...
   if (start) {
     Value* in = start.getValue();

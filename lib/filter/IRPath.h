@@ -16,23 +16,23 @@ struct IRPath {
   using Node = llvm::Value*;
   std::vector<llvm::Value*> path;
 
-  llvm::Optional<Node> bottom() const {
+  llvm::Optional<Node> getStart() const {
     if (path.empty()) {
       return llvm::None;
     }
     return *path.begin();
   }
 
-  llvm::Optional<Node> top() const {
-    return topPos<1>();
+  llvm::Optional<Node> getEnd() const {
+    return getNodeN<1>();
   }
 
-  llvm::Optional<Node> top2nd() const {
-    return topPos<2>();
+  llvm::Optional<Node> getEndPrev() const {
+    return getNodeN<2>();
   }
 
   template <unsigned n>
-  llvm::Optional<Node> topPos() const {
+  llvm::Optional<Node> getNodeN() const {
     if (path.empty() || path.size() < n) {
       return llvm::None;
     }
