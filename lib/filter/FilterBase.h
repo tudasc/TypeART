@@ -26,12 +26,6 @@ enum class FilterAnalysis { skip = 0, cont, keep, filter, follow };
 
 struct DefaultSearch {
   auto search(Value* val) -> Optional<decltype(val->users())> {
-    return val->users();
-  }
-};
-
-struct SearchStoreDir {
-  auto search(Value* val) -> Optional<decltype(val->users())> {
     if (auto store = llvm::dyn_cast<StoreInst>(val)) {
       val = store->getPointerOperand();
       if (llvm::isa<AllocaInst>(val) && !store->getValueOperand()->getType()->isPointerTy()) {
@@ -127,11 +121,9 @@ class BaseFilter : public Filter {
 
     for (auto& path2def : defPath) {
       auto csite = path2def.getEnd();
-
       if (!csite) {
         continue;
       }
-
       llvm::CallSite c(csite.getValue());
       if (fpath.contains(c)) {
         continue;
@@ -142,6 +134,10 @@ class BaseFilter : public Filter {
       LOG_DEBUG(fpath);
 
       auto argv = args(c, path2def);
+
+      if (argv.size() > 1) {
+        LOG_DEBUG("All args are looked at.")
+      }
 
       for (auto& arg : argv) {
         const auto dfs_filter = DFSFuncFilter(arg, fpath);
@@ -154,23 +150,6 @@ class BaseFilter : public Filter {
 
     fpath.pop();
     return true;
-
-    /*
-     TODO: implement recursive follow up on defined functions,
-     but only if local filter result is true, and we have definitions
-        if (filter && !defPath.empty()) {
-          for (auto& path2def : defPath) {
-            // Avoid analysing the same function (recursion)
-            //if(fpath.contains(path2def.definition) { continue; }
-
-            // TODO find argument of definition to analyse (or all) w.r.t. path
-            // const auto dfs_filter = DFSFuncFilter(...);
-            // if(!dfs_filter) { return false; };
-          }
-          return true;
-        }
-        return filter;
-     */
   }
 
   bool DFSfilter(llvm::Value* current, Path& path, PathList& plist) {
@@ -212,7 +191,6 @@ class BaseFilter : public Filter {
       }
     }
 
-    // LOG_DEBUG("Filter " << path);
     path.pop();
     return true;
   }

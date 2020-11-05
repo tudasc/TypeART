@@ -95,10 +95,6 @@ struct CallsitePath {
     return getNodeFromEnd<1>();
   }
 
-  llvm::Optional<Node> getEndPrev() const {
-    return getNodeFromEnd<2>();
-  }
-
   template <unsigned n>
   llvm::Optional<Node> getNodeFromEnd() const {
     if (path.empty() || path.size() < n) {

@@ -40,7 +40,6 @@ FilterAnalysis filter::Handler::decl(CallSite current, const Path& p) {
 }
 
 FilterAnalysis filter::Handler::def(CallSite current, const Path& p) {
-  // scan only first level, TODO recurse all:
   auto callTarget = current.getCalledFunction();
 
   if (match(callTarget)) {
@@ -57,26 +56,6 @@ FilterAnalysis filter::Handler::def(CallSite current, const Path& p) {
   }
 
   return FilterAnalysis::follow;
-
-  auto start = p.getStart();
-  // in case of recursive call ...
-  if (start) {
-    Value* in = start.getValue();
-    if (auto* inst = llvm::dyn_cast<Instruction>(in)) {
-      auto parentF = inst->getFunction();
-      if (parentF == callTarget) {
-        return FilterAnalysis::skip;
-      }
-    }
-  }
-
-  FunctionAnalysis analysis;
-  analysis.analyze(callTarget);
-  if (analysis.empty()) {
-    return FilterAnalysis::skip;
-  }
-
-  return FilterAnalysis::keep;
 }
 
 bool filter::Handler::match(Function* callee) {
