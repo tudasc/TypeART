@@ -22,7 +22,7 @@ namespace typeart::filter {
 
 using namespace llvm;
 
-enum class FilterAnalysis { skip = 0, cont, keep, filter };
+enum class FilterAnalysis { skip = 0, cont, keep, filter, follow };
 
 struct DefaultSearch {
   auto search(Value* val) -> Optional<decltype(val->users())> {
@@ -34,9 +34,15 @@ struct SearchStoreDir {
   auto search(Value* val) -> Optional<decltype(val->users())> {
     if (auto store = llvm::dyn_cast<StoreInst>(val)) {
       val = store->getPointerOperand();
-      if (llvm::isa<AllocaInst>(val)) {
+      if (llvm::isa<AllocaInst>(val) && !store->getValueOperand()->getType()->isPointerTy()) {
+        // 1. if we store to an alloca, and the value is not a pointer (i.e., a value) there is no connection to follow
+        // w.r.t. dataflow. (TODO exceptions could be some pointer arithm.)
         return None;
       }
+      // 2. TODO if we store to a pointer, analysis is required to filter simple aliasing pointer (filter opportunity,
+      // see test 01_alloca.llin variable a and c -- c points to a, then c gets passed to MPI)
+      // 2.1 care has to be taken for argument store to aliasing local (implicit) alloc, i.e., see same test variable %x
+      // passed to func foo_bar2
     }
     return val->users();
   }
@@ -66,28 +72,8 @@ class BaseFilter : public Filter {
       return false;
     }
 
-    /* TODO if(recursion) stop; */
-
-    /* do a pre-flow tracking check of value in  */
-    if constexpr (CallSiteHandler::Support::PreCheck) {
-      auto status = handler.precheck(in, start_f);
-      switch (status) {
-        case FilterAnalysis::filter:
-          return true;
-        case FilterAnalysis::keep:
-          return false;
-        case FilterAnalysis::skip:
-          [[fallthrough]];
-        case FilterAnalysis::cont:
-          [[fallthrough]];
-        default:
-          break;
-      }
-    } else {
-    }
-
-    Path p;
-    return DFSfilter(in, p);
+    FPath fpath(start_f);
+    return DFSFuncFilter(in, fpath);
   }
 
   virtual void setStartingFunction(llvm::Function* f) override {
@@ -99,7 +85,95 @@ class BaseFilter : public Filter {
   };
 
  private:
-  bool DFSfilter(llvm::Value* current, Path& path) {
+  bool DFSFuncFilter(llvm::Value* current, FPath& fpath) {
+    auto f = fpath.getCurrentFunc();
+    if (!f) {
+      return false;
+    }
+
+    [[maybe_unused]] llvm::Function* currentF = f.getValue();
+
+    /* do a pre-flow tracking check of value in  */
+    if constexpr (CallSiteHandler::Support::PreCheck) {
+      auto status = handler.precheck(current, currentF);
+      switch (status) {
+        case FilterAnalysis::filter:
+          fpath.pop();
+          return true;
+        case FilterAnalysis::keep:
+          fpath.pop();
+          return false;
+        case FilterAnalysis::skip:
+          [[fallthrough]];
+        case FilterAnalysis::cont:
+          [[fallthrough]];
+        default:
+          break;
+      }
+    } else {
+    }
+
+    PathList defPath;  // pathes that reach a definition in currentF
+    Path p;
+    const auto filter = DFSfilter(current, p, defPath);
+
+    if (!filter) {
+      return false;
+    }
+
+    if (defPath.empty()) {
+      return filter;
+    }
+
+    for (auto& path2def : defPath) {
+      auto csite = path2def.getEnd();
+
+      if (!csite) {
+        continue;
+      }
+
+      llvm::CallSite c(csite.getValue());
+      if (fpath.contains(c)) {
+        continue;
+      }
+
+      fpath.push(path2def);
+
+      LOG_DEBUG(fpath);
+
+      auto argv = args(c, path2def);
+
+      for (auto& arg : argv) {
+        const auto dfs_filter = DFSFuncFilter(arg, fpath);
+        if (!dfs_filter) {
+          fpath.pop();
+          return false;
+        }
+      }
+    }
+
+    fpath.pop();
+    return true;
+
+    /*
+     TODO: implement recursive follow up on defined functions,
+     but only if local filter result is true, and we have definitions
+        if (filter && !defPath.empty()) {
+          for (auto& path2def : defPath) {
+            // Avoid analysing the same function (recursion)
+            //if(fpath.contains(path2def.definition) { continue; }
+
+            // TODO find argument of definition to analyse (or all) w.r.t. path
+            // const auto dfs_filter = DFSFuncFilter(...);
+            // if(!dfs_filter) { return false; };
+          }
+          return true;
+        }
+        return filter;
+     */
+  }
+
+  bool DFSfilter(llvm::Value* current, Path& path, PathList& plist) {
     path.push(current);
 
     LOG_DEBUG(path);
@@ -114,6 +188,11 @@ class BaseFilter : public Filter {
       case FilterAnalysis::skip:
         skip = true;
         break;
+      case FilterAnalysis::follow:
+        LOG_DEBUG("Analyze definition in path");
+        // store path (with the callsite) for a function recursive check later
+        plist.emplace_back(path);
+        break;
       default:
         break;
     }
@@ -125,7 +204,7 @@ class BaseFilter : public Filter {
           // Avoid recursion (e.g., with store inst pointer operands pointing to an allocation)
           continue;
         }
-        const auto filter = DFSfilter(successor, path);
+        const auto filter = DFSfilter(successor, path, plist);
         if (!filter) {
           path.pop();
           return false;
@@ -133,6 +212,7 @@ class BaseFilter : public Filter {
       }
     }
 
+    // LOG_DEBUG("Filter " << path);
     path.pop();
     return true;
   }

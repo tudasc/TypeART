@@ -62,18 +62,43 @@ enum class ArgCorrelation {
   GlobalMismatch,
 };
 
-namespace detail {
-template <typename TypeID>
-ArgCorrelation correlate(CallSite c, const Path& p, TypeID&& isType) {
+inline std::pair<llvm::Argument*, int> find_arg(CallSite c, const Path& p) {
   auto arg = p.getEndPrev();
   if (!arg) {
-    return ArgCorrelation::NoMatch;
+    return {nullptr, -1};
   }
 
   Value* in          = arg.getValue();
   const auto arg_pos = llvm::find_if(c.args(), [&in](const Use& arg_use) -> bool { return arg_use.get() == in; });
-
   if (arg_pos == c.arg_end()) {
+    return {nullptr, -1};
+  }
+  const auto argNum  = std::distance(c.arg_begin(), arg_pos);
+  Argument& argument = *(c.getCalledFunction()->arg_begin() + argNum);
+
+  return {&argument, argNum};
+}
+
+inline std::vector<llvm::Argument*> args(CallSite c, const Path& p) {
+  auto [arg, _] = find_arg(c, p);
+  if (arg) {
+    return {arg};
+  }
+
+  std::vector<llvm::Argument*> args;
+  llvm::for_each(c.args(), [&args](llvm::Use& use) {
+    Argument* a = llvm::dyn_cast<Argument>(use.get());
+    args.emplace_back(a);
+  });
+  return args;
+}
+
+namespace detail {
+template <typename TypeID>
+ArgCorrelation correlate(CallSite c, const Path& p, TypeID&& isType) {
+  auto [arg, _] = find_arg(c, p);
+
+  if (!arg) {
     const auto count_type_ptr = llvm::count_if(c.args(), [&](const auto& arg) {
       const auto type = arg->getType();
       return isType(type);
@@ -84,9 +109,7 @@ ArgCorrelation correlate(CallSite c, const Path& p, TypeID&& isType) {
     return ArgCorrelation::GlobalMismatch;
   }
 
-  const auto argNum = std::distance(c.arg_begin(), arg_pos);
-  Argument& the_arg = *(c.getCalledFunction()->arg_begin() + argNum);
-  auto type         = the_arg.getType();
+  auto type = arg->getType();
 
   if (isType(type)) {
     return ArgCorrelation::Exact;
@@ -95,6 +118,7 @@ ArgCorrelation correlate(CallSite c, const Path& p, TypeID&& isType) {
   }
 }
 }  // namespace detail
+
 inline ArgCorrelation correlate2void(CallSite c, const Path& p) {
   return detail::correlate(
       c, p, [](llvm::Type* type) { return type->isPointerTy() && type->getPointerElementType()->isIntegerTy(8); });

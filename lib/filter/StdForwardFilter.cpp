@@ -56,6 +56,8 @@ FilterAnalysis filter::Handler::def(CallSite current, const Path& p) {
     }
   }
 
+  return FilterAnalysis::follow;
+
   auto start = p.getStart();
   // in case of recursive call ...
   if (start) {
