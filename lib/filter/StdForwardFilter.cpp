@@ -16,10 +16,10 @@ FilterAnalysis filter::Handler::precheck(Value* in, Function* start) {
     FunctionAnalysis analysis;
     analysis.analyze(start);
     if (analysis.empty()) {
-      return FilterAnalysis::filter;
+      return FilterAnalysis::Filter;
     }
   }
-  return FilterAnalysis::cont;
+  return FilterAnalysis::Continue;
 }
 
 FilterAnalysis filter::Handler::decl(CallSite current, const Path& p) {
@@ -31,12 +31,12 @@ FilterAnalysis filter::Handler::decl(CallSite current, const Path& p) {
         [[fallthrough]];
       case ArgCorrelation::ExactMismatch:
         LOG_DEBUG("Correlated, continue search");
-        return FilterAnalysis::cont;
+        return FilterAnalysis::Continue;
       default:
-        return FilterAnalysis::keep;
+        return FilterAnalysis::Keep;
     }
   }
-  return FilterAnalysis::keep;
+  return FilterAnalysis::Keep;
 }
 
 FilterAnalysis filter::Handler::def(CallSite current, const Path& p) {
@@ -49,13 +49,13 @@ FilterAnalysis filter::Handler::def(CallSite current, const Path& p) {
         [[fallthrough]];
       case ArgCorrelation::ExactMismatch:
         LOG_DEBUG("Correlated definition args, continue search");
-        return FilterAnalysis::cont;
+        return FilterAnalysis::Continue;
       default:
-        return FilterAnalysis::keep;
+        return FilterAnalysis::Keep;
     }
   }
 
-  return FilterAnalysis::follow;
+  return FilterAnalysis::FollowDef;
 }
 
 bool filter::Handler::match(Function* callee) {

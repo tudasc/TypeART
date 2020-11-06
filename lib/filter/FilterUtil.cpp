@@ -58,36 +58,6 @@ FunctionAnalysis::FunctionCounts FunctionAnalysis::analyze(Function* f) {
   return count;
 }
 
-DefUseQueue::DefUseQueue(Value* init) {
-  working_set.emplace_back(init);
-}
-
-void DefUseQueue::reset() {
-  visited_set.clear();
-  working_set.clear();
-  working_set_calls.clear();
-}
-
-bool DefUseQueue::empty() const {
-  return working_set.empty();
-}
-
-void DefUseQueue::addToWorkS(Value* v) {
-  if (v != nullptr && visited_set.find(v) == visited_set.end()) {
-    working_set.push_back(v);
-    visited_set.insert(v);
-  }
-}
-
-Value* DefUseQueue::peek() {
-  if (working_set.empty()) {
-    return nullptr;
-  }
-  auto user_iter = working_set.end() - 1;
-  working_set.erase(user_iter);
-  return *user_iter;
-}
-
 raw_ostream& operator<<(raw_ostream& os, const FunctionAnalysis::FunctionCounts& counts) {
   os << "[ decl:" << counts.decl << ";def:" << counts.def << ";intr:" << counts.intrinsic
      << ";indir:" << counts.indirect << " ]";

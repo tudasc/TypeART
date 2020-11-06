@@ -8,7 +8,9 @@
 
 #include "llvm/IR/Intrinsics.h"
 
-typeart::filter::CGFilter::CGFilter(const std::string& glob, bool CallFilterDeep, std::string file)
+namespace typeart::filter::deprecated {
+
+CGFilter::CGFilter(const std::string& glob, bool CallFilterDeep, std::string file)
     : call_regex(util::glob2regex(glob)), CallFilterDeep(CallFilterDeep), trace(reason_trace) {
   if (!callGraph && !file.empty()) {
     LOG_FATAL("Resetting the CGInterface with JSON CG");
@@ -18,7 +20,7 @@ typeart::filter::CGFilter::CGFilter(const std::string& glob, bool CallFilterDeep
     LOG_FATAL("CG File not found " << file);
   }
 }
-bool typeart::filter::CGFilter::filter(llvm::Value* in) {
+bool CGFilter::filter(llvm::Value* in) {
   if (in == nullptr) {
     LOG_DEBUG("Called with nullptr");
     return false;
@@ -159,7 +161,7 @@ bool typeart::filter::CGFilter::filter(llvm::Value* in) {
   return true;
 }
 
-bool typeart::filter::CGFilter::shouldContinue(CallSite c, llvm::Value* in) const {
+bool CGFilter::shouldContinue(CallSite c, llvm::Value* in) const {
   LOG_DEBUG("Found a name match, analyzing closer...");
   const auto is_void_ptr = [](Type* type) {
     return type->isPointerTy() && type->getPointerElementType()->isIntegerTy(8);
@@ -192,7 +194,7 @@ bool typeart::filter::CGFilter::shouldContinue(CallSite c, llvm::Value* in) cons
   return true;
 }
 
-std::string typeart::filter::CGFilter::getName(const llvm::Function* f) {
+std::string CGFilter::getName(const llvm::Function* f) {
   auto name = f->getName();
   // FIXME figure out if we need to demangle, i.e., source is .c or .cpp
   const auto f_name = util::demangle(name);
@@ -202,18 +204,20 @@ std::string typeart::filter::CGFilter::getName(const llvm::Function* f) {
 
   return name;
 }
-llvm::raw_string_ostream& typeart::filter::CGFilter::append_trace(std::string s) {
+llvm::raw_string_ostream& CGFilter::append_trace(std::string s) {
   trace << " | " << s;
   return trace;
 }
-std::string typeart::filter::CGFilter::reason() {
+std::string CGFilter::reason() {
   return trace.str();
 }
-void typeart::filter::CGFilter::clear_trace() {
+void CGFilter::clear_trace() {
   reason_trace.clear();
 }
-void typeart::filter::CGFilter::setStartingFunction(llvm::Function* start) {
+void CGFilter::setStartingFunction(llvm::Function* start) {
   this->start_f = start;
 }
-void typeart::filter::CGFilter::setMode(bool search_malloc) {
+void CGFilter::setMode(bool search_malloc) {
 }
+
+}  // namespace typeart::filter::deprecated

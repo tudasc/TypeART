@@ -4,7 +4,7 @@
 
 #include "StandardFilter.h"
 
-namespace typeart::filter {
+namespace typeart::filter::deprecated {
 
 StandardFilter::StandardFilter(const std::string& glob, bool CallFilterDeep)
     : call_regex(util::glob2regex(glob)), ClCallFilterDeep(CallFilterDeep) {
@@ -214,4 +214,4 @@ std::string StandardFilter::getName(const Function* f) {
 
   return name;
 }
-}  // namespace typeart::filter
+}  // namespace typeart::filter::deprecated

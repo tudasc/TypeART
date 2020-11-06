@@ -9,18 +9,18 @@
 
 namespace typeart::filter {
 
-struct FilterTraitCG {
+struct CGFilterTrait {
   constexpr static bool Indirect    = false;
   constexpr static bool Intrinsic   = false;
   constexpr static bool Declaration = true;
   constexpr static bool Definition  = true;
-  constexpr static bool PreCheck    = false;  // TODO impl and switch
+  constexpr static bool PreCheck    = true;
 };
 
 class CGInterface;
 
 struct CGFilterImpl {
-  using Support = FilterTraitCG;
+  using Support = CGFilterTrait;
 
   std::string filter;
   std::unique_ptr<CGInterface> callGraph;
@@ -37,7 +37,7 @@ struct CGFilterImpl {
   bool match(Function* callee);
 };
 
-using CGForwardFilter = BaseFilter<CGFilterImpl, SearchStoreDir>;
+using CGForwardFilter = BaseFilter<CGFilterImpl, DefaultSearch>;
 
 }  // namespace typeart::filter
 

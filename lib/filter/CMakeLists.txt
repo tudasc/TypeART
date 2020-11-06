@@ -12,7 +12,7 @@ set(FILTER_SOURCES
         StdForwardFilter.h
         StdForwardFilter.cpp
         FilterUtil.cpp
-        FilterUtil.h)
+        FilterUtil.h IRSearch.h)
 
 add_library(memfilter STATIC
         ${FILTER_SOURCES}

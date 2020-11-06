@@ -15,9 +15,11 @@
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Format.h"
 
-namespace typeart {
-namespace filter {
+namespace typeart::filter {
+
 class CGInterface;
+
+namespace deprecated {
 
 using namespace llvm;
 class CGFilter final : public Filter {
@@ -54,7 +56,8 @@ class CGFilter final : public Filter {
  public:
   virtual ~CGFilter() = default;
 };
-}  // namespace filter
-}  // namespace typeart
+
+}  // namespace deprecated
+}  // namespace typeart::filter
 
 #endif  // TYPEART_CGFILTER_H

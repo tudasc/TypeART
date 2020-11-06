@@ -10,6 +10,7 @@
 #include "Filter.h"
 #include "FilterUtil.h"
 #include "IRPath.h"
+#include "IRSearch.h"
 
 #include "llvm/IR/CallSite.h"
 #include "llvm/IR/Instructions.h"
@@ -20,26 +21,12 @@
 
 namespace typeart::filter {
 
-using namespace llvm;
-
-enum class FilterAnalysis { skip = 0, cont, keep, filter, follow };
-
-struct DefaultSearch {
-  auto search(Value* val) -> Optional<decltype(val->users())> {
-    if (auto store = llvm::dyn_cast<StoreInst>(val)) {
-      val = store->getPointerOperand();
-      if (llvm::isa<AllocaInst>(val) && !store->getValueOperand()->getType()->isPointerTy()) {
-        // 1. if we store to an alloca, and the value is not a pointer (i.e., a value) there is no connection to follow
-        // w.r.t. dataflow. (TODO exceptions could be some pointer arithm.)
-        return None;
-      }
-      // 2. TODO if we store to a pointer, analysis is required to filter simple aliasing pointer (filter opportunity,
-      // see test 01_alloca.llin variable a and c -- c points to a, then c gets passed to MPI)
-      // 2.1 care has to be taken for argument store to aliasing local (implicit) alloc, i.e., see same test variable %x
-      // passed to func foo_bar2
-    }
-    return val->users();
-  }
+enum class FilterAnalysis {
+  Skip = 0,   // Do not follow users of current decl/def etc.
+  Continue,   // Continue searching users of decl/def etc.
+  Keep,       // Keep the value (return false)
+  Filter,     // Filter the value (return true)
+  FollowDef,  // Want analysis of the called function def
 };
 
 template <typename CallSiteHandler, typename Search = DefaultSearch>
@@ -91,15 +78,15 @@ class BaseFilter : public Filter {
     if constexpr (CallSiteHandler::Support::PreCheck) {
       auto status = handler.precheck(current, currentF);
       switch (status) {
-        case FilterAnalysis::filter:
+        case FilterAnalysis::Filter:
           fpath.pop();
           return true;
-        case FilterAnalysis::keep:
+        case FilterAnalysis::Keep:
           fpath.pop();
           return false;
-        case FilterAnalysis::skip:
+        case FilterAnalysis::Skip:
           [[fallthrough]];
-        case FilterAnalysis::cont:
+        case FilterAnalysis::Continue:
           [[fallthrough]];
         default:
           break;
@@ -111,11 +98,7 @@ class BaseFilter : public Filter {
     Path p;
     const auto filter = DFSfilter(current, p, defPath);
 
-    if (!filter) {
-      return false;
-    }
-
-    if (defPath.empty()) {
+    if (!filter || defPath.empty()) {
       return filter;
     }
 
@@ -161,13 +144,13 @@ class BaseFilter : public Filter {
     // In-order analysis
     auto status = callsite(current, path);
     switch (status) {
-      case FilterAnalysis::keep:
+      case FilterAnalysis::Keep:
         path.pop();
         return false;
-      case FilterAnalysis::skip:
+      case FilterAnalysis::Skip:
         skip = true;
         break;
-      case FilterAnalysis::follow:
+      case FilterAnalysis::FollowDef:
         LOG_DEBUG("Analyze definition in path");
         // store path (with the callsite) for a function recursive check later
         plist.emplace_back(path);
@@ -209,7 +192,7 @@ class BaseFilter : public Filter {
           return status;
         } else {
           LOG_DEBUG("Indirect call, keep.")
-          return FilterAnalysis::keep;
+          return FilterAnalysis::Keep;
         }
       }
 
@@ -225,7 +208,7 @@ class BaseFilter : public Filter {
             return status;
           } else {
             LOG_DEBUG("Skip intrinsic.")
-            return FilterAnalysis::skip;
+            return FilterAnalysis::Skip;
           }
         }
 
@@ -236,7 +219,7 @@ class BaseFilter : public Filter {
           return status;
         } else {
           LOG_DEBUG("Declaration, keep.")
-          return FilterAnalysis::keep;
+          return FilterAnalysis::Keep;
         }
       } else {
         // Handle definitions
@@ -246,11 +229,11 @@ class BaseFilter : public Filter {
           return status;
         } else {
           LOG_DEBUG("Definition, keep.")
-          return FilterAnalysis::keep;
+          return FilterAnalysis::Keep;
         }
       }
     }
-    return FilterAnalysis::cont;
+    return FilterAnalysis::Continue;
   }
 };
 

@@ -85,7 +85,7 @@ static std::unique_ptr<Filter> make_filter(std::string id, std::string glob) {
     return std::make_unique<NoOpFilter>();
   } else if (id == "CG" && !ClCGFile.empty()) {
     LOG_DEBUG("Return CG filter with CG @ " << ClCGFile.getValue())
-    return std::make_unique<CGFilter>(glob, deep, ClCGFile.getValue());
+    return std::make_unique<deprecated::CGFilter>(glob, deep, ClCGFile.getValue());
   } else if (id == "experimental::default") {
     LOG_DEBUG("Return experimental default filter")
     return std::make_unique<StandardForwardFilter>(glob);
@@ -95,7 +95,7 @@ static std::unique_ptr<Filter> make_filter(std::string id, std::string glob) {
   } else {
     // default
     LOG_DEBUG("Return default filter")
-    return std::make_unique<StandardFilter>(glob, deep);
+    return std::make_unique<deprecated::StandardFilter>(glob, deep);
   }
 }
 

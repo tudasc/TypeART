@@ -31,29 +31,6 @@ struct FunctionAnalysis {
 
 raw_ostream& operator<<(raw_ostream& os, const FunctionAnalysis::FunctionCounts& counts);
 
-struct DefUseQueue {
-  llvm::SmallPtrSet<Value*, 16> visited_set;
-  llvm::SmallVector<Value*, 16> working_set;
-  llvm::SmallVector<CallSite, 8> working_set_calls;
-
-  explicit DefUseQueue(Value* init);
-
-  void reset();
-
-  bool empty() const;
-
-  void addToWorkS(Value* v);
-
-  template <typename Range>
-  void addToWork(Range&& values) {
-    for (auto v : values) {
-      addToWorkS(v);
-    }
-  }
-
-  Value* peek();
-};
-
 enum class ArgCorrelation {
   NoMatch,
   Exact,
@@ -62,7 +39,7 @@ enum class ArgCorrelation {
   GlobalMismatch,
 };
 
-inline std::pair<llvm::Argument*, int> find_arg(CallSite c, const Path& p) {
+inline std::pair<llvm::Argument*, int> findArg(CallSite c, const Path& p) {
   auto arg = p.getEndPrev();
   if (!arg) {
     return {nullptr, -1};
@@ -80,7 +57,7 @@ inline std::pair<llvm::Argument*, int> find_arg(CallSite c, const Path& p) {
 }
 
 inline std::vector<llvm::Argument*> args(CallSite c, const Path& p) {
-  auto [arg, _] = find_arg(c, p);
+  auto [arg, _] = findArg(c, p);
   if (arg) {
     return {arg};
   }
@@ -96,7 +73,7 @@ inline std::vector<llvm::Argument*> args(CallSite c, const Path& p) {
 namespace detail {
 template <typename TypeID>
 ArgCorrelation correlate(CallSite c, const Path& p, TypeID&& isType) {
-  auto [arg, _] = find_arg(c, p);
+  auto [arg, _] = findArg(c, p);
 
   if (!arg) {
     const auto count_type_ptr = llvm::count_if(c.args(), [&](const auto& arg) {

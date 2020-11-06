@@ -9,7 +9,7 @@
 
 namespace typeart::filter {
 
-struct FilterTrait {
+struct StdFilterTrait {
   constexpr static bool Indirect    = false;
   constexpr static bool Intrinsic   = false;
   constexpr static bool Declaration = true;
@@ -18,7 +18,7 @@ struct FilterTrait {
 };
 
 struct Handler {
-  using Support = FilterTrait;
+  using Support = StdFilterTrait;
 
   std::string filter;
 
@@ -34,7 +34,7 @@ struct Handler {
   bool match(Function* callee);
 };
 
-using StandardForwardFilter = BaseFilter<Handler, SearchStoreDir>;
+using StandardForwardFilter = BaseFilter<Handler, DefaultSearch>;
 
 }  // namespace typeart::filter
 

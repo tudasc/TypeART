@@ -18,7 +18,14 @@ CGFilterImpl::CGFilterImpl(std::string filter, std::string cgFile) : filter(util
 }
 
 FilterAnalysis CGFilterImpl::precheck(Value* in, Function* start) {
-  return FilterAnalysis::cont;
+  if (start) {
+    FunctionAnalysis analysis;
+    analysis.analyze(start);
+    if (analysis.empty()) {
+      return FilterAnalysis::Filter;
+    }
+  }
+  return FilterAnalysis::Continue;
 }
 
 FilterAnalysis CGFilterImpl::decl(CallSite current, const Path& p) {
@@ -31,9 +38,9 @@ FilterAnalysis CGFilterImpl::decl(CallSite current, const Path& p) {
         [[fallthrough]];
       case ArgCorrelation::ExactMismatch:
         LOG_DEBUG("Correlated, continue search");
-        return FilterAnalysis::cont;
+        return FilterAnalysis::Continue;
       default:
-        return FilterAnalysis::keep;
+        return FilterAnalysis::Keep;
     }
   }
 
@@ -47,15 +54,16 @@ FilterAnalysis CGFilterImpl::decl(CallSite current, const Path& p) {
 
   const auto reached = searchCG(current.getCalledFunction());
 
-  if (reached == CGInterface::ReachabilityResult::reaches) {
-    return FilterAnalysis::keep;
-  } else if (reached == CGInterface::ReachabilityResult::never_reaches) {
-    return FilterAnalysis::skip;
-  } else if (reached == CGInterface::ReachabilityResult::maybe_reaches) {
-    return FilterAnalysis::filter;  // XXX This should be where we can change semantics
+  switch (reached) {
+    case CGInterface::ReachabilityResult::reaches:
+      return FilterAnalysis::Keep;
+    case CGInterface::ReachabilityResult::never_reaches:
+      return FilterAnalysis::Skip;
+    case CGInterface::ReachabilityResult::maybe_reaches:
+      return FilterAnalysis::Filter;
+    default:
+      return FilterAnalysis::Continue;
   }
-
-  return FilterAnalysis::cont;
 }
 
 FilterAnalysis CGFilterImpl::def(CallSite current, const Path& p) {

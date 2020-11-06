@@ -16,8 +16,7 @@
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Format.h"
 
-namespace typeart {
-namespace filter {
+namespace typeart::filter::deprecated {
 
 using namespace llvm;
 
@@ -50,7 +49,6 @@ class StandardFilter final : public Filter {
   virtual ~StandardFilter() = default;
 };
 
-}  // namespace filter
-}  // namespace typeart
+}  // namespace typeart::filter::deprecated
 
 #endif  // TYPEART_STANDARDFILTER_H
