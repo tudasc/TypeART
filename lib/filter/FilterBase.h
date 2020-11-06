@@ -80,9 +80,11 @@ class BaseFilter : public Filter {
       switch (status) {
         case FilterAnalysis::Filter:
           fpath.pop();
+          LOG_DEBUG("Pre-check, filter")
           return true;
         case FilterAnalysis::Keep:
           fpath.pop();
+          LOG_DEBUG("Pre-check, keep")
           return false;
         case FilterAnalysis::Skip:
           [[fallthrough]];
