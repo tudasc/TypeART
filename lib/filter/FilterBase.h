@@ -49,12 +49,16 @@ class BaseFilter : public Filter {
 
   bool filter(llvm::Value* in) override {
     if (in == nullptr) {
-      LOG_DEBUG("Called with nullptr");
+      LOG_WARNING("Called with nullptr");
       return false;
     }
 
     FPath fpath(start_f);
-    return DFSFuncFilter(in, fpath);
+    const auto filter = DFSFuncFilter(in, fpath);
+    if (!filter) {
+      LOG_DEBUG(fpath);
+    }
+    return filter;
   }
 
   virtual void setStartingFunction(llvm::Function* f) override {
@@ -67,31 +71,28 @@ class BaseFilter : public Filter {
 
  private:
   bool DFSFuncFilter(llvm::Value* current, FPath& fpath) {
-    auto f = fpath.getCurrentFunc();
-    if (!f) {
-      return false;
-    }
-
-    [[maybe_unused]] llvm::Function* currentF = f.getValue();
+    // is null in case of global:
+    llvm::Function* currentF = fpath.getCurrentFunc();
 
     /* do a pre-flow tracking check of value in  */
     if constexpr (CallSiteHandler::Support::PreCheck) {
-      auto status = handler.precheck(current, currentF);
-      switch (status) {
-        case FilterAnalysis::Filter:
-          fpath.pop();
-          LOG_DEBUG("Pre-check, filter")
-          return true;
-        case FilterAnalysis::Keep:
-          fpath.pop();
-          LOG_DEBUG("Pre-check, keep")
-          return false;
-        case FilterAnalysis::Skip:
-          [[fallthrough]];
-        case FilterAnalysis::Continue:
-          [[fallthrough]];
-        default:
-          break;
+      if (currentF != nullptr) {
+        auto status = handler.precheck(current, currentF);
+        switch (status) {
+          case FilterAnalysis::Filter:
+            fpath.pop();
+            LOG_DEBUG("Pre-check, filter")
+            return true;
+          case FilterAnalysis::Keep:
+            LOG_DEBUG("Pre-check, keep")
+            return false;
+          case FilterAnalysis::Skip:
+            [[fallthrough]];
+          case FilterAnalysis::Continue:
+            [[fallthrough]];
+          default:
+            break;
+        }
       }
     } else {
     }
@@ -100,8 +101,10 @@ class BaseFilter : public Filter {
     Path p;
     const auto filter = DFSfilter(current, p, defPath);
 
-    if (!filter || defPath.empty()) {
-      return filter;
+    if (!filter) {
+      // for diagnostic output, store the last path
+      fpath.pushFinal(p);
+      return false;
     }
 
     for (auto& path2def : defPath) {
@@ -109,25 +112,28 @@ class BaseFilter : public Filter {
       if (!csite) {
         continue;
       }
+
       llvm::CallSite c(csite.getValue());
       if (fpath.contains(c)) {
+        // Avoid recursion:
+        // TODO a continue may be wrong, if the function itself eventually calls "MPI"?
         continue;
       }
 
       fpath.push(path2def);
 
-      LOG_DEBUG(fpath);
-
       auto argv = args(c, path2def);
-
       if (argv.size() > 1) {
         LOG_DEBUG("All args are looked at.")
       }
 
-      for (auto& arg : argv) {
+      for (auto* arg : argv) {
+        if (arg == nullptr) {
+          LOG_FATAL("Called with nullptr. " << c.getCalledFunction()->getName());
+          return false;
+        }
         const auto dfs_filter = DFSFuncFilter(arg, fpath);
         if (!dfs_filter) {
-          fpath.pop();
           return false;
         }
       }
@@ -138,16 +144,18 @@ class BaseFilter : public Filter {
   }
 
   bool DFSfilter(llvm::Value* current, Path& path, PathList& plist) {
-    path.push(current);
+    if (current == nullptr) {
+      LOG_FATAL("Called with nullptr: " << path);
+      return false;
+    }
 
-    LOG_DEBUG(path);
+    path.push(current);
 
     bool skip{false};
     // In-order analysis
     auto status = callsite(current, path);
     switch (status) {
       case FilterAnalysis::Keep:
-        path.pop();
         return false;
       case FilterAnalysis::Skip:
         skip = true;
@@ -161,7 +169,7 @@ class BaseFilter : public Filter {
         break;
     }
 
-    auto succs = search_dir.search(current);
+    auto succs = search_dir.search(current, path);
     if (succs && !skip) {
       for (auto* successor : succs.getValue()) {
         if (path.contains(successor)) {
@@ -170,7 +178,6 @@ class BaseFilter : public Filter {
         }
         const auto filter = DFSfilter(successor, path, plist);
         if (!filter) {
-          path.pop();
           return false;
         }
       }
@@ -190,10 +197,10 @@ class BaseFilter : public Filter {
       if (indirect_call) {
         if constexpr (CallSiteHandler::Support::Indirect) {
           auto status = handler.indirect(site, path);
-          LOG_DEBUG("Indirect call.")
+          LOG_DEBUG("Indirect call: " << util::try_demangle(site))
           return status;
         } else {
-          LOG_DEBUG("Indirect call, keep.")
+          LOG_DEBUG("Indirect call, keep: " << util::try_demangle(site))
           return FilterAnalysis::Keep;
         }
       }
@@ -206,10 +213,10 @@ class BaseFilter : public Filter {
         if (is_intrinsic) {
           if constexpr (CallSiteHandler::Support::Intrinsic) {
             auto status = handler.intrinsic(site, path);
-            LOG_DEBUG("Intrinsic call.")
+            LOG_DEBUG("Intrinsic call: " << util::try_demangle(site))
             return status;
           } else {
-            LOG_DEBUG("Skip intrinsic.")
+            LOG_DEBUG("Skip intrinsic: " << util::try_demangle(site))
             return FilterAnalysis::Skip;
           }
         }
@@ -217,20 +224,20 @@ class BaseFilter : public Filter {
         // Handle decl (like MPI calls)
         if constexpr (CallSiteHandler::Support::Declaration) {
           auto status = handler.decl(site, path);
-          LOG_DEBUG("Decl call.")
+          LOG_DEBUG("Decl call: " << util::try_demangle(site))
           return status;
         } else {
-          LOG_DEBUG("Declaration, keep.")
+          LOG_DEBUG("Declaration, keep: " << util::try_demangle(site))
           return FilterAnalysis::Keep;
         }
       } else {
         // Handle definitions
         if constexpr (CallSiteHandler::Support::Definition) {
           auto status = handler.def(site, path);
-          LOG_DEBUG("Defined call.")
+          LOG_DEBUG("Defined call: " << util::try_demangle(site))
           return status;
         } else {
-          LOG_DEBUG("Definition, keep.")
+          LOG_DEBUG("Definition, keep: " << util::try_demangle(site))
           return FilterAnalysis::Keep;
         }
       }

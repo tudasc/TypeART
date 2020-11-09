@@ -8,10 +8,10 @@
 
 namespace typeart::filter {
 
-filter::Handler::Handler(std::string filter) : filter(util::glob2regex(std::move(filter))) {
+filter::ForwardFilterImpl::ForwardFilterImpl(std::string filter) : filter(util::glob2regex(std::move(filter))) {
 }
 
-FilterAnalysis filter::Handler::precheck(Value* in, Function* start) {
+FilterAnalysis filter::ForwardFilterImpl::precheck(Value* in, Function* start) {
   if (start) {
     FunctionAnalysis analysis;
     analysis.analyze(start);
@@ -22,7 +22,7 @@ FilterAnalysis filter::Handler::precheck(Value* in, Function* start) {
   return FilterAnalysis::Continue;
 }
 
-FilterAnalysis filter::Handler::decl(CallSite current, const Path& p) {
+FilterAnalysis filter::ForwardFilterImpl::decl(CallSite current, const Path& p) {
   const bool matchSig = match(current.getCalledFunction());
   if (matchSig) {
     auto result = correlate2void(current, p);
@@ -39,7 +39,7 @@ FilterAnalysis filter::Handler::decl(CallSite current, const Path& p) {
   return FilterAnalysis::Keep;
 }
 
-FilterAnalysis filter::Handler::def(CallSite current, const Path& p) {
+FilterAnalysis filter::ForwardFilterImpl::def(CallSite current, const Path& p) {
   auto callTarget = current.getCalledFunction();
 
   if (match(callTarget)) {
@@ -58,7 +58,7 @@ FilterAnalysis filter::Handler::def(CallSite current, const Path& p) {
   return FilterAnalysis::FollowDef;
 }
 
-bool filter::Handler::match(Function* callee) {
+bool filter::ForwardFilterImpl::match(Function* callee) {
   const auto f_name = util::demangle(callee->getName());
   return util::regex_matches(filter, f_name);
 }

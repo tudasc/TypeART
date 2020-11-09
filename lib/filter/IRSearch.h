@@ -12,13 +12,18 @@
 namespace typeart::filter {
 
 struct DefaultSearch {
-  auto search(llvm::Value* val) -> llvm::Optional<decltype(val->users())> {
+  auto search(llvm::Value* val, const Path& p) -> llvm::Optional<decltype(val->users())> {
     using namespace llvm;
     if (auto store = llvm::dyn_cast<StoreInst>(val)) {
       val = store->getPointerOperand();
       if (llvm::isa<AllocaInst>(val) && !store->getValueOperand()->getType()->isPointerTy()) {
         // 1. if we store to an alloca, and the value is not a pointer (i.e., a value) there is no connection to follow
         // w.r.t. dataflow. (TODO exceptions could be some pointer arithm.)
+        return None;
+      }
+      if (p.contains(val)) {
+        // If the pointer operand is already in the path, we do not want to continue.
+        // FIXES: amg: box_algebra.c: hypre_MinUnionBoxes endless recursion
         return None;
       }
       // 2. TODO if we store to a pointer, analysis is required to filter simple aliasing pointer (filter opportunity,

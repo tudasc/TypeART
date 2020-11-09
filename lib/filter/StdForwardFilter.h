@@ -17,12 +17,12 @@ struct StdFilterTrait {
   constexpr static bool PreCheck    = true;
 };
 
-struct Handler {
+struct ForwardFilterImpl {
   using Support = StdFilterTrait;
 
   std::string filter;
 
-  Handler(std::string filter);
+  ForwardFilterImpl(std::string filter);
 
   FilterAnalysis precheck(Value* in, Function* start);
 
@@ -34,7 +34,7 @@ struct Handler {
   bool match(Function* callee);
 };
 
-using StandardForwardFilter = BaseFilter<Handler, DefaultSearch>;
+using StandardForwardFilter = BaseFilter<ForwardFilterImpl, DefaultSearch>;
 
 }  // namespace typeart::filter
 

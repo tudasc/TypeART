@@ -69,26 +69,42 @@ inline llvm::raw_ostream& operator<<(llvm::raw_ostream& os, const IRPath& p) {
 }
 
 struct CallsitePath {
+  // Node: IRPath leads to function:
   using Node = std::pair<llvm::Function*, IRPath>;
-  std::vector<Node> path;
+
+  // Structure: [Function (start) or null for global]{1} -> [Path -> Function]* -> (Path)?
+  llvm::Optional<llvm::Function*> start;
+  IRPath terminatingPath{};
+  std::vector<Node> intermediatePath;
 
   explicit CallsitePath(llvm::Function* root) {
-    path.emplace_back(root, IRPath{});
+    if (root == nullptr) {
+      start = llvm::None;
+    } else {
+      start = root;
+    }
   }
 
-  llvm::Optional<llvm::Function*> getCurrentFunc() {
-    if (path.empty()) {
-      return llvm::None;
+  // Can return nullptr
+  llvm::Function* getCurrentFunc() {
+    if (intermediatePath.empty()) {
+      if (start) {
+        return start.getValue();
+      }
+      return nullptr;
     }
     auto end = getEnd();
-    return end.getValue().first;
+    if (end) {
+      return end.getValue().first;
+    }
+    return nullptr;
   }
 
   llvm::Optional<Node> getStart() const {
-    if (path.empty()) {
+    if (intermediatePath.empty()) {
       return llvm::None;
     }
-    return *path.begin();
+    return *intermediatePath.begin();
   }
 
   llvm::Optional<Node> getEnd() const {
@@ -97,41 +113,61 @@ struct CallsitePath {
 
   template <unsigned n>
   llvm::Optional<Node> getNodeFromEnd() const {
-    if (path.empty() || path.size() < n) {
+    if (intermediatePath.empty() || intermediatePath.size() < n) {
       return llvm::None;
     }
-    return *std::prev(path.end(), n);
+    return *std::prev(intermediatePath.end(), n);
   }
 
   void push(const IRPath& p) {
     auto csite = p.getEnd();
     if (csite) {
       llvm::CallSite c(csite.getValue());
-      path.emplace_back(c.getCalledFunction(), p);
+      intermediatePath.emplace_back(c.getCalledFunction(), p);
     }
   }
 
+  void pushFinal(const IRPath& p) {
+    terminatingPath = p;
+  }
+
   void pop() {
-    if (!path.empty()) {
-      path.pop_back();
+    if (!intermediatePath.empty()) {
+      intermediatePath.pop_back();
     }
   }
 
   bool contains(llvm::CallSite c) {
     llvm::Function* f = c.getCalledFunction();
-    return llvm::find_if(path, [&f](const auto& node) { return node.first == f; }) != std::end(path);
+    if (f && f == start) {
+      return true;
+    }
+    return llvm::find_if(intermediatePath, [&f](const auto& node) { return node.first == f; }) !=
+           std::end(intermediatePath);
   }
 };
 
 inline llvm::raw_ostream& operator<<(llvm::raw_ostream& os, const CallsitePath::Node& n) {
-  os << n.first->getName() << ":" << n.second;
+  auto f = n.first;
+  if (f) {
+    os << f->getName();
+  } else {
+    os << "--";
+  }
+  os << ":" << n.second;
   return os;
 }
 
 inline llvm::raw_ostream& operator<<(llvm::raw_ostream& os, const CallsitePath& p) {
-  const auto& vec = p.path;
+  const auto& vec = p.intermediatePath;
   if (vec.empty()) {
-    os << "func_path = [ ]";
+    os << "func_path = [";
+    if (p.start) {
+      os << p.start.getValue()->getName();
+    } else {
+      os << "Module";
+    }
+    os << " -> " << p.terminatingPath << "]";
     return os;
   }
   auto begin = std::begin(vec);

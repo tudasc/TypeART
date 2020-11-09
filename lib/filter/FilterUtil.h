@@ -5,6 +5,7 @@
 #ifndef TYPEART_FILTERUTIL_H
 #define TYPEART_FILTERUTIL_H
 
+#include "../support/Logger.h"
 #include "IRPath.h"
 
 #include "llvm/IR/CallSite.h"
@@ -57,16 +58,17 @@ inline std::pair<llvm::Argument*, int> findArg(CallSite c, const Path& p) {
 }
 
 inline std::vector<llvm::Argument*> args(CallSite c, const Path& p) {
+  if (c.isIndirectCall()) {
+    return {};
+  }
+
   auto [arg, _] = findArg(c, p);
   if (arg) {
     return {arg};
   }
 
   std::vector<llvm::Argument*> args;
-  llvm::for_each(c.args(), [&args](llvm::Use& use) {
-    Argument* a = llvm::dyn_cast<Argument>(use.get());
-    args.emplace_back(a);
-  });
+  llvm::for_each(c.getCalledFunction()->args(), [&](llvm::Argument& a) { args.emplace_back(&a); });
   return args;
 }
 
