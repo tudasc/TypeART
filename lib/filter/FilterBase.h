@@ -99,7 +99,12 @@ class BaseFilter : public Filter {
 
     PathList defPath;  // pathes that reach a definition in currentF
     Path p;
+    if (current == nullptr) {
+      LOG_FATAL("Called with nullptr.");
+      return false;
+    }
     const auto filter = DFSfilter(current, p, defPath);
+    LOG_FATAL("Filter " << filter)
 
     if (!filter) {
       // for diagnostic output, store the last path
@@ -129,7 +134,7 @@ class BaseFilter : public Filter {
 
       for (auto* arg : argv) {
         if (arg == nullptr) {
-          LOG_FATAL("Called with nullptr. " << c.getCalledFunction()->getName());
+          LOG_FATAL("Called with nullptr: ");
           return false;
         }
         const auto dfs_filter = DFSFuncFilter(arg, fpath);
