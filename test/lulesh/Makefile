@@ -24,8 +24,8 @@ OBJECTS2.0 = $(SOURCES2.0:.cc=.o)
 CXXFLAGS = -g -I. -Wall
 LDFLAGS = -g -O3
 
-PASSES=-load ${TYPEART_PATH}/lib/analysis/meminstfinderpass.so -load ${TYPEART_PATH}/lib/typeartpass.so
-CALL_FILTER=-call-filter -call-filter-deep
+PASSES=-load ${TYPEART_PATH}/lib/analysis/meminstfinderpass.so -load ${TYPEART_PATH}/lib/typeartpass.so -typeart-stats
+CALL_FILTER=-call-filter -call-filter-deep -filter-impl=experimental::default
 
 .cc.o: lulesh.h
 ifeq ($(TYPEART), yes)
