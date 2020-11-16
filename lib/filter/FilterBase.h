@@ -185,7 +185,7 @@ class BaseFilter : public Filter {
 
   FilterAnalysis callsite(llvm::Value* val, const Path& path) {
     CallSite site(val);
-    if (site.isCall()) {
+    if (site.isCall() || site.isInvoke()) {
       const auto callee        = site.getCalledFunction();
       const bool indirect_call = callee == nullptr;
 

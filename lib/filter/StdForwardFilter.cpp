@@ -60,7 +60,9 @@ FilterAnalysis filter::ForwardFilterImpl::def(CallSite current, const Path& p) {
 
 bool filter::ForwardFilterImpl::match(Function* callee) {
   const auto f_name = util::demangle(callee->getName());
-  return util::regex_matches(filter, f_name);
+  const auto result = util::regex_matches(filter, f_name);
+  LOG_DEBUG("Matching " << f_name << " against " << filter << " " << result)
+  return result;
 }
 
 }  // namespace typeart::filter

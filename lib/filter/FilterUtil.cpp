@@ -23,7 +23,7 @@ FunctionAnalysis::FunctionCounts FunctionAnalysis::analyze(Function* f) {
   for (auto& BB : *f) {
     for (auto& I : BB) {
       CallSite site(&I);
-      if (site.isCall()) {
+      if (site.isCall() || site.isInvoke()) {
         const auto callee        = site.getCalledFunction();
         const bool indirect_call = callee == nullptr;
 
