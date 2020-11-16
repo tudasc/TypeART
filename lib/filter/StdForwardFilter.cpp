@@ -36,22 +36,27 @@ FilterAnalysis filter::ForwardFilterImpl::decl(CallSite current, const Path& p) 
         return FilterAnalysis::Keep;
     }
   }
+
   return FilterAnalysis::Keep;
 }
 
 FilterAnalysis filter::ForwardFilterImpl::def(CallSite current, const Path& p) {
   auto call_target     = current.getCalledFunction();
   const bool match_sig = match(call_target);
-  if (match_sig && deep) {
-    auto result = correlate2void(current, p);
-    switch (result) {
-      case ArgCorrelation::GlobalMismatch:
-        [[fallthrough]];
-      case ArgCorrelation::ExactMismatch:
-        LOG_DEBUG("Correlated definition args, continue search");
-        return FilterAnalysis::Continue;
-      default:
-        return FilterAnalysis::Keep;
+  if (match_sig) {
+    if (deep) {
+      auto result = correlate2void(current, p);
+      switch (result) {
+        case ArgCorrelation::GlobalMismatch:
+          [[fallthrough]];
+        case ArgCorrelation::ExactMismatch:
+          LOG_DEBUG("Correlated definition args, continue search");
+          return FilterAnalysis::Continue;
+        default:
+          return FilterAnalysis::Keep;
+      }
+    } else {
+      return FilterAnalysis::Keep;
     }
   }
 
