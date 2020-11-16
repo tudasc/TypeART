@@ -52,7 +52,7 @@ static cl::opt<bool> ClCallFilterDeep("call-filter-deep",
                                       cl::Hidden, cl::init(false));
 
 static cl::opt<const char*> ClCallFilterGlob("call-filter-str", cl::desc("Filter alloca instructions based on string."),
-                                             cl::Hidden, cl::init("MPI_*"));
+                                             cl::Hidden, cl::init("*MPI_*"));
 
 static cl::opt<bool> ClFilterGlobal("filter-globals", cl::desc("Filter globals of a module."), cl::Hidden,
                                     cl::init(true));
@@ -88,7 +88,7 @@ static std::unique_ptr<Filter> make_filter(std::string id, std::string glob) {
     return std::make_unique<deprecated::CGFilter>(glob, deep, ClCGFile.getValue());
   } else if (id == "experimental::default") {
     LOG_DEBUG("Return experimental default filter")
-    return std::make_unique<StandardForwardFilter>(glob);
+    return std::make_unique<StandardForwardFilter>(glob, deep);
   } else if (id == "experimental::cg") {
     LOG_DEBUG("Return experimental CG filter with CG @ " << ClCGFile.getValue())
     return std::make_unique<CGForwardFilter>(glob, ClCGFile.getValue());

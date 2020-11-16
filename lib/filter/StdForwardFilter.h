@@ -21,8 +21,9 @@ struct ForwardFilterImpl {
   using Support = StdFilterTrait;
 
   std::string filter;
+  const bool deep;
 
-  ForwardFilterImpl(std::string filter);
+  ForwardFilterImpl(std::string filter, bool deep);
 
   FilterAnalysis precheck(Value* in, Function* start);
 

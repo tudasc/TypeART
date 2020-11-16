@@ -4,11 +4,10 @@
 
 #include "StdForwardFilter.h"
 
-#include "../support/TypeUtil.h"
-
 namespace typeart::filter {
 
-filter::ForwardFilterImpl::ForwardFilterImpl(std::string filter) : filter(util::glob2regex(std::move(filter))) {
+filter::ForwardFilterImpl::ForwardFilterImpl(std::string filter, bool deep)
+    : filter(util::glob2regex(std::move(filter))), deep(deep) {
 }
 
 FilterAnalysis filter::ForwardFilterImpl::precheck(Value* in, Function* start) {
@@ -23,8 +22,9 @@ FilterAnalysis filter::ForwardFilterImpl::precheck(Value* in, Function* start) {
 }
 
 FilterAnalysis filter::ForwardFilterImpl::decl(CallSite current, const Path& p) {
-  const bool matchSig = match(current.getCalledFunction());
-  if (matchSig) {
+  auto call_target    = current.getCalledFunction();
+  const bool matchSig = match(call_target);
+  if (matchSig && deep) {
     auto result = correlate2void(current, p);
     switch (result) {
       case ArgCorrelation::GlobalMismatch:
@@ -40,9 +40,9 @@ FilterAnalysis filter::ForwardFilterImpl::decl(CallSite current, const Path& p) 
 }
 
 FilterAnalysis filter::ForwardFilterImpl::def(CallSite current, const Path& p) {
-  auto callTarget = current.getCalledFunction();
-
-  if (match(callTarget)) {
+  auto call_target     = current.getCalledFunction();
+  const bool match_sig = match(call_target);
+  if (match_sig && deep) {
     auto result = correlate2void(current, p);
     switch (result) {
       case ArgCorrelation::GlobalMismatch:
@@ -61,7 +61,7 @@ FilterAnalysis filter::ForwardFilterImpl::def(CallSite current, const Path& p) {
 bool filter::ForwardFilterImpl::match(Function* callee) {
   const auto f_name = util::demangle(callee->getName());
   const auto result = util::regex_matches(filter, f_name);
-  LOG_DEBUG("Matching " << f_name << " against " << filter << " " << result)
+  LOG_DEBUG("Matching " << f_name << " against " << filter << " : " << result)
   return result;
 }
 
