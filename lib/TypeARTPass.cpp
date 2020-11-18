@@ -68,8 +68,10 @@ bool TypeArtPass::doInitialization(Module& m) {
     LOG_DEBUG("No valid existing type configuration found: " << ClTypeFile.getValue());
   }
 
-  arg_collector  = std::make_unique<MemOpArgCollector>(typeManager, instrumentation_helper);
-  mem_instrument = std::make_unique<MemOpInstrumentation>(functions, instrumentation_helper);
+  auto arg_collector  = std::make_unique<MemOpArgCollector>(typeManager, instrumentation_helper);
+  auto mem_instrument = std::make_unique<MemOpInstrumentation>(functions, instrumentation_helper);
+  instrumentation_context =
+      std::make_unique<InstrumentationContext>(std::move(arg_collector), std::move(mem_instrument));
 
   return true;
 }
@@ -81,9 +83,7 @@ bool TypeArtPass::runOnModule(Module& m) {
 
     const auto& globalsList = getAnalysis<MemInstFinderPass>().getModuleGlobals();
     if (!globalsList.empty()) {
-      auto global_args = arg_collector->collectGlobal(globalsList);
-
-      const auto global_count = mem_instrument->instrumentGlobal(global_args);
+      const auto global_count = instrumentation_context->handleGlobal(globalsList);
       NumInstrumentedGlobal += global_count;
       instrumented_global = global_count > 0;
     }
@@ -124,11 +124,8 @@ bool TypeArtPass::runOnFunc(Function& f) {
 
   if (!ClIgnoreHeap) {
     // instrument collected calls of bb:
-    auto heap_args = arg_collector->collectHeap(mallocs);
-    auto free_args = arg_collector->collectFree(frees);
-
-    const auto heap_count = mem_instrument->instrumentHeap(heap_args);
-    const auto free_count = mem_instrument->instrumentFree(free_args);
+    const auto heap_count = instrumentation_context->handleHeap(mallocs);
+    const auto free_count = instrumentation_context->handleFree(frees);
 
     NumInstrumentedMallocs += heap_count;
     NumInstrumentedFrees += free_count;
@@ -136,8 +133,7 @@ bool TypeArtPass::runOnFunc(Function& f) {
     mod |= heap_count > 0 || free_count > 0;
   }
   if (ClTypeArtAlloca) {
-    auto stack_args        = arg_collector->collectStack(allocas);
-    const auto stack_count = mem_instrument->instrumentStack(stack_args);
+    const auto stack_count = instrumentation_context->handleStack(allocas);
     NumInstrumentedAlloca += stack_count;
     mod |= stack_count > 0;
   } else {

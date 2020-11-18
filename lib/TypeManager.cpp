@@ -99,8 +99,7 @@ int TypeManager::getOrRegisterVector(llvm::VectorType* type, const llvm::DataLay
   // arrays. They are given special names and are marked with a TA_VEC flag to avoid confusion.
 
   // Look up name
-  auto it = structMap.find(name);
-  if (it != structMap.end()) {
+  if (auto it = structMap.find(name); it != structMap.end()) {
     if (!typeDB.isVectorType(it->second)) {
       LOG_ERROR("Expected vector type: " << name);
       return TA_UNKNOWN_TYPE;
@@ -142,9 +141,9 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
     return type->getStructName();
   };
 
-  auto name = getName(type);
-  auto it   = structMap.find(name);
-  if (it != structMap.end()) {
+  const auto name = getName(type);
+
+  if (auto it = structMap.find(name); it != structMap.end()) {
     if (!typeDB.isUserDefinedType(it->second)) {
       LOG_ERROR("Expected user defined struct type: " << name);
       return TA_UNKNOWN_TYPE;

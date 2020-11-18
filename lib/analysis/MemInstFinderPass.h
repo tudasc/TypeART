@@ -45,9 +45,9 @@ class CallFilter {
 }  // namespace filter
 
 struct FunctionData {
-  llvm::SmallVector<MallocData, 8> mallocs;
-  llvm::SmallVector<FreeData, 8> frees;
-  llvm::SmallVector<AllocaData, 8> allocas;
+  MallocDataList mallocs;
+  FreeDataList frees;
+  AllocaDataList allocas;
 };
 
 class MemInstFinderPass : public llvm::ModulePass {
@@ -66,7 +66,7 @@ class MemInstFinderPass : public llvm::ModulePass {
   bool doFinalization(llvm::Module&) override;
   bool hasFunctionData(llvm::Function*) const;
   const FunctionData& getFunctionData(llvm::Function*) const;
-  const llvm::SmallVectorImpl<GlobalData>& getModuleGlobals() const;
+  const GlobalDataList& getModuleGlobals() const;
 
  private:
   void printStats(llvm::raw_ostream&);

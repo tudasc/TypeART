@@ -387,7 +387,7 @@ const FunctionData& MemInstFinderPass::getFunctionData(Function* f) const {
   return iter->second;
 }
 
-const llvm::SmallVectorImpl<GlobalData>& MemInstFinderPass::getModuleGlobals() const {
+const GlobalDataList& MemInstFinderPass::getModuleGlobals() const {
   return mOpsCollector.globals;
 }
 

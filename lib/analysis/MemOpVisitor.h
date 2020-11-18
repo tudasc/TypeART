@@ -10,43 +10,40 @@
 
 #include "MemOpData.h"
 
+#include "llvm/ADT/StringMap.h"
 #include "llvm/IR/InstVisitor.h"
-
-#include <set>
 
 namespace typeart {
 
 namespace finder {
 
 struct MemOpVisitor : public llvm::InstVisitor<MemOpVisitor> {
-  MemOpVisitor();
+  GlobalDataList globals;
+  MallocDataList mallocs;
+  FreeDataList frees;
+  AllocaDataList allocas;
+
+ private:
+  // clang-format off
+  const llvm::StringMap<MemOpKind> alloc_map{  {"malloc", MemOpKind::MALLOC},
+                                               {"_Znwm",  MemOpKind::MALLOC}, /*new*/
+                                               {"_Znam",  MemOpKind::MALLOC}, /*new[]*/
+                                               {"calloc", MemOpKind::CALLOC},
+                                               {"realloc",MemOpKind::REALLOC}
+  };
+  const llvm::StringMap<MemOpKind> dealloc_map{{"free",   MemOpKind::FREE},
+                                               {"_ZdlPv", MemOpKind::FREE}, /*delete*/
+                                               {"_ZdaPv", MemOpKind::FREE} /*delete[]*/
+  };
+  // clang-format on
+
+ public:
   void clear();
   void visitModuleGlobals(llvm::Module& m);
   void visitCallBase(llvm::CallBase& cb);
   void visitMallocLike(llvm::CallBase& ci, MemOpKind k);
   void visitFreeLike(llvm::CallBase& ci, MemOpKind k);
-  //  void visitIntrinsicInst(llvm::IntrinsicInst& ii);
   void visitAllocaInst(llvm::AllocaInst& ai);
-  virtual ~MemOpVisitor();
-
-  llvm::SmallVector<GlobalData, 8> globals;
-  llvm::SmallVector<MallocData, 8> mallocs;
-  llvm::SmallVector<FreeData, 8> frees;
-  llvm::SmallVector<AllocaData, 8> allocas;
-
- private:
-  // clang-format off
-  const std::map<std::string, MemOpKind> alloc_map{{"malloc", MemOpKind::MALLOC},
-                                                  {"_Znwm", MemOpKind::MALLOC}, /*new*/
-                                                  {"_Znam", MemOpKind::MALLOC}, /*new[]*/
-                                                  {"calloc", MemOpKind::CALLOC},
-                                                  {"realloc", MemOpKind::REALLOC}
-                                                 };
-  const std::map<std::string, MemOpKind> dealloc_map{{"free", MemOpKind::FREE},
-                                                    {"_ZdlPv", MemOpKind::FREE}, /*delete*/
-                                                    {"_ZdaPv", MemOpKind::FREE} /*delete[]*/
-                                                   };
-  // clang-format on
 };
 
 }  // namespace finder

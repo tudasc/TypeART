@@ -17,12 +17,12 @@ using namespace llvm;
 namespace typeart {
 
 MemOpArgCollector::MemOpArgCollector(TypeManager& tm, InstrumentationHelper& instr)
-    : ArgumentCollector(), tm(tm), instr(instr) {
+    : ArgumentCollector(), type_m(&tm), instr_helper(&instr) {
 }
-HeapArgList MemOpArgCollector::collectHeap(const llvm::SmallVectorImpl<MallocData>& mallocs) {
+HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
   HeapArgList list;
   list.reserve(mallocs.size());
-  const llvm::DataLayout& dl = instr.getModule()->getDataLayout();
+  const llvm::DataLayout& dl = instr_helper->getModule()->getDataLayout();
   for (const MallocData& mdata : mallocs) {
     ArgMap arg_map;
     const auto malloc_call      = mdata.call;
@@ -31,8 +31,8 @@ HeapArgList MemOpArgCollector::collectHeap(const llvm::SmallVectorImpl<MallocDat
 
     // Number of bytes allocated
     auto mallocArg = malloc_call->getOperand(0);
-    int typeId     = tm.getOrRegisterType(malloc_call->getType()->getPointerElementType(),
-                                      dl);  // retrieveTypeID(tu::getVoidType(c));
+    int typeId     = type_m->getOrRegisterType(malloc_call->getType()->getPointerElementType(),
+                                           dl);  // retrieveTypeID(tu::getVoidType(c));
     if (typeId == TA_UNKNOWN_TYPE) {
       LOG_ERROR("Unknown allocated type. Not instrumenting. " << util::dump(*malloc_call));
       // TODO notify caller that we skipped: via lambda callback function
@@ -54,7 +54,7 @@ HeapArgList MemOpArgCollector::collectHeap(const llvm::SmallVectorImpl<MallocDat
         dstPtrType = tu::getArrayElementType(dstPtrType);
       }
 
-      typeId = tm.getOrRegisterType(dstPtrType, dl);
+      typeId = type_m->getOrRegisterType(dstPtrType, dl);
       if (typeId == TA_UNKNOWN_TYPE) {
         LOG_ERROR("Target type of casted allocation is unknown. Not instrumenting. " << util::dump(*malloc_call));
         LOG_ERROR("Cast: " << util::dump(*primaryBitcast));
@@ -66,8 +66,8 @@ HeapArgList MemOpArgCollector::collectHeap(const llvm::SmallVectorImpl<MallocDat
       LOG_ERROR("Primary bitcast is null. malloc: " << util::dump(*malloc_call))
     }
 
-    auto* typeIdConst   = instr.getConstantFor(IType::type_id, typeId);
-    auto* typeSizeConst = instr.getConstantFor(IType::extent, typeSize);
+    auto* typeIdConst   = instr_helper->getConstantFor(IType::type_id, typeId);
+    auto* typeSizeConst = instr_helper->getConstantFor(IType::extent, typeSize);
 
     Value* elementCount{nullptr};
     Value* byte_count{nullptr};
@@ -100,7 +100,7 @@ HeapArgList MemOpArgCollector::collectHeap(const llvm::SmallVectorImpl<MallocDat
 
   return list;
 }
-FreeArgList MemOpArgCollector::collectFree(const llvm::SmallVectorImpl<FreeData>& frees) {
+FreeArgList MemOpArgCollector::collectFree(const FreeDataList& frees) {
   FreeArgList list;
   list.reserve(frees.size());
   for (const FreeData& fdata : frees) {
@@ -114,11 +114,11 @@ FreeArgList MemOpArgCollector::collectFree(const llvm::SmallVectorImpl<FreeData>
 
   return list;
 }
-StackArgList MemOpArgCollector::collectStack(const llvm::SmallVectorImpl<AllocaData>& allocs) {
+StackArgList MemOpArgCollector::collectStack(const AllocaDataList& allocs) {
   using namespace llvm;
   StackArgList list;
   list.reserve(allocs.size());
-  const llvm::DataLayout& dl = instr.getModule()->getDataLayout();
+  const llvm::DataLayout& dl = instr_helper->getModule()->getDataLayout();
 
   for (const AllocaData& adata : allocs) {
     ArgMap arg_map;
@@ -137,17 +137,17 @@ StackArgList MemOpArgCollector::collectStack(const llvm::SmallVectorImpl<AllocaD
         arraySize   = arraySize * tu::getArrayLengthFlattened(elementType);
         elementType = tu::getArrayElementType(elementType);
       }
-      numElementsVal = instr.getConstantFor(IType::extent, arraySize);
+      numElementsVal = instr_helper->getConstantFor(IType::extent, arraySize);
     }
 
     // unsigned typeSize = tu::getTypeSizeInBytes(elementType, dl);
-    int typeId = tm.getOrRegisterType(elementType, dl);
+    int typeId = type_m->getOrRegisterType(elementType, dl);
 
     if (typeId == TA_UNKNOWN_TYPE) {
       LOG_ERROR("Type is not supported: " << util::dump(*elementType));
     }
 
-    auto* typeIdConst = instr.getConstantFor(IType::type_id, typeId);
+    auto* typeIdConst = instr_helper->getConstantFor(IType::type_id, typeId);
 
     arg_map[ArgMap::ID::pointer]       = alloca;
     arg_map[ArgMap::ID::type_id]       = typeIdConst;
@@ -158,10 +158,10 @@ StackArgList MemOpArgCollector::collectStack(const llvm::SmallVectorImpl<AllocaD
 
   return list;
 }
-GlobalArgList MemOpArgCollector::collectGlobal(const llvm::SmallVectorImpl<GlobalData>& globals) {
+GlobalArgList MemOpArgCollector::collectGlobal(const GlobalDataList& globals) {
   GlobalArgList list;
   list.reserve(globals.size());
-  const llvm::DataLayout& dl = instr.getModule()->getDataLayout();
+  const llvm::DataLayout& dl = instr_helper->getModule()->getDataLayout();
 
   for (const GlobalData& gdata : globals) {
     ArgMap arg_map;
@@ -174,9 +174,9 @@ GlobalArgList MemOpArgCollector::collectGlobal(const llvm::SmallVectorImpl<Globa
       type        = tu::getArrayElementType(type);
     }
 
-    int typeId             = tm.getOrRegisterType(type, dl);
-    auto* typeIdConst      = instr.getConstantFor(IType::type_id, typeId);
-    auto* numElementsConst = instr.getConstantFor(IType::extent, numElements);
+    int typeId             = type_m->getOrRegisterType(type, dl);
+    auto* typeIdConst      = instr_helper->getConstantFor(IType::type_id, typeId);
+    auto* numElementsConst = instr_helper->getConstantFor(IType::extent, numElements);
     // auto globalPtr         = IRB.CreateBitOrPointerCast(global, instr.getTypeFor(IType::ptr));
 
     arg_map[ArgMap::ID::pointer]       = global;

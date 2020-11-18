@@ -12,6 +12,7 @@ set(PASS_SOURCES
   TypeManager.cpp
   instrumentation/MemOpArgCollector.cpp
   instrumentation/MemOpInstrumentation.cpp
+  instrumentation/Instrumentation.cpp
 )
 
 make_llvm_module(typeartpass
@@ -35,7 +36,7 @@ target_project_compile_definitions(typeartpass
 
 if(SHOW_STATS)
   target_project_compile_definitions(typeartpass
-    PRIVATE_DEFS 
+    PRIVATE_DEFS
       LLVM_ENABLE_STATS
   )
 endif()
