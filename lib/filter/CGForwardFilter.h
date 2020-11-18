@@ -6,6 +6,7 @@
 #define TYPEART_CGFORWARDFILTER_H
 
 #include "FilterBase.h"
+#include "Matcher.h"
 
 namespace typeart::filter {
 
@@ -24,6 +25,7 @@ struct CGFilterImpl {
 
   std::string filter;
   std::unique_ptr<CGInterface> callGraph;
+  DefaultStringMatcher matcher;
 
   CGFilterImpl(std::string filter, std::string cgFile);
 
@@ -32,9 +34,6 @@ struct CGFilterImpl {
   FilterAnalysis decl(CallSite current, const Path& p);
 
   FilterAnalysis def(CallSite current, const Path& p);
-
- private:
-  bool match(Function* callee);
 };
 
 using CGForwardFilter = BaseFilter<CGFilterImpl, DefaultSearch>;

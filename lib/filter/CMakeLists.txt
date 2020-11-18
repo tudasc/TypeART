@@ -48,10 +48,11 @@ make_tidy_check(memfilter
   "${FILTER_SOURCES}"
 )
 
-install(
-  FILES Filter.h StandardFilter.h CGFilter.h
-  DESTINATION include
-)
+# For now, non-consumable filter
+#install(
+#  FILES Filter.h StandardFilter.h CGFilter.h
+#  DESTINATION include
+#)
 
 install(
   TARGETS memfilter

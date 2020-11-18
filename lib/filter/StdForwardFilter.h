@@ -6,6 +6,7 @@
 #define TYPEART_STDFORWARDFILTER_H
 
 #include "FilterBase.h"
+#include "Matcher.h"
 
 namespace typeart::filter {
 
@@ -19,9 +20,11 @@ struct StdFilterTrait {
 
 struct ForwardFilterImpl {
   using Support = StdFilterTrait;
+  std::unique_ptr<Matcher> matcher;
+  std::unique_ptr<Matcher> deep_matcher;
 
-  std::string filter;
-  const bool deep;
+  explicit ForwardFilterImpl(std::unique_ptr<Matcher> m);
+  ForwardFilterImpl(std::unique_ptr<Matcher> m, std::unique_ptr<Matcher> deep);
 
   ForwardFilterImpl(std::string filter, bool deep);
 
@@ -30,9 +33,6 @@ struct ForwardFilterImpl {
   FilterAnalysis decl(CallSite current, const Path& p);
 
   FilterAnalysis def(CallSite current, const Path& p);
-
- private:
-  bool match(Function* callee);
 };
 
 using StandardForwardFilter = BaseFilter<ForwardFilterImpl, DefaultSearch>;

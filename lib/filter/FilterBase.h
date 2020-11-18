@@ -71,11 +71,10 @@ class BaseFilter : public Filter {
 
  private:
   bool DFSFuncFilter(llvm::Value* current, FPath& fpath) {
-    // is null in case of global:
-    llvm::Function* currentF = fpath.getCurrentFunc();
-
     /* do a pre-flow tracking check of value in  */
     if constexpr (CallSiteHandler::Support::PreCheck) {
+      // is null in case of global:
+      llvm::Function* currentF = fpath.getCurrentFunc();
       if (currentF != nullptr) {
         auto status = handler.precheck(current, currentF);
         switch (status) {

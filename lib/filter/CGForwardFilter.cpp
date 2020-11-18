@@ -5,10 +5,12 @@
 #include "CGForwardFilter.h"
 
 #include "CGInterface.h"
+#include "Matcher.h"
 
 namespace typeart::filter {
 
-CGFilterImpl::CGFilterImpl(std::string filter, std::string cgFile) : filter(util::glob2regex(std::move(filter))) {
+CGFilterImpl::CGFilterImpl(std::string fstr, std::string cgFile)
+    : filter(util::glob2regex(std::move(fstr))), matcher(filter) {
   if (!callGraph && !cgFile.empty()) {
     LOG_DEBUG("Resetting the CGInterface with JSON CG");
     callGraph.reset(JSONCG::getJSON(cgFile));
@@ -30,7 +32,7 @@ FilterAnalysis CGFilterImpl::precheck(Value* in, Function* start) {
 
 FilterAnalysis CGFilterImpl::decl(CallSite current, const Path& p) {
   // deeper analysis only possible if we had a path from *in* to *current*
-  const bool matchSig = match(current.getCalledFunction());
+  const bool matchSig = matcher.match(current);
   if (matchSig) {
     auto result = correlate2void(current, p);
     switch (result) {
@@ -68,11 +70,6 @@ FilterAnalysis CGFilterImpl::decl(CallSite current, const Path& p) {
 
 FilterAnalysis CGFilterImpl::def(CallSite current, const Path& p) {
   return decl(current, p);
-}
-
-bool CGFilterImpl::match(Function* callee) {
-  const auto f_name = util::demangle(callee->getName());
-  return util::regex_matches(filter, f_name);
 }
 
 }  // namespace typeart::filter

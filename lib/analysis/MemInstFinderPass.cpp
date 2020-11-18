@@ -88,7 +88,9 @@ static std::unique_ptr<Filter> make_filter(std::string id, std::string glob) {
     return std::make_unique<deprecated::CGFilter>(glob, deep, ClCGFile.getValue());
   } else if (id == "experimental::default") {
     LOG_DEBUG("Return experimental default filter")
-    return std::make_unique<StandardForwardFilter>(glob, deep);
+    auto matcher = std::make_unique<filter::DefaultStringMatcher>(util::glob2regex(glob));
+    // auto deep_matcher = std::make_unique<filter::DefaultStringMatcher>(util::glob2regex(glob));
+    return std::make_unique<StandardForwardFilter>(std::move(matcher));
   } else if (id == "experimental::cg") {
     LOG_DEBUG("Return experimental CG filter with CG @ " << ClCGFile.getValue())
     return std::make_unique<CGForwardFilter>(glob, ClCGFile.getValue());

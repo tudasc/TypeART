@@ -6,8 +6,11 @@
 
 namespace typeart::filter {
 
-filter::ForwardFilterImpl::ForwardFilterImpl(std::string filter, bool deep)
-    : filter(util::glob2regex(std::move(filter))), deep(deep) {
+ForwardFilterImpl::ForwardFilterImpl(std::unique_ptr<Matcher> m) : matcher(std::move(m)) {
+}
+
+ForwardFilterImpl::ForwardFilterImpl(std::unique_ptr<Matcher> m, std::unique_ptr<Matcher> deep)
+    : matcher(std::move(m)), deep_matcher(std::move(deep)) {
 }
 
 FilterAnalysis filter::ForwardFilterImpl::precheck(Value* in, Function* start) {
@@ -22,18 +25,20 @@ FilterAnalysis filter::ForwardFilterImpl::precheck(Value* in, Function* start) {
 }
 
 FilterAnalysis filter::ForwardFilterImpl::decl(CallSite current, const Path& p) {
-  auto call_target    = current.getCalledFunction();
-  const bool matchSig = match(call_target);
-  if (matchSig && deep) {
-    auto result = correlate2void(current, p);
-    switch (result) {
-      case ArgCorrelation::GlobalMismatch:
-        [[fallthrough]];
-      case ArgCorrelation::ExactMismatch:
-        LOG_DEBUG("Correlated, continue search");
-        return FilterAnalysis::Continue;
-      default:
-        return FilterAnalysis::Keep;
+  const bool match_sig = matcher->match(current);
+  if (match_sig) {
+    // if we have a deep_matcher it needs to trigger, otherwise analyze
+    if (!deep_matcher || deep_matcher->match(current)) {
+      auto result = correlate2void(current, p);
+      switch (result) {
+        case ArgCorrelation::GlobalMismatch:
+          [[fallthrough]];
+        case ArgCorrelation::ExactMismatch:
+          LOG_DEBUG("Correlated, continue search");
+          return FilterAnalysis::Continue;
+        default:
+          return FilterAnalysis::Keep;
+      }
     }
   }
 
@@ -41,10 +46,9 @@ FilterAnalysis filter::ForwardFilterImpl::decl(CallSite current, const Path& p) 
 }
 
 FilterAnalysis filter::ForwardFilterImpl::def(CallSite current, const Path& p) {
-  auto call_target     = current.getCalledFunction();
-  const bool match_sig = match(call_target);
+  const bool match_sig = matcher->match(current);
   if (match_sig) {
-    if (deep) {
+    if (!deep_matcher || deep_matcher->match(current)) {
       auto result = correlate2void(current, p);
       switch (result) {
         case ArgCorrelation::GlobalMismatch:
@@ -61,13 +65,6 @@ FilterAnalysis filter::ForwardFilterImpl::def(CallSite current, const Path& p) {
   }
 
   return FilterAnalysis::FollowDef;
-}
-
-bool filter::ForwardFilterImpl::match(Function* callee) {
-  const auto f_name = util::demangle(callee->getName());
-  const auto result = util::regex_matches(filter, f_name);
-  LOG_DEBUG("Matching " << f_name << " against " << filter << " : " << result)
-  return result;
 }
 
 }  // namespace typeart::filter
