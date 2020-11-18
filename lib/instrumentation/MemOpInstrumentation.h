@@ -12,8 +12,8 @@ class TAFunctionQuery;
 class InstrumentationHelper;
 
 class MemOpInstrumentation final : public MemoryInstrument {
-  TAFunctionQuery& fquery;
-  InstrumentationHelper& instr;
+  TAFunctionQuery* fquery;
+  InstrumentationHelper* instr_helper;
 
  public:
   MemOpInstrumentation(TAFunctionQuery& fquery, InstrumentationHelper& instr);

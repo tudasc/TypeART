@@ -77,22 +77,38 @@ using FreeArgList   = llvm::SmallVector<FreeContainer, 16>;
 using StackArgList  = llvm::SmallVector<StackContainer, 16>;
 using GlobalArgList = llvm::SmallVector<GlobalContainer, 8>;
 
+using InstrCount = size_t;
+
 class ArgumentCollector {
  public:
-  virtual HeapArgList collectHeap(const llvm::SmallVectorImpl<MallocData>& mallocs)     = 0;
-  virtual FreeArgList collectFree(const llvm::SmallVectorImpl<FreeData>& frees)         = 0;
-  virtual StackArgList collectStack(const llvm::SmallVectorImpl<AllocaData>& frees)     = 0;
-  virtual GlobalArgList collectGlobal(const llvm::SmallVectorImpl<GlobalData>& globals) = 0;
-  virtual ~ArgumentCollector()                                                          = default;
+  virtual HeapArgList collectHeap(const MallocDataList& mallocs)     = 0;
+  virtual FreeArgList collectFree(const FreeDataList& frees)         = 0;
+  virtual StackArgList collectStack(const AllocaDataList& frees)     = 0;
+  virtual GlobalArgList collectGlobal(const GlobalDataList& globals) = 0;
+  virtual ~ArgumentCollector()                                       = default;
 };
 
 class MemoryInstrument {
  public:
-  virtual size_t instrumentHeap(const HeapArgList& heap)        = 0;
-  virtual size_t instrumentFree(const FreeArgList& frees)       = 0;
-  virtual size_t instrumentStack(const StackArgList& frees)     = 0;
-  virtual size_t instrumentGlobal(const GlobalArgList& globals) = 0;
-  virtual ~MemoryInstrument()                                   = default;
+  virtual InstrCount instrumentHeap(const HeapArgList& heap)        = 0;
+  virtual InstrCount instrumentFree(const FreeArgList& frees)       = 0;
+  virtual InstrCount instrumentStack(const StackArgList& frees)     = 0;
+  virtual InstrCount instrumentGlobal(const GlobalArgList& globals) = 0;
+  virtual ~MemoryInstrument()                                       = default;
+};
+
+class InstrumentationContext {
+ private:
+  std::unique_ptr<ArgumentCollector> collector;
+  std::unique_ptr<MemoryInstrument> instrumenter;
+
+ public:
+  InstrumentationContext(std::unique_ptr<ArgumentCollector> col, std::unique_ptr<MemoryInstrument> instr);
+
+  InstrCount handleHeap(const MallocDataList& mallocs);
+  InstrCount handleFree(const FreeDataList& frees);
+  InstrCount handleStack(const AllocaDataList& frees);
+  InstrCount handleGlobal(const GlobalDataList& globals);
 };
 
 }  // namespace typeart

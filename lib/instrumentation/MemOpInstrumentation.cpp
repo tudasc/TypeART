@@ -20,7 +20,7 @@ using namespace llvm;
 
 namespace typeart {
 MemOpInstrumentation::MemOpInstrumentation(TAFunctionQuery& fquery, InstrumentationHelper& instr)
-    : MemoryInstrument(), fquery(fquery), instr(instr) {
+    : MemoryInstrument(), fquery(&fquery), instr_helper(&instr) {
 }
 
 size_t MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
@@ -57,7 +57,7 @@ size_t MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
 
         elementCount = IRB.CreateUDiv(mArg, typeSizeConst);
         IRBuilder<> FreeB(malloc_call);
-        FreeB.CreateCall(fquery.getFunctionFor(IFunc::free), ArrayRef<Value*>{addrOp});
+        FreeB.CreateCall(fquery->getFunctionFor(IFunc::free), ArrayRef<Value*>{addrOp});
         break;
       }
       default:
@@ -65,7 +65,7 @@ size_t MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
         continue;
     }
 
-    IRB.CreateCall(fquery.getFunctionFor(IFunc::heap), ArrayRef<Value*>{malloc_call, typeIdConst, elementCount});
+    IRB.CreateCall(fquery->getFunctionFor(IFunc::heap), ArrayRef<Value*>{malloc_call, typeIdConst, elementCount});
     ++counter;
   }
 
@@ -86,7 +86,7 @@ size_t MemOpInstrumentation::instrumentFree(const FreeArgList& frees) {
     auto free_arg = args.get_value(ArgMap::ID::pointer);
 
     IRBuilder<> IRB(insertBefore);
-    IRB.CreateCall(fquery.getFunctionFor(IFunc::free), ArrayRef<Value*>{free_arg});
+    IRB.CreateCall(fquery->getFunctionFor(IFunc::free), ArrayRef<Value*>{free_arg});
     ++counter;
   }
 
@@ -105,9 +105,9 @@ size_t MemOpInstrumentation::instrumentStack(const StackArgList& stack) {
 
     auto typeIdConst    = args.get_value(ArgMap::ID::type_id);
     auto numElementsVal = args.get_value(ArgMap::ID::element_count);
-    auto arrayPtr       = IRB.CreateBitOrPointerCast(alloca, instr.getTypeFor(IType::ptr));
+    auto arrayPtr       = IRB.CreateBitOrPointerCast(alloca, instr_helper->getTypeFor(IType::ptr));
 
-    IRB.CreateCall(fquery.getFunctionFor(IFunc::stack), ArrayRef<Value*>{arrayPtr, typeIdConst, numElementsVal});
+    IRB.CreateCall(fquery->getFunctionFor(IFunc::stack), ArrayRef<Value*>{arrayPtr, typeIdConst, numElementsVal});
     ++counter;
 
     auto bb = alloca->getParent();
@@ -118,7 +118,7 @@ size_t MemOpInstrumentation::instrumentStack(const StackArgList& stack) {
   }
 
   if (f) {
-    StackCounter scount(f, instr, fquery);
+    StackCounter scount(f, instr_helper, fquery);
     scount.addStackHandling(allocCounts);
   }
 
@@ -133,14 +133,14 @@ size_t MemOpInstrumentation::instrumentGlobal(const GlobalArgList& globals) {
       auto global         = gdata.global;
       auto typeIdConst    = args.get_value(ArgMap::ID::type_id);
       auto numElementsVal = args.get_value(ArgMap::ID::element_count);
-      auto globalPtr      = IRB.CreateBitOrPointerCast(global, instr.getTypeFor(IType::ptr));
-      IRB.CreateCall(fquery.getFunctionFor(IFunc::global), ArrayRef<Value*>{globalPtr, typeIdConst, numElementsVal});
+      auto globalPtr      = IRB.CreateBitOrPointerCast(global, instr_helper->getTypeFor(IType::ptr));
+      IRB.CreateCall(fquery->getFunctionFor(IFunc::global), ArrayRef<Value*>{globalPtr, typeIdConst, numElementsVal});
       ++counter;
     }
   };
 
   const auto makeCtorFuncBody = [&]() -> IRBuilder<> {
-    auto m                = instr.getModule();
+    auto m                = instr_helper->getModule();
     auto& c               = m->getContext();
     auto ctorFunctionName = "__typeart_init_module_" + m->getSourceFileName();  // needed -- will not work with piping?
 

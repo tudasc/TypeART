@@ -6,6 +6,7 @@
 #define TYPEART_MEMOPDATA_H
 
 #include "llvm/ADT/SmallPtrSet.h"
+#include "llvm/ADT/SmallVector.h"
 
 namespace llvm {
 class CallBase;
@@ -38,6 +39,11 @@ struct AllocaData {
 struct GlobalData {
   llvm::GlobalVariable* global{nullptr};
 };
+
+using GlobalDataList = llvm::SmallVector<GlobalData, 8>;
+using MallocDataList = llvm::SmallVector<MallocData, 8>;
+using FreeDataList   = llvm::SmallVector<FreeData, 8>;
+using AllocaDataList = llvm::SmallVector<AllocaData, 8>;
 
 }  // namespace typeart
 #endif  // TYPEART_MEMOPDATA_H

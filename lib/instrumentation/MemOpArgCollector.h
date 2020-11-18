@@ -12,15 +12,15 @@ class TypeManager;
 class InstrumentationHelper;
 
 class MemOpArgCollector final : public ArgumentCollector {
-  TypeManager& tm;
-  InstrumentationHelper& instr;
+  TypeManager* type_m;
+  InstrumentationHelper* instr_helper;
 
  public:
   MemOpArgCollector(TypeManager&, InstrumentationHelper&);
-  HeapArgList collectHeap(const llvm::SmallVectorImpl<MallocData>& mallocs) override;
-  FreeArgList collectFree(const llvm::SmallVectorImpl<FreeData>& frees) override;
-  StackArgList collectStack(const llvm::SmallVectorImpl<AllocaData>& allocs) override;
-  GlobalArgList collectGlobal(const llvm::SmallVectorImpl<GlobalData>& globals) override;
+  HeapArgList collectHeap(const MallocDataList& mallocs) override;
+  FreeArgList collectFree(const FreeDataList& frees) override;
+  StackArgList collectStack(const AllocaDataList& allocs) override;
+  GlobalArgList collectGlobal(const GlobalDataList& globals) override;
   virtual ~MemOpArgCollector() = default;
 };
 }  // namespace typeart

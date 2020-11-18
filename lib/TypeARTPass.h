@@ -37,8 +37,7 @@ class TypeArtPass : public llvm::ModulePass {
   TypeManager typeManager;
   InstrumentationHelper instrumentation_helper;
   TAFunctions functions;
-  std::unique_ptr<ArgumentCollector> arg_collector;
-  std::unique_ptr<MemoryInstrument> mem_instrument;
+  std::unique_ptr<InstrumentationContext> instrumentation_context;
 
  public:
   static char ID;  // used to identify pass

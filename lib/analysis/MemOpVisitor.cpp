@@ -17,8 +17,6 @@ namespace typeart {
 namespace finder {
 using namespace llvm;
 
-MemOpVisitor::MemOpVisitor() = default;
-
 void MemOpVisitor::visitModuleGlobals(Module& m) {
   for (auto& g : m.globals()) {
     globals.emplace_back(GlobalData{&g});
@@ -156,8 +154,6 @@ void MemOpVisitor::clear() {
   mallocs.clear();
   frees.clear();
 }
-
-MemOpVisitor::~MemOpVisitor() = default;
 
 }  // namespace finder
 }  // namespace typeart
