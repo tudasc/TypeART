@@ -1,8 +1,6 @@
 set(FILTER_SOURCES
         StandardFilter.cpp
         StandardFilter.h
-        CGFilter.cpp
-        CGFilter.h
         CGInterface.cpp
         CGInterface.h
         Filter.h
@@ -16,7 +14,7 @@ set(FILTER_SOURCES
 
 add_library(memfilter STATIC
         ${FILTER_SOURCES}
-)
+        )
 
 # https://lists.llvm.org/pipermail/llvm-dev/2018-July/124534.html
 #target_link_libraries(memfilter PUBLIC
@@ -29,24 +27,24 @@ target_project_compile_options(memfilter)
 target_define_file_basename(memfilter)
 
 target_project_compile_definitions(memfilter
-  PRIVATE_DEFS
-    LOG_LEVEL=${LOG_LEVEL}
-)
+        PRIVATE_DEFS
+        LOG_LEVEL=${LOG_LEVEL}
+        )
 
 set_target_properties(memfilter
-  PROPERTIES
-    POSITION_INDEPENDENT_CODE ON
-)
+        PROPERTIES
+        POSITION_INDEPENDENT_CODE ON
+        )
 
 target_include_directories(memfilter
-  SYSTEM
-  PRIVATE
-    ${LLVM_INCLUDE_DIRS}
-)
+        SYSTEM
+        PRIVATE
+        ${LLVM_INCLUDE_DIRS}
+        )
 
 make_tidy_check(memfilter
-  "${FILTER_SOURCES}"
-)
+        "${FILTER_SOURCES}"
+        )
 
 # For now, non-consumable filter
 #install(
@@ -55,8 +53,8 @@ make_tidy_check(memfilter
 #)
 
 install(
-  TARGETS memfilter
-  EXPORT ${TARGETS_EXPORT_NAME}
-  LIBRARY DESTINATION lib
-  ARCHIVE DESTINATION lib
+        TARGETS memfilter
+        EXPORT ${TARGETS_EXPORT_NAME}
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib
 )

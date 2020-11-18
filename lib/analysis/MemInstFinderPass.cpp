@@ -8,7 +8,6 @@
 #include "MemInstFinderPass.h"
 
 #include "MemOpVisitor.h"
-#include "filter/CGFilter.h"
 #include "filter/CGForwardFilter.h"
 #include "filter/CGInterface.h"
 #include "filter/Filter.h"
@@ -83,21 +82,18 @@ static std::unique_ptr<Filter> make_filter(std::string id, std::string glob) {
   if (id == "empty" || !ClCallFilter.getValue()) {
     LOG_DEBUG("Return no-op filter")
     return std::make_unique<NoOpFilter>();
-  } else if (id == "CG" && !ClCGFile.empty()) {
-    LOG_DEBUG("Return CG filter with CG @ " << ClCGFile.getValue())
-    return std::make_unique<deprecated::CGFilter>(glob, deep, ClCGFile.getValue());
-  } else if (id == "experimental::default") {
-    LOG_DEBUG("Return experimental default filter")
-    auto matcher = std::make_unique<filter::DefaultStringMatcher>(util::glob2regex(glob));
-    // auto deep_matcher = std::make_unique<filter::DefaultStringMatcher>(util::glob2regex(glob));
-    return std::make_unique<StandardForwardFilter>(std::move(matcher));
-  } else if (id == "experimental::cg") {
+  } else if (id == "deprecated::default") {
+    // default
+    LOG_DEBUG("Return deprecated default filter")
+    return std::make_unique<deprecated::StandardFilter>(glob, deep);
+  } else if (id == "cg" || id == "experimental::cg") {
     LOG_DEBUG("Return experimental CG filter with CG @ " << ClCGFile.getValue())
     return std::make_unique<CGForwardFilter>(glob, ClCGFile.getValue());
   } else {
-    // default
     LOG_DEBUG("Return default filter")
-    return std::make_unique<deprecated::StandardFilter>(glob, deep);
+    auto matcher = std::make_unique<filter::DefaultStringMatcher>(util::glob2regex(glob));
+    // auto deep_matcher = std::make_unique<filter::DefaultStringMatcher>(util::glob2regex(glob));
+    return std::make_unique<StandardForwardFilter>(std::move(matcher));
   }
 }
 
