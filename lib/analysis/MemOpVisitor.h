@@ -10,9 +10,8 @@
 
 #include "MemOpData.h"
 
+#include "llvm/ADT/StringMap.h"
 #include "llvm/IR/InstVisitor.h"
-
-#include <set>
 
 namespace typeart {
 
@@ -26,15 +25,15 @@ struct MemOpVisitor : public llvm::InstVisitor<MemOpVisitor> {
 
  private:
   // clang-format off
-  const std::map<std::string, MemOpKind> alloc_map{{"malloc", MemOpKind::MALLOC},
-                                                   {"_Znwm", MemOpKind::MALLOC}, /*new*/
-                                                   {"_Znam", MemOpKind::MALLOC}, /*new[]*/
-                                                   {"calloc", MemOpKind::CALLOC},
-                                                   {"realloc", MemOpKind::REALLOC}
+  const llvm::StringMap<MemOpKind> alloc_map{  {"malloc", MemOpKind::MALLOC},
+                                               {"_Znwm",  MemOpKind::MALLOC}, /*new*/
+                                               {"_Znam",  MemOpKind::MALLOC}, /*new[]*/
+                                               {"calloc", MemOpKind::CALLOC},
+                                               {"realloc",MemOpKind::REALLOC}
   };
-  const std::map<std::string, MemOpKind> dealloc_map{{"free", MemOpKind::FREE},
-                                                     {"_ZdlPv", MemOpKind::FREE}, /*delete*/
-                                                     {"_ZdaPv", MemOpKind::FREE} /*delete[]*/
+  const llvm::StringMap<MemOpKind> dealloc_map{{"free",   MemOpKind::FREE},
+                                               {"_ZdlPv", MemOpKind::FREE}, /*delete*/
+                                               {"_ZdaPv", MemOpKind::FREE} /*delete[]*/
   };
   // clang-format on
 

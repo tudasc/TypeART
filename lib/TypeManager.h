@@ -3,33 +3,28 @@
 
 #include "TypeDB.h"
 
+#include <llvm/ADT/StringMap.h>
 #include <llvm/IR/DataLayout.h>
 #include <llvm/IR/Type.h>
-#include <map>
 
 namespace typeart {
 
 class TypeManager {
+  std::string file;
+  TypeDB typeDB;
+  llvm::StringMap<int> structMap;
+  size_t structCount;
+
  public:
   explicit TypeManager(std::string file);
-
   bool load();
-
   bool store();
-
   int getOrRegisterType(llvm::Type* type, const llvm::DataLayout& dl);
 
  private:
   int getOrRegisterStruct(llvm::StructType* type, const llvm::DataLayout& dl);
-
   int getOrRegisterVector(llvm::VectorType* type, const llvm::DataLayout& dl);
-
   int reserveNextId();
-
-  std::string file;
-  TypeDB typeDB;
-  std::map<std::string, int> structMap;
-  size_t structCount;
 };
 }  // namespace typeart
 
