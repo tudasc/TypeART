@@ -11,6 +11,7 @@
 //#include "Logger.h"
 
 #include "llvm/Demangle/Demangle.h"
+#include "llvm/IR/CallSite.h"
 #include "llvm/Support/Regex.h"
 #include "llvm/Support/raw_ostream.h"
 
@@ -84,6 +85,22 @@ inline std::string demangle(String&& s) {
     return std::string(demangle);
   }
   return name;
+}
+
+template <typename T>
+inline std::string try_demangle(const T& site) {
+  if constexpr (std::is_same_v<T, llvm::CallSite>) {
+    if (site.isIndirectCall()) {
+      return "";
+    }
+    return demangle(site.getCalledFunction()->getName());
+  } else {
+    if constexpr (std::is_same_v<T, llvm::Function>) {
+      return demangle(site.getName());
+    } else {
+      return demangle(site);
+    }
+  }
 }
 
 inline bool regex_matches(const std::string& regex, const std::string& in, bool case_sensitive = false) {

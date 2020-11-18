@@ -1,6 +1,7 @@
 set(PROJECT_NAME typeart_llvm)
 set(TARGETS_EXPORT_NAME ${PROJECT_NAME}-targets)
 
+add_subdirectory(filter)
 add_subdirectory(analysis)
 
 set(PASS_SOURCES

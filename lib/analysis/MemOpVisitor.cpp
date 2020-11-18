@@ -30,7 +30,7 @@ void MemOpVisitor::visitCallBase(llvm::CallBase& cb) {
     const auto* f = cb.getCalledFunction();
     if (!f) {
       // TODO handle calls through, e.g., function pointers? - seems infeasible
-      LOG_INFO("Encountered indirect call, skipping.");
+      // LOG_INFO("Encountered indirect call, skipping.");
       return None;
     }
     const auto name = f->getName().str();

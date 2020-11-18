@@ -6,8 +6,11 @@ set(MEM_PASS_SOURCES
 
 make_llvm_module(meminstfinderpass
   "${MEM_PASS_SOURCES}"
+  LINK_LIBS
+    memfilter
   INCLUDE_DIRS
     ${CMAKE_CURRENT_SOURCE_DIR}/..
+    ${CMAKE_CURRENT_SOURCE_DIR}/filter
 )
 
 target_project_compile_options(meminstfinderpass)

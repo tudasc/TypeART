@@ -26,10 +26,10 @@ class GlobalValue;
 namespace typeart {
 
 namespace filter {
+class Filter;
 
 class CallFilter {
-  class FilterImpl;
-  std::unique_ptr<FilterImpl> fImpl;
+  std::unique_ptr<Filter> fImpl;
 
  public:
   explicit CallFilter(const std::string& glob);
