@@ -52,9 +52,9 @@ make_tidy_check(memfilter
 #  DESTINATION include
 #)
 
-install(
-        TARGETS memfilter
-        EXPORT ${TARGETS_EXPORT_NAME}
-        LIBRARY DESTINATION lib
-        ARCHIVE DESTINATION lib
-)
+#install(
+#        TARGETS memfilter
+#        EXPORT ${TARGETS_EXPORT_NAME}
+#        LIBRARY DESTINATION lib
+#        ARCHIVE DESTINATION lib
+#)
