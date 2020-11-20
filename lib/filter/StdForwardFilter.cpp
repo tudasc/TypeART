@@ -6,7 +6,7 @@
 
 namespace typeart::filter {
 
-ForwardFilterImpl::ForwardFilterImpl(std::unique_ptr<Matcher> m) : matcher(std::move(m)) {
+ForwardFilterImpl::ForwardFilterImpl(std::unique_ptr<Matcher> m) : ForwardFilterImpl(std::move(m), nullptr) {
 }
 
 ForwardFilterImpl::ForwardFilterImpl(std::unique_ptr<Matcher> m, std::unique_ptr<Matcher> deep)
