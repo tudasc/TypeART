@@ -150,8 +150,7 @@ void JSONCG::construct_call_information(const std::string& entry, const llvm::js
   }
 }
 
-// llvm::json::Value& JSONCG::getJSON(const std::string& fileName) {
-JSONCG* JSONCG::getJSON(const std::string& fileName) {
+std::unique_ptr<JSONCG> JSONCG::getJSON(const std::string& fileName) {
   using namespace llvm;
   auto memBuffer = MemoryBuffer::getFile(fileName);
 
@@ -166,12 +165,13 @@ JSONCG* JSONCG::getJSON(const std::string& fileName) {
       exit(-1);
     }
 
-    return new JSONCG(json.get());
+    return std::make_unique<JSONCG>(json.get());
   } else {
     LOG_FATAL("No CG file provided / file cannot be found: " << fileName);
-    exit(-1);
+    return nullptr;
   }
 }
+
 JSONCG::~JSONCG() = default;
 
 }  // namespace filter

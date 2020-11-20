@@ -9,14 +9,13 @@
 
 namespace typeart::filter {
 
-CGFilterImpl::CGFilterImpl(std::string fstr, std::string cgFile)
-    : filter(util::glob2regex(std::move(fstr))), matcher(filter) {
-  if (!callGraph && !cgFile.empty()) {
-    LOG_DEBUG("Resetting the CGInterface with JSON CG");
-    callGraph.reset(JSONCG::getJSON(cgFile));
-  } else {
-    LOG_FATAL("CG File not found " << cgFile);
-  }
+CGFilterImpl::CGFilterImpl(std::string filter_str, std::unique_ptr<CGInterface> cgraph)
+    : CGFilterImpl(filter_str, std::move(cgraph), nullptr) {
+}
+
+CGFilterImpl::CGFilterImpl(std::string filter_str, std::unique_ptr<CGInterface> cgraph,
+                           std::unique_ptr<Matcher> matcher)
+    : filter(util::glob2regex(std::move(filter_str))), call_graph(std::move(cgraph)), deep_matcher(std::move(matcher)) {
 }
 
 FilterAnalysis CGFilterImpl::precheck(Value* in, Function* start) {
@@ -31,9 +30,7 @@ FilterAnalysis CGFilterImpl::precheck(Value* in, Function* start) {
 }
 
 FilterAnalysis CGFilterImpl::decl(CallSite current, const Path& p) {
-  // deeper analysis only possible if we had a path from *in* to *current*
-  const bool matchSig = matcher.match(current);
-  if (matchSig) {
+  if (deep_matcher && deep_matcher->match(current)) {
     auto result = correlate2void(current, p);
     switch (result) {
       case ArgCorrelation::GlobalMismatch:
@@ -47,8 +44,8 @@ FilterAnalysis CGFilterImpl::decl(CallSite current, const Path& p) {
   }
 
   const auto searchCG = [&](auto from) {
-    if (callGraph) {
-      return callGraph->reachable(from->getName(), filter);
+    if (call_graph) {
+      return call_graph->reachable(from->getName(), filter);
     } else {
       return CGInterface::ReachabilityResult::unknown;
     }

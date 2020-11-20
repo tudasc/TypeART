@@ -87,8 +87,14 @@ static std::unique_ptr<Filter> make_filter(std::string id, std::string glob) {
     LOG_DEBUG("Return deprecated default filter")
     return std::make_unique<deprecated::StandardFilter>(glob, deep);
   } else if (id == "cg" || id == "experimental::cg") {
-    LOG_DEBUG("Return experimental CG filter with CG @ " << ClCGFile.getValue())
-    return std::make_unique<CGForwardFilter>(glob, ClCGFile.getValue());
+    if (ClCGFile.empty()) {
+      LOG_FATAL("CG File not set!");
+      std::exit(1);
+    }
+    LOG_DEBUG("Return CG filter with CG file @ " << ClCGFile.getValue())
+    auto json_cg = JSONCG::getJSON(ClCGFile.getValue());
+    auto matcher = std::make_unique<filter::DefaultStringMatcher>(util::glob2regex(glob));
+    return std::make_unique<CGForwardFilter>(glob, std::move(json_cg), std::move(matcher));
   } else {
     LOG_DEBUG("Return default filter")
     auto matcher = std::make_unique<filter::DefaultStringMatcher>(util::glob2regex(glob));
