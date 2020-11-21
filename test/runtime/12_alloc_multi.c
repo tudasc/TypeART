@@ -1,6 +1,6 @@
 // clang-format off
-// RUN: %scriptpath/applyAndRun.sh %s %pluginpath "-typeart-alloca" %rtpath 2>&1 | FileCheck %s
-// RUN: %scriptpath/applyAndRun.sh %s %pluginpath "-typeart-alloca -call-filter" %rtpath 2>&1 | FileCheck %s --check-prefix CHECK-FILTER
+// RUN: %run %s 2>&1 | FileCheck %s
+// RUN: %run %s "-call-filter" 2>&1 | FileCheck %s --check-prefix CHECK-FILTER
 // clang-format on
 
 #include <stdlib.h>
