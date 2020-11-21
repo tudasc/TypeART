@@ -1,7 +1,7 @@
 // clang-format off
-// RUN: %c-to-llvm %s | opt -load %pluginpath/analysis/meminstfinderpass.so -load %pluginpath/%pluginname %pluginargs -typeart-alloca -alloca-array-only=false -call-filter -filter-impl=deprecated::default -call-filter-deep=true -S 2>&1 | FileCheck %s --check-prefix=CHECK-default
-// RUN: %c-to-llvm %s | opt -load %pluginpath/analysis/meminstfinderpass.so -load %pluginpath/%pluginname %pluginargs -typeart-alloca -alloca-array-only=false -call-filter -S 2>&1 | FileCheck %s --check-prefix=CHECK-exp-default
-// RUN: %c-to-llvm %s | opt -load %pluginpath/analysis/meminstfinderpass.so -load %pluginpath/%pluginname %pluginargs -typeart-alloca -alloca-array-only=false -call-filter -filter-impl=cg -cg-file=%p/05_cg.ipcg -S 2>&1 | FileCheck %s --check-prefix=CHECK-exp-cg
+// RUN: %c-to-llvm %s | %apply-typeart -typeart-alloca -alloca-array-only=false -call-filter -filter-impl=deprecated::default -call-filter-deep=true -S 2>&1 | FileCheck %s --check-prefix=CHECK-default
+// RUN: %c-to-llvm %s | %apply-typeart -typeart-alloca -alloca-array-only=false -call-filter -S 2>&1 | FileCheck %s --check-prefix=CHECK-exp-default
+// RUN: %c-to-llvm %s | %apply-typeart -typeart-alloca -alloca-array-only=false -call-filter -filter-impl=cg -cg-file=%p/05_cg.ipcg -S 2>&1 | FileCheck %s --check-prefix=CHECK-exp-cg
 // clang-format on
 
 extern void MPI_Mock(int, int, int);

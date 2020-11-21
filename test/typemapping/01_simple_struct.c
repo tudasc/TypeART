@@ -1,5 +1,5 @@
 // clang-format off
-// RUN: rm types.yaml | clang -S -emit-llvm %s -o - | opt -load %pluginpath/analysis/meminstfinderpass.so -load %pluginpath/%pluginname %pluginargs -S 2>&1; cat types.yaml | FileCheck %s
+// RUN: rm types.yaml | clang -S -emit-llvm %s -o - | %apply-typeart -S 2>&1; cat types.yaml | FileCheck %s
 // clang-format on
 
 // Note: This test assumes standard alignment on a 64bit system. Non-standard alignment may lead to failure.

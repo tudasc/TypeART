@@ -1,4 +1,4 @@
-; RUN: cat %s | opt -load %pluginpath/analysis/meminstfinderpass.so -load %pluginpath/%pluginname %pluginargs -typeart-alloca -alloca-array-only=false -S 2>&1 | FileCheck %s
+; RUN: cat %s | %apply-typeart -typeart-alloca -alloca-array-only=false -S 2>&1 | FileCheck %s
 
 ; ModuleID = '11_calloc_realloc.c'
 source_filename = "11_calloc_realloc.c"

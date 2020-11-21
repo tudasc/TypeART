@@ -1,6 +1,6 @@
-; RUN: cat %s | opt -load %pluginpath/analysis/meminstfinderpass.so -load %pluginpath/%pluginname %pluginargs -typeart-alloca -alloca-array-only=false -S 2>&1 | FileCheck %s
-; RUN: cat %s | opt -load %pluginpath/analysis/meminstfinderpass.so -load %pluginpath/%pluginname %pluginargs -typeart-alloca -alloca-array-only=false -call-filter -filter-impl=deprecated::default -S 2>&1 | FileCheck %s -check-prefix=CHECK-FILTER
-; RUN: cat %s | opt -load %pluginpath/analysis/meminstfinderpass.so -load %pluginpath/%pluginname %pluginargs -typeart-alloca -alloca-array-only=false -call-filter -S 2>&1 | FileCheck %s -check-prefix=CHECK-FILTER-EXP
+; RUN: cat %s | %apply-typeart -typeart-alloca -alloca-array-only=false -S 2>&1 | FileCheck %s
+; RUN: cat %s | %apply-typeart -typeart-alloca -alloca-array-only=false -call-filter -filter-impl=deprecated::default -S 2>&1 | FileCheck %s -check-prefix=CHECK-FILTER
+; RUN: cat %s | %apply-typeart -typeart-alloca -alloca-array-only=false -call-filter -S 2>&1 | FileCheck %s -check-prefix=CHECK-FILTER-EXP
 
 ; ModuleID = '01_alloca.c'
 source_filename = "01_alloca.c"
