@@ -8,4 +8,4 @@ void test() {
 
 // CHECK: Malloc{{[ ]*}}:{{[ ]*}}0
 // CHECK: Free{{[ ]*}}:{{[ ]*}}0
-// CHECK: Alloca{{[ ]*}}:{{[ ]*}}1
+// CHECK: Alloca{{[ ]*}}:{{[ ]*}}2

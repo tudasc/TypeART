@@ -36,7 +36,7 @@ static RegisterPass<typeart::MemInstFinderPass> X("mem-inst-finder",            
 }  // namespace
 
 static cl::opt<bool> ClFilterNonArrayAlloca("alloca-array-only", cl::desc("Only use alloca instructions of arrays."),
-                                            cl::Hidden, cl::init(true));
+                                            cl::Hidden, cl::init(false));
 
 static cl::opt<bool> ClFilterMallocAllocPair("malloc-store-filter",
                                              cl::desc("Filter allocs that get a store from a heap alloc."), cl::Hidden,

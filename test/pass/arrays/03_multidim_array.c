@@ -13,4 +13,4 @@ void test() {
 // CHECK-NOT: Encountered unhandled type
 // CHECK: Malloc{{[ ]*}}:{{[ ]*}}0
 // CHECK: Free{{[ ]*}}:{{[ ]*}}0
-// CHECK: Alloca{{[ ]*}}:{{[ ]*}}4
+// CHECK: Alloca{{[ ]*}}:{{[ ]*}}6

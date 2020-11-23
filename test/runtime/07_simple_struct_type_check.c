@@ -1,4 +1,4 @@
-// RUN: %run %s 2>&1 | FileCheck %s
+// RUN: %run %s -alloca-array-only=true 2>&1 | FileCheck %s
 
 #include "../struct_defs.h"
 #include "util.h"

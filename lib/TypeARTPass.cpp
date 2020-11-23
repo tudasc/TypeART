@@ -136,9 +136,6 @@ bool TypeArtPass::runOnFunc(Function& f) {
     const auto stack_count = instrumentation_context->handleStack(allocas);
     NumInstrumentedAlloca += stack_count;
     mod |= stack_count > 0;
-  } else {
-    // FIXME this is required by some unit tests
-    NumInstrumentedAlloca += allocas.size();
   }
 
   return mod;
@@ -183,11 +180,23 @@ void TypeArtPass::declareInstrumentationFunctions(Module& m) {
 }
 
 void TypeArtPass::printStats(llvm::raw_ostream& out) {
-  const bool heap_ignore = ClIgnoreHeap.getValue();
+  const auto get_ta_mode = [&]() {
+    const bool heap  = !ClIgnoreHeap.getValue();
+    const bool stack = ClTypeArtAlloca.getValue();
+    if (heap) {
+      if (stack) {
+        return " [Heap & Stack]";
+      }
+      return " [Heap]";
+    } else if (stack) {
+      return " [Stack]";
+    }
+    return " [Unknown]";
+  };
 
   Table stats("TypeArtPass");
   stats.wrap_header = true;
-  stats.title += (heap_ignore ? " [Stack]" : " [Heap]");
+  stats.title += get_ta_mode();
   stats.put(Row::make("Malloc", NumInstrumentedMallocs.getValue()));
   stats.put(Row::make("Free", NumInstrumentedFrees.getValue()));
   stats.put(Row::make("Alloca", NumInstrumentedAlloca.getValue()));
