@@ -1,8 +1,8 @@
 // clang-format off
-// RUN: %c-to-llvm -fno-discard-value-names %s | %apply-typeart -typeart-alloca -alloca-array-only=false -call-filter -filter-impl=deprecated::default -S 2>&1 | FileCheck %s
-// RUN: %c-to-llvm -fno-discard-value-names %s | opt -O3 -S | %apply-typeart -typeart-alloca -alloca-array-only=false -call-filter -filter-impl=deprecated::default -S 2>&1 | FileCheck %s --check-prefix=CHECK-opt
-// RUN: %c-to-llvm -fno-discard-value-names %s | %apply-typeart -typeart-alloca -alloca-array-only=false -call-filter -S 2>&1 | FileCheck %s --check-prefix=CHECK-exp-default
-// RUN: %c-to-llvm -fno-discard-value-names %s | opt -O3 -S | %apply-typeart -typeart-alloca -alloca-array-only=false -call-filter -S 2>&1 | FileCheck %s --check-prefix=CHECK-exp-default-opt
+// RUN: %c-to-llvm -fno-discard-value-names %s | %apply-typeart -typeart-alloca -call-filter -filter-impl=deprecated::default -S 2>&1 | FileCheck %s
+// RUN: %c-to-llvm -fno-discard-value-names %s | opt -O3 -S | %apply-typeart -typeart-alloca -call-filter -filter-impl=deprecated::default -S 2>&1 | FileCheck %s --check-prefix=CHECK-opt
+// RUN: %c-to-llvm -fno-discard-value-names %s | %apply-typeart -typeart-alloca -call-filter -S 2>&1 | FileCheck %s --check-prefix=CHECK-exp-default
+// RUN: %c-to-llvm -fno-discard-value-names %s | opt -O3 -S | %apply-typeart -typeart-alloca -call-filter -S 2>&1 | FileCheck %s --check-prefix=CHECK-exp-default-opt
 // clang-format on
 
 using Real_t = double;
