@@ -15,15 +15,21 @@ namespace filter {
 
 class Filter {
  public:
+  Filter()              = default;
+  Filter(const Filter&) = default;
+  Filter(Filter&&)      = default;
+  Filter& operator=(const Filter&) = default;
+  Filter& operator=(Filter&&) = default;
+
   virtual bool filter(llvm::Value*)                 = 0;
   virtual void setStartingFunction(llvm::Function*) = 0;
   virtual void setMode(bool)                        = 0;
-  virtual ~Filter()                                 = default;
+
+  virtual ~Filter() = default;
 };
 
 class NoOpFilter final : public Filter {
  public:
-  NoOpFilter() = default;
   bool filter(llvm::Value*) override {
     return false;
   }
@@ -31,7 +37,6 @@ class NoOpFilter final : public Filter {
   }
   void setStartingFunction(llvm::Function*) override {
   }
-  ~NoOpFilter() = default;
 };
 
 }  // namespace filter

@@ -13,8 +13,15 @@ namespace typeart::filter {
 
 class Matcher {
  public:
+  Matcher()               = default;
+  Matcher(const Matcher&) = default;
+  Matcher(Matcher&&)      = default;
+  Matcher& operator=(const Matcher&) = default;
+  Matcher& operator=(Matcher&&) = default;
+
   virtual bool match(llvm::CallSite) const = 0;
-  virtual ~Matcher()                       = default;
+
+  virtual ~Matcher() = default;
 };
 
 class DefaultStringMatcher final : public Matcher {
@@ -32,12 +39,6 @@ class DefaultStringMatcher final : public Matcher {
     }
     return false;
   }
-
-  DefaultStringMatcher(const DefaultStringMatcher&) = default;
-  DefaultStringMatcher(DefaultStringMatcher&&)      = default;
-  DefaultStringMatcher& operator=(const DefaultStringMatcher&) = default;
-  DefaultStringMatcher& operator=(DefaultStringMatcher&&) = default;
-  virtual ~DefaultStringMatcher()                         = default;
 };
 
 }  // namespace typeart::filter

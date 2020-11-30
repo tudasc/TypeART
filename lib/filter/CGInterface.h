@@ -14,6 +14,12 @@ class CGInterface {
  public:
   enum class ReachabilityResult { reaches, maybe_reaches, never_reaches, unknown };
 
+  CGInterface()                   = default;
+  CGInterface(const CGInterface&) = default;
+  CGInterface(CGInterface&&)      = default;
+  CGInterface& operator=(const CGInterface&) = default;
+  CGInterface& operator=(CGInterface&&) = default;
+
   /**
    * \brief Checks if a path exists from source to target
    */
@@ -54,8 +60,6 @@ class JSONCG final : public CGInterface {
   std::vector<std::string> get_decl_only();
 
   static std::unique_ptr<JSONCG> getJSON(const std::string& fileName);
-
-  virtual ~JSONCG();
 
  private:
   void construct_call_information(const std::string& caller, const llvm::json::Object& j);

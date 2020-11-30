@@ -172,7 +172,5 @@ std::unique_ptr<JSONCG> JSONCG::getJSON(const std::string& fileName) {
   }
 }
 
-JSONCG::~JSONCG() = default;
-
 }  // namespace filter
 }  // namespace typeart
