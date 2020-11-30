@@ -78,7 +78,7 @@ bool TypeArtPass::doInitialization(Module& m) {
 
 bool TypeArtPass::runOnModule(Module& m) {
   bool instrumented_global{false};
-  if (ClIgnoreHeap) {
+  if (ClTypeArtAlloca) {
     declareInstrumentationFunctions(m);
 
     const auto& globalsList = getAnalysis<MemInstFinderPass>().getModuleGlobals();
