@@ -29,7 +29,7 @@ CALL_FILTER=-call-filter -call-filter-deep -filter-impl=experimental::default
 
 .cc.o: lulesh.h
 ifeq ($(TYPEART), yes)
-	$(CXX) ${CXXFLAGS} -O1 -Xclang -disable-llvm-passes -S -emit-llvm $< -o - | opt $(PASSES) -typeart -S | opt -O3 -S | opt $(PASSES) -typeart -typeart-alloca -alloca-array-only=false $(CALL_FILTER) -typeart-no-heap=true | llc -x=ir -filetype=obj -o $@
+	$(CXX) ${CXXFLAGS} -O1 -Xclang -disable-llvm-passes -S -emit-llvm $< -o - | opt $(PASSES) -typeart -S | opt -O3 -S | opt $(PASSES) -typeart -typeart-alloca $(CALL_FILTER) -typeart-no-heap=true | llc -x=ir -filetype=obj -o $@
 else
 	$(CXX) $(CXXFLAGS) -O3 -c -o $@ $<
 endif

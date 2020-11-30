@@ -1,5 +1,5 @@
 // clang-format off
-// RUN: %scriptpath/applyAndRun.sh %s %pluginpath "-typeart-alloca" %rtpath 2>&1 | FileCheck %s
+// RUN: %run %s 2>&1 | FileCheck %s
 // clang-format on
 
 #include <new>

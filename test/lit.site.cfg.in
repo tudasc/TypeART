@@ -8,4 +8,5 @@ config.typeartpass_rt_dir = "@TYPEARTPASS_RT_DIR@"
 config.typeartpass_script_dir = "@TYPEARTPASS_SCRIPT_DIR@"
 
 # Let the main config do the real work.
+config.loaded_site_config = True
 lit_config.load_config(config, "@TYPEARTPASS_PROJECT_DIR@/test/lit.cfg")

@@ -1,8 +1,8 @@
 // clang-format off
-// RUN: clang -fno-discard-value-names -S -emit-llvm %s -o - | opt -load %pluginpath/analysis/meminstfinderpass.so -load %pluginpath/%pluginname %pluginargs -typeart-alloca -alloca-array-only=false -call-filter -filter-impl=deprecated::default -S 2>&1 | FileCheck %s
-// RUN: clang -fno-discard-value-names -O1 -Xclang -disable-llvm-passes -S -emit-llvm %s -o - | opt -O3 -S | opt -load %pluginpath/analysis/meminstfinderpass.so -load %pluginpath/%pluginname %pluginargs -typeart-alloca -alloca-array-only=false -call-filter -filter-impl=deprecated::default -S 2>&1 | FileCheck %s --check-prefix=CHECK-opt
-// RUN: clang -fno-discard-value-names -S -emit-llvm %s -o - | opt -load %pluginpath/analysis/meminstfinderpass.so -load %pluginpath/%pluginname %pluginargs -typeart-alloca -alloca-array-only=false -call-filter -S 2>&1 | FileCheck %s --check-prefix=CHECK-exp-default
-// RUN: clang -fno-discard-value-names -O1 -Xclang -disable-llvm-passes -S -emit-llvm %s -o - | opt -O3 -S | opt -load %pluginpath/analysis/meminstfinderpass.so -load %pluginpath/%pluginname %pluginargs -typeart-alloca -alloca-array-only=false -call-filter -S 2>&1 | FileCheck %s --check-prefix=CHECK-exp-default-opt
+// RUN: %c-to-llvm -fno-discard-value-names %s | %apply-typeart -typeart-alloca -call-filter -filter-impl=deprecated::default -S 2>&1 | FileCheck %s
+// RUN: %c-to-llvm -fno-discard-value-names %s | opt -O3 -S | %apply-typeart -typeart-alloca -call-filter -filter-impl=deprecated::default -S 2>&1 | FileCheck %s --check-prefix=CHECK-opt
+// RUN: %c-to-llvm -fno-discard-value-names %s | %apply-typeart -typeart-alloca -call-filter -S 2>&1 | FileCheck %s --check-prefix=CHECK-exp-default
+// RUN: %c-to-llvm -fno-discard-value-names %s | opt -O3 -S | %apply-typeart -typeart-alloca -call-filter -S 2>&1 | FileCheck %s --check-prefix=CHECK-exp-default-opt
 // clang-format on
 
 using Real_t = double;
