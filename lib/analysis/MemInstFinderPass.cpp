@@ -45,25 +45,27 @@ static cl::opt<bool> ClFilterMallocAllocPair("malloc-store-filter",
 static cl::opt<bool> ClFilterGlobal("filter-globals", cl::desc("Filter globals of a module."), cl::Hidden,
                                     cl::init(true));
 
-static cl::opt<std::string> ClFilterImpl("filter-impl", cl::desc("Select the filter implementation."), cl::Hidden,
-                                         cl::init("default"));
+static cl::opt<bool> ClUseCallFilter("call-filter",
+                                     cl::desc("Filter alloca instructions that are passed to specific calls."),
+                                     cl::Hidden, cl::init(false));
 
-static cl::opt<bool> ClCallFilter("call-filter",
-                                  cl::desc("Filter alloca instructions that are passed to specific calls."), cl::Hidden,
-                                  cl::init(false));
+static cl::opt<std::string> ClCallFilterImpl("call-filter-impl", cl::desc("Select the filter implementation."),
+                                             cl::Hidden, cl::init("default"));
 
-static cl::opt<bool> ClCallFilterDeep("call-filter-deep",
-                                      cl::desc("If the CallFilter matches, we look if the value is passed as a void*."),
-                                      cl::Hidden, cl::init(false));
-
-static cl::opt<const char*> ClCallFilterGlob("call-filter-str", cl::desc("Filter values based on string."), cl::Hidden,
+static cl::opt<std::string> ClCallFilterGlob("call-filter-str", cl::desc("Filter values based on string."), cl::Hidden,
                                              cl::init("*MPI_*"));
 
-static cl::opt<const char*> ClCallFilterDeepGlob("call-filter-deep-str",
+static cl::opt<std::string> ClCallFilterDeepGlob("call-filter-deep-str",
                                                  cl::desc("Filter values based on API, i.e., passed as void*."),
                                                  cl::Hidden, cl::init("MPI_*"));
 
-static cl::opt<std::string> ClCGFile("cg-file", cl::desc("Location of CG to use."), cl::Hidden, cl::init(""));
+static cl::opt<std::string> ClCallFilterCGFile("call-filter-cg-file", cl::desc("Location of CG to use."), cl::Hidden,
+                                               cl::init(""));
+
+// Deprecated, only used with the old std filter:
+static cl::opt<bool> ClCallFilterDeep("call-filter-deep",
+                                      cl::desc("If the CallFilter matches, we look if the value is passed as a void*."),
+                                      cl::Hidden, cl::init(false));
 
 STATISTIC(NumDetectedHeap, "Number of detected heap allocs");
 STATISTIC(NumFilteredDetectedHeap, "Number of filtered heap allocs");
@@ -83,7 +85,7 @@ namespace filter {
 
 static std::unique_ptr<Filter> make_filter(std::string id, std::string glob) {
   const bool deep = ClCallFilterDeep.getValue();
-  if (id == "empty" || !ClCallFilter.getValue()) {
+  if (id == "empty" || !ClUseCallFilter.getValue()) {
     LOG_DEBUG("Return no-op filter")
     return std::make_unique<NoOpFilter>();
   } else if (id == "deprecated::default") {
@@ -91,12 +93,12 @@ static std::unique_ptr<Filter> make_filter(std::string id, std::string glob) {
     LOG_DEBUG("Return deprecated default filter")
     return std::make_unique<deprecated::StandardFilter>(glob, deep);
   } else if (id == "cg" || id == "experimental::cg") {
-    if (ClCGFile.empty()) {
+    if (ClCallFilterCGFile.empty()) {
       LOG_FATAL("CG File not set!");
       std::exit(1);
     }
-    LOG_DEBUG("Return CG filter with CG file @ " << ClCGFile.getValue())
-    auto json_cg = JSONCG::getJSON(ClCGFile.getValue());
+    LOG_DEBUG("Return CG filter with CG file @ " << ClCallFilterCGFile.getValue())
+    auto json_cg = JSONCG::getJSON(ClCallFilterCGFile.getValue());
     auto matcher = std::make_unique<filter::DefaultStringMatcher>(util::glob2regex(glob));
     return std::make_unique<CGForwardFilter>(glob, std::move(json_cg), std::move(matcher));
   } else {
@@ -108,7 +110,7 @@ static std::unique_ptr<Filter> make_filter(std::string id, std::string glob) {
   }
 }
 
-CallFilter::CallFilter(const std::string& glob) : fImpl{make_filter(ClFilterImpl.getValue(), glob)} {
+CallFilter::CallFilter(const std::string& glob) : fImpl{make_filter(ClCallFilterImpl.getValue(), glob)} {
 }
 
 bool CallFilter::operator()(AllocaInst* in) {
@@ -156,7 +158,7 @@ bool MemInstFinderPass::runOnModule(Module& m) {
   mOpsCollector.visitModuleGlobals(m);
   auto& globals = mOpsCollector.globals;
   NumDetectedGlobals += globals.size();
-  if (ClFilterGlobal && !ClFilterNonArrayAlloca) {
+  if (ClFilterGlobal) {
     globals.erase(
         llvm::remove_if(
             globals,
@@ -314,7 +316,7 @@ bool MemInstFinderPass::runOnFunc(llvm::Function& f) {
                  allocs.end());
   }
 
-  if (ClCallFilter) {
+  if (ClUseCallFilter) {
     auto& allocs = mOpsCollector.allocas;
     allocs.erase(llvm::remove_if(allocs,
                                  [&](const auto& data) {
