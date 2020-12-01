@@ -27,9 +27,9 @@ struct CGFilterImpl {
   std::unique_ptr<CGInterface> call_graph;
   std::unique_ptr<Matcher> deep_matcher;
 
-  CGFilterImpl(std::string filter_str, std::unique_ptr<CGInterface> cgraph);
+  CGFilterImpl(std::string filter_str, std::unique_ptr<CGInterface>&& cgraph);
 
-  CGFilterImpl(std::string filter_str, std::unique_ptr<CGInterface> cgraph, std::unique_ptr<Matcher> matcher);
+  CGFilterImpl(std::string filter_str, std::unique_ptr<CGInterface>&& cgraph, std::unique_ptr<Matcher>&& matcher);
 
   FilterAnalysis precheck(Value* in, Function* start);
 

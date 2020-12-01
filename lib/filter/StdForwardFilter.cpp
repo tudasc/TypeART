@@ -6,10 +6,10 @@
 
 namespace typeart::filter {
 
-ForwardFilterImpl::ForwardFilterImpl(std::unique_ptr<Matcher> m) : ForwardFilterImpl(std::move(m), nullptr) {
+ForwardFilterImpl::ForwardFilterImpl(std::unique_ptr<Matcher>&& m) : ForwardFilterImpl(std::move(m), nullptr) {
 }
 
-ForwardFilterImpl::ForwardFilterImpl(std::unique_ptr<Matcher> m, std::unique_ptr<Matcher> deep)
+ForwardFilterImpl::ForwardFilterImpl(std::unique_ptr<Matcher>&& m, std::unique_ptr<Matcher>&& deep)
     : matcher(std::move(m)), deep_matcher(std::move(deep)) {
 }
 
@@ -25,10 +25,10 @@ FilterAnalysis filter::ForwardFilterImpl::precheck(Value* in, Function* start) {
 }
 
 FilterAnalysis filter::ForwardFilterImpl::decl(CallSite current, const Path& p) {
-  const bool match_sig = matcher->match(current);
+  const bool match_sig = matcher->match(current) == Matcher::MatchResult::Match;
   if (match_sig) {
     // if we have a deep_matcher it needs to trigger, otherwise analyze
-    if (!deep_matcher || deep_matcher->match(current)) {
+    if (!deep_matcher || deep_matcher->match(current) == Matcher::MatchResult::Match) {
       auto result = correlate2void(current, p);
       switch (result) {
         case ArgCorrelation::GlobalMismatch:
@@ -41,14 +41,27 @@ FilterAnalysis filter::ForwardFilterImpl::decl(CallSite current, const Path& p) 
       }
     }
   }
+  // Not a relevant name (e.g. MPI), ask oracle if we have
+  // some benign (C) function name
+  const auto oracle_match = oracle.match(current);
+  switch (oracle_match) {
+    case Matcher::MatchResult::ShouldSkip: {
+      return FilterAnalysis::Skip;
+    }
+    case Matcher::MatchResult::ShouldContinue: {
+      return FilterAnalysis::Continue;
+    }
+    default:
+      break;
+  }
 
   return FilterAnalysis::Keep;
 }
 
 FilterAnalysis filter::ForwardFilterImpl::def(CallSite current, const Path& p) {
-  const bool match_sig = matcher->match(current);
+  const bool match_sig = matcher->match(current) == Matcher::MatchResult::Match;
   if (match_sig) {
-    if (!deep_matcher || deep_matcher->match(current)) {
+    if (!deep_matcher || deep_matcher->match(current) == Matcher::MatchResult::Match) {
       auto result = correlate2void(current, p);
       switch (result) {
         case ArgCorrelation::GlobalMismatch:

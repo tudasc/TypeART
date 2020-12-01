@@ -148,7 +148,7 @@ class BaseFilter : public Filter {
 
     bool skip{false};
     // In-order analysis
-    auto status = callsite(current, path);
+    const auto status = callsite(current, path);
     switch (status) {
       case FilterAnalysis::Keep:
         return false;
@@ -164,9 +164,9 @@ class BaseFilter : public Filter {
         break;
     }
 
-    auto succs = search_dir.search(current, path);
-    if (succs && !skip) {
-      for (auto* successor : succs.getValue()) {
+    if (!skip) {
+      const auto successors = search_dir.search(current, path);
+      for (auto* successor : successors) {
         if (path.contains(successor)) {
           // Avoid recursion (e.g., with store inst pointer operands pointing to an allocation)
           continue;
