@@ -62,7 +62,7 @@ bool StandardFilter::filter(Value* in) {
 
     // If we encounter a callsite, we want to analyze later, or quit in case we have a regex match
     CallSite c(val);
-    if (c.isCall()) {
+    if (c.isCall() || c.isInvoke()) {
       const auto callee        = c.getCalledFunction();
       const bool indirect_call = callee == nullptr;
 

@@ -44,9 +44,6 @@ class StandardFilter final : public Filter {
   bool shouldContinue(CallSite c, Value* in) const;
 
   static inline std::string getName(const Function* f);
-
- public:
-  virtual ~StandardFilter() = default;
 };
 
 }  // namespace typeart::filter::deprecated

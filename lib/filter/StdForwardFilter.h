@@ -22,9 +22,11 @@ struct ForwardFilterImpl {
   using Support = StdFilterTrait;
   std::unique_ptr<Matcher> matcher;
   std::unique_ptr<Matcher> deep_matcher;
+  FunctionOracleMatcher oracle;  // TODO make set flexible
 
-  explicit ForwardFilterImpl(std::unique_ptr<Matcher> m);
-  ForwardFilterImpl(std::unique_ptr<Matcher> m, std::unique_ptr<Matcher> deep);
+  explicit ForwardFilterImpl(std::unique_ptr<Matcher>&& m);
+
+  ForwardFilterImpl(std::unique_ptr<Matcher>&& m, std::unique_ptr<Matcher>&& deep);
 
   ForwardFilterImpl(std::string filter, bool deep);
 
