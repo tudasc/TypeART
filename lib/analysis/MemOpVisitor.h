@@ -26,14 +26,27 @@ struct MemOpVisitor : public llvm::InstVisitor<MemOpVisitor> {
  private:
   // clang-format off
   const llvm::StringMap<MemOpKind> alloc_map{  {"malloc", MemOpKind::MALLOC},
-                                               {"_Znwm",  MemOpKind::MALLOC}, /*new*/
-                                               {"_Znam",  MemOpKind::MALLOC}, /*new[]*/
+                                               {"_Znwm",  MemOpKind::NEW}, /*new(unsigned long)*/
+                                               {"_Znwj",  MemOpKind::NEW}, /*new(unsigned int)*/
+                                               {"_Znam",  MemOpKind::NEW}, /*new[](unsigned long)*/
+                                               {"_Znaj",  MemOpKind::NEW}, /*new[](unsigned int)*/
+                                               {"ZnwjRKSt9nothrow_t",  MemOpKind::NEW}, /*new(unsigned int, nothrow)*/
+                                               {"ZnwmRKSt9nothrow_t",  MemOpKind::NEW}, /*new(unsigned long, nothrow)*/
+                                               {"ZnajRKSt9nothrow_t",  MemOpKind::NEW}, /*new[](unsigned int, nothrow)*/
+                                               {"ZnamRKSt9nothrow_t",  MemOpKind::NEW}, /*new[](unsigned long, nothrow)*/
                                                {"calloc", MemOpKind::CALLOC},
-                                               {"realloc",MemOpKind::REALLOC}
+                                               {"realloc",MemOpKind::REALLOC},
+                                               {"reallocf",MemOpKind::REALLOC},
   };
   const llvm::StringMap<MemOpKind> dealloc_map{{"free",   MemOpKind::FREE},
-                                               {"_ZdlPv", MemOpKind::FREE}, /*delete*/
-                                               {"_ZdaPv", MemOpKind::FREE} /*delete[]*/
+                                               {"_ZdlPv", MemOpKind::DELETE}, /*delete(void*)*/
+                                               {"_ZdaPv", MemOpKind::DELETE}, /*delete[](void*)*/
+                                               {"_ZdlPvj", MemOpKind::DELETE}, /*delete(void*, uint)*/
+                                               {"_ZdlPvm", MemOpKind::DELETE}, /*delete(void*, ulong)*/
+                                               {"_ZdlPvRKSt9nothrow_t", MemOpKind::DELETE}, /*delete(void*, nothrow)*/
+                                               {"_ZdaPvj", MemOpKind::DELETE}, /*delete[](void*, uint)*/
+                                               {"_ZdaPvm", MemOpKind::DELETE}, /*delete[](void*, ulong)*/
+                                               {"_ZdaPvRKSt9nothrow_t", MemOpKind::DELETE}, /*delete[](void*, nothrow)*/
   };
   // clang-format on
 

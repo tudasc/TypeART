@@ -73,6 +73,8 @@ HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
     Value* byte_count{nullptr};
     Value* realloc_ptr{nullptr};
     switch (kind) {
+      case MemOpKind::NEW:
+        [[fallthrough]];
       case MemOpKind::MALLOC:
         byte_count = mallocArg;
         break;
@@ -106,7 +108,18 @@ FreeArgList MemOpArgCollector::collectFree(const FreeDataList& frees) {
   for (const FreeData& fdata : frees) {
     ArgMap arg_map;
     auto free_call = fdata.call;
-    auto freeArg   = free_call->getOperand(0);
+
+    Value* freeArg{nullptr};
+    switch (fdata.kind) {
+      case MemOpKind::DELETE:
+        [[fallthrough]];
+      case MemOpKind::FREE:
+        freeArg = free_call->getOperand(0);
+        break;
+      default:
+        LOG_ERROR("Unknown free kind. Not instrumenting. " << util::dump(*free_call));
+        continue;
+    }
 
     arg_map[ArgMap::ID::pointer] = freeArg;
     list.emplace_back(FreeArgList::value_type{fdata, arg_map});

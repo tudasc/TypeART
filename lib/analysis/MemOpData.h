@@ -16,7 +16,7 @@ class GlobalVariable;
 }  // namespace llvm
 
 namespace typeart {
-enum class MemOpKind { MALLOC, CALLOC, REALLOC, FREE };
+enum class MemOpKind { NEW, MALLOC, CALLOC, REALLOC, FREE, DELETE };
 struct MallocData {
   llvm::CallBase* call{nullptr};
   llvm::BitCastInst* primary{nullptr};  // Non-null if non (void*) cast exists
@@ -27,6 +27,7 @@ struct MallocData {
 
 struct FreeData {
   llvm::CallBase* call{nullptr};
+  MemOpKind kind;
   bool is_invoke{false};
 };
 
