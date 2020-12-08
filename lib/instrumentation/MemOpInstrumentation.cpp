@@ -50,7 +50,13 @@ InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
         break;
       }
       case MemOpKind::CALLOC: {
-        elementCount = args.get_value(ArgMap::ID::element_count);
+        if (malloc.primary == nullptr) {
+          auto elems     = args.get_value(ArgMap::ID::element_count);
+          auto type_size = args.get_value(ArgMap::ID::type_size);
+          elementCount   = IRB.CreateMul(elems, type_size);
+        } else {
+          elementCount = args.get_value(ArgMap::ID::element_count);
+        }
         break;
       }
       case MemOpKind::REALLOC: {

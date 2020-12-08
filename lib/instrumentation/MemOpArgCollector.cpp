@@ -66,8 +66,8 @@ HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
       LOG_ERROR("Primary bitcast is null. malloc: " << util::dump(*malloc_call))
     }
 
-    auto* typeIdConst   = instr_helper->getConstantFor(IType::type_id, typeId);
-    auto* typeSizeConst = instr_helper->getConstantFor(IType::extent, typeSize);
+    auto* typeIdConst    = instr_helper->getConstantFor(IType::type_id, typeId);
+    Value* typeSizeConst = instr_helper->getConstantFor(IType::extent, typeSize);
 
     Value* elementCount{nullptr};
     Value* byte_count{nullptr};
@@ -78,9 +78,13 @@ HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
       case MemOpKind::MALLOC:
         byte_count = mallocArg;
         break;
-      case MemOpKind::CALLOC:
+      case MemOpKind::CALLOC: {
+        if (mdata.primary == nullptr) {
+          typeSizeConst = malloc_call->getOperand(1);
+        }
         elementCount = malloc_call->getOperand(0);
         break;
+      }
       case MemOpKind::REALLOC:
         realloc_ptr = malloc_call->getOperand(0);
         byte_count  = malloc_call->getOperand(1);
