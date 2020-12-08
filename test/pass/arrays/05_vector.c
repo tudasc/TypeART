@@ -1,5 +1,5 @@
 // clang-format off
-// RUN: %c-to-llvm %s | %apply-typeart -S 2>&1 | FileCheck %s
+// RUN: %c-to-llvm %s | %apply-typeart -typeart-alloca -S 2>&1 | FileCheck %s
 // clang-format on
 
 typedef float float2 __attribute__((ext_vector_type(2)));
@@ -10,6 +10,8 @@ void test() {
 
 // CHECK-NOT Type is not supported: <2 x float>
 // CHECK: alloca <2 x float>, align 8
+// CHECK: call void @__typeart_alloc_stack(i8* %2, i32 25{{[0-9]}}, i64 1)
+
 // CHECK: Malloc{{[ ]*}}:{{[ ]*}}0
 // CHECK: Free{{[ ]*}}:{{[ ]*}}0
 // CHECK: Alloca{{[ ]*}}:{{[ ]*}}1
