@@ -6,7 +6,11 @@ void test() {
   int* p = (int*)malloc(42 * sizeof(int));
 }
 
+// CHECK: [[POINTER:%[0-9]+]] = call noalias i8* @malloc
+// CHECK-NEXT: call void @__typeart_alloc(i8* [[POINTER]], i32 2, i64 42)
+// CHECK-NEXT: bitcast i8* [[POINTER]] to i32*
+
 // CHECK: TypeArtPass [Heap]
 // CHECK-NEXT: Malloc{{[ ]*}}:{{[ ]*}}1
-// CHECK-NEXT: Free
+// CHECK-NEXT: Free{{[ ]*}}:{{[ ]*}}0
 // CHECK-NEXT: Alloca{{[ ]*}}:{{[ ]*}}0

@@ -35,8 +35,7 @@ struct MemOpVisitor : public llvm::InstVisitor<MemOpVisitor> {
                                                {"ZnajRKSt9nothrow_t",  MemOpKind::NEW}, /*new[](unsigned int, nothrow)*/
                                                {"ZnamRKSt9nothrow_t",  MemOpKind::NEW}, /*new[](unsigned long, nothrow)*/
                                                {"calloc", MemOpKind::CALLOC},
-                                               {"realloc",MemOpKind::REALLOC},
-                                               {"reallocf",MemOpKind::REALLOC},
+                                               {"realloc",MemOpKind::REALLOC}
   };
   const llvm::StringMap<MemOpKind> dealloc_map{{"free",   MemOpKind::FREE},
                                                {"_ZdlPv", MemOpKind::DELETE}, /*delete(void*)*/
@@ -46,7 +45,7 @@ struct MemOpVisitor : public llvm::InstVisitor<MemOpVisitor> {
                                                {"_ZdlPvRKSt9nothrow_t", MemOpKind::DELETE}, /*delete(void*, nothrow)*/
                                                {"_ZdaPvj", MemOpKind::DELETE}, /*delete[](void*, uint)*/
                                                {"_ZdaPvm", MemOpKind::DELETE}, /*delete[](void*, ulong)*/
-                                               {"_ZdaPvRKSt9nothrow_t", MemOpKind::DELETE}, /*delete[](void*, nothrow)*/
+                                               {"_ZdaPvRKSt9nothrow_t", MemOpKind::DELETE} /*delete[](void*, nothrow)*/
   };
   // clang-format on
 
