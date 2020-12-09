@@ -30,10 +30,10 @@ struct MemOpVisitor : public llvm::InstVisitor<MemOpVisitor> {
                                                {"_Znwj",  MemOpKind::NEW}, /*new(unsigned int)*/
                                                {"_Znam",  MemOpKind::NEW}, /*new[](unsigned long)*/
                                                {"_Znaj",  MemOpKind::NEW}, /*new[](unsigned int)*/
-                                               {"ZnwjRKSt9nothrow_t",  MemOpKind::NEW}, /*new(unsigned int, nothrow)*/
-                                               {"ZnwmRKSt9nothrow_t",  MemOpKind::NEW}, /*new(unsigned long, nothrow)*/
-                                               {"ZnajRKSt9nothrow_t",  MemOpKind::NEW}, /*new[](unsigned int, nothrow)*/
-                                               {"ZnamRKSt9nothrow_t",  MemOpKind::NEW}, /*new[](unsigned long, nothrow)*/
+                                               {"_ZnwjRKSt9nothrow_t",  MemOpKind::NEW}, /*new(unsigned int, nothrow)*/
+                                               {"_ZnwmRKSt9nothrow_t",  MemOpKind::NEW}, /*new(unsigned long, nothrow)*/
+                                               {"_ZnajRKSt9nothrow_t",  MemOpKind::NEW}, /*new[](unsigned int, nothrow)*/
+                                               {"_ZnamRKSt9nothrow_t",  MemOpKind::NEW}, /*new[](unsigned long, nothrow)*/
                                                {"calloc", MemOpKind::CALLOC},
                                                {"realloc",MemOpKind::REALLOC}
   };
