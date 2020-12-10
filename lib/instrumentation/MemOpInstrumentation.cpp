@@ -39,6 +39,12 @@ InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
 
     auto typeIdConst   = args.get_value(ArgMap::ID::type_id);
     auto typeSizeConst = args.get_value(ArgMap::ID::type_size);
+
+    bool single_byte_type{false};
+    if (auto* const_int = llvm::dyn_cast<ConstantInt>(typeSizeConst)) {
+      single_byte_type = const_int->equalsInt(1);
+    }
+
     Value* elementCount{nullptr};
 
     switch (kind) {
@@ -48,7 +54,7 @@ InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
         [[fallthrough]];
       case MemOpKind::MallocLike: {
         auto bytes   = args.get_value(ArgMap::ID::byte_count);  // can be null (for calloc, realloc)
-        elementCount = IRB.CreateUDiv(bytes, typeSizeConst);
+        elementCount = single_byte_type ? bytes : IRB.CreateUDiv(bytes, typeSizeConst);
         break;
       }
       case MemOpKind::CallocLike: {
@@ -65,7 +71,7 @@ InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
         auto mArg   = args.get_value(ArgMap::ID::byte_count);
         auto addrOp = args.get_value(ArgMap::ID::realloc_ptr);
 
-        elementCount = IRB.CreateUDiv(mArg, typeSizeConst);
+        elementCount = single_byte_type ? mArg : IRB.CreateUDiv(mArg, typeSizeConst);
         IRBuilder<> FreeB(malloc_call);
         FreeB.CreateCall(fquery->getFunctionFor(IFunc::free), ArrayRef<Value*>{addrOp});
         break;
