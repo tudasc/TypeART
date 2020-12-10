@@ -127,7 +127,7 @@ void MemOpVisitor::visitMallocLike(llvm::CallBase& ci, MemOpKind k) {
 void MemOpVisitor::visitFreeLike(llvm::CallBase& ci, MemOpKind) {
   //  LOG_DEBUG(ci.getCalledFunction()->getName());
 
-  auto kind = MemOpKind::FREE;
+  auto kind = MemOpKind::FreeLike;
 
   if (auto f = ci.getCalledFunction()) {
     if (auto elem = dealloc_map.find(f->getName()); elem != std::end(dealloc_map)) {

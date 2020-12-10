@@ -42,14 +42,16 @@ InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
     Value* elementCount{nullptr};
 
     switch (kind) {
-      case MemOpKind::NEW:
+      case MemOpKind::AlignedAllocLike:
         [[fallthrough]];
-      case MemOpKind::MALLOC: {
+      case MemOpKind::NewLike:
+        [[fallthrough]];
+      case MemOpKind::MallocLike: {
         auto bytes   = args.get_value(ArgMap::ID::byte_count);  // can be null (for calloc, realloc)
         elementCount = IRB.CreateUDiv(bytes, typeSizeConst);
         break;
       }
-      case MemOpKind::CALLOC: {
+      case MemOpKind::CallocLike: {
         if (malloc.primary == nullptr) {
           auto elems     = args.get_value(ArgMap::ID::element_count);
           auto type_size = args.get_value(ArgMap::ID::type_size);
@@ -59,7 +61,7 @@ InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
         }
         break;
       }
-      case MemOpKind::REALLOC: {
+      case MemOpKind::ReallocLike: {
         auto mArg   = args.get_value(ArgMap::ID::byte_count);
         auto addrOp = args.get_value(ArgMap::ID::realloc_ptr);
 
@@ -94,9 +96,9 @@ InstrCount MemOpInstrumentation::instrumentFree(const FreeArgList& frees) {
 
     Value* free_arg{nullptr};
     switch (fdata.kind) {
-      case MemOpKind::DELETE:
+      case MemOpKind::DeleteLike:
         [[fallthrough]];
-      case MemOpKind::FREE:
+      case MemOpKind::FreeLike:
         free_arg = args.get_value(ArgMap::ID::pointer);
         break;
       default:

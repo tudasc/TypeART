@@ -73,21 +73,25 @@ HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
     Value* byte_count{nullptr};
     Value* realloc_ptr{nullptr};
     switch (kind) {
-      case MemOpKind::NEW:
+      case MemOpKind::NewLike:
         [[fallthrough]];
-      case MemOpKind::MALLOC:
+      case MemOpKind::MallocLike:
         byte_count = mallocArg;
         break;
-      case MemOpKind::CALLOC: {
+      case MemOpKind::CallocLike: {
         if (mdata.primary == nullptr) {
+          // we need the second arg when the calloc type is identified as void* to calculcate total bytes allocated
           typeSizeConst = malloc_call->getOperand(1);
         }
         elementCount = malloc_call->getOperand(0);
         break;
       }
-      case MemOpKind::REALLOC:
+      case MemOpKind::ReallocLike:
         realloc_ptr = malloc_call->getOperand(0);
         byte_count  = malloc_call->getOperand(1);
+        break;
+      case MemOpKind::AlignedAllocLike:
+        byte_count = malloc_call->getArgOperand(1);
         break;
       default:
         LOG_ERROR("Unknown malloc kind. Not instrumenting. " << util::dump(*malloc_call));
@@ -115,9 +119,9 @@ FreeArgList MemOpArgCollector::collectFree(const FreeDataList& frees) {
 
     Value* freeArg{nullptr};
     switch (fdata.kind) {
-      case MemOpKind::DELETE:
+      case MemOpKind::DeleteLike:
         [[fallthrough]];
-      case MemOpKind::FREE:
+      case MemOpKind::FreeLike:
         freeArg = free_call->getOperand(0);
         break;
       default:
