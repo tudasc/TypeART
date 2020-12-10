@@ -16,7 +16,19 @@ class GlobalVariable;
 }  // namespace llvm
 
 namespace typeart {
-enum class MemOpKind { MALLOC, CALLOC, REALLOC, FREE };
+enum class MemOpKind : uint8_t {
+  NewLike            = 1 << 0,            // allocates, never null
+  MallocLike         = 1 << 1 | NewLike,  // allocates, maybe null
+  AlignedAllocLike   = 1 << 2,            // allocates aligned, maybe null
+  CallocLike         = 1 << 3,            // allocates zeroed
+  ReallocLike        = 1 << 4,            // re-allocated (existing) memory
+  FreeLike           = 1 << 5,            // free memory
+  DeleteLike         = 1 << 6,            // delete (cpp) memory
+  MallocOrCallocLike = MallocLike | CallocLike | AlignedAllocLike,
+  AllocLike          = MallocOrCallocLike,
+  AnyAlloc           = AllocLike | ReallocLike,
+  AnyFree            = FreeLike | DeleteLike
+};
 struct MallocData {
   llvm::CallBase* call{nullptr};
   llvm::BitCastInst* primary{nullptr};  // Non-null if non (void*) cast exists
@@ -27,6 +39,7 @@ struct MallocData {
 
 struct FreeData {
   llvm::CallBase* call{nullptr};
+  MemOpKind kind;
   bool is_invoke{false};
 };
 

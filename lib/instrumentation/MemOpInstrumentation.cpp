@@ -23,8 +23,8 @@ MemOpInstrumentation::MemOpInstrumentation(TAFunctionQuery& fquery, Instrumentat
     : MemoryInstrument(), fquery(&fquery), instr_helper(&instr) {
 }
 
-size_t MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
-  unsigned counter{0};
+InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
+  InstrCount counter{0};
   for (auto& [malloc, args] : heap) {
     auto kind                = malloc.kind;
     Instruction* malloc_call = args.get_as<Instruction>(ArgMap::ID::pointer);
@@ -39,23 +39,39 @@ size_t MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
 
     auto typeIdConst   = args.get_value(ArgMap::ID::type_id);
     auto typeSizeConst = args.get_value(ArgMap::ID::type_size);
+
+    bool single_byte_type{false};
+    if (auto* const_int = llvm::dyn_cast<ConstantInt>(typeSizeConst)) {
+      single_byte_type = const_int->equalsInt(1);
+    }
+
     Value* elementCount{nullptr};
 
     switch (kind) {
-      case MemOpKind::MALLOC: {
+      case MemOpKind::AlignedAllocLike:
+        [[fallthrough]];
+      case MemOpKind::NewLike:
+        [[fallthrough]];
+      case MemOpKind::MallocLike: {
         auto bytes   = args.get_value(ArgMap::ID::byte_count);  // can be null (for calloc, realloc)
-        elementCount = IRB.CreateUDiv(bytes, typeSizeConst);
+        elementCount = single_byte_type ? bytes : IRB.CreateUDiv(bytes, typeSizeConst);
         break;
       }
-      case MemOpKind::CALLOC: {
-        elementCount = args.get_value(ArgMap::ID::element_count);
+      case MemOpKind::CallocLike: {
+        if (malloc.primary == nullptr) {
+          auto elems     = args.get_value(ArgMap::ID::element_count);
+          auto type_size = args.get_value(ArgMap::ID::type_size);
+          elementCount   = IRB.CreateMul(elems, type_size);
+        } else {
+          elementCount = args.get_value(ArgMap::ID::element_count);
+        }
         break;
       }
-      case MemOpKind::REALLOC: {
+      case MemOpKind::ReallocLike: {
         auto mArg   = args.get_value(ArgMap::ID::byte_count);
         auto addrOp = args.get_value(ArgMap::ID::realloc_ptr);
 
-        elementCount = IRB.CreateUDiv(mArg, typeSizeConst);
+        elementCount = single_byte_type ? mArg : IRB.CreateUDiv(mArg, typeSizeConst);
         IRBuilder<> FreeB(malloc_call);
         FreeB.CreateCall(fquery->getFunctionFor(IFunc::free), ArrayRef<Value*>{addrOp});
         break;
@@ -71,8 +87,9 @@ size_t MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
 
   return counter;
 }
-size_t MemOpInstrumentation::instrumentFree(const FreeArgList& frees) {
-  unsigned counter{0};
+
+InstrCount MemOpInstrumentation::instrumentFree(const FreeArgList& frees) {
+  InstrCount counter{0};
   for (auto& [fdata, args] : frees) {
     auto free_call       = fdata.call;
     const bool is_invoke = fdata.is_invoke;
@@ -83,7 +100,17 @@ size_t MemOpInstrumentation::instrumentFree(const FreeArgList& frees) {
       insertBefore    = &(*inv->getNormalDest()->getFirstInsertionPt());
     }
 
-    auto free_arg = args.get_value(ArgMap::ID::pointer);
+    Value* free_arg{nullptr};
+    switch (fdata.kind) {
+      case MemOpKind::DeleteLike:
+        [[fallthrough]];
+      case MemOpKind::FreeLike:
+        free_arg = args.get_value(ArgMap::ID::pointer);
+        break;
+      default:
+        LOG_ERROR("Unknown free kind. Not instrumenting. " << util::dump(*free_call));
+        continue;
+    }
 
     IRBuilder<> IRB(insertBefore);
     IRB.CreateCall(fquery->getFunctionFor(IFunc::free), ArrayRef<Value*>{free_arg});
@@ -92,9 +119,10 @@ size_t MemOpInstrumentation::instrumentFree(const FreeArgList& frees) {
 
   return counter;
 }
-size_t MemOpInstrumentation::instrumentStack(const StackArgList& stack) {
+
+InstrCount MemOpInstrumentation::instrumentStack(const StackArgList& stack) {
   using namespace transform;
-  unsigned counter{0};
+  InstrCount counter{0};
   StackCounter::StackOpCounter allocCounts;
   Function* f{nullptr};
   for (auto& [sdata, args] : stack) {
@@ -124,8 +152,8 @@ size_t MemOpInstrumentation::instrumentStack(const StackArgList& stack) {
 
   return counter;
 }
-size_t MemOpInstrumentation::instrumentGlobal(const GlobalArgList& globals) {
-  unsigned counter{0};
+InstrCount MemOpInstrumentation::instrumentGlobal(const GlobalArgList& globals) {
+  InstrCount counter{0};
 
   const auto instrumentGlobalsInCtor = [&](auto& IRB) {
     for (auto& [gdata, args] : globals) {

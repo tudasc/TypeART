@@ -17,10 +17,10 @@ class MemOpInstrumentation final : public MemoryInstrument {
 
  public:
   MemOpInstrumentation(TAFunctionQuery& fquery, InstrumentationHelper& instr);
-  size_t instrumentHeap(const HeapArgList& heap) override;
-  size_t instrumentFree(const FreeArgList& frees) override;
-  size_t instrumentStack(const StackArgList& stack) override;
-  size_t instrumentGlobal(const GlobalArgList& globals) override;
+  InstrCount instrumentHeap(const HeapArgList& heap) override;
+  InstrCount instrumentFree(const FreeArgList& frees) override;
+  InstrCount instrumentStack(const StackArgList& stack) override;
+  InstrCount instrumentGlobal(const GlobalArgList& globals) override;
   ~MemOpInstrumentation() override = default;
 };
 }  // namespace typeart

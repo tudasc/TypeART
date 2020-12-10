@@ -8,6 +8,13 @@ void test() {
   free(p);
 }
 
+// CHECK: [[POINTER:%[0-9]+]] = call noalias i8* @malloc
+// CHECK-NEXT: call void @__typeart_alloc(i8* [[POINTER]],
+// CHECK-NEXT: bitcast i8* [[POINTER]] to i32*
+
+// CHECK: call void @free(i8* [[POINTER:%[0-9]+]])
+// CHECK-NEXT: call void @__typeart_free(i8* [[POINTER]])
+
 // CHECK: TypeArtPass [Heap]
 // CHECK-NEXT: Malloc{{[ ]*}}:{{[ ]*}}1
 // CHECK-NEXT: Free{{[ ]*}}:{{[ ]*}}1
