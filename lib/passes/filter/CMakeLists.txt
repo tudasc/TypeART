@@ -53,6 +53,8 @@ make_tidy_check(memfilter
         "${FILTER_SOURCES}"
         )
 
+target_project_coverage_options(memfilter)
+
 # For now, non-consumable filter
 #install(
 #  FILES Filter.h StandardFilter.h CGFilter.h
