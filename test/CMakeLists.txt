@@ -37,9 +37,8 @@ add_lit_testsuite(lit-pass-test
     )
 
 add_test(
-    NAME ctest_lit_suite
-    COMMAND
-  ${LIT_COMMAND_I} -j 1 --param typeartpass_site_config=${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg ${CMAKE_CURRENT_SOURCE_DIR}
+    NAME ctest_lit_suite COMMAND
+    ${LIT_COMMAND_I} -j 1 --param typeartpass_site_config=${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 if(MPI_INTERCEPT_LIB)

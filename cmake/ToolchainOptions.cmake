@@ -3,14 +3,6 @@ message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 
 list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
 
-include(AddLLVM)
-include(llvm-lit)
-include(clang-tidy)
-include(clang-format)
-include(llvm-util)
-include(log-util)
-include(coverage)
-
 set(LOG_LEVEL 0 CACHE STRING "Granularity of LLVM pass logger. 3 ist most verbose, 0 is least.")
 set(LOG_LEVEL_RT 0 CACHE STRING "Granularity of runtime logger. 3 ist most verbose, 0 is least.")
 option(SHOW_STATS "Passes show the statistics vars." ON)
@@ -19,6 +11,14 @@ option(MPI_INTERCEPT_LIB "Build MPI interceptor library, requires wrap.py genera
 option(SOFTCOUNTERS "Enable software tracking of #tracked addrs. / #distinct checks / etc." ON)
 option(TEST_CONFIG "Set logging levels to appropriate levels for test runner to succeed" ON)
 option(ENABLE_CODE_COVERAGE "Enable code coverage statistics" ON)
+
+include(AddLLVM)
+include(llvm-lit)
+include(clang-tidy)
+include(clang-format)
+include(llvm-util)
+include(log-util)
+include(coverage)
 
 if (TEST_CONFIG)
   set(LOG_LEVEL 2 CACHE STRING "" FORCE)
