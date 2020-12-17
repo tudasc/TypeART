@@ -18,6 +18,17 @@ add_custom_target(
   DEPENDS cov-merge
 )
 
+add_custom_target(
+  cov-clean
+  COMMAND rm ${TYPEART_PROFILE_DIR}/ta-binaries.txt
+  COMMAND rm ${TYPEART_PROFILE_DIR}/*.pro
+)
+
+add_custom_target(
+  cov-all-clean
+  COMMAND rm ${TYPEART_PROFILE_DIR}/*
+)
+
 function(make_llvm_cov_target target)
   add_custom_target(
     cov-binary-list-${target}
