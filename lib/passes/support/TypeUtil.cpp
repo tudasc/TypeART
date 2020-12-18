@@ -1,6 +1,6 @@
 #include "TypeUtil.h"
 
-#include "Logger.h"
+#include "support/Logger.h"
 
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DataLayout.h"

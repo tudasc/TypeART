@@ -1,9 +1,9 @@
 #include "Runtime.h"
 
 #include "AccessCounter.h"
-#include "Logger.h"
 #include "RuntimeInterface.h"
-#include "TypeIO.h"
+#include "support/Logger.h"
+#include "typelib/TypeIO.h"
 
 #include "llvm/ADT/Optional.h"
 

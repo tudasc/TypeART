@@ -23,7 +23,7 @@ if(${MPI_C_FOUND} AND ${PYTHONINTERP_FOUND})
   
   target_include_directories(interceptor-rt
     PUBLIC
-      ${PROJECT_SOURCE_DIR}/runtime
+      ${PROJECT_SOURCE_DIR}/lib
       ${CMAKE_CURRENT_SOURCE_DIR}
   )
   

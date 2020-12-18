@@ -1,7 +1,7 @@
 #include "CGInterface.h"
 
-#include "../support/Logger.h"
-#include "../support/Util.h"
+#include "support/Logger.h"
+#include "support/Util.h"
 
 #include "llvm/Support/ErrorOr.h"
 #include "llvm/Support/MemoryBuffer.h"

@@ -5,12 +5,12 @@
 #ifndef TYPEART_FILTERBASE_H
 #define TYPEART_FILTERBASE_H
 
-#include "../support/Logger.h"
-#include "../support/Util.h"
 #include "Filter.h"
 #include "FilterUtil.h"
 #include "IRPath.h"
 #include "IRSearch.h"
+#include "support/Logger.h"
+#include "support/Util.h"
 
 #include "llvm/IR/CallSite.h"
 #include "llvm/IR/Instructions.h"

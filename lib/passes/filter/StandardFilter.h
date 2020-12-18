@@ -5,9 +5,9 @@
 #ifndef TYPEART_STANDARDFILTER_H
 #define TYPEART_STANDARDFILTER_H
 
-#include "../support/Logger.h"
-#include "../support/Util.h"
 #include "Filter.h"
+#include "support/Logger.h"
+#include "support/Util.h"
 
 #include "llvm/ADT/Statistic.h"
 #include "llvm/IR/CallSite.h"

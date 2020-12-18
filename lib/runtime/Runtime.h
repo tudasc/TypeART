@@ -4,7 +4,7 @@
 #include "CallbackInterface.h"
 #include "RuntimeData.h"
 #include "RuntimeInterface.h"
-#include "TypeDB.h"
+#include "typelib/TypeDB.h"
 
 #include <vector>
 

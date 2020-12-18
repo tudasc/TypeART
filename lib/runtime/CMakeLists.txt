@@ -6,7 +6,7 @@ set(RUNTIME_LIB_SOURCES
 )
 
 if(MPI_LOGGER)
-  list(APPEND RUNTIME_LIB_SOURCES MPILogger.cpp)
+  list(APPEND RUNTIME_LIB_SOURCES ../support/MPILogger.cpp)
 endif()
 
 add_library(typeart-rt SHARED
@@ -56,14 +56,15 @@ target_link_libraries(typeart-rt PUBLIC
 
 target_include_directories(typeart-rt 
   PUBLIC
-    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/runtime>
-    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/typelib>
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/runtime>
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/typelib>
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
     $<INSTALL_INTERFACE:include>
 )
 
 target_include_directories(typeart-rt
     PRIVATE
-    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/support>
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/passes/support>
     )
 
 target_include_directories(typeart-rt

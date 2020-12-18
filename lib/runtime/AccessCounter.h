@@ -5,10 +5,10 @@
 #ifndef TYPEART_ACCESSCOUNTER_H
 #define TYPEART_ACCESSCOUNTER_H
 
-#include "Logger.h"
 #include "RuntimeData.h"
 #include "RuntimeInterface.h"
-#include "Table.h"
+#include "support/Logger.h"
+#include "support/Table.h"
 
 #include <map>
 #include <set>
