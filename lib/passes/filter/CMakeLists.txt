@@ -36,6 +36,13 @@ set_target_properties(memfilter
         POSITION_INDEPENDENT_CODE ON
         )
 
+
+target_include_directories(memfilter
+  PUBLIC
+  ${PROJECT_SOURCE_DIR}/lib
+  ${PROJECT_SOURCE_DIR}/lib/passes
+  )
+
 target_include_directories(memfilter
         SYSTEM
         PRIVATE

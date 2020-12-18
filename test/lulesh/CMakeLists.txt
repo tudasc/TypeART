@@ -38,7 +38,7 @@ function(add_integration_test name dir exe_dir np args)
     #set_tests_properties(test_clean_${name} PROPERTIES FIXTURES_CLEANUP lulesh_b)
     
     add_test(NAME ${name}
-        COMMAND "${TEST_SCRIPT}" ${name} ${np} ${args} ${CMAKE_BINARY_DIR}/runtime ${CMAKE_BINARY_DIR}/test/mpi_interceptor
+        COMMAND "${TEST_SCRIPT}" ${name} ${np} ${args} ${CMAKE_BINARY_DIR}/lib/runtime ${CMAKE_BINARY_DIR}/lib/mpi_interceptor
         WORKING_DIRECTORY "${exe_dir}"
     )
     

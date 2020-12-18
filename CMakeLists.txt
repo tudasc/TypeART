@@ -18,20 +18,8 @@ list(APPEND CMAKE_MODULE_PATH
 include(ToolchainOptions)
 include(CMakePackageConfigHelpers)
 
-add_format_target(format-sources
-  "Formats project source files"
-  TARGETS lib/*.cpp 
-          lib/*.h
-          runtime/*.cpp
-          runtime/*.h
-          typelib/*.cpp
-          typelib/*.h
-)
-
 add_subdirectory(externals)
 add_subdirectory(lib)
-add_subdirectory(typelib)
-add_subdirectory(runtime)
 add_subdirectory(scripts)
 enable_testing()
 add_subdirectory(test)

@@ -8,7 +8,7 @@
 #ifndef TEST_MPI_INTERCEPTOR_INTERCEPTORFUNCTIONS_H_
 #define TEST_MPI_INTERCEPTOR_INTERCEPTORFUNCTIONS_H_
 
-#include "RuntimeInterface.h"
+#include "runtime/RuntimeInterface.h"
 
 #include <mpi.h>
 #include <stdio.h>

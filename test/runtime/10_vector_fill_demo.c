@@ -1,6 +1,6 @@
 // RUN: %run %s 2>&1 | FileCheck %s
 
-#include "../../runtime/RuntimeInterface.h"
+#include "../../lib/runtime/RuntimeInterface.h"
 
 #include <stdio.h>
 #include <stdlib.h>

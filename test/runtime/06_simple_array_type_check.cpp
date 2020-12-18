@@ -1,6 +1,6 @@
 // RUN: %run %s 2>&1 | FileCheck %s
 
-#include "../../typelib/TypeInterface.h"
+#include "../../lib/typelib/TypeInterface.h"
 #include "util.h"
 
 #include <stdint.h>

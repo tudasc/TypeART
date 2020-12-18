@@ -1,13 +1,13 @@
 #include "TypeARTPass.h"
 
-#include "RuntimeInterface.h"
-#include "TypeIO.h"
+//#include "RuntimeInterface.h"
 #include "analysis/MemInstFinderPass.h"
 #include "instrumentation/MemOpArgCollector.h"
 #include "instrumentation/MemOpInstrumentation.h"
 #include "instrumentation/TypeARTFunctions.h"
 #include "support/Logger.h"
 #include "support/Table.h"
+#include "typelib/TypeIO.h"
 
 #include "llvm/ADT/Statistic.h"
 #include "llvm/IR/Instructions.h"

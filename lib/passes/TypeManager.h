@@ -1,7 +1,7 @@
 #ifndef LLVM_MUST_SUPPORT_TYPEMANAGER_H
 #define LLVM_MUST_SUPPORT_TYPEMANAGER_H
 
-#include "TypeDB.h"
+#include "typelib/TypeDB.h"
 
 #include <llvm/ADT/StringMap.h>
 #include <llvm/IR/DataLayout.h>

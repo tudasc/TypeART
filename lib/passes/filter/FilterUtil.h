@@ -5,8 +5,8 @@
 #ifndef TYPEART_FILTERUTIL_H
 #define TYPEART_FILTERUTIL_H
 
-#include "../support/Logger.h"
 #include "IRPath.h"
+#include "support/Logger.h"
 
 #include "llvm/IR/CallSite.h"
 #include "llvm/IR/Instructions.h"
