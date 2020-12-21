@@ -46,7 +46,7 @@ jobs:
           cmake -B build -DTEST_CONFIG=ON -DENABLE_CODE_COVERAGE=ON -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT}
           cmake --build build --parallel
 
-      - name: Test TypeART with coverage
+      - name: Test TypeART with coverage (exludes lulesh)
         run: |
           cmake --build build --target lcov-clean
           cmake --build build --target test -- ARGS=-VV
