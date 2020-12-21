@@ -11,6 +11,7 @@ option(MPI_INTERCEPT_LIB "Build MPI interceptor library, requires wrap.py genera
 option(SOFTCOUNTERS "Enable software tracking of #tracked addrs. / #distinct checks / etc." ON)
 option(TEST_CONFIG "Set logging levels to appropriate levels for test runner to succeed" ON)
 option(ENABLE_CODE_COVERAGE "Enable code coverage statistics" ON)
+option(ENABLE_LLVM_CODE_COVERAGE "Enable llvm-cov code coverage statistics" OFF)
 
 include(AddLLVM)
 include(llvm-lit)
