@@ -1,8 +1,8 @@
 find_program(LLVM_PROFDATA_COMMAND
-  NAMES llvm-profdata llvm-profdata-10
+  NAMES llvm-profdata-10 llvm-profdata
 )
 find_program(LLVMCOV_COMMAND
-  NAMES llvm-cov llvm-cov-10
+  NAMES llvm-cov-10 llvm-cov
 )
 
 if(LLVM_PROFDATA_COMMAND-NOTFOUND OR LLVMCOV_COMMAND-NOTFOUND)

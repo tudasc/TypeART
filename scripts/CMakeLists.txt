@@ -18,9 +18,27 @@ function(configure_typeart_script input output)
   )
 endfunction()
 
+function(configure_typeart_coverage_script input output)
+  find_program(LLVMCOV_COMMAND
+    NAMES llvm-cov-10 llvm-cov
+  )
+  if(LLVMCOV_COMMAND)
+    set(LLVM_COV_COMMAND ${LLVMCOV_COMMAND})
+    configure_file(${input} ${CMAKE_CURRENT_BINARY_DIR}/${output} @ONLY)
+    file(
+      COPY ${CMAKE_CURRENT_BINARY_DIR}/${output}
+      DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}
+      FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+    )
+  else()
+    message(WARNING "Need llvm-cov for coverage script")
+  endif()
+endfunction()
+
 configure_typeart_script(run.sh.in run.sh)
 configure_typeart_script(apply.sh.in apply.sh)
 
+configure_typeart_coverage_script(llvm-gcov.sh.in llvm-gcov.sh)
 
 #configure_file(clang-typeart.in clang-typeart)
 #configure_file(clang-typeart++.in clang-typeart++)

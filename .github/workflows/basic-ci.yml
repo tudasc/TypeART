@@ -70,7 +70,7 @@ jobs:
           mv build_lulesh/lulesh2.0_build.log artifact/lulesh/
           mv test/lulesh/lulesh2.0_out.log artifact/lulesh/
           mv test/lulesh/types.yaml artifact/lulesh/lulesh2.0_types.yaml
-          mv build/profiles/* artifact/coverage
+          mv build/profiles/ artifact/coverage
 
       - name: Upload lulesh test artifact
         uses: actions/upload-artifact@v2
