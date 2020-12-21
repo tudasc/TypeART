@@ -43,6 +43,7 @@ function(add_integration_test name dir exe_dir np args)
     )
     
     set_tests_properties(${name} PROPERTIES FIXTURES_REQUIRED lulesh_b)
+    set_tests_properties(${name} PROPERTIES ENVIRONMENT LLVM_PROFILE_FILE=${TYPEART_PROFILE_DIR}/code-%p-lulesh.profraw)
 endfunction()
 
 add_integration_test("lulesh2.0" "${WORK_DIR}" "${WORK_DIR}" ${LULESH_NP} "-s 12 -i 200")

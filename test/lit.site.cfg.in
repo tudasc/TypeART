@@ -6,6 +6,7 @@ config.typeartpass_obj_root = "@TYPEARTPASS_BINARY_DIR@"
 config.typeartpass_lib_dir = "@TYPEARTPASS_LIBRARY_DIR@"
 config.typeartpass_rt_dir = "@TYPEARTPASS_RT_DIR@"
 config.typeartpass_script_dir = "@TYPEARTPASS_SCRIPT_DIR@"
+config.profile_file = "@TYPEARTPASS_PROFILE_FILE@"
 
 # Let the main config do the real work.
 config.loaded_site_config = True

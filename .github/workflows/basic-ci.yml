@@ -7,25 +7,21 @@ on:
 
 jobs:
   build-and-run-test:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     if: "!contains(github.event.head_commit.message, '[ci skip]')"
     steps:
       - uses: actions/checkout@v2
 
-      - name: Setup LLVM repository
+      - name: Install LLVM and Clang
         run: |
-          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key 2>/dev/null | sudo apt-key add -
-          sudo add-apt-repository 'deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-10 main' -y
-          sudo apt-get update -q
-
-      - name: Install LLVM
-        run: sudo apt-get install libllvm10 llvm-10 llvm-10-dev
-
-      - name: Install Clang
-        run: sudo apt-get install clang-10 clang-tidy-10
+          sudo apt-get install libllvm10 llvm-10 llvm-10-dev
+          sudo apt-get install clang-10 clang-tidy-10
 
       - name: Install OpenMPI
         run: sudo apt-get install libopenmpi-dev openmpi-bin
+
+      - name: Install lcov
+        run: sudo apt-get install lcov
 
       - name: Setup env
         run: |
@@ -41,31 +37,43 @@ jobs:
 
       - name: Build TypeART
         run: |
-          cmake -B build -DTEST_CONFIG=ON -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT}
+          cmake -B build -DTEST_CONFIG=ON -DENABLE_CODE_COVERAGE=ON -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT}
           cmake --build build --parallel
 
-      - name: Test TypeART
-        run: cmake --build build --target test -- ARGS=-VV
+      - name: Test TypeART with coverage (exludes lulesh)
+        run: |
+          cmake --build build --target lcov-clean
+          cmake --build build --target test -- ARGS=-VV
 
-      - name: Build TypeART Release
+      - name: Build coverage report
+        run: cmake --build build --target lcov-html
+
+      - name: Build TypeART release
         run: |
           cmake -B build_lulesh -DCMAKE_BUILD_TYPE=Release -DMPI_INTERCEPT_LIB=ON -DSHOW_STATS=ON
           cmake --build build_lulesh --parallel
 
-      - name: Test TypeART on lulesh
+      - name: Test TypeART release on lulesh
         working-directory: build_lulesh
         run: ctest -V -R lulesh -O lulesh2.0_build.log
-        
-      - name: Prepare lulesh artifact
+
+      - name: Prepare artifact
         run: |
-          mkdir artifact_lulesh
-          mv build_lulesh/lulesh2.0_build.log artifact_lulesh/
-          mv test/lulesh/lulesh2.0_out.log artifact_lulesh/
-          mv test/lulesh/types.yaml artifact_lulesh/lulesh2.0_types.yaml
+          mkdir -p artifact/lulesh
+          mkdir -p artifact/coverage
+          mv build_lulesh/lulesh2.0_build.log artifact/lulesh/
+          mv test/lulesh/lulesh2.0_out.log artifact/lulesh/
+          mv test/lulesh/types.yaml artifact/lulesh/lulesh2.0_types.yaml
+          mv build/profiles/ artifact/coverage
 
       - name: Upload lulesh test artifact
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v2
         with:
-          name: typeart-lulesh-archive
-          path: artifact_lulesh
-        
+          name: typeart-ci
+          path: artifact
+
+      - name: Coveralls
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path-to-lcov: build/typeart.coverage

@@ -81,6 +81,8 @@ target_project_compile_definitions(typeart-rt
 target_project_compile_definitions(typeart-rt)
 target_define_file_basename(typeart-rt)
 
+target_project_coverage_options(typeart-rt)
+
 target_link_libraries(typeart-rt PUBLIC
   LLVMCore
   LLVMSupport

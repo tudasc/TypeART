@@ -20,6 +20,8 @@ target_project_compile_definitions(meminstfinderpass
     LOG_LEVEL=${LOG_LEVEL}
 )
 
+target_project_coverage_options(meminstfinderpass)
+
 if(SHOW_STATS)
   target_project_compile_definitions(meminstfinderpass
     PRIVATE_DEFS 
