@@ -1,7 +1,7 @@
 find_program(LCOV_COMMAND lcov)
 find_program(GENHTML_COMMAND genhtml)
 
-if(LCOV_COMMAND-NOTFOUND or GENHTML_COMMAND-NOTFOUND)
+if(LCOV_COMMAND-NOTFOUND OR GENHTML_COMMAND-NOTFOUND)
   message(WARNING "lcov and genhtml command needed for coverage.")
 endif()
 

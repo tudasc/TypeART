@@ -5,7 +5,7 @@ find_program(LLVMCOV_COMMAND
   NAMES llvm-cov llvm-cov-10
 )
 
-if(LLVM_PROFDATA_COMMAND-NOTFOUND or LLVMCOV_COMMAND-NOTFOUND)
+if(LLVM_PROFDATA_COMMAND-NOTFOUND OR LLVMCOV_COMMAND-NOTFOUND)
   message(WARNING "llvm-cov stack needed for coverage.")
 endif()
 
