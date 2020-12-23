@@ -57,7 +57,7 @@ class JSONCG final : public CGInterface {
   std::unordered_set<std::string> get_directly_called_function_names(const std::string caller,
                                                                      bool considerOverrides = true) const;
 
-  std::vector<std::string> get_decl_only();
+  std::vector<std::string> get_decl_only() override;
 
   static std::unique_ptr<JSONCG> getJSON(const std::string& fileName);
 
