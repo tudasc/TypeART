@@ -12,10 +12,11 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Install LLVM and Clang
-        run: |
-          sudo apt-get install libllvm10 llvm-10 llvm-10-dev
-          sudo apt-get install clang-10 clang-tidy-10
+      - name: Install LLVM
+        run: sudo apt-get install libllvm10 llvm-10 llvm-10-dev
+
+      - name: Install Clang
+        run: sudo apt-get install clang-10 clang-tidy-10
 
       - name: Install OpenMPI
         run: sudo apt-get install libopenmpi-dev openmpi-bin
