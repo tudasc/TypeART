@@ -10,7 +10,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstdlib>
-#include <sstream>
+#include <iostream>
 #include <string>
 
 #ifdef USE_BTREE
