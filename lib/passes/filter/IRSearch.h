@@ -22,12 +22,12 @@ struct DefaultSearch {
       if (llvm::isa<AllocaInst>(val) && !store->getValueOperand()->getType()->isPointerTy()) {
         // 1. if we store to an alloca, and the value is not a pointer (i.e., a value) there is no connection to follow
         // w.r.t. dataflow. (TODO exceptions could be some pointer arithm.)
-        return {};
+        return out;
       }
       if (p.contains(val)) {
         // If the pointer operand is already in the path, we do not want to continue.
         // Encountered: amg: box_algebra.c: hypre_MinUnionBoxes endless recursion
-        return {};
+        return out;
       }
 
       out.push_back(val);
