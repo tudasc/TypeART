@@ -57,7 +57,7 @@ struct Row {
   explicit Row(std::string name) : label(std::move(name)) {
   }
 
-  Row& put(const Cell& c) {
+  Row& put(Cell&& c) {
     cells.emplace_back(c);
     return *this;
   }
@@ -68,7 +68,7 @@ struct Row {
   }
 
   template <typename... Cells>
-  static Row make(std::string name, Cells... c) {
+  static Row make(std::string name, Cells&&... c) {
     auto r = make_row(std::move(name));
     (r.put(Cell(c)), ...);
     return r;
@@ -91,7 +91,7 @@ struct Table {
   explicit Table(std::string title) : title(std::move(title)) {
   }
 
-  void put(const Row& r) {
+  void put(Row&& r) {
     row_vec.emplace_back(r);
     columns = std::max<int>(columns, r.cells.size());
     ++rows;
@@ -99,13 +99,13 @@ struct Table {
   }
 
   template <typename... Rows>
-  static Table make(std::string title, Rows... r) {
+  static Table make(std::string title, Rows&&... r) {
     Table t(title);
-    (t.put(Row(r)), ...);
+    (t.put(std::forward<Rows>(r)), ...);
     return t;
   }
 
-  void print(llvm::raw_ostream& s) {
+  void print(llvm::raw_ostream& s) const {
     const auto max_row_id = max_row_label_width + 1;
 
     // determine per column width
