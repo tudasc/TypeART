@@ -124,11 +124,9 @@ void MemOpVisitor::visitMallocLike(llvm::CallBase& ci, MemOpKind k) {
   mallocs.push_back(MallocData{&ci, primary_cast, bcasts, k, isa<InvokeInst>(ci)});
 }
 
-void MemOpVisitor::visitFreeLike(llvm::CallBase& ci, MemOpKind) {
+void MemOpVisitor::visitFreeLike(llvm::CallBase& ci, MemOpKind k) {
   //  LOG_DEBUG(ci.getCalledFunction()->getName());
-
-  auto kind = MemOpKind::FreeLike;
-
+  MemOpKind kind = k;
   if (auto f = ci.getCalledFunction()) {
     if (auto elem = dealloc_map.find(f->getName()); elem != std::end(dealloc_map)) {
       kind = elem->getValue();
