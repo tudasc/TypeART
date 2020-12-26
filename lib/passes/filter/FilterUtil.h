@@ -63,7 +63,7 @@ inline std::vector<llvm::Argument*> args(CallSite c, const Path& p) {
   }
 
   auto [arg, _] = findArg(c, p);
-  if (arg) {
+  if (arg != nullptr) {
     return {arg};
   }
 
@@ -92,9 +92,8 @@ ArgCorrelation correlate(CallSite c, const Path& p, TypeID&& isType) {
 
   if (isType(type)) {
     return ArgCorrelation::Exact;
-  } else {
-    return ArgCorrelation::ExactMismatch;
   }
+  return ArgCorrelation::ExactMismatch;
 }
 }  // namespace detail
 

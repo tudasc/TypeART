@@ -13,8 +13,8 @@
 
 #include <algorithm>
 
-namespace typeart {
-namespace finder {
+namespace typeart::finder {
+
 using namespace llvm;
 
 void MemOpVisitor::visitModuleGlobals(Module& m) {
@@ -161,5 +161,4 @@ void MemOpVisitor::clear() {
   frees.clear();
 }
 
-}  // namespace finder
-}  // namespace typeart
+}  // namespace typeart::finder

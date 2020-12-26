@@ -10,8 +10,7 @@ class Value;
 class Function;
 }  // namespace llvm
 
-namespace typeart {
-namespace filter {
+namespace typeart::filter {
 
 class Filter {
  public:
@@ -39,7 +38,6 @@ class NoOpFilter final : public Filter {
   }
 };
 
-}  // namespace filter
-}  // namespace typeart
+}  // namespace typeart::filter
 
 #endif  // TYPEART_FILTER_H

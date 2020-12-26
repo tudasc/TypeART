@@ -9,17 +9,17 @@
 
 namespace typeart::filter {
 
-CGFilterImpl::CGFilterImpl(std::string filter_str, std::unique_ptr<CGInterface>&& cgraph)
-    : CGFilterImpl(std::move(filter_str), std::move(cgraph), nullptr) {
+CGFilterImpl::CGFilterImpl(const std::string& filter_str, std::unique_ptr<CGInterface>&& cgraph)
+    : CGFilterImpl(filter_str, std::move(cgraph), nullptr) {
 }
 
-CGFilterImpl::CGFilterImpl(std::string filter_str, std::unique_ptr<CGInterface>&& cgraph,
+CGFilterImpl::CGFilterImpl(const std::string& filter_str, std::unique_ptr<CGInterface>&& cgraph,
                            std::unique_ptr<Matcher>&& matcher)
-    : filter(util::glob2regex(std::move(filter_str))), call_graph(std::move(cgraph)), deep_matcher(std::move(matcher)) {
+    : filter(util::glob2regex(filter_str)), call_graph(std::move(cgraph)), deep_matcher(std::move(matcher)) {
 }
 
-FilterAnalysis CGFilterImpl::precheck(Value* in, Function* start) {
-  if (start) {
+FilterAnalysis CGFilterImpl::precheck(Value* /*in*/, Function* start) {
+  if (start != nullptr) {
     FunctionAnalysis analysis;
     analysis.analyze(start);
     if (analysis.empty()) {
@@ -46,9 +46,8 @@ FilterAnalysis CGFilterImpl::decl(CallSite current, const Path& p) {
   const auto searchCG = [&](auto from) {
     if (call_graph) {
       return call_graph->reachable(from->getName(), filter);
-    } else {
-      return CGInterface::ReachabilityResult::unknown;
     }
+    return CGInterface::ReachabilityResult::unknown;
   };
 
   const auto reached = searchCG(current.getCalledFunction());

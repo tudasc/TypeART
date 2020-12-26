@@ -41,8 +41,7 @@ STATISTIC(NumInstrumentedFrees, "Number of instrumented frees");
 STATISTIC(NumInstrumentedAlloca, "Number of instrumented (stack) allocas");
 STATISTIC(NumInstrumentedGlobal, "Number of instrumented globals");
 
-namespace typeart {
-namespace pass {
+namespace typeart::pass {
 
 // Used by LLVM pass manager to identify passes in memory
 char TypeArtPass::ID = 0;
@@ -205,8 +204,7 @@ void TypeArtPass::printStats(llvm::raw_ostream& out) {
   stats.print(out);
 }
 
-}  // namespace pass
-}  // namespace typeart
+}  // namespace typeart::pass
 
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"

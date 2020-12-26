@@ -11,12 +11,13 @@
 #include "typelib/TypeInterface.h"
 
 #include <iostream>
+#include <utility>
 
 namespace typeart {
 
 using namespace llvm;
 
-TypeManager::TypeManager(std::string file) : file(file), structCount(0) {
+TypeManager::TypeManager(std::string file) : file(std::move(file)), structCount(0) {
 }
 
 bool TypeManager::load() {

@@ -13,9 +13,7 @@
 #include "llvm/ADT/StringMap.h"
 #include "llvm/IR/InstVisitor.h"
 
-namespace typeart {
-
-namespace finder {
+namespace typeart::finder {
 
 struct MemOpVisitor : public llvm::InstVisitor<MemOpVisitor> {
   GlobalDataList globals;
@@ -76,7 +74,6 @@ struct MemOpVisitor : public llvm::InstVisitor<MemOpVisitor> {
   void visitAllocaInst(llvm::AllocaInst& ai);
 };
 
-}  // namespace finder
-}  // namespace typeart
+}  // namespace typeart::finder
 
 #endif /* LIB_MEMOPVISITOR_H_ */

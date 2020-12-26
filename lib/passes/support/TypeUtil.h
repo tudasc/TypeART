@@ -8,9 +8,7 @@ class AllocaInst;
 class LLVMContext;
 }  // namespace llvm
 
-namespace typeart {
-namespace util {
-namespace type {
+namespace typeart::util::type {
 
 bool isi64Ptr(llvm::Type* type);
 
@@ -36,8 +34,6 @@ unsigned getTypeSizeForArrayAlloc(llvm::AllocaInst* ai, const llvm::DataLayout& 
 
 // bool compareTypes(llvm::Type* t1, llvm::Type* t2);
 
-}  // namespace type
-}  // namespace util
-}  // namespace typeart
+}  // namespace typeart::util::type
 
 #endif

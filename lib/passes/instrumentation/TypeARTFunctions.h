@@ -43,8 +43,6 @@ class TAFunctions : public TAFunctionQuery {
 
   llvm::Function* getFunctionFor(IFunc id) override;
   void putFunctionFor(IFunc id, llvm::Function* f);
-
-  virtual ~TAFunctions() = default;
 };
 
 class TAFunctionDeclarator {
