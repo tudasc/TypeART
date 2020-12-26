@@ -25,6 +25,11 @@ target_include_directories(typelib
     ${LLVM_INCLUDE_DIRS}
 )
 
+target_include_directories(typelib
+  PRIVATE
+  ${PROJECT_SOURCE_DIR}/lib
+)
+
 target_project_coverage_options(typelib)
 
 target_project_compile_options(typelib)

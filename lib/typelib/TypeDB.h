@@ -63,6 +63,7 @@ class TypeDB {
   std::vector<StructTypeInfo> structInfoList;
   std::unordered_map<int, int> id2Idx;
 };
+
 }  // namespace typeart
 
 #endif  // LLVM_MUST_SUPPORT_TYPECONFIG_H

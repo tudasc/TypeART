@@ -21,6 +21,7 @@ class TypeIO {
   bool load(const std::string& file);
   bool store(const std::string& file) const;
 };
+
 }  // namespace typeart
 
 #endif  // LLVM_MUST_SUPPORT_CONFIGIO_H
