@@ -11,6 +11,7 @@
 
 #include <numeric>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace typeart {
@@ -100,7 +101,7 @@ struct Table {
 
   template <typename... Rows>
   static Table make(std::string title, Rows&&... r) {
-    Table t(title);
+    Table t(std::move(title));
     (t.put(std::forward<Rows>(r)), ...);
     return t;
   }
@@ -155,7 +156,7 @@ struct Table {
 
       // fill up empty columns with empty_cell
       const int padding = columns - col_num - 1;
-      if (padding > 0 && empty_cell != "") {
+      if (padding > 0 && !empty_cell.empty()) {
         const auto iterate_w = [&]() -> int {
           const auto width = col_width[++col_num];
           return width;

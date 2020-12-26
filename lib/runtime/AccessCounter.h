@@ -19,6 +19,7 @@
 #include <unordered_set>
 
 namespace typeart {
+
 namespace softcounter {
 
 using Counter = long long int;

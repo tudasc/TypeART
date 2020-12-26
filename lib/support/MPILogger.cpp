@@ -12,7 +12,7 @@ inline std::vector<int> getRanks() {
     ranks.push_back(0);
     return ranks;
   } else if (strncmp(rStr, "all", 3) == 0) {
-    return {};
+    return ranks;
   }
 
   ranks.push_back(std::atoi(rStr));
@@ -25,7 +25,7 @@ void mpi_log(const std::string& msg) {
   MPI_Initialized(&initFlag);
   MPI_Finalized(&finiFlag);
 
-  if (initFlag && !finiFlag) {
+  if (initFlag != 0 && finiFlag == 0) {
     int mRank;
     MPI_Comm_rank(MPI_COMM_WORLD, &mRank);
     const auto outputRanks = getRanks();

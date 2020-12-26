@@ -3,6 +3,10 @@ set(TARGETS_EXPORT_NAME ${PROJECT_NAME}-targets)
 
 set(RUNTIME_LIB_SOURCES
   Runtime.cpp
+  AccessCounter.h
+  CallbackInterface.h
+  RuntimeData.h
+  RuntimeInterface.h
 )
 
 if(MPI_LOGGER)

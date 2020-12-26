@@ -72,7 +72,7 @@ void printTraceStart() {
 namespace detail {
 template <class...>
 constexpr std::false_type always_false{};
-}
+}  // namespace detail
 
 template <typename Enum>
 inline Enum operator|(Enum lhs, Enum rhs) {
