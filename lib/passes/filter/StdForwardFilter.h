@@ -28,13 +28,11 @@ struct ForwardFilterImpl {
 
   ForwardFilterImpl(std::unique_ptr<Matcher>&& m, std::unique_ptr<Matcher>&& deep);
 
-  ForwardFilterImpl(std::string filter, bool deep);
-
   FilterAnalysis precheck(Value* in, Function* start);
 
-  FilterAnalysis decl(CallSite current, const Path& p);
+  FilterAnalysis decl(CallSite current, const Path& p) const;
 
-  FilterAnalysis def(CallSite current, const Path& p);
+  FilterAnalysis def(CallSite current, const Path& p) const;
 };
 
 using StandardForwardFilter = BaseFilter<ForwardFilterImpl, DefaultSearch>;

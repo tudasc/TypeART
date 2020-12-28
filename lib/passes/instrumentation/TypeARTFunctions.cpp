@@ -16,6 +16,7 @@
 using namespace llvm;
 
 namespace typeart {
+
 TAFunctionDeclarator::TAFunctionDeclarator(Module& m, InstrumentationHelper& instr, TAFunctions& tafunc)
     : m(m), instr(instr), tafunc(tafunc) {
 }

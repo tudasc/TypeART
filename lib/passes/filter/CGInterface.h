@@ -7,8 +7,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
-namespace typeart {
-namespace filter {
+namespace typeart::filter {
 
 class CGInterface {
  public:
@@ -54,17 +53,16 @@ class JSONCG final : public CGInterface {
   std::unordered_set<std::string> get_reachable_functions(const std::string& source,
                                                           bool considerOverrides = true) const override;
 
-  std::unordered_set<std::string> get_directly_called_function_names(const std::string caller,
+  std::unordered_set<std::string> get_directly_called_function_names(const std::string& entry_caller,
                                                                      bool considerOverrides = true) const;
 
-  std::vector<std::string> get_decl_only();
+  std::vector<std::string> get_decl_only() override;
 
   static std::unique_ptr<JSONCG> getJSON(const std::string& fileName);
 
  private:
-  void construct_call_information(const std::string& caller, const llvm::json::Object& j);
+  void construct_call_information(const std::string& entry_caller, const llvm::json::Object& j);
 };
 
-}  // namespace filter
-}  // namespace typeart
+}  // namespace typeart::filter
 #endif

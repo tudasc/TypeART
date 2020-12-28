@@ -21,7 +21,6 @@ class MemOpArgCollector final : public ArgumentCollector {
   FreeArgList collectFree(const FreeDataList& frees) override;
   StackArgList collectStack(const AllocaDataList& allocs) override;
   GlobalArgList collectGlobal(const GlobalDataList& globals) override;
-  virtual ~MemOpArgCollector() = default;
 };
 }  // namespace typeart
 

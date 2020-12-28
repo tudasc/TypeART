@@ -37,12 +37,12 @@ class DefaultStringMatcher final : public Matcher {
   Regex matcher;
 
  public:
-  explicit DefaultStringMatcher(std::string regex) : matcher(std::move(regex), Regex::NoFlags) {
+  explicit DefaultStringMatcher(const std::string& regex) : matcher(regex, Regex::NoFlags) {
   }
 
   MatchResult match(llvm::CallSite c) const override {
     const auto f = c.getCalledFunction();
-    if (f) {
+    if (f != nullptr) {
       const auto f_name  = util::demangle(f->getName());
       const bool matched = matcher.match(f_name);
       if (matched) {
@@ -61,7 +61,7 @@ class FunctionOracleMatcher final : public Matcher {
  public:
   MatchResult match(llvm::CallSite c) const override {
     const auto f = c.getCalledFunction();
-    if (f) {
+    if (f != nullptr) {
       const auto f_name = util::demangle(f->getName());
       if (continue_set.count(f_name) > 0) {
         return MatchResult::ShouldContinue;

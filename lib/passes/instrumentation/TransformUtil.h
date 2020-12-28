@@ -13,8 +13,7 @@
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/Transforms/Utils/EscapeEnumerator.h"
 
-namespace typeart {
-namespace transform {
+namespace typeart::transform {
 
 struct StackCounter {
   using StackOpCounter = llvm::SmallDenseMap<llvm::BasicBlock*, size_t>;
@@ -26,7 +25,7 @@ struct StackCounter {
       : f(f), instr_helper(instr), fquery(query) {
   }
 
-  void addStackHandling(StackOpCounter& allocCounts) {
+  void addStackHandling(StackOpCounter& allocCounts) const {
     using namespace llvm;
     //      LOG_DEBUG("Add alloca counter")
     // counter = 0 at beginning of function
@@ -58,7 +57,6 @@ struct StackCounter {
   }
 };
 
-}  // namespace transform
-}  // namespace typeart
+}  // namespace typeart::transform
 
 #endif  // TYPEART_TRANSFORMUTIL_H

@@ -26,6 +26,7 @@ class TypeManager {
   int getOrRegisterVector(llvm::VectorType* type, const llvm::DataLayout& dl);
   int reserveNextId();
 };
+
 }  // namespace typeart
 
 #endif  // LLVM_MUST_SUPPORT_TYPEMANAGER_H

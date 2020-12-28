@@ -6,8 +6,8 @@
 #include "llvm/Support/ErrorOr.h"
 #include "llvm/Support/MemoryBuffer.h"
 
-namespace typeart {
-namespace filter {
+namespace typeart::filter {
+
 CGInterface::ReachabilityResult JSONCG::reachable(const std::string& source, const std::string& target,
                                                   bool case_sensitive, bool short_circuit) {
   const auto reachables = get_reachable_functions(source);
@@ -77,7 +77,7 @@ std::unordered_set<std::string> JSONCG::get_reachable_functions(const std::strin
   return ret;
 }
 
-std::unordered_set<std::string> JSONCG::get_directly_called_function_names(const std::string caller,
+std::unordered_set<std::string> JSONCG::get_directly_called_function_names(const std::string& caller,
                                                                            bool considerOverrides) const {
   auto ref = directly_called_functions.find(caller);
   if (ref != std::end(directly_called_functions)) {
@@ -108,16 +108,16 @@ JSONCG::JSONCG(const llvm::json::Value& cg) {
   }
 }
 
-void JSONCG::construct_call_information(const std::string& entry, const llvm::json::Object& j) {
-  if (directly_called_functions.find(entry) == directly_called_functions.end()) {
+void JSONCG::construct_call_information(const std::string& entry_caller, const llvm::json::Object& j) {
+  if (directly_called_functions.find(entry_caller) == directly_called_functions.end()) {
     // We did not handle this function yet
-    directly_called_functions[entry] = std::unordered_set<std::string>();
-    const auto caller                = j.getObject(entry);
+    directly_called_functions[entry_caller] = std::unordered_set<std::string>();
+    const auto caller                       = j.getObject(entry_caller);
     if (caller != nullptr) {
       const auto hasBody = caller->get("hasBody");
       if (hasBody != nullptr) {
         assert(hasBody->kind() == llvm::json::Value::Kind::Boolean && "hasBody must be boolean");
-        hasBodyMap[entry] = hasBody->getAsBoolean().getValue();
+        hasBodyMap[entry_caller] = hasBody->getAsBoolean().getValue();
       }
       const auto calles = caller->getArray("callees");
       assert(calles != nullptr && "Json callee information is missing");
@@ -129,7 +129,7 @@ void JSONCG::construct_call_information(const std::string& entry, const llvm::js
           assert(callee_json_string.hasValue() && "Could not get callee as string");
           if (callee_json_string.hasValue()) {
             const std::string callee_string = callee_json_string.getValue();
-            directly_called_functions[entry].insert(callee_string);
+            directly_called_functions[entry_caller].insert(callee_string);
           }
         }
       }
@@ -142,7 +142,7 @@ void JSONCG::construct_call_information(const std::string& entry, const llvm::js
           assert(functionStr.hasValue() && "Retrieving overriding function as String failed");
           if (functionStr.hasValue()) {
             const std::string functionName = functionStr.getValue();
-            virtualTargets[entry].insert(functionName);
+            virtualTargets[entry_caller].insert(functionName);
           }
         }
       }
@@ -166,11 +166,9 @@ std::unique_ptr<JSONCG> JSONCG::getJSON(const std::string& fileName) {
     }
 
     return std::make_unique<JSONCG>(json.get());
-  } else {
-    LOG_FATAL("No CG file provided / file cannot be found: " << fileName);
-    return nullptr;
   }
+  LOG_FATAL("No CG file provided / file cannot be found: " << fileName);
+  return nullptr;
 }
 
-}  // namespace filter
-}  // namespace typeart
+}  // namespace typeart::filter

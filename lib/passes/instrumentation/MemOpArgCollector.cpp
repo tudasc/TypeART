@@ -14,11 +14,13 @@
 
 namespace tu = typeart::util::type;
 using namespace llvm;
+
 namespace typeart {
 
 MemOpArgCollector::MemOpArgCollector(TypeManager& tm, InstrumentationHelper& instr)
     : ArgumentCollector(), type_m(&tm), instr_helper(&instr) {
 }
+
 HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
   HeapArgList list;
   list.reserve(mallocs.size());
@@ -43,7 +45,7 @@ HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
     unsigned typeSize = tu::getTypeSizeInBytes(malloc_call->getType()->getPointerElementType(), dl);
 
     // Use the first cast as the determining type (if there is any)
-    if (primaryBitcast) {
+    if (primaryBitcast != nullptr) {
       auto* dstPtrType = primaryBitcast->getDestTy()->getPointerElementType();
 
       typeSize = tu::getTypeSizeInBytes(dstPtrType, dl);
@@ -110,6 +112,7 @@ HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
 
   return list;
 }
+
 FreeArgList MemOpArgCollector::collectFree(const FreeDataList& frees) {
   FreeArgList list;
   list.reserve(frees.size());
@@ -135,6 +138,7 @@ FreeArgList MemOpArgCollector::collectFree(const FreeDataList& frees) {
 
   return list;
 }
+
 StackArgList MemOpArgCollector::collectStack(const AllocaDataList& allocs) {
   using namespace llvm;
   StackArgList list;
@@ -179,6 +183,7 @@ StackArgList MemOpArgCollector::collectStack(const AllocaDataList& allocs) {
 
   return list;
 }
+
 GlobalArgList MemOpArgCollector::collectGlobal(const GlobalDataList& globals) {
   GlobalArgList list;
   list.reserve(globals.size());
@@ -209,4 +214,5 @@ GlobalArgList MemOpArgCollector::collectGlobal(const GlobalDataList& globals) {
 
   return list;
 }
+
 }  // namespace typeart

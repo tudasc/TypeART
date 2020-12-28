@@ -15,8 +15,7 @@
 #include "llvm/Support/Regex.h"
 #include "llvm/Support/raw_ostream.h"
 
-namespace typeart {
-namespace util {
+namespace typeart::util {
 
 namespace detail {
 // http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4502.pdf :
@@ -81,7 +80,7 @@ template <typename String>
 inline std::string demangle(String&& s) {
   std::string name = s;
   auto demangle    = llvm::itaniumDemangle(name.data(), nullptr, nullptr, nullptr);
-  if (demangle && std::string(demangle) != "") {
+  if (demangle && !std::string(demangle).empty()) {
     return std::string(demangle);
   }
   return name;
@@ -141,7 +140,7 @@ inline std::string glob2regex(const std::string& glob) {
         glob_reg += (in_curly > 0 ? "|" : ",");
         break;
       default:
-        if (strchr("()^$|*+.\\", c)) {
+        if (strchr("()^$|*+.\\", c) != nullptr) {
           glob_reg += '\\';
         }
         glob_reg += c;
@@ -152,7 +151,6 @@ inline std::string glob2regex(const std::string& glob) {
   return glob_reg;
 }
 
-}  // namespace util
-}  // namespace typeart
+}  // namespace typeart::util
 
 #endif /* LIB_UTIL_H_ */

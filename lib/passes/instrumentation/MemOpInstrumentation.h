@@ -8,6 +8,7 @@
 #include "Instrumentation.h"
 
 namespace typeart {
+
 class TAFunctionQuery;
 class InstrumentationHelper;
 
@@ -21,7 +22,7 @@ class MemOpInstrumentation final : public MemoryInstrument {
   InstrCount instrumentFree(const FreeArgList& frees) override;
   InstrCount instrumentStack(const StackArgList& stack) override;
   InstrCount instrumentGlobal(const GlobalArgList& globals) override;
-  ~MemOpInstrumentation() override = default;
 };
+
 }  // namespace typeart
 #endif  // TYPEART_MEMOPINSTRUMENTATION_H

@@ -46,12 +46,12 @@ bool TypeDB::isStructType(int id) const {
 
 bool TypeDB::isUserDefinedType(int id) const {
   auto structInfo = getStructInfo(id);
-  return structInfo && (structInfo->flags & static_cast<int>(TA_USER_DEF));
+  return (structInfo != nullptr) && (structInfo->flags & static_cast<int>(TA_USER_DEF));
 }
 
 bool TypeDB::isVectorType(int id) const {
   auto structInfo = getStructInfo(id);
-  return structInfo && (structInfo->flags & static_cast<int>(TA_VEC));
+  return (structInfo != nullptr) && (structInfo->flags & static_cast<int>(TA_VEC));
 }
 
 bool TypeDB::isValid(int id) const {
@@ -83,7 +83,7 @@ const std::string& TypeDB::getTypeName(int id) const {
   }
   if (isStructType(id)) {
     const auto* structInfo = getStructInfo(id);
-    if (structInfo) {
+    if (structInfo != nullptr) {
       return structInfo->name;
     }
   }
@@ -99,7 +99,7 @@ size_t TypeDB::getTypeSize(int id) const {
   }
 
   const auto* structInfo = getStructInfo(id);
-  if (structInfo) {
+  if (structInfo != nullptr) {
     return structInfo->extent;
   }
   return 0;

@@ -6,6 +6,7 @@
 
 #include "TypeDB.h"
 #include "TypeInterface.h"
+#include "support/Logger.h"
 
 #include "llvm/Support/ErrorOr.h"
 #include "llvm/Support/FileSystem.h"
@@ -77,12 +78,7 @@ bool TypeIO::load(const std::string& file) {
     typeDB.registerStruct(typeInfo);
   }
 
-  if (in.error()) {
-    // FIXME we really need meaningful errors for IO
-    return false;
-  }
-
-  return true;
+  return !in.error();
 }
 
 bool TypeIO::store(const std::string& file) const {
@@ -92,12 +88,13 @@ bool TypeIO::store(const std::string& file) const {
   raw_fd_ostream oss(StringRef(file), ec, sys::fs::OpenFlags::F_Text);
 
   if (oss.has_error()) {
-    llvm::errs() << "Error\n";
+    LOG_FATAL("Error while storing type file to " << file);
     return false;
   }
+
   auto types = typeDB.getStructList();
   yaml::Output out(oss);
-  if (types.size() > 0) {
+  if (!types.empty()) {
     out << types;
   } else {
     out.beginDocuments();

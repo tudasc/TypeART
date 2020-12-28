@@ -248,7 +248,7 @@ bool MemInstFinderPass::runOnFunc(llvm::Function& f) {
   const auto checkAmbigiousMalloc = [&f](const MallocData& mallocData) {
     using namespace typeart::util::type;
     auto primaryBitcast = mallocData.primary;
-    if (primaryBitcast) {
+    if (primaryBitcast != nullptr) {
       const auto& bitcasts = mallocData.bitcasts;
       std::for_each(bitcasts.begin(), bitcasts.end(), [&](auto bitcastInst) {
         auto dest = bitcastInst->getDestTy();

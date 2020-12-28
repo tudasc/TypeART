@@ -44,7 +44,7 @@ class BaseFilter : public Filter {
   }
 
   template <typename... Args>
-  BaseFilter(Args&&... args) : handler(std::forward<Args>(args)...) {
+  explicit BaseFilter(Args&&... args) : handler(std::forward<Args>(args)...) {
   }
 
   bool filter(llvm::Value* in) override {
@@ -61,11 +61,11 @@ class BaseFilter : public Filter {
     return filter;
   }
 
-  virtual void setStartingFunction(llvm::Function* f) override {
+  void setStartingFunction(llvm::Function* f) override {
     start_f = f;
   };
 
-  virtual void setMode(bool m) override {
+  void setMode(bool m) override {
     malloc_mode = m;
   };
 

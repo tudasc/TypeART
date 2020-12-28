@@ -12,6 +12,7 @@
 #include "llvm/Support/raw_ostream.h"
 
 #include <vector>
+namespace typeart::filter {
 
 struct IRPath {
   using Node = llvm::Value*;
@@ -181,5 +182,7 @@ using Path  = IRPath;
 using FPath = CallsitePath;
 
 using PathList = std::vector<Path>;
+
+}  // namespace typeart::filter
 
 #endif  // TYPEART_IRPATH_H

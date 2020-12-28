@@ -19,13 +19,14 @@
 using namespace llvm;
 
 namespace typeart {
+
 MemOpInstrumentation::MemOpInstrumentation(TAFunctionQuery& fquery, InstrumentationHelper& instr)
     : MemoryInstrument(), fquery(&fquery), instr_helper(&instr) {
 }
 
 InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
   InstrCount counter{0};
-  for (auto& [malloc, args] : heap) {
+  for (const auto& [malloc, args] : heap) {
     auto kind                = malloc.kind;
     Instruction* malloc_call = args.get_as<Instruction>(ArgMap::ID::pointer);
 
@@ -90,14 +91,14 @@ InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
 
 InstrCount MemOpInstrumentation::instrumentFree(const FreeArgList& frees) {
   InstrCount counter{0};
-  for (auto& [fdata, args] : frees) {
+  for (const auto& [fdata, args] : frees) {
     auto free_call       = fdata.call;
     const bool is_invoke = fdata.is_invoke;
 
     Instruction* insertBefore = free_call->getNextNode();
     if (is_invoke) {
-      InvokeInst* inv = dyn_cast<InvokeInst>(free_call);
-      insertBefore    = &(*inv->getNormalDest()->getFirstInsertionPt());
+      auto* inv    = dyn_cast<InvokeInst>(free_call);
+      insertBefore = &(*inv->getNormalDest()->getFirstInsertionPt());
     }
 
     Value* free_arg{nullptr};
@@ -125,9 +126,9 @@ InstrCount MemOpInstrumentation::instrumentStack(const StackArgList& stack) {
   InstrCount counter{0};
   StackCounter::StackOpCounter allocCounts;
   Function* f{nullptr};
-  for (auto& [sdata, args] : stack) {
+  for (const auto& [sdata, args] : stack) {
     // auto alloca = sdata.alloca;
-    Instruction* alloca = args.get_as<Instruction>(ArgMap::ID::pointer);
+    auto* alloca = args.get_as<Instruction>(ArgMap::ID::pointer);
 
     IRBuilder<> IRB(alloca->getNextNode());
 
@@ -152,11 +153,12 @@ InstrCount MemOpInstrumentation::instrumentStack(const StackArgList& stack) {
 
   return counter;
 }
+
 InstrCount MemOpInstrumentation::instrumentGlobal(const GlobalArgList& globals) {
   InstrCount counter{0};
 
   const auto instrumentGlobalsInCtor = [&](auto& IRB) {
-    for (auto& [gdata, args] : globals) {
+    for (const auto& [gdata, args] : globals) {
       // Instruction* global = args.get_as<llvm::Instruction>("pointer");
       auto global         = gdata.global;
       auto typeIdConst    = args.get_value(ArgMap::ID::type_id);
@@ -189,4 +191,5 @@ InstrCount MemOpInstrumentation::instrumentGlobal(const GlobalArgList& globals) 
 
   return counter;
 }
+
 }  // namespace typeart

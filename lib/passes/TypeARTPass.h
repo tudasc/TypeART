@@ -18,13 +18,12 @@ class Function;
 class AnalysisUsage;
 }  // namespace llvm
 
-namespace typeart {
-namespace pass {
+namespace typeart::pass {
 
 class TypeArtPass : public llvm::ModulePass {
  private:
   struct TypeArtFunc {
-    const std::string name{""};
+    const std::string name;
     llvm::Value* f{nullptr};
   };
 
@@ -54,7 +53,6 @@ class TypeArtPass : public llvm::ModulePass {
   void printStats(llvm::raw_ostream&);
 };
 
-}  // namespace pass
-}  // namespace typeart
+}  // namespace typeart::pass
 
 #endif

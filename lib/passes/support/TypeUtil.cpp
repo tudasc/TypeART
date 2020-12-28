@@ -9,9 +9,7 @@
 
 using namespace llvm;
 
-namespace typeart {
-namespace util {
-namespace type {
+namespace typeart::util::type {
 
 bool isi64Ptr(llvm::Type* type) {
   return type->isPointerTy() && type->getPointerElementType()->isIntegerTy(64);
@@ -85,7 +83,7 @@ unsigned getStructSizeInBytes(llvm::Type* structT, const llvm::DataLayout& dl) {
   return layout->getSizeInBytes();
 }
 
-unsigned getPointerSizeInBytes(llvm::Type* ptrT, const llvm::DataLayout& dl) {
+unsigned getPointerSizeInBytes(llvm::Type* /*ptrT*/, const llvm::DataLayout& dl) {
   return dl.getPointerSizeInBits() / 8;
 }
 
@@ -117,6 +115,4 @@ unsigned getTypeSizeForArrayAlloc(llvm::AllocaInst* ai, const llvm::DataLayout& 
   return bytes;
 }
 
-}  // namespace type
-}  // namespace util
-}  // namespace typeart
+}  // namespace typeart::util::type
