@@ -63,7 +63,7 @@ $> cmake --build build --target install --parallel
 
 #### CMake Configuration: Options for users
 
-###### Runtime
+##### Runtime
 
 - `SOFTCOUNTERS` (default: **off**) : Enable runtime tracking of #tracked addrs. / #distinct checks / etc.
 - `USE_ABSL` (default: **on**) : Enable usage of btree-backed map of the abseil project instead of std::map for the

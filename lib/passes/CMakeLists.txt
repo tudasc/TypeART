@@ -27,6 +27,8 @@ make_llvm_module(typeartpass
     ${PROJECT_SOURCE_DIR}/lib/passes/
 )
 
+mark_as_advanced(LLVM_TYPEARTPASS_LINK_INTO_TOOLS)
+
 target_project_compile_options(typeartpass)
 target_project_compile_definitions(typeartpass
   PRIVATE_DEFS

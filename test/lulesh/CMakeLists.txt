@@ -5,6 +5,7 @@ project(typeart-lulesh-integration-tests)
 set(WORK_DIR ${PROJECT_SOURCE_DIR})
 set(TEST_SCRIPT ${WORK_DIR}/run_integration_test.sh)
 set(LULESH_NP 8 CACHE STRING "Number of MPI processes for lulesh")
+mark_as_advanced(LULESH_NP)
 
 function(add_integration_test name dir exe_dir np args)
     message(STATUS "Configuring benchmark ${name}")
