@@ -1,8 +1,20 @@
-include(FetchContent)
-
 FetchContent_Declare(
   cpp-abseil
   GIT_REPOSITORY https://github.com/abseil/abseil-cpp.git
 )
 
 FetchContent_MakeAvailable(cpp-abseil)
+
+mark_as_advanced(
+  ABSL_ENABLE_INSTALL
+  ABSL_GOOGLETEST_DOWNLOAD_URL
+  ABSL_LOCAL_GOOGLETEST_DIR
+  ABSL_RUN_TESTS
+  ABSL_USE_EXTERNAL_GOOGLETEST
+  ABSL_USE_GOOGLETEST_HEAD
+)
+
+mark_as_advanced(
+  FETCHCONTENT_SOURCE_DIR_CPP-ABSEIL
+  FETCHCONTENT_UPDATES_DISCONNECTED_CPP-ABSEIL
+)
