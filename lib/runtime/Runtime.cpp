@@ -534,7 +534,7 @@ void TypeArtRT::onFreeHeap(const void* addr, const void* retAddr) {
   }
 }
 
-void TypeArtRT::onLeaveScope(size_t alloca_count, const void* retAddr) {
+void TypeArtRT::onLeaveScope(int alloca_count, const void* retAddr) {
   if (unlikely(alloca_count > stackVars.size())) {
     LOG_ERROR("Stack is smaller than requested de-allocation count. alloca_count: " << alloca_count
                                                                                     << ". size: " << stackVars.size());
@@ -580,7 +580,7 @@ void __typeart_free(const void* addr) {
   RUNTIME_GUARD_END;
 }
 
-void __typeart_leave_scope(size_t alloca_count) {
+void __typeart_leave_scope(int alloca_count) {
   RUNTIME_GUARD_BEGIN;
   const void* retAddr = __builtin_return_address(0);
   typeart::TypeArtRT::get().onLeaveScope(alloca_count, retAddr);
