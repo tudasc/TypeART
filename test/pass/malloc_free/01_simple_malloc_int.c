@@ -1,9 +1,16 @@
 // clang-format off
-// RUN: clang -S -emit-llvm %s -o - | opt -load %pluginpath/analysis/meminstfinderpass.so -load %pluginpath/%pluginname %pluginargs -S 2>&1 | FileCheck %s
+// RUN: %c-to-llvm %s | %apply-typeart -S 2>&1 | FileCheck %s
 // clang-format on
 #include <stdlib.h>
 void test() {
   int* p = (int*)malloc(42 * sizeof(int));
 }
-// CHECK: Malloc{{[ ]*}}:{{[ ]*}}1
-// CHECK: Alloca{{[ ]*}}:{{[ ]*}}0
+
+// CHECK: [[POINTER:%[0-9]+]] = call noalias i8* @malloc
+// CHECK-NEXT: call void @__typeart_alloc(i8* [[POINTER]], i32 2, i64 42)
+// CHECK-NEXT: bitcast i8* [[POINTER]] to i32*
+
+// CHECK: TypeArtPass [Heap]
+// CHECK-NEXT: Malloc{{[ ]*}}:{{[ ]*}}1
+// CHECK-NEXT: Free{{[ ]*}}:{{[ ]*}}0
+// CHECK-NEXT: Alloca{{[ ]*}}:{{[ ]*}}0

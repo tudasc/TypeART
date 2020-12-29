@@ -5,6 +5,7 @@ project(typeart-lulesh-integration-tests)
 set(WORK_DIR ${PROJECT_SOURCE_DIR})
 set(TEST_SCRIPT ${WORK_DIR}/run_integration_test.sh)
 set(LULESH_NP 8 CACHE STRING "Number of MPI processes for lulesh")
+mark_as_advanced(LULESH_NP)
 
 function(add_integration_test name dir exe_dir np args)
     message(STATUS "Configuring benchmark ${name}")
@@ -38,11 +39,12 @@ function(add_integration_test name dir exe_dir np args)
     #set_tests_properties(test_clean_${name} PROPERTIES FIXTURES_CLEANUP lulesh_b)
     
     add_test(NAME ${name}
-        COMMAND "${TEST_SCRIPT}" ${name} ${np} ${args} ${CMAKE_BINARY_DIR}/runtime ${CMAKE_BINARY_DIR}/test/mpi_interceptor
+        COMMAND "${TEST_SCRIPT}" ${name} ${np} ${args} ${CMAKE_BINARY_DIR}/lib/runtime ${CMAKE_BINARY_DIR}/lib/mpi_interceptor
         WORKING_DIRECTORY "${exe_dir}"
     )
     
     set_tests_properties(${name} PROPERTIES FIXTURES_REQUIRED lulesh_b)
+    set_tests_properties(${name} PROPERTIES ENVIRONMENT LLVM_PROFILE_FILE=${TYPEART_PROFILE_DIR}/code-%p-lulesh.profraw)
 endfunction()
 
 add_integration_test("lulesh2.0" "${WORK_DIR}" "${WORK_DIR}" ${LULESH_NP} "-s 12 -i 200")

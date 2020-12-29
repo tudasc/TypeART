@@ -30,4 +30,6 @@ if(NOT LIT_COMMAND_I)
   endif()
 endif()
 
+mark_as_advanced(path_to_llvm_lit)
+
 message(STATUS "llvm lit command is set to ${LIT_COMMAND_I}")

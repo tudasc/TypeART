@@ -7,7 +7,7 @@
 extern void bar(int x);
 extern void ebar(int* x);
 
-void MPI_send(int* a) {
+void MPI_send(void* a) {
   (void)a;
   return;
 }

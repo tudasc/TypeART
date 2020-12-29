@@ -1,5 +1,5 @@
 // clang-format off
-// RUN: clang -O2 -S -emit-llvm %s -o - | opt -load %pluginpath/analysis/meminstfinderpass.so -load %pluginpath/%pluginname %pluginargs -S 2>&1 | FileCheck %s --check-prefix CHECK-OPT
+// RUN: clang -O2 -S -emit-llvm %s -o - | %apply-typeart -S 2>&1 | FileCheck %s --check-prefix CHECK-OPT
 // clang-format on
 
 // This is a dummy test illustrating problems with -Xclang approach and higher optimizations, losing infos about the

@@ -2,13 +2,12 @@ name: TypeART-CI-ext
 
 on:
   push:
-    branches:
-      - master
+    branches: [ master, devel ]
   pull_request:
 
 jobs:
   build-and-run-testbench:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     if: "!contains(github.event.head_commit.message, '[ci skip]') || !contains(github.event.head_commit.message, '[ci ext skip]')"
     steps:
       - uses: actions/checkout@v2
@@ -20,17 +19,19 @@ jobs:
           ssh-key: ${{ secrets.AUTH_SSH_CI_EXT }}
           path: test-bench
 
-      - name: Setup LLVM repository
-        run: |
-          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key 2>/dev/null | sudo apt-key add -
-          sudo add-apt-repository 'deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-10 main' -y
-          sudo apt-get update -q
+      - name: Checkout AD test-bench
+        uses: actions/checkout@v2
+        with:
+          repository: ahueck/typeart-ad-benchmarks
+          ssh-key: ${{ secrets.AUTH_SSH_CI_EXT_AD }}
+          ref: feat/ci
+          path: ad-test-bench
 
       - name: Install LLVM
         run: sudo apt-get install libllvm10 llvm-10 llvm-10-dev
 
       - name: Install Clang
-        run: sudo apt-get install clang-10
+        run: sudo apt-get install clang-10 clang-tidy-10
 
       - name: Install OpenMPI
         run: sudo apt-get install libopenmpi-dev openmpi-bin
@@ -41,14 +42,16 @@ jobs:
           sudo ln -f -s /usr/bin/clang++-10 /usr/bin/clang++
           sudo ln -f -s /usr/bin/opt-10 /usr/bin/opt
           sudo ln -f -s /usr/bin/llc-10 /usr/bin/llc
-          echo "::set-env name=CC::clang-10"
-          echo "::set-env name=CXX::clang++-10"
+          sudo ln -f -s /usr/bin/clang-tidy-10 /usr/bin/clang-tidy
+          echo "CC=clang-10" >> $GITHUB_ENV
+          echo "CXX=clang++-10" >> $GITHUB_ENV
+          echo "EXTERNAL_LIT=/usr/lib/llvm-10/build/utils/lit/lit.py" >> $GITHUB_ENV
 
       - name: Build & install TypeART
         run: |
           cmake -B build -DCMAKE_BUILD_TYPE=Release -DMPI_INTERCEPT_LIB=ON -DSHOW_STATS=ON
           cmake --build build --parallel --target install
-          echo "::set-env name=TYPEART_PATH::${GITHUB_WORKSPACE}/install/typeart"
+          echo "TYPEART_PATH=${GITHUB_WORKSPACE}/install/typeart" >> $GITHUB_ENV
 
       - name: Setup tests
         working-directory: test-bench
@@ -70,16 +73,27 @@ jobs:
         working-directory: test-bench/build
         run: ctest -V -R amg2013 -O amg2013_build.log
 
-      - name: Prepare test-bench artifact
-        working-directory: test-bench
+      - name: Setup AD tests
+        working-directory: ad-test-bench
+        run: cmake -B build -DLOG_PATH=${GITHUB_WORKSPACE}/ad-test-bench/artifact
+
+      - name: Run AD lulesh
+        working-directory: ad-test-bench/build
+        run: ctest -V -R lulesh -O ad-lulesh2.0_build.log
+
+      - name: Prepare artifact
         run: |
-          mkdir -p artifact
-          mv build/*_build.log artifact
+          mkdir -p artifact/bench
+          mkdir -p artifact/ad-bench
+          mv test-bench/build/*_build.log artifact/bench
+          mv test-bench/artifact/* artifact/bench
+          mv ad-test-bench/build/*_build.log artifact/ad-bench
+          mv ad-test-bench/artifact/* artifact/ad-bench
 
       - name: Upload test-bench artifact
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v2
         with:
-          name: typeart-bench-archive
-          path: test-bench/artifact
+          name: typeart-ci-ext
+          path: artifact
         
 

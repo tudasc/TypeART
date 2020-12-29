@@ -1,5 +1,6 @@
 // clang-format off
-// RUN: clang -S -emit-llvm %s -o - | opt -load %pluginpath/analysis/meminstfinderpass.so -load %pluginpath/%pluginname %pluginargs -typeart-alloca -alloca-array-only=false -call-filter -S 2>&1 | FileCheck %s
+// RUN: %c-to-llvm %s | %apply-typeart -typeart-alloca -call-filter -call-filter-impl=deprecated::default -S 2>&1 | FileCheck %s
+// RUN: %c-to-llvm %s | %apply-typeart -typeart-alloca -call-filter  -S 2>&1 | FileCheck %s
 // clang-format on
 
 int a;
@@ -10,8 +11,8 @@ void foo() {
   bar(&a);
 }
 
-// CHECK: Global                      :   2.0
-// CHECK: Global total filtered       :   1.0
-// CHECK: Global Call Filtered        :   1.0
-// CHECK: % global call filtered      :  50.0
-// CHECK: % global filtered           :  50.0
+// CHECK: MemInstFinderPass
+// Global                 :     2
+// Global filter total    :     1
+// Global call filtered % : 50.00
+// Global filtered %      : 50.00

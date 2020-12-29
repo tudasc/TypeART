@@ -1,8 +1,10 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.14)
 
 project(typeart
-  VERSION 2.0
+  VERSION 1.5.0
 )
+
+set(TYPEART_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_VERBOSE_MAKEFILE ON)
@@ -20,18 +22,19 @@ include(CMakePackageConfigHelpers)
 
 add_format_target(format-sources
   "Formats project source files"
-  TARGETS lib/*.cpp 
-          lib/*.h
-          runtime/*.cpp
-          runtime/*.h
-          typelib/*.cpp
-          typelib/*.h
-)
+  TARGETS
+  lib/passes/*.cpp
+  lib/passes/*.h
+  lib/runtime/*.cpp
+  lib/runtime/*.h
+  lib/typelib/*.cpp
+  lib/typelib/*.h
+  lib/support/*.cpp
+  lib/support/*.h
+  )
 
 add_subdirectory(externals)
 add_subdirectory(lib)
-add_subdirectory(typelib)
-add_subdirectory(runtime)
 add_subdirectory(scripts)
 enable_testing()
 add_subdirectory(test)

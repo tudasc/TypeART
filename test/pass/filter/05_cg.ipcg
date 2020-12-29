@@ -1,0 +1,13 @@
+{
+    "foo": {
+        "callees": [
+            "MPI_Mock", "MPI_Send"
+        ],
+        "doesOverride": false,
+        "hasBody": true,
+        "isVirtual": false,
+        "overriddenBy": [],
+        "overriddenFunctions": [],
+        "parents": []
+    }
+}
