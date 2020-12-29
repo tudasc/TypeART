@@ -4,11 +4,11 @@
 
 #include "TypeARTFunctions.h"
 
+#include "support/Logger.h"
+
 #include "llvm/IR/Argument.h"
-#include "llvm/IR/CFG.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/GlobalValue.h"
-#include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Type.h"
@@ -49,13 +49,17 @@ llvm::Function* TAFunctionDeclarator::make_function(IFunc id, llvm::StringRef ba
     //     f->setLinkage(GlobalValue::ExternalWeakLinkage);
   };
   const auto do_make = [&](auto& name, auto f_type) {
-    auto fc = m.getOrInsertFunction(name, f_type);
-#if LLVM_VERSION >= 10
-    auto f = dyn_cast<Function>(fc.getCallee());
-#else
-    auto f = dyn_cast<Function>(fc);
-#endif
-    setFunctionLinkageExternal(f);
+    const bool has_f = m.getFunction(name) != nullptr;
+    auto fc          = m.getOrInsertFunction(name, f_type);
+
+    Function* f{nullptr};
+    if (has_f) {
+      LOG_WARNING("Function " << name << " is already declared in the module.")
+      f = dyn_cast<Function>(fc.getCallee()->stripPointerCasts());
+    } else {
+      f = dyn_cast<Function>(fc.getCallee());
+      setFunctionLinkageExternal(f);
+    }
     addOptimizerAttributes(f);
     return f;
   };
