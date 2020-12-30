@@ -1,8 +1,29 @@
 #!/bin/bash
 
 target=$1
-ta_more_args=${2:-""}
-optimize=${3:-" "}
+optimize=""
+ta_more_args=""
+
+shift # skip over $1
+while (( "$#" )); do
+  case "$1" in
+    -o|--optimization)
+      if [ -n "$2" ] && [ ${2:0:2} == "-O" ]; then
+        optimize=$2
+        shift 2
+      else
+        echo "Error: Optimization argument for $1 is erroneous: $2" >&2
+        exit 1
+      fi
+      ;;
+    *) # preserve other arguments
+      ta_more_args="$ta_more_args $1"
+      shift
+      ;;
+  esac
+done
+# set other positional arguments in their proper place
+eval set -- "ta_more_args"
 
 extension="${target##*.}"
 tmpfile=${target##*/}
@@ -24,7 +45,7 @@ function make_no_optim() {
 
 function make_with_optim() {
   # Order: heap, optimize, alloca with additional args..
-  $compiler @TYPEART_INCLUDE_DIRS@ -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $typeart_plugin -typeart-stats | opt $optimize -S | opt $typeart_plugin -typeart-alloca -typeart-stats $ta_more_args | llc -x=ir -filetype=obj -o "$tmpfile".o
+  $compiler @TYPEART_INCLUDE_DIRS@ -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $typeart_plugin -typeart-stats $ta_more_args  | opt $optimize -S | opt $typeart_plugin -typeart-no-heap -typeart-alloca -typeart-stats $ta_more_args | llc -x=ir -filetype=obj -o "$tmpfile".o
 }
 
 function compile() {

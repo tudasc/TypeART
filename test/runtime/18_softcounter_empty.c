@@ -1,4 +1,4 @@
-// RUN: %run %s -O3 2>&1 | FileCheck %s
+// RUN: %run %s -o -O3 2>&1 | FileCheck %s
 // REQUIRED: softcounter
 
 void __typeart_leave_scope(int alloca_count);
@@ -27,5 +27,5 @@ int main(void) {
 // CHECK-NEXT: Bytes per node map/stack   :  96 ,    8 ,    -
 // CHECK-NEXT: {{(#|-)+}}
 // CHECK-NEXT: Allocation type detail (heap, stack, global)
-// CHECK: {{(#|-)+}}
+// CHECK-NEXT: {{(#|-)+}}
 // CHECK-NEXT: Free allocation type detail (heap, stack)
