@@ -1,5 +1,6 @@
 #include "Runtime.h"
 
+#include "AccessCountPrinter.h"
 #include "AccessCounter.h"
 #include "RuntimeInterface.h"
 #include "support/Logger.h"

@@ -23,6 +23,8 @@
 #include <map>
 #endif
 
+#include <vector>
+
 namespace typeart {
 
 using MemAddr = const void*;

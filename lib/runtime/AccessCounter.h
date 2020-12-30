@@ -7,8 +7,6 @@
 
 #include "RuntimeData.h"
 #include "RuntimeInterface.h"
-#include "support/Logger.h"
-#include "support/Table.h"
 
 #include <map>
 #include <set>
@@ -128,6 +126,91 @@ class AccessRecorder {
     return instance;
   }
 
+  Counter getHeapAllocs() const {
+    return heapAllocs;
+  }
+  Counter getStackAllocs() const {
+    return stackAllocs;
+  }
+  Counter getGlobalAllocs() const {
+    return globalAllocs;
+  }
+  Counter getMaxHeapAllocs() const {
+    return maxHeapAllocs;
+  }
+  Counter getMaxStackAllocs() const {
+    return maxStackAllocs;
+  }
+  Counter getCurHeapAllocs() const {
+    return curHeapAllocs;
+  }
+  Counter getCurStackAllocs() const {
+    return curStackAllocs;
+  }
+  Counter getAddrReuses() const {
+    return addrReuses;
+  }
+  Counter getAddrMissing() const {
+    return addrMissing;
+  }
+  Counter getAddrChecked() const {
+    return addrChecked;
+  }
+  Counter getStackArray() const {
+    return stackArray;
+  }
+  Counter getHeapArray() const {
+    return heapArray;
+  }
+  Counter getGlobalArray() const {
+    return globalArray;
+  }
+  Counter getStackAllocsFree() const {
+    return stackAllocsFree;
+  }
+  Counter getStackArrayFree() const {
+    return stackArrayFree;
+  }
+  Counter getHeapAllocsFree() const {
+    return heapAllocsFree;
+  }
+  Counter getHeapArrayFree() const {
+    return heapArrayFree;
+  }
+  Counter getNullAlloc() const {
+    return nullAlloc;
+  }
+  Counter getZeroAlloc() const {
+    return zeroAlloc;
+  }
+  Counter getNullAndZeroAlloc() const {
+    return nullAndZeroAlloc;
+  }
+  Counter getNumUDefTypes() const {
+    return numUDefTypes;
+  }
+  const std::unordered_set<MemAddr>& getMissing() const {
+    return missing;
+  }
+  const std::unordered_set<MemAddr>& getSeen() const {
+    return seen;
+  }
+  const TypeCountMap& getStackAlloc() const {
+    return stackAlloc;
+  }
+  const TypeCountMap& getHeapAlloc() const {
+    return heapAlloc;
+  }
+  const TypeCountMap& getGlobalAlloc() const {
+    return globalAlloc;
+  }
+  const TypeCountMap& getStackFree() const {
+    return stackFree;
+  }
+  const TypeCountMap& getHeapFree() const {
+    return heapFree;
+  }
+
  private:
   AccessRecorder()                       = default;
   AccessRecorder(AccessRecorder& other)  = default;
@@ -161,9 +244,6 @@ class AccessRecorder {
   TypeCountMap globalAlloc;
   TypeCountMap stackFree;
   TypeCountMap heapFree;
-
-  template <typename Recorder>
-  friend void serialise(const Recorder& r, llvm::raw_ostream& buf);
 };
 
 /**
@@ -205,97 +285,6 @@ class NoneRecorder {
     return instance;
   }
 };
-
-namespace memory {
-struct MemOverhead {
-  static constexpr auto pointerMapSize = sizeof(RuntimeT::PointerMap);  // Map overhead
-  static constexpr auto perNodeSizeMap =
-      sizeof(std::remove_pointer<std::map<MemAddr, PointerInfo>::iterator::_Link_type>::type) +
-      sizeof(RuntimeT::MapEntry);                                         // not applicable to btree
-  static constexpr auto stackVectorSize  = sizeof(RuntimeT::Stack);       // Stack overhead
-  static constexpr auto perNodeSizeStack = sizeof(RuntimeT::StackEntry);  // Stack allocs
-  double stack{0};
-  double map{0};
-};
-inline MemOverhead estimate(Counter stack_max, Counter heap_max, Counter global_max, const double scale = 1024.0) {
-  MemOverhead mem;
-  mem.stack = double(MemOverhead::stackVectorSize +
-                     MemOverhead::perNodeSizeStack * std::max<size_t>(RuntimeT::StackReserve, stack_max)) /
-              scale;
-  mem.map =
-      double(MemOverhead::pointerMapSize + MemOverhead::perNodeSizeMap * (stack_max + heap_max + global_max)) / scale;
-  return mem;
-}
-}  // namespace memory
-
-template <typename Recorder>
-void serialise(const Recorder& r, llvm::raw_ostream& buf) {
-  if constexpr (std::is_same_v<Recorder, NoneRecorder>) {
-    return;
-  } else {
-    const auto memory_use = memory::estimate(r.maxStackAllocs, r.maxHeapAllocs, r.globalAllocs);
-
-    Table t("Alloc Stats from softcounters");
-    t.wrap_length = true;
-    t.put(Row::make("Total heap", r.heapAllocs, r.heapArray));
-    t.put(Row::make("Total stack", r.stackAllocs, r.stackArray));
-    t.put(Row::make("Total global", r.globalAllocs, r.globalArray));
-    t.put(Row::make("Max. Heap Allocs", r.maxHeapAllocs));
-    t.put(Row::make("Max. Stack Allocs", r.maxStackAllocs));
-    t.put(Row::make("Addresses checked", r.addrChecked));
-    t.put(Row::make("Distinct Addresses checked", r.seen.size()));
-    t.put(Row::make("Addresses re-used", r.addrReuses));
-    t.put(Row::make("Addresses missed", r.addrMissing));
-    t.put(Row::make("Distinct Addresses missed", r.missing.size()));
-    t.put(Row::make("Total free heap", r.heapAllocsFree, r.heapArrayFree));
-    t.put(Row::make("Total free stack", r.stackAllocsFree, r.stackArrayFree));
-    t.put(Row::make("Null/Zero/NullZero Addr", r.nullAlloc, r.zeroAlloc, r.nullAndZeroAlloc));
-    t.put(Row::make("User-def. types", r.numUDefTypes));
-    t.put(Row::make("Estimated memory use (KiB)", size_t(std::round(memory_use.map + memory_use.stack))));
-    t.put(Row::make("Bytes per node map/stack", memory::MemOverhead::perNodeSizeMap,
-                    memory::MemOverhead::perNodeSizeStack));
-
-    t.print(buf);
-
-    std::set<int> type_id_set;
-    const auto fill_set = [&type_id_set](const auto& map) {
-      for (const auto& [key, val] : map) {
-        type_id_set.insert(key);
-      }
-    };
-    fill_set(r.heapAlloc);
-    fill_set(r.globalAlloc);
-    fill_set(r.stackAlloc);
-    fill_set(r.heapFree);
-    fill_set(r.stackFree);
-
-    const auto count = [](const auto& map, auto id) {
-      auto it = map.find(id);
-      if (it != map.end()) {
-        return it->second;
-      }
-      return 0ll;
-    };
-
-    Table type_table("Allocation type detail (heap, stack, global)");
-    type_table.table_header = '#';
-    for (auto type_id : type_id_set) {
-      type_table.put(Row::make(std::to_string(type_id), count(r.heapAlloc, type_id), count(r.stackAlloc, type_id),
-                               count(r.globalAlloc, type_id), typeart_get_type_name(type_id)));
-    }
-
-    type_table.print(buf);
-
-    Table type_table_free("Free allocation type detail (heap, stack)");
-    type_table_free.table_header = '#';
-    for (auto type_id : type_id_set) {
-      type_table_free.put(Row::make(std::to_string(type_id), count(r.heapFree, type_id), count(r.stackFree, type_id),
-                                    typeart_get_type_name(type_id)));
-    }
-
-    type_table_free.print(buf);
-  }
-}
 
 }  // namespace softcounter
 
