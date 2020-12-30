@@ -50,3 +50,33 @@ add_test(
 if(MPI_INTERCEPT_LIB)
   add_subdirectory(lulesh)
 endif()
+
+if(TEST_CONFIGURE_IDE)
+  function(add_test_target_ide target header sources)
+    add_executable(${target}
+      EXCLUDE_FROM_ALL
+      ${header}
+      ${sources}
+    )
+
+    add_dependencies(${target}
+      ${TYPEARTPASS_TEST_DEPENDS}
+    )
+
+    target_include_directories(${target}
+      PRIVATE
+      ${PROJECT_SOURCE_DIR}/lib/typelib
+      ${PROJECT_SOURCE_DIR}/lib/runtime
+      ${PROJECT_SOURCE_DIR}
+    )
+  endfunction()
+
+  file(GLOB_RECURSE TYPEART_CXX_TESTS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+  file(GLOB_RECURSE TYPEART_CC_TESTS ${CMAKE_CURRENT_SOURCE_DIR}/*.c)
+  file(GLOB_RECURSE TYPEART_TEST_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
+
+  add_test_target_ide(typeart_cxx_test_objects "${TYPEART_TEST_HEADER}" "${TYPEART_CXX_TESTS}")
+  set_target_properties(typeart_cxx_test_objects PROPERTIES LINKER_LANGUAGE CXX)
+  add_test_target_ide(typeart_cc_test_objects "${TYPEART_TEST_HEADER}" "${TYPEART_CC_TESTS}")
+  set_target_properties(typeart_cc_test_objects PROPERTIES LINKER_LANGUAGE C)
+endif()

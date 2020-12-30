@@ -12,6 +12,8 @@ option(SOFTCOUNTERS "Enable software tracking of #tracked addrs. / #distinct che
 option(TEST_CONFIG "Set logging levels to appropriate levels for test runner to succeed" OFF)
 option(ENABLE_CODE_COVERAGE "Enable code coverage statistics" OFF)
 option(ENABLE_LLVM_CODE_COVERAGE "Enable llvm-cov code coverage statistics" OFF)
+option(TEST_CONFIGURE_IDE "Add targets so the IDE (e.g., Clion) can interpret test files better" ON)
+mark_as_advanced(TEST_CONFIGURE_IDE)
 
 include(AddLLVM)
 include(llvm-lit)
