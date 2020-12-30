@@ -31,6 +31,13 @@ class AccessRecorder {
 
   inline void incHeapAlloc(int typeId, size_t count) {
     ++curHeapAllocs;
+
+    // Always check here for max
+    // A program without free would otherwise never update maxHeap (see test 20_softcounter_max)
+    if (curHeapAllocs > maxHeapAllocs) {
+      maxHeapAllocs = curHeapAllocs;
+    }
+
     ++heapAllocs;
     if (count > 1) {
       ++heapArray;
@@ -72,9 +79,10 @@ class AccessRecorder {
   }
 
   inline void decHeapAlloc() {
-    if (curHeapAllocs > maxHeapAllocs) {
-      maxHeapAllocs = curHeapAllocs;
-    }
+    // Removed, since we already increment maxHeapAllocs just in time:
+    //    if (curHeapAllocs > maxHeapAllocs) {
+    //      maxHeapAllocs = curHeapAllocs;
+    //    }
     --curHeapAllocs;
   }
 
