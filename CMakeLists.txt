@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.14)
 
 project(typeart
-  VERSION 1.5.0
+  VERSION 1.5
 )
 
 set(TYPEART_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
