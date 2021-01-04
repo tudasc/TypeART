@@ -49,7 +49,7 @@ jobs:
 
       - name: Build & install TypeART
         run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Release -DMPI_INTERCEPT_LIB=ON -DSHOW_STATS=ON
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DMPI_INTERCEPT_LIB=ON -DSHOW_STATS=ON -DSOFTCOUNTERS=ON
           cmake --build build --parallel --target install
           echo "TYPEART_PATH=${GITHUB_WORKSPACE}/install/typeart" >> $GITHUB_ENV
 
