@@ -1,5 +1,5 @@
 // RUN: %run %s -o -O3 2>&1 | FileCheck %s
-// REQUIRED: softcounter
+// REQUIRES: softcounter
 
 #include <stdlib.h>
 

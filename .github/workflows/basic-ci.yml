@@ -38,10 +38,10 @@ jobs:
 
       - name: Build TypeART
         run: |
-          cmake -B build -DTEST_CONFIG=ON -DENABLE_CODE_COVERAGE=ON -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT}
+          cmake -B build -DTEST_CONFIG=ON -DENABLE_CODE_COVERAGE=ON -DSOFTCOUNTERS=ON -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT}
           cmake --build build --parallel
 
-      - name: Test TypeART with coverage (exludes lulesh)
+      - name: Test TypeART with coverage
         run: |
           cmake --build build --target lcov-clean
           cmake --build build --target test -- ARGS=-VV
@@ -51,7 +51,7 @@ jobs:
 
       - name: Build TypeART release
         run: |
-          cmake -B build_lulesh -DCMAKE_BUILD_TYPE=Release -DMPI_INTERCEPT_LIB=ON -DSHOW_STATS=ON
+          cmake -B build_lulesh -DCMAKE_BUILD_TYPE=Release -DMPI_INTERCEPT_LIB=ON -DSHOW_STATS=ON -DSOFTCOUNTERS=ON
           cmake --build build_lulesh --parallel
 
       - name: Test TypeART release on lulesh
