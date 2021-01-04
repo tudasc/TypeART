@@ -6,21 +6,20 @@
 #define ENABLE_SOFTCOUNTER 1
 #include "lib/runtime/AccessCounter.h"
 
-#include <iostream>
 #include <algorithm>
+#include <iostream>
 
 using namespace typeart;
 
-#define o_(getter) \
-std::cerr << recorder.getter << '\n';
+#define o_(getter) std::cerr << recorder.getter << '\n'
 
-std::vector<std::pair<int, softcounter::Counter>> sorted_v(const std::unordered_map<int, softcounter::Counter>& map){
+std::vector<std::pair<int, softcounter::Counter>> sorted_v(const std::unordered_map<int, softcounter::Counter>& map) {
   std::vector<std::pair<int, softcounter::Counter>> sorted_elements(map.begin(), map.end());
   std::sort(sorted_elements.begin(), sorted_elements.end());
   return sorted_elements;
 }
 
-std::vector<MemAddr> sorted_v(const std::unordered_set<MemAddr>& set){
+std::vector<MemAddr> sorted_v(const std::unordered_set<MemAddr>& set) {
   std::vector<MemAddr> sorted_elements(set.begin(), set.end());
   std::sort(sorted_elements.begin(), sorted_elements.end());
   return sorted_elements;
@@ -39,7 +38,7 @@ void test_heap(softcounter::AccessRecorder& recorder) {
   // CHECK: 1
   std::cerr << hallocs.size() << '\n';
   // CHECK: 10 2
-  for(const auto& [id, count] : hallocs){
+  for (const auto& [id, count] : hallocs) {
     std::cerr << id << " " << count << '\n';
   }
 
@@ -49,7 +48,6 @@ void test_heap(softcounter::AccessRecorder& recorder) {
   o_(getCurHeapAllocs());
   // CHECK: 2
   o_(getMaxHeapAllocs());
-
 
   recorder.decHeapAlloc();
   recorder.decHeapAlloc();
@@ -62,30 +60,30 @@ void test_heap(softcounter::AccessRecorder& recorder) {
 void test_stack(softcounter::AccessRecorder& recorder) {
   recorder.incStackAlloc(0, 1);
   // CHECK: 1
-  o_(getStackAllocs())
+  o_(getStackAllocs());
   // CHECK: 0
-  o_(getMaxStackAllocs())
+  o_(getMaxStackAllocs());
 
   recorder.incStackAlloc(1, 1);
   // CHECK: 2
-  o_(getStackAllocs())
+  o_(getStackAllocs());
   // CHECK: 2
   o_(getCurStackAllocs());
   // CHECK: 0
-  o_(getMaxStackAllocs())
+  o_(getMaxStackAllocs());
 
   recorder.decStackAlloc(2);
   // CHECK: 2
-  o_(getStackAllocs())
+  o_(getStackAllocs());
   // CHECK: 2
-  o_(getMaxStackAllocs())
+  o_(getMaxStackAllocs());
 
   auto sallocs = sorted_v(recorder.getStackAlloc());
   // CHECK: 2
   std::cerr << sallocs.size() << '\n';
   // CHECK: 0 1
   // CHECK: 1 1
-  for(const auto& [id, count] : sallocs){
+  for (const auto& [id, count] : sallocs) {
     std::cerr << id << " " << count << '\n';
   }
 
@@ -100,7 +98,7 @@ void test_stack(softcounter::AccessRecorder& recorder) {
   std::cerr << de_sallocs.size() << '\n';
   // CHECK: 0 1
   // CHECK: 1 1
-  for(const auto& [id, count] : de_sallocs){
+  for (const auto& [id, count] : de_sallocs) {
     std::cerr << id << " " << count << '\n';
   }
 
@@ -112,7 +110,7 @@ void test_stack(softcounter::AccessRecorder& recorder) {
   // CHECK: 0 1
   // CHECK: 1 1
   // CHECK: 6 1
-  for(const auto& [id, count] : de_sallocs){
+  for (const auto& [id, count] : de_sallocs) {
     std::cerr << id << " " << count << '\n';
   }
 }
@@ -120,13 +118,13 @@ void test_stack(softcounter::AccessRecorder& recorder) {
 void test_global(softcounter::AccessRecorder& recorder) {
   recorder.incGlobalAlloc(6, 1);
   // CHECK: 1
-  o_(getGlobalAllocs())
+  o_(getGlobalAllocs());
 
   const auto& alloc = recorder.getGlobalAlloc();
   // CHECK: 1
   std::cerr << alloc.size() << '\n';
   // CHECK: 6 1
-  for(const auto& [id, count] : alloc){
+  for (const auto& [id, count] : alloc) {
     std::cerr << id << " " << count << '\n';
   }
 }
@@ -140,7 +138,7 @@ int main() {
 
   recorder.incUDefTypes(2);
   // CHECK: 2
-  o_(getNumUDefTypes())
+  o_(getNumUDefTypes());
 
   void* a1 = (void*)0x1;
   void* a2 = (void*)0x2;
@@ -162,23 +160,22 @@ int main() {
   // CHECK: 0x1
   // CHECK: 0x2
   // CHECK: 0x3
-  for(auto& a : mset) {
+  for (auto& a : mset) {
     std::cerr << a << '\n';
   }
 
   recorder.incUsedInRequest(a1);
   recorder.incUsedInRequest(a3);
   // CHECK: 2
-  o_(getAddrChecked())
+  o_(getAddrChecked());
 
   auto cset = sorted_v(recorder.getSeen());
   // CHECK: 2
   std::cerr << cset.size() << '\n';
   // CHECK: 0x1
   // CHECK: 0x3
-  for(auto& a : cset) {
+  for (auto& a : cset) {
     std::cerr << a << '\n';
   }
   return 0;
 }
-
