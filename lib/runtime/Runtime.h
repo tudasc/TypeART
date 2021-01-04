@@ -162,7 +162,7 @@ class TypeArtRT final {
 
   void onFreeHeap(const void* addr, const void* retAddr);
 
-  void onLeaveScope(size_t alloca_count, const void* retAddr);
+  void onLeaveScope(int alloca_count, const void* retAddr);
 
  private:
   TypeArtRT();

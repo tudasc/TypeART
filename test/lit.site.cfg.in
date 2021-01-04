@@ -7,6 +7,8 @@ config.typeartpass_lib_dir = "@TYPEARTPASS_LIBRARY_DIR@"
 config.typeartpass_rt_dir = "@TYPEARTPASS_RT_DIR@"
 config.typeartpass_script_dir = "@TYPEARTPASS_SCRIPT_DIR@"
 config.profile_file = "@TYPEARTPASS_PROFILE_FILE@"
+config.softcounter_used = @TYPEARTPASS_SOFTCOUNTER@
+
 
 # Let the main config do the real work.
 config.loaded_site_config = True
