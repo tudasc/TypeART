@@ -8,6 +8,11 @@ config.typeartpass_rt_dir = "@TYPEARTPASS_RT_DIR@"
 config.typeartpass_script_dir = "@TYPEARTPASS_SCRIPT_DIR@"
 config.profile_file = "@TYPEARTPASS_PROFILE_FILE@"
 config.softcounter_used = @TYPEARTPASS_SOFTCOUNTER@
+config.openmp_used = @TYPEARTPASS_OPENMP@
+config.openmp_c_flags = "@OpenMP_C_FLAGS@"
+# config.openmp_c_inc_dir = "@OpenMP_C_INCLUDE_DIRS@"
+config.openmp_cxx_flags = "@OpenMP_CXX_FLAGS@"
+# config.openmp_cxx_inc_dir = "@OpenMP_CXX_INCLUDE_DIRS@"
 
 
 # Let the main config do the real work.
