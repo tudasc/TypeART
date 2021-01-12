@@ -3,6 +3,8 @@
 target=$1
 optimize=""
 ta_more_args=""
+with_omp=0
+omp_flags=""
 
 shift # skip over $1
 while (( "$#" )); do
@@ -15,6 +17,10 @@ while (( "$#" )); do
         echo "Error: Optimization argument for $1 is erroneous: $2" >&2
         exit 1
       fi
+      ;;
+    --omp)
+      with_omp=1
+      shift
       ;;
     *) # preserve other arguments
       ta_more_args="$ta_more_args $1"
@@ -30,8 +36,14 @@ tmpfile=${target##*/}
 
 if [ $extension == "c" ]; then
   compiler=clang
+  if [ $with_omp == 1 ]; then
+    omp_flags=@OpenMP_C_FLAGS@ #-I@OpenMP_C_INCLUDE_DIRS@
+  fi
 else
   compiler=clang++
+  if [ $with_omp == 1 ]; then
+    omp_flags=@OpenMP_CXX_FLAGS@ # -I@OpenMP_CXX_INCLUDE_DIRS@
+  fi
 fi
 
 if [ -e "types.yaml" ]; then
@@ -40,12 +52,12 @@ fi
 
 function make_no_optim() {
   # Order: heap and stack/global together, no optimization pass
-  $compiler @TYPEART_INCLUDE_DIRS@ -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $typeart_plugin -typeart-alloca -typeart-stats $ta_more_args -S 2>&1
+  $compiler @TYPEART_INCLUDE_DIRS@ "$omp_flags" -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $typeart_plugin -typeart-alloca -typeart-stats $ta_more_args -S 2>&1
 }
 
 function make_with_optim() {
   # Order: heap, optimize, alloca with additional args..
-  $compiler @TYPEART_INCLUDE_DIRS@ -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $typeart_plugin -typeart-stats -S | opt $optimize -S | opt $typeart_plugin -typeart-no-heap -typeart-alloca -typeart-stats  $ta_more_args -S 2>&1
+  $compiler @TYPEART_INCLUDE_DIRS@ "$omp_flags" -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $typeart_plugin -typeart-stats -S | opt $optimize -S | opt $typeart_plugin -typeart-no-heap -typeart-alloca -typeart-stats  $ta_more_args -S 2>&1
 }
 
 function compile() {

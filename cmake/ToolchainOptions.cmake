@@ -3,6 +3,8 @@ message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 
 list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
 
+find_package(OpenMP QUIET)
+
 set(LOG_LEVEL 0 CACHE STRING "Granularity of LLVM pass logger. 3 ist most verbose, 0 is least.")
 set(LOG_LEVEL_RT 0 CACHE STRING "Granularity of runtime logger. 3 ist most verbose, 0 is least.")
 option(SHOW_STATS "Passes show the statistics vars." ON)
