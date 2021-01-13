@@ -14,7 +14,8 @@ void call() {
 int main(int argc, char** argv) {
   const int n = 42;
   // CHECK: [Trace] TypeART Runtime Trace
-  // CHECK-FILTER-NOT: [Trace] TypeART Runtime Trace
+  // CHECK-FILTER: [Trace] TypeART Runtime Trace
+  // CHECK-FILTER-NOT [Trace]
 
   // CHECK: [Trace] Alloc 0x{{.*}} int8 1 42
   char a[n];

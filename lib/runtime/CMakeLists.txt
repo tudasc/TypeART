@@ -2,12 +2,18 @@ set(PROJECT_NAME typeart-rt)
 set(TARGETS_EXPORT_NAME ${PROJECT_NAME}-targets)
 
 set(RUNTIME_LIB_SOURCES
-  #OldRuntime.cpp
   AccessCounter.h
   CallbackInterface.h
   RuntimeData.h
   RuntimeInterface.h
-        TypeResolution.cpp AllocationTracking.cpp RuntimeUtils.cpp RuntimeUtils.h AllocationTracking.h TypeResolution.h)
+  TypeResolution.cpp
+  AllocationTracking.cpp
+  RuntimeUtils.cpp
+  RuntimeUtils.h
+  AllocationTracking.h
+  TypeResolution.h
+  Runtime.cpp
+  Runtime.h)
 
 if(MPI_LOGGER)
   list(APPEND RUNTIME_LIB_SOURCES ../support/MPILogger.cpp)
