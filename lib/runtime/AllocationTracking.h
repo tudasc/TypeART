@@ -35,49 +35,6 @@ enum class FreeState : unsigned {
   UNREG_ADDR   = 1 << 4,
 };
 
-namespace detail {
-template <class...>
-constexpr std::false_type always_false{};
-}  // namespace detail
-
-template <typename Enum>
-inline Enum operator|(Enum lhs, Enum rhs) {
-  if constexpr (std::is_enum_v<Enum> && (std::is_same_v<Enum, AllocState> || std::is_same_v<Enum, FreeState>)) {
-    using enum_t = typename std::underlying_type<Enum>::type;
-    return static_cast<Enum>(static_cast<enum_t>(lhs) | static_cast<enum_t>(rhs));
-  } else {
-    static_assert(detail::always_false<Enum>);
-  }
-}
-template <typename Enum>
-inline void operator|=(Enum& lhs, Enum rhs) {
-  if constexpr (std::is_enum_v<Enum> && (std::is_same_v<Enum, AllocState> || std::is_same_v<Enum, FreeState>)) {
-    lhs = lhs | rhs;
-  } else {
-    static_assert(detail::always_false<Enum>);
-  }
-}
-
-template <typename Enum>
-inline Enum operator&(Enum lhs, Enum rhs) {
-  if constexpr (std::is_enum_v<Enum> && std::is_same_v<Enum, AllocState>) {
-    using enum_t = typename std::underlying_type<Enum>::type;
-    return static_cast<Enum>(static_cast<enum_t>(lhs) & static_cast<enum_t>(rhs));
-  } else {
-    static_assert(detail::always_false<Enum>);
-  }
-}
-
-template <typename Enum>
-inline typename std::underlying_type<Enum>::type operator==(Enum lhs, Enum rhs) {
-  if constexpr (std::is_enum_v<Enum> && std::is_same_v<Enum, AllocState>) {
-    using enum_t = typename std::underlying_type<Enum>::type;
-    return static_cast<enum_t>(lhs) & static_cast<enum_t>(rhs);
-  } else {
-    static_assert(detail::always_false<Enum>);
-  }
-}
-
 class AllocationTracker {
   RuntimeT::PointerMap allocTypes;
   RuntimeT::Stack stackVars;

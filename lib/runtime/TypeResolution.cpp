@@ -8,13 +8,17 @@
 #include "AccessCounter.h"
 #include "AllocationTracking.h"
 #include "Runtime.h"
-#include "RuntimeUtils.h"
 #include "TypeDB.h"
 #include "TypeIO.h"
 
 namespace typeart {
 
 static constexpr const char* defaultTypeFileName = "types.yaml";
+
+template <typename T>
+inline const void* addByteOffset(const void* addr, T offset) {
+  return static_cast<const void*>(static_cast<const uint8_t*>(addr) + offset);
+}
 
 TypeResolution::TypeResolution() {
   auto loadTypes = [this](const std::string& file) -> bool {
@@ -159,16 +163,14 @@ TypeResolution::TypeArtStatus TypeResolution::getTypeInfoInternal(const void* ba
   return TA_OK;
 }
 
-TypeResolution::TypeArtStatus TypeResolution::getTypeInfo(const void* addr, RuntimeT::MapEntry allocInfo, int* type,
-                                                          size_t* count) const {
-  int containingType;
+TypeResolution::TypeArtStatus TypeResolution::getTypeInfo(const void* addr, const void* basePtr,
+                                                          const PointerInfo& ptrInfo, int* type, size_t* count) const {
+  int containingType = ptrInfo.typeId;
   size_t containingTypeCount;
-  const void* baseAddr;
   size_t internalOffset;
 
   // First, retrieve the containing type
-  TypeArtStatus status =
-      getContainingTypeInfo(addr, allocInfo, &containingType, &containingTypeCount, &baseAddr, &internalOffset);
+  TypeArtStatus status = getContainingTypeInfo(addr, basePtr, ptrInfo, &containingTypeCount, &internalOffset);
   if (status != TA_OK) {
     if (status == TA_UNKNOWN_ADDRESS) {
       runtime.recorder.incAddrMissing(addr);
@@ -197,19 +199,16 @@ TypeResolution::TypeArtStatus TypeResolution::getTypeInfo(const void* addr, Runt
   return TA_INVALID_ID;
 }
 
-TypeResolution::TypeArtStatus TypeResolution::getContainingTypeInfo(const void* addr, RuntimeT::MapEntry allocInfo,
-                                                                    int* type, size_t* count, const void** baseAddress,
+TypeResolution::TypeArtStatus TypeResolution::getContainingTypeInfo(const void* addr, const void* basePtr,
+                                                                    const PointerInfo& ptrInfo, size_t* count,
                                                                     size_t* offset) const {
-  const auto& basePtrInfo = allocInfo.second;
-  const auto* basePtr     = allocInfo.first;
+  const auto& basePtrInfo = ptrInfo;
   size_t typeSize         = getTypeSize(basePtrInfo.typeId);
 
   // Check for exact match -> no further checks and offsets calculations needed
   if (basePtr == addr) {
-    *type        = basePtrInfo.typeId;
-    *count       = basePtrInfo.count;
-    *baseAddress = addr;
-    *offset      = 0;
+    *count  = ptrInfo.count;
+    *offset = 0;
     return TA_OK;
   }
 
@@ -236,26 +235,18 @@ TypeResolution::TypeArtStatus TypeResolution::getContainingTypeInfo(const void* 
   size_t typeCount  = basePtrInfo.count - typeOffset;
 
   // Retrieve and return type information
-  *type        = basePtrInfo.typeId;
-  *count       = typeCount;
-  *baseAddress = basePtr;  // addByteOffset(basePtr, typeOffset * basePtrInfo.typeSize);
-  *offset      = internalOffset;
+  *count  = typeCount;
+  *offset = internalOffset;
   return TA_OK;
 }
 
-TypeResolution::TypeArtStatus TypeResolution::getBuiltinInfo(const void* addr, RuntimeT::MapEntry alloc,
+TypeResolution::TypeArtStatus TypeResolution::getBuiltinInfo(const void* addr, const PointerInfo& ptrInfo,
                                                              typeart::BuiltinType* type) const {
-  int id;
-  size_t count;
-  TypeArtStatus result = getTypeInfo(addr, alloc, &id, &count);
-  if (result == TA_OK) {
-    if (typeDB.isReservedType(id)) {
-      *type = static_cast<BuiltinType>(id);
-      return TA_OK;
-    }
-    return TA_WRONG_KIND;
+  if (typeDB.isReservedType(ptrInfo.typeId)) {
+    *type = static_cast<BuiltinType>(ptrInfo.typeId);
+    return TA_OK;
   }
-  return result;
+  return TA_WRONG_KIND;
 }
 
 TypeResolution::TypeArtStatus TypeResolution::getStructInfo(int id, const StructTypeInfo** structInfo) const {
@@ -294,8 +285,9 @@ bool TypeResolution::isValidType(int id) const {
 
 typeart_status typeart_get_builtin_type(const void* addr, typeart::BuiltinType* type) {
   auto alloc = typeart::runtime.allocTracker.findBaseAlloc(addr);
-  if (alloc)
-    return typeart::runtime.typeResolution.getBuiltinInfo(addr, alloc.getValue(), type);
+  if (alloc) {
+    return typeart::runtime.typeResolution.getBuiltinInfo(addr, alloc->second, type);
+  }
   return TA_UNKNOWN_ADDRESS;
 }
 
@@ -303,16 +295,19 @@ typeart_status typeart_get_type(const void* addr, int* type, size_t* count) {
   auto alloc = typeart::runtime.allocTracker.findBaseAlloc(addr);
   typeart::runtime.recorder.incUsedInRequest(addr);
   if (alloc)
-    return typeart::runtime.typeResolution.getTypeInfo(addr, alloc.getValue(), type, count);
+    return typeart::runtime.typeResolution.getTypeInfo(addr, alloc->first, alloc->second, type, count);
   return TA_UNKNOWN_ADDRESS;
 }
 
 typeart_status typeart_get_containing_type(const void* addr, int* type, size_t* count, const void** base_address,
                                            size_t* offset) {
   auto alloc = typeart::runtime.allocTracker.findBaseAlloc(addr);
-  if (alloc)
-    return typeart::runtime.typeResolution.getContainingTypeInfo(addr, alloc.getValue(), type, count, base_address,
-                                                                 offset);
+  if (alloc) {
+    auto& allocVal = alloc.getValue();
+    *type          = alloc->second.typeId;
+    *base_address  = alloc->first;
+    return typeart::runtime.typeResolution.getContainingTypeInfo(addr, alloc->first, alloc->second, count, offset);
+  }
   return TA_UNKNOWN_ADDRESS;
 }
 

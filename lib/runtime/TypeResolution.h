@@ -30,12 +30,13 @@ class TypeResolution {
   TypeArtStatus getTypeInfoInternal(const void* baseAddr, size_t offset, const StructTypeInfo& containerInfo, int* type,
                                     size_t* count) const;
 
-  TypeArtStatus getTypeInfo(const void* addr, RuntimeT::MapEntry allocInfo, int* type, size_t* count) const;
+  TypeArtStatus getTypeInfo(const void* addr, const void* basePtr, const PointerInfo& ptrInfo, int* type,
+                            size_t* count) const;
 
-  TypeArtStatus getContainingTypeInfo(const void* addr, RuntimeT::MapEntry allocInfo, int* type, size_t* count,
-                                      const void** baseAddress, size_t* offset) const;
+  TypeArtStatus getContainingTypeInfo(const void* addr, const void* basePtr, const PointerInfo& ptrInfo, size_t* count,
+                                      size_t* offset) const;
 
-  TypeArtStatus getBuiltinInfo(const void* addr, RuntimeT::MapEntry alloc, typeart::BuiltinType* type) const;
+  TypeArtStatus getBuiltinInfo(const void* addr, const PointerInfo& ptrInfo, typeart::BuiltinType* type) const;
 
   TypeArtStatus getStructInfo(int id, const StructTypeInfo** structInfo) const;
 

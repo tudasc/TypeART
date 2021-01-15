@@ -29,6 +29,13 @@ std::string toString(const void* addr, const PointerInfo& info) {
   return toString(addr, info.typeId, info.count, info.debug);
 }
 
+inline void printTraceStart() {
+  LOG_TRACE("TypeART Runtime Trace");
+  LOG_TRACE("*********************");
+  LOG_TRACE("Operation  Address   Type   Size   Count   (CallAddr)   Stack/Heap/Global");
+  LOG_TRACE("-------------------------------------------------------------------------");
+}
+
 }  // namespace debug
 
 RuntimeSystem::RuntimeSystem() {

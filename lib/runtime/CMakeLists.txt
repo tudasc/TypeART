@@ -8,9 +8,7 @@ set(RUNTIME_LIB_SOURCES
   RuntimeInterface.h
   TypeResolution.cpp
   AllocationTracking.cpp
-  RuntimeUtils.cpp
-  RuntimeUtils.h
-  AllocationTracking.h
+        AllocationTracking.h
   TypeResolution.h
   Runtime.cpp
   Runtime.h)

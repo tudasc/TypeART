@@ -13,11 +13,6 @@
 
 namespace typeart {
 
-template <typename T>
-inline const void* addByteOffset(const void* addr, T offset) {
-  return static_cast<const void*>(static_cast<const uint8_t*>(addr) + offset);
-}
-
 namespace debug {
 
 std::string toString(const void* memAddr, int typeId, size_t count, size_t typeSize, const void* calledFrom);
@@ -25,13 +20,6 @@ std::string toString(const void* memAddr, int typeId, size_t count, size_t typeS
 std::string toString(const void* memAddr, int typeId, size_t count, const void* calledFrom);
 
 std::string toString(const void* addr, const PointerInfo& info);
-
-inline void printTraceStart() {
-  LOG_TRACE("TypeART Runtime Trace");
-  LOG_TRACE("*********************");
-  LOG_TRACE("Operation  Address   Type   Size   Count   (CallAddr)   Stack/Heap/Global");
-  LOG_TRACE("-------------------------------------------------------------------------");
-}
 
 }  // namespace debug
 
