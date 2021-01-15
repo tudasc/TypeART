@@ -16,6 +16,7 @@ struct StdFilterTrait {
   constexpr static bool Declaration = true;
   constexpr static bool Definition  = true;
   constexpr static bool PreCheck    = true;
+  constexpr static bool Omp         = true;
 };
 
 struct ForwardFilterImpl {

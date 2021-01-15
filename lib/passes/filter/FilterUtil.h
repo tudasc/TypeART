@@ -46,14 +46,24 @@ inline std::pair<llvm::Argument*, int> findArg(CallSite c, const Path& p) {
     return {nullptr, -1};
   }
 
-  Value* in          = arg.getValue();
-  const auto arg_pos = llvm::find_if(c.args(), [&in](const Use& arg_use) -> bool { return arg_use.get() == in; });
+  Value* in = arg.getValue();
+  // LOG_DEBUG(*in)
+  const auto arg_pos = llvm::find_if(c.args(), [&in](const Use& arg_use) -> bool {
+    // LOG_DEBUG("Arg " << *arg_use.get() << " m: " << (arg_use.get() == in))
+    return arg_use.get() == in;
+  });
   if (arg_pos == c.arg_end()) {
     return {nullptr, -1};
   }
-  const auto argNum  = std::distance(c.arg_begin(), arg_pos);
+  LOG_DEBUG("Found sth " << *arg_pos->get())
+  const auto argNum = std::distance(c.arg_begin(), arg_pos);
+  LOG_DEBUG("Arg num " << argNum)
+  if (c.getCalledFunction()->getName().startswith("__kmpc_fork_call")) {
+    auto outlined      = llvm::dyn_cast<Function>(c.getArgOperand(2)->stripPointerCasts());
+    Argument& argument = *(outlined->arg_begin() + (argNum - 1));
+    return {&argument, (argNum - 1)};
+  }
   Argument& argument = *(c.getCalledFunction()->arg_begin() + argNum);
-
   return {&argument, argNum};
 }
 
