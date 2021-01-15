@@ -30,9 +30,6 @@ struct RuntimeSystem {
 
   Recorder recorder;
   TypeResolution typeResolution;
-
-  // Global allocation data
-  // TODO: Add mutex
   AllocationTracker allocTracker;
 };
 
