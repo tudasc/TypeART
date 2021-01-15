@@ -123,6 +123,11 @@ struct CallsitePath {
   void push(const IRPath& p) {
     auto csite = p.getEnd();
     if (csite) {
+      // Omp extension: we may pass the outlined area directly as llvm::Function
+      if (auto f = llvm::dyn_cast<llvm::Function>(csite.getValue())) {
+        intermediatePath.emplace_back(f, p);
+        return;
+      }
       llvm::CallSite c(csite.getValue());
       intermediatePath.emplace_back(c.getCalledFunction(), p);
     }

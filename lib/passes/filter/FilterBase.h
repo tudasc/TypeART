@@ -119,14 +119,27 @@ class BaseFilter : public Filter {
         continue;
       }
 
-      fpath.push(path2def);
+      // TODO: here we have a definiton OR a omp call, e.g., @__kmpc_fork_call
+      LOG_DEBUG("Looking at: " << c.getCalledFunction()->getName())
 
       auto argv = args(c, path2def);
       if (argv.size() > 1) {
         LOG_DEBUG("All args are looked at.")
+      } else if (argv.size() == 1) {
+        LOG_DEBUG("Following 1 arg");
+      } else {
+        LOG_DEBUG("No argument correlation!")
       }
 
+      if (c.getCalledFunction()->getName().startswith("__kmpc_fork_call")) {
+        auto outlined = llvm::dyn_cast<Value>(c.getArgOperand(2)->stripPointerCasts());
+        path2def.push(outlined);
+      }
+
+      fpath.push(path2def);
+
       for (auto* arg : argv) {
+        LOG_DEBUG("Calling recursive filter. " << arg->getArgNo());
         const auto dfs_filter = DFSFuncFilter(arg, fpath);
         if (!dfs_filter) {
           return false;
