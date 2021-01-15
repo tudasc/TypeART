@@ -5,8 +5,6 @@
 #include "TypeResolution.h"
 
 #include "AccessCountPrinter.h"
-#include "AccessCounter.h"
-#include "AllocationTracking.h"
 #include "Runtime.h"
 #include "TypeDB.h"
 #include "TypeIO.h"
@@ -294,8 +292,9 @@ typeart_status typeart_get_builtin_type(const void* addr, typeart::BuiltinType* 
 typeart_status typeart_get_type(const void* addr, int* type, size_t* count) {
   auto alloc = typeart::runtime.allocTracker.findBaseAlloc(addr);
   typeart::runtime.recorder.incUsedInRequest(addr);
-  if (alloc)
+  if (alloc) {
     return typeart::runtime.typeResolution.getTypeInfo(addr, alloc->first, alloc->second, type, count);
+  }
   return TA_UNKNOWN_ADDRESS;
 }
 

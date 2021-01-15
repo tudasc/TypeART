@@ -4,18 +4,13 @@
 
 #include "AllocationTracking.h"
 
-#include "AccessCountPrinter.h"
 #include "AccessCounter.h"
 #include "CallbackInterface.h"
 #include "Runtime.h"
 #include "RuntimeData.h"
-#include "TypeResolution.h"
 #include "support/Logger.h"
 
 #include <algorithm>
-#include <cassert>
-#include <cstdlib>
-#include <iostream>
 #include <string>
 
 #ifdef USE_BTREE

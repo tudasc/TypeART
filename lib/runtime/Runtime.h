@@ -5,7 +5,6 @@
 #ifndef TYPEART_RUNTIME_H
 #define TYPEART_RUNTIME_H
 
-#include "AccessCountPrinter.h"
 #include "AccessCounter.h"
 #include "AllocationTracking.h"
 #include "TypeResolution.h"

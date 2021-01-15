@@ -8,10 +8,11 @@ set(RUNTIME_LIB_SOURCES
   RuntimeInterface.h
   TypeResolution.cpp
   AllocationTracking.cpp
-        AllocationTracking.h
+  AllocationTracking.h
   TypeResolution.h
   Runtime.cpp
-  Runtime.h)
+  Runtime.h
+)
 
 if(MPI_LOGGER)
   list(APPEND RUNTIME_LIB_SOURCES ../support/MPILogger.cpp)
