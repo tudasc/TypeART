@@ -39,7 +39,7 @@ struct CGFilterImpl {
   FilterAnalysis def(CallSite current, const Path& p);
 };
 
-using CGForwardFilter = BaseFilter<CGFilterImpl, DefaultSearch>;
+using CGForwardFilter = BaseFilter<CGFilterImpl, DefaultSearch, thread::OmpContext>;
 
 }  // namespace typeart::filter
 
