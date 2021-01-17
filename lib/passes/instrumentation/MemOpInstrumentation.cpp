@@ -9,6 +9,7 @@
 #include "TransformUtil.h"
 #include "TypeARTFunctions.h"
 #include "support/Logger.h"
+#include "support/OmpUtil.h"
 #include "support/Util.h"
 
 #include "llvm/IR/IRBuilder.h"
@@ -48,6 +49,9 @@ InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
 
     Value* elementCount{nullptr};
 
+    auto parent_f  = malloc.call->getFunction();
+    const bool omp = util::omp::isOmpContext(parent_f);
+
     switch (kind) {
       case MemOpKind::AlignedAllocLike:
         [[fallthrough]];
@@ -74,7 +78,8 @@ InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
 
         elementCount = single_byte_type ? mArg : IRB.CreateUDiv(mArg, typeSizeConst);
         IRBuilder<> FreeB(malloc_call);
-        FreeB.CreateCall(fquery->getFunctionFor(IFunc::free), ArrayRef<Value*>{addrOp});
+        const auto callback_id = omp ? IFunc::free_omp : IFunc::free;
+        FreeB.CreateCall(fquery->getFunctionFor(callback_id), ArrayRef<Value*>{addrOp});
         break;
       }
       default:
@@ -82,7 +87,8 @@ InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
         continue;
     }
 
-    IRB.CreateCall(fquery->getFunctionFor(IFunc::heap), ArrayRef<Value*>{malloc_call, typeIdConst, elementCount});
+    const auto callback_id = omp ? IFunc::heap_omp : IFunc::heap;
+    IRB.CreateCall(fquery->getFunctionFor(callback_id), ArrayRef<Value*>{malloc_call, typeIdConst, elementCount});
     ++counter;
   }
 
@@ -114,7 +120,11 @@ InstrCount MemOpInstrumentation::instrumentFree(const FreeArgList& frees) {
     }
 
     IRBuilder<> IRB(insertBefore);
-    IRB.CreateCall(fquery->getFunctionFor(IFunc::free), ArrayRef<Value*>{free_arg});
+
+    auto parent_f          = fdata.call->getFunction();
+    const auto callback_id = util::omp::isOmpContext(parent_f) ? IFunc::free_omp : IFunc::free;
+
+    IRB.CreateCall(fquery->getFunctionFor(callback_id), ArrayRef<Value*>{free_arg});
     ++counter;
   }
 
@@ -136,7 +146,10 @@ InstrCount MemOpInstrumentation::instrumentStack(const StackArgList& stack) {
     auto numElementsVal = args.get_value(ArgMap::ID::element_count);
     auto arrayPtr       = IRB.CreateBitOrPointerCast(alloca, instr_helper->getTypeFor(IType::ptr));
 
-    IRB.CreateCall(fquery->getFunctionFor(IFunc::stack), ArrayRef<Value*>{arrayPtr, typeIdConst, numElementsVal});
+    auto parent_f          = sdata.alloca->getFunction();
+    const auto callback_id = util::omp::isOmpContext(parent_f) ? IFunc::stack_omp : IFunc::stack;
+
+    IRB.CreateCall(fquery->getFunctionFor(callback_id), ArrayRef<Value*>{arrayPtr, typeIdConst, numElementsVal});
     ++counter;
 
     auto bb = alloca->getParent();

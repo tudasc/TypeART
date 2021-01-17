@@ -25,6 +25,10 @@ enum class IFunc : unsigned {
   global,
   free,
   scope,
+  heap_omp,
+  stack_omp,
+  free_omp,
+  scope_omp,
 };
 
 class TAFunctionQuery {
@@ -54,7 +58,7 @@ class TAFunctionDeclarator {
  public:
   TAFunctionDeclarator(llvm::Module& m, InstrumentationHelper& instr, TAFunctions& tafunc);
   llvm::Function* make_function(IFunc id, llvm::StringRef basename, llvm::ArrayRef<llvm::Type*> args,
-                                bool fixed_name = true);
+                                bool with_omp = false, bool fixed_name = true);
   const llvm::StringMap<llvm::Function*>& getFunctionMap() const;
   virtual ~TAFunctionDeclarator() = default;
 };
