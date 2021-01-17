@@ -33,6 +33,11 @@ class TypeArtPass : public llvm::ModulePass {
   TypeArtFunc typeart_free{"__typeart_free"};
   TypeArtFunc typeart_leave_scope{"__typeart_leave_scope"};
 
+  TypeArtFunc typeart_alloc_omp        = typeart_alloc;
+  TypeArtFunc typeart_alloc_stacks_omp = typeart_alloc_stack;
+  TypeArtFunc typeart_free_omp         = typeart_free;
+  TypeArtFunc typeart_leave_scope_omp  = typeart_leave_scope;
+
   TypeManager typeManager;
   InstrumentationHelper instrumentation_helper;
   TAFunctions functions;
