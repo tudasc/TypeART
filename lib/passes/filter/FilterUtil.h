@@ -6,6 +6,7 @@
 #define TYPEART_FILTERUTIL_H
 
 #include "IRPath.h"
+#include "OmpUtil.h"
 #include "support/Logger.h"
 
 #include "llvm/IR/CallSite.h"
@@ -46,25 +47,27 @@ inline std::pair<llvm::Argument*, int> findArg(CallSite c, const Path& p) {
     return {nullptr, -1};
   }
 
-  Value* in = arg.getValue();
-  // LOG_DEBUG(*in)
-  const auto arg_pos = llvm::find_if(c.args(), [&in](const Use& arg_use) -> bool {
-    // LOG_DEBUG("Arg " << *arg_use.get() << " m: " << (arg_use.get() == in))
-    return arg_use.get() == in;
-  });
+  Value* in          = arg.getValue();
+  const auto arg_pos = llvm::find_if(c.args(), [&in](const Use& arg_use) -> bool { return arg_use.get() == in; });
+
   if (arg_pos == c.arg_end()) {
     return {nullptr, -1};
   }
-  LOG_DEBUG("Found sth " << *arg_pos->get())
-  const auto argNum = std::distance(c.arg_begin(), arg_pos);
-  LOG_DEBUG("Arg num " << argNum)
-  if (c.getCalledFunction()->getName().startswith("__kmpc_fork_call")) {
-    auto outlined      = llvm::dyn_cast<Function>(c.getArgOperand(2)->stripPointerCasts());
-    Argument& argument = *(outlined->arg_begin() + (argNum - 1));
-    return {&argument, (argNum - 1)};
+
+  auto arg_num = std::distance(c.arg_begin(), arg_pos);
+
+  if (thread::OmpContext::isOmpExecutor(c)) {
+    auto outlined = thread::OmpContext::getMicrotask(c);
+    if (outlined) {
+      // Calc the offset of arg in executor to actual arg of the outline function:
+      auto offset        = thread::OmpContext::getArgOffsetToMicrotask(arg_num);
+      Argument* argument = (outlined.getValue()->arg_begin() + offset);
+      return {argument, offset};
+    }
   }
-  Argument& argument = *(c.getCalledFunction()->arg_begin() + argNum);
-  return {&argument, argNum};
+
+  Argument* argument = c.getCalledFunction()->arg_begin() + arg_num;
+  return {argument, arg_num};
 }
 
 inline std::vector<llvm::Argument*> args(CallSite c, const Path& p) {

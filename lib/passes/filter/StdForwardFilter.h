@@ -16,7 +16,6 @@ struct StdFilterTrait {
   constexpr static bool Declaration = true;
   constexpr static bool Definition  = true;
   constexpr static bool PreCheck    = true;
-  constexpr static bool Omp         = true;
 };
 
 struct ForwardFilterImpl {
@@ -36,7 +35,7 @@ struct ForwardFilterImpl {
   FilterAnalysis def(CallSite current, const Path& p) const;
 };
 
-using StandardForwardFilter = BaseFilter<ForwardFilterImpl, DefaultSearch>;
+using StandardForwardFilter = BaseFilter<ForwardFilterImpl, DefaultSearch, thread::OmpContext>;
 
 }  // namespace typeart::filter
 

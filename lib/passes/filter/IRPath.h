@@ -145,7 +145,7 @@ struct CallsitePath {
 
   bool contains(llvm::CallSite c) {
     llvm::Function* f = c.getCalledFunction();
-    if (f && f == start) {
+    if ((f != nullptr) && f == start) {
       return true;
     }
     return llvm::find_if(intermediatePath, [&f](const auto& node) { return node.first == f; }) !=
@@ -155,7 +155,7 @@ struct CallsitePath {
 
 inline llvm::raw_ostream& operator<<(llvm::raw_ostream& os, const CallsitePath::Node& n) {
   auto f = n.first;
-  if (f) {
+  if (f != nullptr) {
     os << f->getName();
   } else {
     os << "--";

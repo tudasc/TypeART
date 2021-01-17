@@ -55,19 +55,6 @@ FilterAnalysis filter::ForwardFilterImpl::decl(CallSite current, const Path& p) 
       break;
   }
 
-  // Here we handle omp decl calls
-  // FIXME outline and make available for all filters
-  const auto f = current.getCalledFunction();
-  if (f != nullptr) {
-    StringRef f_name = f->getName();
-    if (f_name.startswith("__kmpc_fork_call")) {
-      return FilterAnalysis::FollowDef;
-    }
-    if (f_name.startswith("__kmpc") || f_name.startswith("omp_")) {
-      return FilterAnalysis::Skip;
-    }
-  }
-
   return FilterAnalysis::Keep;
 }
 

@@ -9,6 +9,7 @@
 #include "FilterUtil.h"
 #include "IRPath.h"
 #include "IRSearch.h"
+#include "OmpUtil.h"
 #include "support/Logger.h"
 #include "support/Util.h"
 
@@ -29,7 +30,7 @@ enum class FilterAnalysis {
   FollowDef,  // Want analysis of the called function def
 };
 
-template <typename CallSiteHandler, typename Search = DefaultSearch>
+template <typename CallSiteHandler, typename Search, typename OmpHelper>
 class BaseFilter : public Filter {
   CallSiteHandler handler;
   Search search_dir;
@@ -131,15 +132,18 @@ class BaseFilter : public Filter {
         LOG_DEBUG("No argument correlation!")
       }
 
-      if (c.getCalledFunction()->getName().startswith("__kmpc_fork_call")) {
-        auto outlined = llvm::dyn_cast<Value>(c.getArgOperand(2)->stripPointerCasts());
-        path2def.push(outlined);
+      if constexpr (OmpHelper::WithOmp) {
+        if (OmpHelper::isOmpExecutor(c)) {
+          auto outlined = OmpHelper::getMicrotask(c);
+          if (outlined) {
+            path2def.push(outlined.getValue());
+          }
+        }
       }
 
       fpath.push(path2def);
 
       for (auto* arg : argv) {
-        LOG_DEBUG("Calling recursive filter. " << arg->getArgNo());
         const auto dfs_filter = DFSFuncFilter(arg, fpath);
         if (!dfs_filter) {
           return false;
@@ -225,6 +229,19 @@ class BaseFilter : public Filter {
             return status;
           } else {
             LOG_DEBUG("Skip intrinsic: " << util::try_demangle(site))
+            return FilterAnalysis::Skip;
+          }
+        }
+
+        if constexpr (OmpHelper::WithOmp) {
+          // here we handle microtask executor functions:
+          if (OmpHelper::isOmpExecutor(site)) {
+            LOG_DEBUG("Omp executor, follow microtask: " << util::try_demangle(site))
+            return FilterAnalysis::FollowDef;
+          }
+
+          if (OmpHelper::isOmpHelper(site)) {
+            LOG_DEBUG("Omp helper, skip: " << util::try_demangle(site))
             return FilterAnalysis::Skip;
           }
         }

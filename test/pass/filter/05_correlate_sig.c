@@ -14,7 +14,7 @@ void foo() {
   int e = 4;
   // no (void*), so we assume benign (with deep analysis)
   MPI_Mock(a, b, c);
-  // Analysis should filter d, but not e...
+  // Analysis should not filter d, but e...
   MPI_Send((void*)d, e);
 }
 
