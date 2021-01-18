@@ -8,6 +8,7 @@
 #include "llvm/ADT/Optional.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/IR/CallSite.h"
+#include "llvm/IR/Function.h"
 #include "llvm/IR/Value.h"
 #include "llvm/Support/raw_ostream.h"
 
@@ -64,7 +65,26 @@ inline llvm::raw_ostream& operator<<(llvm::raw_ostream& os, const IRPath& p) {
   }
   auto begin = std::begin(vec);
   os << "path = [" << **begin;
-  std::for_each(std::next(begin), std::end(vec), [&](const auto* v) { os << " ->" << *v; });
+  std::for_each(std::next(begin), std::end(vec), [&](const auto* v) {
+    os << " ->";
+    if (const auto f = llvm::dyn_cast<llvm::Function>(v); f != nullptr && !f->isDeclaration()) {
+      // do not print body of defined function, from "define" to "{"
+      std::string buf;
+      llvm::raw_string_ostream fo(buf);
+      fo << *f;
+
+      llvm::StringRef fref(fo.str());
+      auto pos_start     = fref.find("define");
+      const auto pos_end = fref.find("{");
+      if (pos_start == llvm::StringRef::npos || pos_start > pos_end) {
+        pos_start = 0;
+      }
+      auto fsig = fref.substr(pos_start, pos_end - pos_start);
+      os << " Function: " << fsig;
+    } else {
+      os << *v;
+    }
+  });
   os << "]";
   return os;
 }
