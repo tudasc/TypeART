@@ -5,6 +5,7 @@
 #ifndef TYPEART_ALLOCATIONTRACKING_H
 #define TYPEART_ALLOCATIONTRACKING_H
 
+#include "AccessCounter.h"
 #include "RuntimeData.h"
 
 namespace llvm {
@@ -39,9 +40,10 @@ class AllocationTracker {
   RuntimeT::PointerMap allocTypes;
   RuntimeT::Stack stackVars;
   const TypeDB& typeDB;
+  Recorder& recorder;
 
  public:
-  explicit AllocationTracker(const TypeDB& db);
+  AllocationTracker(const TypeDB& db, Recorder& recorder);
 
   void onAlloc(const void* addr, int typeID, size_t count, const void* retAddr);
 

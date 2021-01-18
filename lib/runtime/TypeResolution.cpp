@@ -14,7 +14,7 @@ inline const void* addByteOffset(const void* addr, T offset) {
   return static_cast<const void*>(static_cast<const uint8_t*>(addr) + offset);
 }
 
-TypeResolution::TypeResolution(const TypeDB& db) : typeDB{db} {
+TypeResolution::TypeResolution(const TypeDB& db, Recorder& recorder) : typeDB{db}, recorder{recorder} {
 }
 
 size_t TypeResolution::getMemberIndex(typeart_struct_layout structInfo, size_t offset) const {
@@ -138,7 +138,7 @@ TypeResolution::TypeArtStatus TypeResolution::getTypeInfo(const void* addr, cons
   TypeArtStatus status = getContainingTypeInfo(addr, basePtr, ptrInfo, &containingTypeCount, &internalOffset);
   if (status != TA_OK) {
     if (status == TA_UNKNOWN_ADDRESS) {
-      kRuntimeSystem.recorder.incAddrMissing(addr);
+      recorder.incAddrMissing(addr);
     }
     return status;
   }

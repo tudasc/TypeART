@@ -42,7 +42,7 @@ inline void printTraceStart() {
 
 static constexpr const char* defaultTypeFileName = "types.yaml";
 
-RuntimeSystem::RuntimeSystem() : typeResolution(typeDB), allocTracker(typeDB) {
+RuntimeSystem::RuntimeSystem() : recorder{}, typeResolution(typeDB, recorder), allocTracker(typeDB, recorder) {
   debug::printTraceStart();
 
   auto loadTypes = [this](const std::string& file) -> bool {

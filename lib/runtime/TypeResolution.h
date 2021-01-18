@@ -5,6 +5,7 @@
 #ifndef TYPEART_TYPERESOLUTION_H
 #define TYPEART_TYPERESOLUTION_H
 
+#include "AccessCounter.h"
 #include "RuntimeData.h"
 #include "RuntimeInterface.h"
 #include "TypeDB.h"
@@ -13,11 +14,12 @@ namespace typeart {
 
 class TypeResolution {
   const TypeDB& typeDB;
+  Recorder& recorder;
 
  public:
   using TypeArtStatus = typeart_status;
 
-  explicit TypeResolution(const TypeDB& db);
+  TypeResolution(const TypeDB& db, Recorder& recorder);
 
   size_t getMemberIndex(typeart_struct_layout structInfo, size_t offset) const;
 

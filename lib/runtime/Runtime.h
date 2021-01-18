@@ -9,7 +9,6 @@
 #include "AllocationTracking.h"
 #include "TypeDB.h"
 #include "TypeResolution.h"
-#include "support/Logger.h"
 
 namespace typeart {
 
@@ -25,15 +24,15 @@ std::string toString(const void* addr, const PointerInfo& info);
 
 struct RuntimeSystem {
   RuntimeSystem();
-
   ~RuntimeSystem();
-
-  Recorder recorder;
-  TypeResolution typeResolution;
-  AllocationTracker allocTracker;
 
  private:
   TypeDB typeDB;
+
+ public:
+  Recorder recorder;
+  TypeResolution typeResolution;
+  AllocationTracker allocTracker;
 };
 
 extern RuntimeSystem kRuntimeSystem;
