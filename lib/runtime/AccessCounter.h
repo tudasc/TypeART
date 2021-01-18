@@ -121,11 +121,6 @@ class AccessRecorder {
     numUDefTypes += count;
   }
 
-  [[nodiscard]] static AccessRecorder& get() {
-    static AccessRecorder instance;
-    return instance;
-  }
-
   Counter getHeapAllocs() const {
     return heapAllocs;
   }
@@ -212,10 +207,6 @@ class AccessRecorder {
   }
 
  private:
-  AccessRecorder()                       = default;
-  AccessRecorder(AccessRecorder& other)  = default;
-  AccessRecorder(AccessRecorder&& other) = default;
-
   Counter heapAllocs       = 0;
   Counter stackAllocs      = 0;
   Counter globalAllocs     = 0;
@@ -278,11 +269,6 @@ class NoneRecorder {
   [[maybe_unused]] inline void incZeroLengthAndNullAddr() {
   }
   [[maybe_unused]] inline void incUDefTypes(size_t count) {
-  }
-
-  static NoneRecorder& get() {
-    static NoneRecorder instance;
-    return instance;
   }
 };
 

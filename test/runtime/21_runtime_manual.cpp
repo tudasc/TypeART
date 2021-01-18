@@ -130,7 +130,7 @@ void test_global(softcounter::AccessRecorder& recorder) {
 }
 
 int main() {
-  softcounter::AccessRecorder& recorder = softcounter::AccessRecorder::get();
+  softcounter::AccessRecorder recorder;
 
   test_heap(recorder);
   test_stack(recorder);
