@@ -42,7 +42,7 @@ inline void printTraceStart() {
 
 static constexpr const char* defaultTypeFileName = "types.yaml";
 
-RuntimeSystem::RuntimeSystem() : recorder{}, typeResolution(typeDB, recorder), allocTracker(typeDB, recorder) {
+RuntimeSystem::RuntimeSystem() : typeResolution(typeDB, recorder), allocTracker(typeDB, recorder) {
   debug::printTraceStart();
 
   auto loadTypes = [this](const std::string& file) -> bool {
@@ -72,7 +72,7 @@ RuntimeSystem::RuntimeSystem() : recorder{}, typeResolution(typeDB, recorder), a
   for (const auto& structInfo : typeList) {
     ss << structInfo.name << ", ";
   }
-  kRuntimeSystem.recorder.incUDefTypes(typeList.size());
+  recorder.incUDefTypes(typeList.size());
   LOG_INFO("Recorded types: " << ss.str());
 }
 

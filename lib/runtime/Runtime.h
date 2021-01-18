@@ -27,10 +27,10 @@ struct RuntimeSystem {
   ~RuntimeSystem();
 
  private:
-  TypeDB typeDB;
+  TypeDB typeDB{};
 
  public:
-  Recorder recorder;
+  Recorder recorder{};
   TypeResolution typeResolution;
   AllocationTracker allocTracker;
 };
