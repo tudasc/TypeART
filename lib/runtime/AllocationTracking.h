@@ -5,9 +5,7 @@
 #ifndef TYPEART_ALLOCATIONTRACKING_H
 #define TYPEART_ALLOCATIONTRACKING_H
 
-#include "AccessCounter.h"
 #include "RuntimeData.h"
-#include "TypeResolution.h"
 
 namespace llvm {
 template <typename T>
@@ -15,6 +13,8 @@ class Optional;
 }  // namespace llvm
 
 namespace typeart {
+
+class TypeDB;
 
 enum class AllocState : unsigned {
   NO_INIT      = 1 << 0,
@@ -38,11 +38,10 @@ enum class FreeState : unsigned {
 class AllocationTracker {
   RuntimeT::PointerMap allocTypes;
   RuntimeT::Stack stackVars;
+  const TypeDB& typeDB;
 
  public:
-  AllocationTracker() {
-    stackVars.reserve(RuntimeT::StackReserve);
-  }
+  explicit AllocationTracker(const TypeDB& db);
 
   void onAlloc(const void* addr, int typeID, size_t count, const void* retAddr);
 

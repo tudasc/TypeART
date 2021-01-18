@@ -7,6 +7,7 @@
 
 #include "AccessCounter.h"
 #include "AllocationTracking.h"
+#include "TypeDB.h"
 #include "TypeResolution.h"
 #include "support/Logger.h"
 
@@ -30,9 +31,12 @@ struct RuntimeSystem {
   Recorder recorder;
   TypeResolution typeResolution;
   AllocationTracker allocTracker;
+
+ private:
+  TypeDB typeDB;
 };
 
-extern RuntimeSystem runtime;
+extern RuntimeSystem kRuntimeSystem;
 
 }  // namespace typeart
 

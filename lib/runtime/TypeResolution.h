@@ -12,12 +12,12 @@
 namespace typeart {
 
 class TypeResolution {
-  TypeDB typeDB;
+  const TypeDB& typeDB;
 
  public:
   using TypeArtStatus = typeart_status;
 
-  TypeResolution();
+  explicit TypeResolution(const TypeDB& db);
 
   size_t getMemberIndex(typeart_struct_layout structInfo, size_t offset) const;
 

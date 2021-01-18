@@ -6,6 +6,7 @@
 
 #include "AccessCountPrinter.h"
 #include "AccessCounter.h"
+#include "TypeIO.h"
 
 #include <iostream>
 
@@ -16,13 +17,13 @@ namespace debug {
 std::string toString(const void* memAddr, int typeId, size_t count, size_t typeSize, const void* calledFrom) {
   std::string buf;
   llvm::raw_string_ostream s(buf);
-  const auto name = runtime.typeResolution.getTypeName(typeId);
+  const auto name = kRuntimeSystem.typeResolution.getTypeName(typeId);
   s << memAddr << " " << typeId << " " << name << " " << typeSize << " " << count << " (" << calledFrom << ")";
   return s.str();
 }
 
 std::string toString(const void* memAddr, int typeId, size_t count, const void* calledFrom) {
-  const auto typeSize = runtime.typeResolution.getTypeSize(typeId);
+  const auto typeSize = kRuntimeSystem.typeResolution.getTypeSize(typeId);
   return toString(memAddr, typeId, count, typeSize, calledFrom);
 }
 
@@ -39,8 +40,40 @@ inline void printTraceStart() {
 
 }  // namespace debug
 
-RuntimeSystem::RuntimeSystem() {
+static constexpr const char* defaultTypeFileName = "types.yaml";
+
+RuntimeSystem::RuntimeSystem() : typeResolution(typeDB), allocTracker(typeDB) {
   debug::printTraceStart();
+
+  auto loadTypes = [this](const std::string& file) -> bool {
+    TypeIO cio(typeDB);
+    return cio.load(file);
+  };
+
+  // Try to load types from specified file first.
+  // Then look at default location.
+  const char* typeFile = std::getenv("TA_TYPE_FILE");
+  if (typeFile != nullptr) {
+    if (!loadTypes(typeFile)) {
+      LOG_FATAL("Failed to load recorded types from " << typeFile);
+      std::exit(EXIT_FAILURE);  // TODO: Error handling
+    }
+  } else {
+    if (!loadTypes(defaultTypeFileName)) {
+      LOG_FATAL("No type file with default name \""
+                << defaultTypeFileName
+                << "\" in current directory. To specify a different file, edit the TA_TYPE_FILE environment variable.");
+      std::exit(EXIT_FAILURE);  // TODO: Error handling
+    }
+  }
+
+  std::stringstream ss;
+  const auto& typeList = typeDB.getStructList();
+  for (const auto& structInfo : typeList) {
+    ss << structInfo.name << ", ";
+  }
+  kRuntimeSystem.recorder.incUDefTypes(typeList.size());
+  LOG_INFO("Recorded types: " << ss.str());
 }
 
 RuntimeSystem::~RuntimeSystem() {
@@ -56,6 +89,6 @@ RuntimeSystem::~RuntimeSystem() {
 /**
  * The global runtime instance.
  */
-RuntimeSystem runtime;
+RuntimeSystem kRuntimeSystem;
 
 }  // namespace typeart
