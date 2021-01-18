@@ -8,7 +8,9 @@
 #include "RuntimeData.h"
 #include "RuntimeInterface.h"
 
+#include <atomic>
 #include <map>
+#include <mutex>
 #include <set>
 #include <sstream>
 #include <string>
@@ -21,6 +23,7 @@ namespace typeart {
 namespace softcounter {
 
 using Counter = long long int;
+using AtomicCounter = std::atomic<Counter>;
 
 class AccessRecorder {
  public:
@@ -30,10 +33,12 @@ class AccessRecorder {
   inline void incHeapAlloc(int typeId, size_t count) {
     ++curHeapAllocs;
 
+    std::lock_guard<std::mutex> guard(recorderMutex);
+
     // Always check here for max
     // A program without free would otherwise never update maxHeap (see test 20_softcounter_max)
     if (curHeapAllocs > maxHeapAllocs) {
-      maxHeapAllocs = curHeapAllocs;
+      maxHeapAllocs = curHeapAllocs.load();
     }
 
     ++heapAllocs;
@@ -49,6 +54,8 @@ class AccessRecorder {
     if (count > 1) {
       ++stackArray;
     }
+
+    std::lock_guard<std::mutex> guard(recorderMutex);
     ++stackAlloc[typeId];
   }
 
@@ -57,6 +64,9 @@ class AccessRecorder {
     if (count > 1) {
       ++globalArray;
     }
+
+    std::lock_guard<std::mutex> guard(recorderMutex);
+
     ++globalAlloc[typeId];
   }
 
@@ -65,6 +75,9 @@ class AccessRecorder {
     if (count > 1) {
       ++stackArrayFree;
     }
+
+    std::lock_guard<std::mutex> guard(recorderMutex);
+
     ++stackFree[typeId];
   }
 
@@ -73,6 +86,9 @@ class AccessRecorder {
     if (count > 1) {
       ++heapArrayFree;
     }
+
+    std::lock_guard<std::mutex> guard(recorderMutex);
+
     ++heapFree[typeId];
   }
 
@@ -85,13 +101,15 @@ class AccessRecorder {
   }
 
   inline void decStackAlloc(size_t amount) {
+    std::lock_guard<std::mutex> guard(recorderMutex);
     if (curStackAllocs > maxStackAllocs) {
-      maxStackAllocs = curStackAllocs;
+      maxStackAllocs = curStackAllocs.load();
     }
     curStackAllocs -= amount;
   }
 
   inline void incUsedInRequest(MemAddr addr) {
+    std::lock_guard<std::mutex> guard(recorderMutex);
     ++addrChecked;
     seen.insert(addr);
   }
@@ -101,6 +119,7 @@ class AccessRecorder {
   }
 
   inline void incAddrMissing(MemAddr addr) {
+    std::lock_guard<std::mutex> guard(recorderMutex);
     ++addrMissing;
     missing.insert(addr);
   }
@@ -207,27 +226,27 @@ class AccessRecorder {
   }
 
  private:
-  Counter heapAllocs       = 0;
-  Counter stackAllocs      = 0;
-  Counter globalAllocs     = 0;
-  Counter maxHeapAllocs    = 0;
-  Counter maxStackAllocs   = 0;
-  Counter curHeapAllocs    = 0;
-  Counter curStackAllocs   = 0;
-  Counter addrReuses       = 0;
-  Counter addrMissing      = 0;
-  Counter addrChecked      = 0;
-  Counter stackArray       = 0;
-  Counter heapArray        = 0;
-  Counter globalArray      = 0;
-  Counter stackAllocsFree  = 0;
-  Counter stackArrayFree   = 0;
-  Counter heapAllocsFree   = 0;
-  Counter heapArrayFree    = 0;
-  Counter nullAlloc        = 0;
-  Counter zeroAlloc        = 0;
-  Counter nullAndZeroAlloc = 0;
-  Counter numUDefTypes     = 0;
+  AtomicCounter heapAllocs       = 0;
+  AtomicCounter stackAllocs      = 0;
+  AtomicCounter globalAllocs     = 0;
+  AtomicCounter maxHeapAllocs    = 0;
+  AtomicCounter maxStackAllocs   = 0;
+  AtomicCounter curHeapAllocs    = 0;
+  AtomicCounter curStackAllocs   = 0;
+  AtomicCounter addrReuses       = 0;
+  AtomicCounter addrMissing      = 0;
+  AtomicCounter addrChecked      = 0;
+  AtomicCounter stackArray       = 0;
+  AtomicCounter heapArray        = 0;
+  AtomicCounter globalArray      = 0;
+  AtomicCounter stackAllocsFree  = 0;
+  AtomicCounter stackArrayFree   = 0;
+  AtomicCounter heapAllocsFree   = 0;
+  AtomicCounter heapArrayFree    = 0;
+  AtomicCounter nullAlloc        = 0;
+  AtomicCounter zeroAlloc        = 0;
+  AtomicCounter nullAndZeroAlloc = 0;
+  AtomicCounter numUDefTypes     = 0;
   std::unordered_set<MemAddr> missing;
   std::unordered_set<MemAddr> seen;
   TypeCountMap stackAlloc;
@@ -235,6 +254,8 @@ class AccessRecorder {
   TypeCountMap globalAlloc;
   TypeCountMap stackFree;
   TypeCountMap heapFree;
+
+  std::mutex recorderMutex;
 };
 
 /**

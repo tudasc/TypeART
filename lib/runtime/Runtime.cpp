@@ -8,7 +8,16 @@
 #include "AccessCounter.h"
 #include "TypeIO.h"
 
+#include "llvm/ADT/Optional.h"
+
 #include <iostream>
+
+#ifdef USE_BTREE
+using namespace btree;
+#endif
+
+#define likely(x) __builtin_expect(!!(x), 1)
+#define unlikely(x) __builtin_expect(!!(x), 0)
 
 namespace typeart {
 
