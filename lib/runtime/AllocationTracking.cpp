@@ -22,11 +22,11 @@ using namespace btree;
 #define unlikely(x) __builtin_expect(!!(x), 0)
 
 #define RUNTIME_GUARD_BEGIN        \
-  if (typeart::typeart_rt_scope) { \
+  if (typeart::threadData.rtScope) { \
     return;                        \
   }                                \
-  typeart::typeart_rt_scope = true
-#define RUNTIME_GUARD_END typeart::typeart_rt_scope = false
+  typeart::threadData.rtScope = true
+#define RUNTIME_GUARD_END typeart::threadData.rtScope = false
 
 namespace typeart {
 
@@ -75,15 +75,21 @@ inline typename std::underlying_type<Enum>::type operator==(Enum lhs, Enum rhs) 
 
 using namespace debug;
 
-/**
- * Ensures that memory tracking functions are not called from within the runtime.
- * TODO: Problematic with respect to future thread safety considerations
- *       -> Change to thread-local
- */
-static bool typeart_rt_scope{false};
+namespace {
+  struct ThreadData {
+    bool rtScope{false};
+    RuntimeT::Stack stackVars;
+
+    ThreadData() {
+      stackVars.reserve(RuntimeT::StackReserve);
+    }
+  };
+
+  thread_local ThreadData threadData;
+
+}
 
 AllocationTracker::AllocationTracker(const TypeDB& db, Recorder& recorder) : typeDB{db}, recorder{recorder} {
-  stackVars.reserve(RuntimeT::StackReserve);
 }
 
 AllocState AllocationTracker::doAlloc(const void* addr, int typeId, size_t count, const void* retAddr) {
@@ -128,6 +134,7 @@ AllocState AllocationTracker::doAlloc(const void* addr, int typeId, size_t count
 }
 
 void AllocationTracker::onAlloc(const void* addr, int typeId, size_t count, const void* retAddr) {
+  std::lock_guard<std::mutex> guard(allocMutex);
   const auto status = doAlloc(addr, typeId, count, retAddr);
   if (status != AllocState::ADDR_SKIPPED) {
     recorder.incHeapAlloc(typeId, count);
@@ -136,15 +143,17 @@ void AllocationTracker::onAlloc(const void* addr, int typeId, size_t count, cons
 }
 
 void AllocationTracker::onAllocStack(const void* addr, int typeId, size_t count, const void* retAddr) {
+  std::lock_guard<std::mutex> guard(allocMutex);
   const auto status = doAlloc(addr, typeId, count, retAddr);
   if (status != AllocState::ADDR_SKIPPED) {
-    stackVars.push_back(addr);
+    threadData.stackVars.push_back(addr);
     recorder.incStackAlloc(typeId, count);
   }
   LOG_TRACE("Alloc " << toString(addr, typeId, count, retAddr) << " " << 'S');
 }
 
 void AllocationTracker::onAllocGlobal(const void* addr, int typeId, size_t count, const void* retAddr) {
+  std::lock_guard<std::mutex> guard(allocMutex);
   const auto status = doAlloc(addr, typeId, count, retAddr);
   if (status != AllocState::ADDR_SKIPPED) {
     recorder.incGlobalAlloc(typeId, count);
@@ -185,6 +194,7 @@ FreeState AllocationTracker::doFree(const void* addr, const void* retAddr) {
 }
 
 void AllocationTracker::onFreeHeap(const void* addr, const void* retAddr) {
+  std::lock_guard<std::mutex> guard(allocMutex);
   const auto status = doFree<false>(addr, retAddr);
   if (FreeState::OK == status) {
     recorder.decHeapAlloc();
@@ -192,22 +202,24 @@ void AllocationTracker::onFreeHeap(const void* addr, const void* retAddr) {
 }
 
 void AllocationTracker::onLeaveScope(int alloca_count, const void* retAddr) {
-  if (unlikely(alloca_count > stackVars.size())) {
+  std::lock_guard<std::mutex> guard(allocMutex);
+  if (unlikely(alloca_count > threadData.stackVars.size())) {
     LOG_ERROR("Stack is smaller than requested de-allocation count. alloca_count: " << alloca_count
-                                                                                    << ". size: " << stackVars.size());
-    alloca_count = stackVars.size();
+                                                                                    << ". size: " << threadData.stackVars.size());
+    alloca_count = threadData.stackVars.size();
   }
 
-  const auto cend      = stackVars.cend();
+  const auto cend      = threadData.stackVars.cend();
   const auto start_pos = (cend - alloca_count);
-  LOG_TRACE("Freeing stack (" << alloca_count << ")  " << std::distance(start_pos, stackVars.cend()))
+  LOG_TRACE("Freeing stack (" << alloca_count << ")  " << std::distance(start_pos, threadData.stackVars.cend()))
   std::for_each(start_pos, cend, [this, &retAddr](const void* addr) { doFree<true>(addr, retAddr); });
-  stackVars.erase(start_pos, cend);
+  threadData.stackVars.erase(start_pos, cend);
   recorder.decStackAlloc(alloca_count);
-  LOG_TRACE("Stack after free: " << stackVars.size());
+  LOG_TRACE("Stack after free: " << threadData.stackVars.size());
 }
 
 llvm::Optional<RuntimeT::MapEntry> AllocationTracker::findBaseAlloc(const void* addr) {
+  std::lock_guard<std::mutex> guard(allocMutex);
   if (allocTypes.empty() || addr < allocTypes.begin()->first) {
     return llvm::None;
   }

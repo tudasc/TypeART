@@ -38,7 +38,7 @@ enum class FreeState : unsigned {
 
 class AllocationTracker {
   RuntimeT::PointerMap allocTypes;
-  RuntimeT::Stack stackVars;
+  std::mutex allocMutex;
   const TypeDB& typeDB;
   Recorder& recorder;
 
