@@ -30,18 +30,15 @@ enum class FilterAnalysis {
   FollowDef,  // Want analysis of the called function def
 };
 
-template <typename CallSiteHandler, typename Search, typename OmpHelper>
+template <typename CallSiteHandler, typename Search, typename OmpHelper = thread::EmptyContext>
 class BaseFilter : public Filter {
   CallSiteHandler handler;
-  Search search_dir;
+  Search search_dir{};
   bool malloc_mode{false};
   llvm::Function* start_f{nullptr};
 
  public:
-  explicit BaseFilter(const std::string& glob) : handler(glob), search_dir() {
-  }
-
-  explicit BaseFilter(const CallSiteHandler& handler) : handler(handler), search_dir() {
+  explicit BaseFilter(const CallSiteHandler& handler) : handler(handler) {
   }
 
   template <typename... Args>

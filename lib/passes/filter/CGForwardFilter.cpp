@@ -6,6 +6,7 @@
 
 #include "CGInterface.h"
 #include "Matcher.h"
+#include "OmpUtil.h"
 
 namespace typeart::filter {
 
@@ -18,12 +19,26 @@ CGFilterImpl::CGFilterImpl(const std::string& filter_str, std::unique_ptr<CGInte
     : filter(util::glob2regex(filter_str)), call_graph(std::move(cgraph)), deep_matcher(std::move(matcher)) {
 }
 
-FilterAnalysis CGFilterImpl::precheck(Value* /*in*/, Function* start) {
+FilterAnalysis CGFilterImpl::precheck(Value* in, Function* start) {
   if (start != nullptr) {
     FunctionAnalysis analysis;
     analysis.analyze(start);
     if (analysis.empty()) {
       return FilterAnalysis::Filter;
+    }
+
+    const auto has_omp_task = [](const auto& callsites_v) {
+      for (const auto& csite : callsites_v) {
+        if (thread::OmpContext::isOmpTaskRelated(csite)) {
+          return true;
+        }
+      }
+      return false;
+    };
+    if (has_omp_task(analysis.calls.decl)) {
+      // FIXME we cannot handle complex data flow of tasks at this point, hence, this check
+      LOG_DEBUG("Keep value " << *in << ". Detected omp task call.");
+      return FilterAnalysis::Keep;
     }
   }
   return FilterAnalysis::Continue;

@@ -21,8 +21,24 @@ struct OmpContext {
   static bool isOmpExecutor(const llvm::CallSite& c) {
     const auto called = c.getCalledFunction();
     if (called != nullptr) {
-      // TODO probably not complete (openmp task?)
+      // TODO probably not complete (openmp task?, see isOmpTask*())
       return called->getName().startswith("__kmpc_fork_call");
+    }
+    return false;
+  }
+
+  static bool isOmpTaskAlloc(const llvm::CallSite& c) {
+    const auto called = c.getCalledFunction();
+    if (called != nullptr) {
+      return called->getName().startswith("__kmpc_omp_task_alloc");
+    }
+    return false;
+  }
+
+  static bool isOmpTaskRelated(const llvm::CallSite& c) {
+    const auto called = c.getCalledFunction();
+    if (called != nullptr) {
+      return called->getName().startswith("__kmpc_omp_task");
     }
     return false;
   }
@@ -44,6 +60,10 @@ struct OmpContext {
     using namespace llvm;
     if (isOmpExecutor(c)) {
       auto f = llvm::dyn_cast<llvm::Function>(c.getArgOperand(2)->stripPointerCasts());
+      return {f};
+    }
+    if (isOmpTaskAlloc(c)) {
+      auto f = llvm::dyn_cast<llvm::Function>(c.getArgOperand(5)->stripPointerCasts());
       return {f};
     }
     return llvm::None;
