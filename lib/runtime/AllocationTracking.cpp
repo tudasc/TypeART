@@ -134,7 +134,7 @@ AllocState AllocationTracker::doAlloc(const void* addr, int typeId, size_t count
 }
 
 void AllocationTracker::onAlloc(const void* addr, int typeId, size_t count, const void* retAddr) {
-  std::lock_guard<std::mutex> guard(allocMutex);
+  std::lock_guard<std::shared_mutex> guard(allocMutex);
   const auto status = doAlloc(addr, typeId, count, retAddr);
   if (status != AllocState::ADDR_SKIPPED) {
     recorder.incHeapAlloc(typeId, count);
@@ -143,7 +143,7 @@ void AllocationTracker::onAlloc(const void* addr, int typeId, size_t count, cons
 }
 
 void AllocationTracker::onAllocStack(const void* addr, int typeId, size_t count, const void* retAddr) {
-  std::lock_guard<std::mutex> guard(allocMutex);
+  std::lock_guard<std::shared_mutex> guard(allocMutex);
   const auto status = doAlloc(addr, typeId, count, retAddr);
   if (status != AllocState::ADDR_SKIPPED) {
     threadData.stackVars.push_back(addr);
@@ -153,7 +153,7 @@ void AllocationTracker::onAllocStack(const void* addr, int typeId, size_t count,
 }
 
 void AllocationTracker::onAllocGlobal(const void* addr, int typeId, size_t count, const void* retAddr) {
-  std::lock_guard<std::mutex> guard(allocMutex);
+  std::lock_guard<std::shared_mutex> guard(allocMutex);
   const auto status = doAlloc(addr, typeId, count, retAddr);
   if (status != AllocState::ADDR_SKIPPED) {
     recorder.incGlobalAlloc(typeId, count);
@@ -194,7 +194,7 @@ FreeState AllocationTracker::doFree(const void* addr, const void* retAddr) {
 }
 
 void AllocationTracker::onFreeHeap(const void* addr, const void* retAddr) {
-  std::lock_guard<std::mutex> guard(allocMutex);
+  std::lock_guard<std::shared_mutex> guard(allocMutex);
   const auto status = doFree<false>(addr, retAddr);
   if (FreeState::OK == status) {
     recorder.decHeapAlloc();
@@ -202,7 +202,7 @@ void AllocationTracker::onFreeHeap(const void* addr, const void* retAddr) {
 }
 
 void AllocationTracker::onLeaveScope(int alloca_count, const void* retAddr) {
-  std::lock_guard<std::mutex> guard(allocMutex);
+  std::lock_guard<std::shared_mutex> guard(allocMutex);
   if (unlikely(alloca_count > threadData.stackVars.size())) {
     LOG_ERROR("Stack is smaller than requested de-allocation count. alloca_count: " << alloca_count
                                                                                     << ". size: " << threadData.stackVars.size());
@@ -219,7 +219,7 @@ void AllocationTracker::onLeaveScope(int alloca_count, const void* retAddr) {
 }
 
 llvm::Optional<RuntimeT::MapEntry> AllocationTracker::findBaseAlloc(const void* addr) {
-  std::lock_guard<std::mutex> guard(allocMutex);
+  std::shared_lock guard(allocMutex);
   if (allocTypes.empty() || addr < allocTypes.begin()->first) {
     return llvm::None;
   }

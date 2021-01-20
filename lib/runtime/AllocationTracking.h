@@ -8,6 +8,8 @@
 #include "AccessCounter.h"
 #include "RuntimeData.h"
 
+#include <shared_mutex>
+
 namespace llvm {
 template <typename T>
 class Optional;
@@ -38,7 +40,7 @@ enum class FreeState : unsigned {
 
 class AllocationTracker {
   RuntimeT::PointerMap allocTypes;
-  std::mutex allocMutex;
+  std::shared_mutex allocMutex;
   const TypeDB& typeDB;
   Recorder& recorder;
 
