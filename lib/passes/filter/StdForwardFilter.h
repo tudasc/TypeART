@@ -35,7 +35,7 @@ struct ForwardFilterImpl {
   FilterAnalysis def(CallSite current, const Path& p) const;
 };
 
-using StandardForwardFilter = BaseFilter<ForwardFilterImpl, DefaultSearch, thread::OmpContext>;
+using StandardForwardFilter = BaseFilter<ForwardFilterImpl, DefaultSearch, omp::OmpContext>;
 
 }  // namespace typeart::filter
 

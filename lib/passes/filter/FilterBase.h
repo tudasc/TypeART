@@ -11,12 +11,14 @@
 #include "IRSearch.h"
 #include "OmpUtil.h"
 #include "support/Logger.h"
+#include "support/OmpUtil.h"
 #include "support/Util.h"
 
 #include "llvm/IR/CallSite.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Intrinsics.h"
 
+#include <TypeARTPass.h>
 #include <iterator>
 #include <type_traits>
 
@@ -30,7 +32,7 @@ enum class FilterAnalysis {
   FollowDef,  // Want analysis of the called function def
 };
 
-template <typename CallSiteHandler, typename Search, typename OmpHelper = thread::EmptyContext>
+template <typename CallSiteHandler, typename Search, typename OmpHelper = omp::EmptyContext>
 class BaseFilter : public Filter {
   CallSiteHandler handler;
   Search search_dir{};
@@ -181,6 +183,14 @@ class BaseFilter : public Filter {
     if (!skip) {
       const auto successors = search_dir.search(current, path);
       for (auto* successor : successors) {
+        if constexpr (OmpHelper::WithOmp) {
+          if (OmpHelper::isTaskRelatedStore(successor)) {
+            LOG_DEBUG("Filter, passed to OMP task struct.")
+            return false;
+          }
+        }
+
+        LOG_DEBUG(*successor)
         if (path.contains(successor)) {
           // Avoid recursion (e.g., with store inst pointer operands pointing to an allocation)
           continue;
