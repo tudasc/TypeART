@@ -29,7 +29,7 @@ FilterAnalysis CGFilterImpl::precheck(Value* in, Function* start) {
 
     const auto has_omp_task = [](const auto& callsites_v) {
       for (const auto& csite : callsites_v) {
-        if (thread::OmpContext::isOmpTaskRelated(csite)) {
+        if (omp::OmpContext::isOmpTaskRelated(csite)) {
           return true;
         }
       }
