@@ -13,12 +13,19 @@ ForwardFilterImpl::ForwardFilterImpl(std::unique_ptr<Matcher>&& m, std::unique_p
     : matcher(std::move(m)), deep_matcher(std::move(deep)) {
 }
 
-FilterAnalysis filter::ForwardFilterImpl::precheck(Value* /*in*/, Function* start) {
+FilterAnalysis filter::ForwardFilterImpl::precheck(Value* in, Function* start, const FPath& fpath) {
   if (start != nullptr) {
     FunctionAnalysis analysis;
     analysis.analyze(start);
     if (analysis.empty()) {
       return FilterAnalysis::Filter;
+    }
+
+    if (fpath.empty()) {
+      const auto temp = isTempAlloc(in);
+      if (temp) {
+        return FilterAnalysis::Filter;
+      }
     }
   }
   return FilterAnalysis::Continue;

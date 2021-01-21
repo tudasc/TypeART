@@ -76,7 +76,7 @@ class BaseFilter : public Filter {
       // is null in case of global:
       llvm::Function* currentF = fpath.getCurrentFunc();
       if (currentF != nullptr) {
-        auto status = handler.precheck(current, currentF);
+        auto status = handler.precheck(current, currentF, fpath);
         switch (status) {
           case FilterAnalysis::Filter:
             fpath.pop();

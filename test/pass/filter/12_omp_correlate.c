@@ -25,10 +25,10 @@ void foo() {
   }
 }
 
-// Standard filter (2 are kept: d in foo and d.addr in outlined region
+// Standard filter
 // CHECK: > Stack Memory
 // CHECK-NEXT: Alloca                 :  12.00
-// CHECK-NEXT: Stack call filtered %  :  83.33
+// CHECK-NEXT: Stack call filtered %  :  91.67
 
 // with opt only "d" in foo is tracked
 // CHECK-opt: > Stack Memory
