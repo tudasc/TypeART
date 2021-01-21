@@ -19,7 +19,7 @@ CGFilterImpl::CGFilterImpl(const std::string& filter_str, std::unique_ptr<CGInte
     : filter(util::glob2regex(filter_str)), call_graph(std::move(cgraph)), deep_matcher(std::move(matcher)) {
 }
 
-FilterAnalysis CGFilterImpl::precheck(Value* in, Function* start) {
+FilterAnalysis CGFilterImpl::precheck(Value* in, Function* start, const FPath&) {
   if (start != nullptr) {
     FunctionAnalysis analysis;
     analysis.analyze(start);

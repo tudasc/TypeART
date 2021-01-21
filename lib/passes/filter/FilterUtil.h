@@ -120,6 +120,34 @@ inline ArgCorrelation correlate2pointer(CallSite c, const Path& p) {
   return detail::correlate(c, p, [](llvm::Type* type) { return type->isPointerTy(); });
 }
 
+inline bool isTempAlloc(llvm::Value* in) {
+  const auto farg_stored_to = [](llvm::AllocaInst* inst) -> bool {
+    bool match{false};
+    Function* f = inst->getFunction();
+
+    util::DefUseChain chain;
+    chain.traverse(inst, [&f, &match](auto val) {
+      if (llvm::StoreInst* store = llvm::dyn_cast<StoreInst>(val)) {
+        for (auto& args : f->args()) {
+          if (&args == store->getValueOperand()) {
+            match = true;
+            return util::DefUseChain::cancel;
+          }
+        }
+        return util::DefUseChain::no_match;
+      }
+    });
+
+    return match;
+  };
+  if (llvm::AllocaInst* inst = llvm::dyn_cast<llvm::AllocaInst>(in)) {
+    if (inst->getType()->isPointerTy()) {
+      return farg_stored_to(inst);
+    }
+  }
+  return false;
+}
+
 }  // namespace typeart::filter
 
 #endif  // TYPEART_FILTERUTIL_H

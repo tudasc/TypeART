@@ -28,7 +28,7 @@ struct ForwardFilterImpl {
 
   ForwardFilterImpl(std::unique_ptr<Matcher>&& m, std::unique_ptr<Matcher>&& deep);
 
-  FilterAnalysis precheck(Value* in, Function* start);
+  FilterAnalysis precheck(Value* in, Function* start, const FPath&);
 
   FilterAnalysis decl(CallSite current, const Path& p) const;
 

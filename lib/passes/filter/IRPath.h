@@ -106,6 +106,10 @@ struct CallsitePath {
     }
   }
 
+  bool empty() const {
+    return intermediatePath.empty() && terminatingPath.path.empty();
+  }
+
   // Can return nullptr
   llvm::Function* getCurrentFunc() {
     if (intermediatePath.empty()) {
