@@ -88,8 +88,9 @@ RuntimeSystem::RuntimeSystem() : typeResolution(typeDB, recorder), allocTracker(
 }
 
 RuntimeSystem::~RuntimeSystem() {
-  // This needs to be set. Otherwise, functions that have been instrumented and are called during the following operations will trigger the tracking callbacks.
-  // If logging is activated, this will lead then to a crash because llvm::outs() is already destroyed.
+  // This needs to be set. Otherwise, functions that have been instrumented and are called during the following
+  // operations will trigger the tracking callbacks. If logging is activated, this will lead then to a crash because
+  // llvm::outs() is already destroyed.
   rtScope = true;
 
   std::string stats;

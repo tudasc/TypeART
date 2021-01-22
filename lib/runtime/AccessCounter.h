@@ -22,7 +22,7 @@ namespace typeart {
 
 namespace softcounter {
 
-using Counter = long long int;
+using Counter       = long long int;
 using AtomicCounter = std::atomic<Counter>;
 
 class AccessRecorder {

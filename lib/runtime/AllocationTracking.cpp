@@ -21,10 +21,10 @@ using namespace btree;
 #define likely(x) __builtin_expect(!!(x), 1)
 #define unlikely(x) __builtin_expect(!!(x), 0)
 
-#define RUNTIME_GUARD_BEGIN        \
+#define RUNTIME_GUARD_BEGIN              \
   if (typeart::RuntimeSystem::rtScope) { \
-    return;                        \
-  }                                \
+    return;                              \
+  }                                      \
   typeart::RuntimeSystem::rtScope = true
 #define RUNTIME_GUARD_END typeart::RuntimeSystem::rtScope = false
 
@@ -76,17 +76,17 @@ inline typename std::underlying_type<Enum>::type operator==(Enum lhs, Enum rhs) 
 using namespace debug;
 
 namespace {
-  struct ThreadData {
-    RuntimeT::Stack stackVars;
+struct ThreadData {
+  RuntimeT::Stack stackVars;
 
-    ThreadData() {
-      stackVars.reserve(RuntimeT::StackReserve);
-    }
-  };
+  ThreadData() {
+    stackVars.reserve(RuntimeT::StackReserve);
+  }
+};
 
-  thread_local ThreadData threadData;
+thread_local ThreadData threadData;
 
-}
+}  // namespace
 
 AllocationTracker::AllocationTracker(const TypeDB& db, Recorder& recorder) : typeDB{db}, recorder{recorder} {
 }
@@ -176,7 +176,7 @@ llvm::Optional<PointerInfo> AllocationTracker::removeEntry(const void* addr) {
 FreeState AllocationTracker::doFreeHeap(const void* addr, const void* retAddr) {
   if (unlikely(addr == nullptr)) {
     LOG_ERROR("Free on nullptr "
-                  << "(" << retAddr << ")");
+              << "(" << retAddr << ")");
     return FreeState::ADDR_SKIPPED | FreeState::NULL_PTR;
   }
 
@@ -206,8 +206,8 @@ void AllocationTracker::onFreeHeap(const void* addr, const void* retAddr) {
 
 void AllocationTracker::onLeaveScope(int alloca_count, const void* retAddr) {
   if (unlikely(alloca_count > threadData.stackVars.size())) {
-    LOG_ERROR("Stack is smaller than requested de-allocation count. alloca_count: " << alloca_count
-                                                                                    << ". size: " << threadData.stackVars.size());
+    LOG_ERROR("Stack is smaller than requested de-allocation count. alloca_count: " << alloca_count << ". size: "
+                                                                                    << threadData.stackVars.size());
     alloca_count = threadData.stackVars.size();
   }
 
