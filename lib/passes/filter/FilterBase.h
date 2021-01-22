@@ -185,7 +185,8 @@ class BaseFilter : public Filter {
       for (auto* successor : successors) {
         if constexpr (OmpHelper::WithOmp) {
           if (OmpHelper::isTaskRelatedStore(successor)) {
-            LOG_DEBUG("Filter, passed to OMP task struct.")
+            LOG_DEBUG("Keep, passed to OMP task struct.")
+            path.push(successor);
             return false;
           }
         }
