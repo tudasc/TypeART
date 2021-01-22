@@ -22,11 +22,11 @@ using namespace btree;
 #define unlikely(x) __builtin_expect(!!(x), 0)
 
 #define RUNTIME_GUARD_BEGIN        \
-  if (typeart::threadData.rtScope) { \
+  if (typeart::RuntimeSystem::rtScope) { \
     return;                        \
   }                                \
-  typeart::threadData.rtScope = true
-#define RUNTIME_GUARD_END typeart::threadData.rtScope = false
+  typeart::RuntimeSystem::rtScope = true
+#define RUNTIME_GUARD_END typeart::RuntimeSystem::rtScope = false
 
 namespace typeart {
 
@@ -77,7 +77,6 @@ using namespace debug;
 
 namespace {
   struct ThreadData {
-    bool rtScope{false};
     RuntimeT::Stack stackVars;
 
     ThreadData() {

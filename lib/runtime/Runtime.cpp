@@ -52,6 +52,7 @@ inline void printTraceStart() {
 static constexpr const char* defaultTypeFileName = "types.yaml";
 
 RuntimeSystem::RuntimeSystem() : typeResolution(typeDB, recorder), allocTracker(typeDB, recorder) {
+  rtScope = true;
   debug::printTraceStart();
 
   auto loadTypes = [this](const std::string& file) -> bool {
@@ -83,9 +84,14 @@ RuntimeSystem::RuntimeSystem() : typeResolution(typeDB, recorder), allocTracker(
   }
   recorder.incUDefTypes(typeList.size());
   LOG_INFO("Recorded types: " << ss.str());
+  rtScope = false;
 }
 
 RuntimeSystem::~RuntimeSystem() {
+  // This needs to be set. Otherwise, functions that have been instrumented and are called during the following operations will trigger the tracking callbacks.
+  // If logging is activated, this will lead then to a crash because llvm::outs() is already destroyed.
+  rtScope = true;
+
   std::string stats;
   llvm::raw_string_ostream stream(stats);
   softcounter::serialise(recorder, stream);
@@ -93,11 +99,14 @@ RuntimeSystem::~RuntimeSystem() {
     // llvm::errs/LOG will crash with virtual call error
     std::cerr << stream.str();
   }
+  rtScope = false;
 }
 
 /**
  * The global runtime instance.
  */
 RuntimeSystem kRuntimeSystem;
+
+thread_local bool RuntimeSystem::rtScope = false;
 
 }  // namespace typeart
