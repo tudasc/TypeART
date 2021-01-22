@@ -134,8 +134,8 @@ inline bool isTempAlloc(llvm::Value* in) {
             return util::DefUseChain::cancel;
           }
         }
-        return util::DefUseChain::no_match;
       }
+      return util::DefUseChain::no_match;
     });
 
     return match;
