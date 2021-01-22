@@ -2,6 +2,10 @@
 // RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %apply-typeart -typeart-alloca -call-filter -S 2>&1 | FileCheck %s
 // RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | opt -O2 -S | %apply-typeart -typeart-alloca -call-filter -S 2>&1 | FileCheck %s
 // RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | opt -O2 -S | %apply-typeart -typeart-alloca -call-filter -call-filter-impl=cg -call-filter-cg-file=%p/05_cg.ipcg -S 2>&1
+
+// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %apply-typeart -typeart-alloca -call-filter -S | FileCheck %s --check-prefix=check-inst
+// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | opt -O2 -S | %apply-typeart -typeart-alloca -call-filter -S | FileCheck %s --check-prefix=check-inst
+// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | opt -O2 -S | %apply-typeart -typeart-alloca -call-filter -call-filter-impl=cg -call-filter-cg-file=%p/05_cg.ipcg -S | FileCheck %s --check-prefix=check-inst
 // REQUIRES: openmp
 // clang-format on
 
@@ -14,6 +18,11 @@ void foo(int count) {
   int a = 0;
   int b = 1;
   int c = 2;
+  // check-inst: define {{.*}} @foo
+  // check-inst: %d = alloca
+  // check-inst: %0 = bitcast i32* %d to i8*
+  // check-inst: call void @__typeart_alloc_stack(i8* %0, i32 2, i64 1)
+  // check-inst-not: __typeart_alloc_stack_omp
   int d = 3;
   int e = 4;
 #pragma omp parallel for schedule(dynamic, 1)
