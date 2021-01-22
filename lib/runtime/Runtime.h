@@ -34,7 +34,8 @@ struct RuntimeSystem {
   TypeResolution typeResolution;
   AllocationTracker allocTracker;
 
-  // Needed in the allocation tracking functions to identify whether a call comes from within the runtime or the application.
+  // Needed in the allocation tracking functions to identify whether a call comes from within the runtime or the
+  // application.
   static thread_local bool rtScope;
 };
 
