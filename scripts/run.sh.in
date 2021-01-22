@@ -55,7 +55,7 @@ function compile() {
   else
     make_with_optim
   fi
-  $compiler "$tmpfile".o -L@TYPEART_RT_DIR@ -ltypeart-rt -o "$tmpfile".exe
+  $compiler "$tmpfile".o -pthread -L@TYPEART_RT_DIR@ -ltypeart-rt -o "$tmpfile".exe
 }
 
 compile
