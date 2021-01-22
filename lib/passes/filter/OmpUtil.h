@@ -74,6 +74,31 @@ struct OmpContext {
     return llvm::None;
   }
 
+  static bool allocaReachesTask(llvm::AllocaInst* alloc) {
+    bool found{false};
+    util::DefUseChain finder;
+    finder.traverse_custom(
+        alloc,
+        [](auto val) -> Optional<decltype(val->users())> {
+          if (auto cinst = llvm::dyn_cast<llvm::StoreInst>(val)) {
+            return cinst->getValueOperand()->users();
+          }
+          return val->users();
+        },
+        [&found](auto value) {
+          CallSite site(value);
+          if (site.isCall() || site.isInvoke()) {
+            const auto called = site.getCalledFunction();
+            if (called != nullptr && called->getName().startswith("__kmpc_omp_task(")) {
+              found = true;
+              return util::DefUseChain::cancel;
+            }
+          }
+          return util::DefUseChain::no_match;
+        });
+    return found;
+  }
+
   static bool isTaskRelatedStore(llvm::Value* v) {
     if (llvm::StoreInst* store = llvm::dyn_cast<llvm::StoreInst>(v)) {
       llvm::Function* f = store->getFunction();

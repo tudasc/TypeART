@@ -4,6 +4,8 @@
 
 #include "StdForwardFilter.h"
 
+#include "OmpUtil.h"
+
 namespace typeart::filter {
 
 ForwardFilterImpl::ForwardFilterImpl(std::unique_ptr<Matcher>&& m) : ForwardFilterImpl(std::move(m), nullptr) {
@@ -22,7 +24,16 @@ FilterAnalysis filter::ForwardFilterImpl::precheck(Value* in, Function* start, c
     }
 
     if (fpath.empty()) {
-      const auto temp = isTempAlloc(in);
+      auto temp = isTempAlloc(in);
+      if (llvm::AllocaInst* alloc = llvm::dyn_cast<AllocaInst>(in); !temp && alloc != nullptr) {
+        if (alloc->getAllocatedType()->isStructTy()) {
+          const bool reaches = omp::OmpContext::allocaReachesTask(alloc);
+          if (reaches) {
+            LOG_DEBUG("Alloca reaches task call " << *alloc)
+          }
+          temp |= reaches;
+        }
+      }
       if (temp) {
         return FilterAnalysis::Filter;
       }
