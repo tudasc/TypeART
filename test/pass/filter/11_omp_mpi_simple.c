@@ -17,6 +17,9 @@ void bar() {
   int x;
   foo(&x);
 }
+
+// FIXME: the opt pass tracks 2 allocs in bar (alloca x and alloca x.addr (which is passed to the outlined region))
+
 // CHECK: TypeArtPass [Heap & Stack]
 // CHECK-NEXT: Malloc :   0
 // CHECK-NEXT: Free   :   0
