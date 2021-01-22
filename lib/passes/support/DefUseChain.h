@@ -64,17 +64,14 @@ struct DefUseChain {
       if (user == nullptr) {
         continue;
       }
-      LOG_DEBUG("Analyzing value: " << *user);
       if (MatchResult m = match(user); m != no_match) {
         switch (m) {
           case skip:
-            LOG_DEBUG("...skip from match");
             continue;
           case cancel:
-            LOG_DEBUG("...cancel from match");
             break;
           default:
-            LOG_DEBUG("...continue from match")
+            break;
         }
       }
       if (should_search(user)) {
@@ -88,10 +85,31 @@ struct DefUseChain {
  public:
   template <typename CallBackF>
   void traverse(Value* start, CallBackF&& match) {
-    LOG_DEBUG("Start search for value: " << util::dump(*start));
+    LOG_DEBUG("Start traversal for value: " << util::dump(*start));
     do_traverse<Value>([](auto val) -> Optional<decltype(val->users())> { return val->users(); }, start,
                        std::forward<CallBackF>(match));
-    LOG_DEBUG("Finished search");
+    LOG_DEBUG("Finished traversal");
+  }
+
+  template <typename Search, typename CallBackF>
+  void traverse_custom(Value* start, Search&& s, CallBackF&& match) {
+    LOG_DEBUG("Start traversal for value: " << util::dump(*start));
+    do_traverse<Value>(std::forward<Search>(s), start, std::forward<CallBackF>(match));
+    LOG_DEBUG("Finished traversal");
+  }
+
+  template <typename CallBackF>
+  void traverse_with_store(Value* start, CallBackF&& match) {
+    LOG_DEBUG("Start traversal for value: " << util::dump(*start));
+    do_traverse<Value>(
+        [](auto val) -> Optional<decltype(val->users())> {
+          if (auto cinst = llvm::dyn_cast<llvm::StoreInst>(val)) {
+            return cinst->getPointerOperand()->users();
+          }
+          return val->users();
+        },
+        start, std::forward<CallBackF>(match));
+    LOG_DEBUG("Finished traversal");
   }
 };
 

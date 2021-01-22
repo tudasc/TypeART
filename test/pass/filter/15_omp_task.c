@@ -14,7 +14,8 @@ void foo() {
   }
 }
 
-// FIXME one alloca is of the anon struct detected as OMP task struct related (need refinedment of condition?)
+// FIXME one alloca is of the anon struct detected as OMP task struct related (need refinement of condition?)
+// The Pattern: a = alloca struct; b = task_alloc; mem_cpy a to b;
 // CHECK: TypeArtPass [Heap & Stack]
 // CHECK-NEXT: Malloc :   0
 // CHECK-NEXT: Free   :   0
