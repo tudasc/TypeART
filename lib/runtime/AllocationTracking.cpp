@@ -117,24 +117,26 @@ AllocState AllocationTracker::doAlloc(const void* addr, int typeId, size_t count
     return status | AllocState::NULL_PTR | AllocState::ADDR_SKIPPED;
   }
 
-  auto& def = allocTypes[addr];
+  {
+    std::lock_guard<std::shared_mutex> guard(allocMutex);
+    auto& def = allocTypes[addr];
 
-  if (unlikely(def.typeId != -1)) {
-    recorder.incAddrReuse();
-    status |= AllocState::ADDR_REUSE;
-    LOG_WARNING("Pointer already in map " << toString(addr, typeId, count, retAddr));
-    LOG_WARNING("Overriden data in map " << toString(addr, def));
+    if (unlikely(def.typeId != -1)) {
+      recorder.incAddrReuse();
+      status |= AllocState::ADDR_REUSE;
+      LOG_WARNING("Pointer already in map " << toString(addr, typeId, count, retAddr));
+      LOG_WARNING("Overriden data in map " << toString(addr, def));
+    }
+
+    def.typeId = typeId;
+    def.count  = count;
+    def.debug  = retAddr;
   }
-
-  def.typeId = typeId;
-  def.count  = count;
-  def.debug  = retAddr;
 
   return status | AllocState::OK;
 }
 
 void AllocationTracker::onAlloc(const void* addr, int typeId, size_t count, const void* retAddr) {
-  std::lock_guard<std::shared_mutex> guard(allocMutex);
   const auto status = doAlloc(addr, typeId, count, retAddr);
   if (status != AllocState::ADDR_SKIPPED) {
     recorder.incHeapAlloc(typeId, count);
@@ -143,7 +145,6 @@ void AllocationTracker::onAlloc(const void* addr, int typeId, size_t count, cons
 }
 
 void AllocationTracker::onAllocStack(const void* addr, int typeId, size_t count, const void* retAddr) {
-  std::lock_guard<std::shared_mutex> guard(allocMutex);
   const auto status = doAlloc(addr, typeId, count, retAddr);
   if (status != AllocState::ADDR_SKIPPED) {
     threadData.stackVars.push_back(addr);
@@ -153,7 +154,6 @@ void AllocationTracker::onAllocStack(const void* addr, int typeId, size_t count,
 }
 
 void AllocationTracker::onAllocGlobal(const void* addr, int typeId, size_t count, const void* retAddr) {
-  std::lock_guard<std::shared_mutex> guard(allocMutex);
   const auto status = doAlloc(addr, typeId, count, retAddr);
   if (status != AllocState::ADDR_SKIPPED) {
     recorder.incGlobalAlloc(typeId, count);
@@ -161,48 +161,51 @@ void AllocationTracker::onAllocGlobal(const void* addr, int typeId, size_t count
   LOG_TRACE("Alloc " << toString(addr, typeId, count, retAddr) << " " << 'G');
 }
 
-template <bool stack>
-FreeState AllocationTracker::doFree(const void* addr, const void* retAddr) {
+/**
+ * Note: The calling function is responsible for ensuring mutual exclusion.
+ */
+llvm::Optional<PointerInfo> AllocationTracker::removeEntry(const void* addr) {
+  const auto it = allocTypes.find(addr);
+  if (likely(it != allocTypes.end())) {
+    auto removed = it->second;
+    allocTypes.erase(it);
+    return removed;
+  }
+  return {};
+}
+
+FreeState AllocationTracker::doFreeHeap(const void* addr, const void* retAddr) {
   if (unlikely(addr == nullptr)) {
     LOG_ERROR("Free on nullptr "
-              << "(" << retAddr << ")");
+                  << "(" << retAddr << ")");
     return FreeState::ADDR_SKIPPED | FreeState::NULL_PTR;
   }
 
-  const auto it = allocTypes.find(addr);
-
-  if (likely(it != allocTypes.end())) {
-    LOG_TRACE("Free " << toString((*it).first, (*it).second));
-
-    if constexpr (!std::is_same_v<Recorder, softcounter::NoneRecorder>) {
-      const auto typeId = it->second.typeId;
-      const auto count  = it->second.count;
-      if (stack) {
-        recorder.incStackFree(typeId, count);
-      } else {
-        recorder.incHeapFree(typeId, count);
-      }
-    }
-
-    allocTypes.erase(it);
-  } else {
+  llvm::Optional<PointerInfo> removed;
+  {
+    std::lock_guard<std::shared_mutex> guard(allocMutex);
+    removed = removeEntry(addr);
+  }
+  if (unlikely(!removed)) {
     LOG_ERROR("Free on unregistered address " << addr << " (" << retAddr << ")");
     return FreeState::ADDR_SKIPPED | FreeState::UNREG_ADDR;
   }
 
+  LOG_TRACE("Free " << toString(addr, *removed));
+  if constexpr (!std::is_same_v<Recorder, softcounter::NoneRecorder>) {
+    recorder.incHeapFree(removed->typeId, removed->count);
+  }
   return FreeState::OK;
 }
 
 void AllocationTracker::onFreeHeap(const void* addr, const void* retAddr) {
-  std::lock_guard<std::shared_mutex> guard(allocMutex);
-  const auto status = doFree<false>(addr, retAddr);
+  const auto status = doFreeHeap(addr, retAddr);
   if (FreeState::OK == status) {
     recorder.decHeapAlloc();
   }
 }
 
 void AllocationTracker::onLeaveScope(int alloca_count, const void* retAddr) {
-  std::lock_guard<std::shared_mutex> guard(allocMutex);
   if (unlikely(alloca_count > threadData.stackVars.size())) {
     LOG_ERROR("Stack is smaller than requested de-allocation count. alloca_count: " << alloca_count
                                                                                     << ". size: " << threadData.stackVars.size());
@@ -212,7 +215,24 @@ void AllocationTracker::onLeaveScope(int alloca_count, const void* retAddr) {
   const auto cend      = threadData.stackVars.cend();
   const auto start_pos = (cend - alloca_count);
   LOG_TRACE("Freeing stack (" << alloca_count << ")  " << std::distance(start_pos, threadData.stackVars.cend()))
-  std::for_each(start_pos, cend, [this, &retAddr](const void* addr) { doFree<true>(addr, retAddr); });
+
+  {
+    std::lock_guard<std::shared_mutex> guard(allocMutex);
+    std::for_each(start_pos, cend, [this, &retAddr](const void* addr) {
+      assert(addr && "A stack address must not be null.");
+      auto removed = removeEntry(addr);
+
+      if (unlikely(!removed)) {
+        LOG_ERROR("Free on unregistered address " << addr << " (" << retAddr << ")");
+      } else {
+        LOG_TRACE("Free " << toString(addr, *removed));
+        if constexpr (!std::is_same_v<Recorder, softcounter::NoneRecorder>) {
+          recorder.incStackFree(removed->typeId, removed->count);
+        }
+      }
+    });
+  }
+
   threadData.stackVars.erase(start_pos, cend);
   recorder.decStackAlloc(alloca_count);
   LOG_TRACE("Stack after free: " << threadData.stackVars.size());
