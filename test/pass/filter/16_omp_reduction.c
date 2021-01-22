@@ -1,6 +1,9 @@
 // clang-format off
 // RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %apply-typeart -typeart-alloca -call-filter -S 2>&1 | FileCheck %s
 // RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | opt -O2 -S | %apply-typeart -typeart-alloca -call-filter -S 2>&1 | FileCheck %s
+
+// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %apply-typeart -typeart-alloca -call-filter -S | FileCheck %s --check-prefix=check-inst
+// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | opt -O2 -S | %apply-typeart -typeart-alloca -call-filter -S | FileCheck %s --check-prefix=check-inst
 // REQUIRES: openmp
 // clang-format on
 
@@ -18,7 +21,12 @@ float sum(const float* a, int n) {
 void foo() {
   const int n    = 10;
   float array[n] = {0};
-  float loc      = sum(array, n);
+  // check-inst: define {{.*}} @foo
+  // check-inst: %loc = alloca
+  // check-inst: %0 = bitcast float* %loc to i8*
+  // check-inst: call void @__typeart_alloc_stack(i8* %0, i32 5, i64 1)
+  // check-inst-not: __typeart_alloc_stack_omp
+  float loc = sum(array, n);
   MPI_send((void*)&loc);
 }
 

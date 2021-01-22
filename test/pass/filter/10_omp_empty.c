@@ -5,6 +5,8 @@
 
 #include "omp.h"
 
+// CHECK-NOT: {{.*}} __typeart_alloc
+
 void foo(int* x) {
 #pragma omp parallel  // transformed to @__kmpc_fork_call
   { *x = -1; }
