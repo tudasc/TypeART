@@ -62,8 +62,9 @@ class AllocationTracker {
  private:
   AllocState doAlloc(const void* addr, int typeID, size_t count, const void* retAddr);
 
-  template <bool stack>
-  FreeState doFree(const void* addr, const void* retAddr);
+  FreeState doFreeHeap(const void* addr, const void* retAddr);
+
+  llvm::Optional<PointerInfo> removeEntry(const void* addr);
 };
 
 }  // namespace typeart
