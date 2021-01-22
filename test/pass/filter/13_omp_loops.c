@@ -30,7 +30,7 @@ void foo(int count) {
     // no (void*), so we assume benign (with deep analysis)
     MPI_Mock(a, b, c);
     for (int j = 0; j < count; ++j) {
-      // Analysis should not filter d, but  e...
+      // Analysis should not filter d, but e...
       MPI_Send((void*)&d, e);
     }
   }

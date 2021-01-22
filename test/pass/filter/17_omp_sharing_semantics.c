@@ -21,7 +21,7 @@ void foo(int count) {
   int e = 4;
 #pragma omp parallel for schedule(dynamic, 1) firstprivate(d) shared(e)
   for (int i = 0; i < count; ++i) {
-    // Analysis should not filter d, but not e...
+    // Analysis should not filter d, but e...
     MPI_Send((void*)&d, e);
   }
 }
@@ -37,7 +37,7 @@ void bar(int count) {
   int e = 4;
 #pragma omp parallel for schedule(dynamic, 1) lastprivate(d) shared(e)
   for (int i = 0; i < count; ++i) {
-    // Analysis should not filter d, but not e...
+    // Analysis should not filter d, but e...
     MPI_Send((void*)&d, e);
   }
 }
@@ -55,7 +55,7 @@ void bar2(int count) {
   // check-inst-NEXT: call void @__typeart_alloc_stack_omp(i8* %0, i32 2, i64 1)
 #pragma omp parallel for schedule(dynamic, 1) lastprivate(d) shared(e)
   for (int i = 0; i < count; ++i) {
-    // Analysis should not filter d, but not e...
+    // Analysis should not filter d, but e...
     MPI_Send((void*)&d, e);
   }
 
