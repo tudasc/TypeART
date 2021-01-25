@@ -25,17 +25,18 @@ FilterAnalysis filter::ForwardFilterImpl::precheck(Value* in, Function* start, c
 
     if (fpath.empty()) {
       auto temp = isTempAlloc(in);
+      if (temp) {
+        LOG_DEBUG("Alloca is a temporary " << *in);
+        return FilterAnalysis::Filter;
+      }
       if (llvm::AllocaInst* alloc = llvm::dyn_cast<AllocaInst>(in); !temp && alloc != nullptr) {
         if (alloc->getAllocatedType()->isStructTy()) {
           const bool reaches = omp::OmpContext::allocaReachesTask(alloc);
           if (reaches) {
             LOG_DEBUG("Alloca reaches task call " << *alloc)
+            return FilterAnalysis::Filter;
           }
-          temp |= reaches;
         }
-      }
-      if (temp) {
-        return FilterAnalysis::Filter;
       }
     }
   }
