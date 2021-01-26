@@ -16,15 +16,10 @@ function(configure_typeart_script input output)
   set(TYPEART_PASS_DIR ${CMAKE_BINARY_DIR}/lib/passes)
   set(TYPEART_ANALYSIS_PASS_DIR ${TYPEART_PASS_DIR}/analysis)
   set(TYPEART_RT_DIR ${CMAKE_BINARY_DIR}/lib/runtime)
+  set(TYPEART_MPI_INTERCEPT_DIR ${CMAKE_BINARY_DIR}/lib/mpi_interceptor)
   set(TYPEART_ANALYSIS_PLUGIN meminstfinderpass.so)
   set(TYPEART_PLUGIN typeartpass.so)
   set(TYPEART_INCLUDE_DIRS -I${PROJECT_SOURCE_DIR}/lib/typelib)
-
-  if(OPENMP_FOUND)
-    set(TYPEART_OPENMP True)
-  else()
-    set(TYPEART_OPENMP False)
-  endif()
 
   # To get execute permission: create run.sh in the binary dir, and copy it to scripts folder with permission
   make_executable(${input} ${output})

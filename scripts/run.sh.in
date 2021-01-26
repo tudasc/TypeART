@@ -4,7 +4,10 @@ target=$1
 optimize=""
 ta_more_args=""
 with_omp=0
+with_intercept=0
+with_thread=0
 omp_flags=""
+thread_flags=""
 
 shift # skip over $1
 while (( "$#" )); do
@@ -20,6 +23,14 @@ while (( "$#" )); do
       ;;
     --omp)
       with_omp=1
+      shift
+      ;;
+    --thread)
+      with_thread=1
+      shift
+      ;;
+    --mpi_intercept)
+      with_intercept=1
       shift
       ;;
     *) # preserve other arguments
@@ -44,6 +55,10 @@ else
   fi
 fi
 
+if [ $with_thread == 1 ]; then
+  threads_flags=@CMAKE_THREAD_LIBS_INIT@
+fi
+
 if [ -e "types.yaml" ]; then
   rm "types.yaml"
 fi
@@ -65,9 +80,16 @@ function compile() {
   else
     make_with_optim
   fi
-  $compiler "$tmpfile".o -pthread -L@TYPEART_RT_DIR@ -ltypeart-rt -o "$tmpfile".exe
+
+  $compiler "$tmpfile".o "$omp_flags" "$threads_flags" -L@TYPEART_RT_DIR@ -ltypeart-rt -o "$tmpfile".exe
 }
 
 compile
-echo -e Executing with runtime lib
-LD_LIBRARY_PATH="$LD_LIBRARY_PATH:@TYPEART_RT_DIR@" ./"$tmpfile".exe
+
+if [ $with_intercept == 1 ]; then
+  echo -e Executing with runtime and interceptor lib
+  LD_LIBRARY_PATH="$LD_LIBRARY_PATH:@TYPEART_RT_DIR@:@TYPEART_MPI_INTERCEPT_DIR@" ./"$tmpfile".exe
+else
+  echo -e Executing with runtime lib
+  LD_LIBRARY_PATH="$LD_LIBRARY_PATH:@TYPEART_RT_DIR@" ./"$tmpfile".exe
+fi

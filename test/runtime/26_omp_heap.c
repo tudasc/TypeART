@@ -1,12 +1,9 @@
 // clang-format off
-// RUN: %run %s --thread 2>&1 | FileCheck %s
-// REQUIRES: thread
+// RUN: %run %s --omp 2>&1 | FileCheck %s
+// REQUIRES: openmp
 // clang-format on
 
 #include <stdlib.h>
-
-#include <thread>
-#include <stdio.h>
 
 void repeat_alloc_free(unsigned n) {
   for (int i = 0; i < n; i++) {
@@ -16,18 +13,18 @@ void repeat_alloc_free(unsigned n) {
 }
 
 int main(int argc, char** argv) {
-
-  constexpr unsigned n = 1000;
-
+  const int n = 1000;
   // CHECK: [Trace] TypeART Runtime Trace
 
-  std::thread t1(repeat_alloc_free, n);
-  std::thread t2(repeat_alloc_free, n);
-  std::thread t3(repeat_alloc_free, n);
-
-  t1.join();
-  t2.join();
-  t3.join();
+#pragma omp parallel sections
+  {
+#pragma omp section
+    repeat_alloc_free(n);
+#pragma omp section
+    repeat_alloc_free(n);
+#pragma omp section
+    repeat_alloc_free(n);
+  }
 
   // CHECK-NOT: [Error]
   // CHECK: Allocation type detail (heap, stack, global)

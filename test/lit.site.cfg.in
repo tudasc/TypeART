@@ -13,6 +13,7 @@ config.openmp_c_flags = "@OpenMP_C_FLAGS@"
 # config.openmp_c_inc_dir = "@OpenMP_C_INCLUDE_DIRS@"
 config.openmp_cxx_flags = "@OpenMP_CXX_FLAGS@"
 # config.openmp_cxx_inc_dir = "@OpenMP_CXX_INCLUDE_DIRS@"
+config.threads_used=@TYPEARTPASS_THREADS@
 
 
 # Let the main config do the real work.

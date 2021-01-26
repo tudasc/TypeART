@@ -1,11 +1,11 @@
 // clang-format off
-// RUN: %run %s 2>&1 | FileCheck %s
+// RUN: %run %s --thread 2>&1 | FileCheck %s
+// REQUIRES: thread
 // clang-format on
 
 #include <stdlib.h>
 
 #include <thread>
-#include <stdio.h>
 #include <atomic>
 #include "util.h"
 
