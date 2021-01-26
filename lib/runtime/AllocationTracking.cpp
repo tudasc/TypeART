@@ -293,3 +293,31 @@ void __typeart_leave_scope(int alloca_count) {
   typeart::kRuntimeSystem.allocTracker.onLeaveScope(alloca_count, retAddr);
   RUNTIME_GUARD_END;
 }
+
+void __typeart_alloc_omp(const void* addr, int typeId, size_t count) {
+  RUNTIME_GUARD_BEGIN;
+  const void* retAddr = __builtin_return_address(0);
+  typeart::kRuntimeSystem.allocTracker.onAlloc(addr, typeId, count, retAddr);
+  RUNTIME_GUARD_END;
+}
+
+void __typeart_alloc_stack_omp(const void* addr, int typeId, size_t count) {
+  RUNTIME_GUARD_BEGIN;
+  const void* retAddr = __builtin_return_address(0);
+  typeart::kRuntimeSystem.allocTracker.onAllocStack(addr, typeId, count, retAddr);
+  RUNTIME_GUARD_END;
+}
+
+void __typeart_free_omp(const void* addr) {
+  RUNTIME_GUARD_BEGIN;
+  const void* retAddr = __builtin_return_address(0);
+  typeart::kRuntimeSystem.allocTracker.onFreeHeap(addr, retAddr);
+  RUNTIME_GUARD_END;
+}
+
+void __typeart_leave_scope_omp(int alloca_count) {
+  RUNTIME_GUARD_BEGIN;
+  const void* retAddr = __builtin_return_address(0);
+  typeart::kRuntimeSystem.allocTracker.onLeaveScope(alloca_count, retAddr);
+  RUNTIME_GUARD_END;
+}

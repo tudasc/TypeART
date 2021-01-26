@@ -22,15 +22,24 @@ TAFunctionDeclarator::TAFunctionDeclarator(Module& m, InstrumentationHelper& ins
 }
 
 llvm::Function* TAFunctionDeclarator::make_function(IFunc id, llvm::StringRef basename,
-                                                    llvm::ArrayRef<llvm::Type*> args, bool fixed_name) {
-  const auto make_fname = [&fixed_name](llvm::StringRef name, llvm::ArrayRef<llvm::Type*> args) {
-    if (fixed_name) {
-      return std::string(name.str());
+                                                    llvm::ArrayRef<llvm::Type*> args, bool with_omp, bool fixed_name) {
+  const auto make_fname = [&fixed_name](llvm::StringRef name, llvm::ArrayRef<llvm::Type*> args, bool with_omp) {
+    std::string fname;
+    llvm::raw_string_ostream os(fname);
+    os << name;
+
+    if (!fixed_name) {
+      os << "_" << std::to_string(args.size());
     }
-    return std::string((name + "_" + std::to_string(args.size())).str());
+    if (with_omp) {
+      os << "_"
+         << "omp";
+    }
+    return os.str();
   };
 
-  const auto name = make_fname(basename, args);
+  const auto name = make_fname(basename, args, with_omp);
+
   if (auto it = f_map.find(name); it != f_map.end()) {
     return it->second;
   }

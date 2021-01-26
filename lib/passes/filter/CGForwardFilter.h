@@ -32,14 +32,14 @@ struct CGFilterImpl {
   CGFilterImpl(const std::string& filter_str, std::unique_ptr<CGInterface>&& cgraph,
                std::unique_ptr<Matcher>&& matcher);
 
-  FilterAnalysis precheck(Value* in, Function* start);
+  FilterAnalysis precheck(Value* in, Function* start, const FPath&);
 
   FilterAnalysis decl(CallSite current, const Path& p);
 
   FilterAnalysis def(CallSite current, const Path& p);
 };
 
-using CGForwardFilter = BaseFilter<CGFilterImpl, DefaultSearch>;
+using CGForwardFilter = BaseFilter<CGFilterImpl, DefaultSearch, omp::OmpContext>;
 
 }  // namespace typeart::filter
 

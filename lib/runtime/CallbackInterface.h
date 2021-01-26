@@ -23,6 +23,11 @@ void __typeart_free(const void* addr);
 void __typeart_alloc_stack(const void* addr, int typeId, size_t count);
 void __typeart_leave_scope(int alloca_count);
 
+// Called from OpenMP context
+void __typeart_alloc_omp(const void* addr, int typeId, size_t count);
+void __typeart_free_omp(const void* addr);
+void __typeart_alloc_stack_omp(const void* addr, int typeId, size_t count);
+void __typeart_leave_scope_omp(int alloca_count);
 #ifdef __cplusplus
 }
 #endif

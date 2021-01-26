@@ -9,13 +9,16 @@
 #include "FilterUtil.h"
 #include "IRPath.h"
 #include "IRSearch.h"
+#include "OmpUtil.h"
 #include "support/Logger.h"
+#include "support/OmpUtil.h"
 #include "support/Util.h"
 
 #include "llvm/IR/CallSite.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Intrinsics.h"
 
+#include <TypeARTPass.h>
 #include <iterator>
 #include <type_traits>
 
@@ -29,18 +32,15 @@ enum class FilterAnalysis {
   FollowDef,  // Want analysis of the called function def
 };
 
-template <typename CallSiteHandler, typename Search = DefaultSearch>
+template <typename CallSiteHandler, typename Search, typename OmpHelper = omp::EmptyContext>
 class BaseFilter : public Filter {
   CallSiteHandler handler;
-  Search search_dir;
+  Search search_dir{};
   bool malloc_mode{false};
   llvm::Function* start_f{nullptr};
 
  public:
-  explicit BaseFilter(const std::string& glob) : handler(glob), search_dir() {
-  }
-
-  explicit BaseFilter(const CallSiteHandler& handler) : handler(handler), search_dir() {
+  explicit BaseFilter(const CallSiteHandler& handler) : handler(handler) {
   }
 
   template <typename... Args>
@@ -76,7 +76,7 @@ class BaseFilter : public Filter {
       // is null in case of global:
       llvm::Function* currentF = fpath.getCurrentFunc();
       if (currentF != nullptr) {
-        auto status = handler.precheck(current, currentF);
+        auto status = handler.precheck(current, currentF, fpath);
         switch (status) {
           case FilterAnalysis::Filter:
             fpath.pop();
@@ -119,12 +119,28 @@ class BaseFilter : public Filter {
         continue;
       }
 
-      fpath.push(path2def);
+      // TODO: here we have a definiton OR a omp call, e.g., @__kmpc_fork_call
+      LOG_DEBUG("Looking at: " << c.getCalledFunction()->getName())
 
       auto argv = args(c, path2def);
       if (argv.size() > 1) {
         LOG_DEBUG("All args are looked at.")
+      } else if (argv.size() == 1) {
+        LOG_DEBUG("Following 1 arg");
+      } else {
+        LOG_DEBUG("No argument correlation!")
       }
+
+      if constexpr (OmpHelper::WithOmp) {
+        if (OmpHelper::isOmpExecutor(c)) {
+          auto outlined = OmpHelper::getMicrotask(c);
+          if (outlined) {
+            path2def.push(outlined.getValue());
+          }
+        }
+      }
+
+      fpath.push(path2def);
 
       for (auto* arg : argv) {
         const auto dfs_filter = DFSFuncFilter(arg, fpath);
@@ -167,6 +183,15 @@ class BaseFilter : public Filter {
     if (!skip) {
       const auto successors = search_dir.search(current, path);
       for (auto* successor : successors) {
+        if constexpr (OmpHelper::WithOmp) {
+          if (OmpHelper::isTaskRelatedStore(successor)) {
+            LOG_DEBUG("Keep, passed to OMP task struct.")
+            path.push(successor);
+            return false;
+          }
+        }
+
+        LOG_DEBUG(*successor)
         if (path.contains(successor)) {
           // Avoid recursion (e.g., with store inst pointer operands pointing to an allocation)
           continue;
@@ -212,6 +237,19 @@ class BaseFilter : public Filter {
             return status;
           } else {
             LOG_DEBUG("Skip intrinsic: " << util::try_demangle(site))
+            return FilterAnalysis::Skip;
+          }
+        }
+
+        if constexpr (OmpHelper::WithOmp) {
+          // here we handle microtask executor functions:
+          if (OmpHelper::isOmpExecutor(site)) {
+            LOG_DEBUG("Omp executor, follow microtask: " << util::try_demangle(site))
+            return FilterAnalysis::FollowDef;
+          }
+
+          if (OmpHelper::isOmpHelper(site)) {
+            LOG_DEBUG("Omp helper, skip: " << util::try_demangle(site))
             return FilterAnalysis::Skip;
           }
         }
