@@ -16,30 +16,36 @@ ForwardFilterImpl::ForwardFilterImpl(std::unique_ptr<Matcher>&& m, std::unique_p
 }
 
 FilterAnalysis filter::ForwardFilterImpl::precheck(Value* in, Function* start, const FPath& fpath) {
-  if (start != nullptr) {
-    FunctionAnalysis analysis;
-    analysis.analyze(start);
-    if (analysis.empty()) {
+  if (start == nullptr) {
+    // In case of global var.
+    return FilterAnalysis::Continue;
+  }
+
+  FunctionAnalysis analysis;
+  analysis.analyze(start);
+  if (analysis.empty()) {
+    return FilterAnalysis::Filter;
+  }
+
+  if (!fpath.empty()) {
+    // the value is part of a call chain
+    return FilterAnalysis::Continue;
+  }
+
+  // These conditions (temp alloc and alloca reaches task)
+  // are only interesting if filter just started (aka fpath is empty)
+  if (isTempAlloc(in)) {
+    LOG_DEBUG("Alloca is a temporary " << *in);
+    return FilterAnalysis::Filter;
+  }
+
+  if (llvm::AllocaInst* alloc = llvm::dyn_cast<AllocaInst>(in)) {
+    if (alloc->getAllocatedType()->isStructTy() && omp::OmpContext::allocaReachesTask(alloc)) {
+      LOG_DEBUG("Alloca reaches task call " << *alloc)
       return FilterAnalysis::Filter;
     }
-
-    if (fpath.empty()) {
-      auto temp = isTempAlloc(in);
-      if (temp) {
-        LOG_DEBUG("Alloca is a temporary " << *in);
-        return FilterAnalysis::Filter;
-      }
-      if (llvm::AllocaInst* alloc = llvm::dyn_cast<AllocaInst>(in); !temp && alloc != nullptr) {
-        if (alloc->getAllocatedType()->isStructTy()) {
-          const bool reaches = omp::OmpContext::allocaReachesTask(alloc);
-          if (reaches) {
-            LOG_DEBUG("Alloca reaches task call " << *alloc)
-            return FilterAnalysis::Filter;
-          }
-        }
-      }
-    }
   }
+
   return FilterAnalysis::Continue;
 }
 

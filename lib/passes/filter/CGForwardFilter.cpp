@@ -19,28 +19,41 @@ CGFilterImpl::CGFilterImpl(const std::string& filter_str, std::unique_ptr<CGInte
     : filter(util::glob2regex(filter_str)), call_graph(std::move(cgraph)), deep_matcher(std::move(matcher)) {
 }
 
-FilterAnalysis CGFilterImpl::precheck(Value* in, Function* start, const FPath&) {
-  if (start != nullptr) {
-    FunctionAnalysis analysis;
-    analysis.analyze(start);
-    if (analysis.empty()) {
+FilterAnalysis CGFilterImpl::precheck(Value* in, Function* start, const FPath& fpath) {
+  if (start == nullptr) {
+    return FilterAnalysis::Continue;
+  }
+
+  FunctionAnalysis analysis;
+  analysis.analyze(start);
+  if (analysis.empty()) {
+    return FilterAnalysis::Filter;
+  }
+
+  if (fpath.empty()) {
+    // These conditions (temp alloc and alloca reaches task)
+    // are only interesting if filter just started (aka fpath is empty)
+    if (isTempAlloc(in)) {
+      LOG_DEBUG("Alloca is a temporary " << *in);
       return FilterAnalysis::Filter;
     }
 
-    const auto has_omp_task = [](const auto& callsites_v) {
-      for (const auto& csite : callsites_v) {
-        if (omp::OmpContext::isOmpTaskRelated(csite)) {
-          return true;
-        }
+    if (llvm::AllocaInst* alloc = llvm::dyn_cast<AllocaInst>(in)) {
+      if (alloc->getAllocatedType()->isStructTy() && omp::OmpContext::allocaReachesTask(alloc)) {
+        LOG_DEBUG("Alloca reaches task call " << *alloc)
+        return FilterAnalysis::Filter;
       }
-      return false;
-    };
-    if (has_omp_task(analysis.calls.decl)) {
-      // FIXME we cannot handle complex data flow of tasks at this point, hence, this check
-      LOG_DEBUG("Keep value " << *in << ". Detected omp task call.");
-      return FilterAnalysis::Keep;
     }
   }
+
+  const auto has_omp_task =
+      llvm::any_of(analysis.calls.decl, [](const auto& csite) { return omp::OmpContext::isOmpTaskRelated(csite); });
+  if (has_omp_task) {
+    // FIXME we cannot handle complex data flow of tasks at this point, hence, this check
+    LOG_DEBUG("Keep value " << *in << ". Detected omp task call.");
+    return FilterAnalysis::Keep;
+  }
+
   return FilterAnalysis::Continue;
 }
 
