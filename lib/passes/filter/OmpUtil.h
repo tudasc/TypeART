@@ -75,6 +75,10 @@ struct OmpContext {
   }
 
   static bool allocaReachesTask(llvm::AllocaInst* alloc) {
+    if (!util::omp::isOmpContext(alloc->getFunction())) {
+      return false;
+    }
+
     bool found{false};
     util::DefUseChain finder;
     finder.traverse_custom(
