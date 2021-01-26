@@ -1,6 +1,6 @@
 // clang-format off
 // RUN: %run %s --thread 2>&1 | FileCheck %s
-// REQUIRES: thread
+// REQUIRES: thread && softcounter
 // clang-format on
 
 #include <stdlib.h>

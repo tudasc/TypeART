@@ -1,6 +1,6 @@
 // clang-format off
 // RUN: %run %s --omp 2>&1 | FileCheck %s
-// REQUIRES: openmp
+// REQUIRES: openmp && softcounter
 // clang-format on
 
 #include <stdlib.h>
