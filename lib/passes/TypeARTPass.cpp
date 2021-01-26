@@ -176,6 +176,13 @@ void TypeArtPass::declareInstrumentationFunctions(Module& m) {
   typeart_alloc_global.f = decl.make_function(IFunc::global, typeart_alloc_global.name, alloc_arg_types);
   typeart_free.f         = decl.make_function(IFunc::free, typeart_free.name, free_arg_types);
   typeart_leave_scope.f  = decl.make_function(IFunc::scope, typeart_leave_scope.name, leavescope_arg_types);
+
+  typeart_alloc_omp.f = decl.make_function(IFunc::heap_omp, typeart_alloc_omp.name, alloc_arg_types, true);
+  typeart_alloc_stacks_omp.f =
+      decl.make_function(IFunc::stack_omp, typeart_alloc_stacks_omp.name, alloc_arg_types, true);
+  typeart_free_omp.f = decl.make_function(IFunc::free_omp, typeart_free_omp.name, free_arg_types, true);
+  typeart_leave_scope_omp.f =
+      decl.make_function(IFunc::scope_omp, typeart_leave_scope_omp.name, leavescope_arg_types, true);
 }
 
 void TypeArtPass::printStats(llvm::raw_ostream& out) {

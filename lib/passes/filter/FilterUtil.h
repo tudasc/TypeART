@@ -6,6 +6,7 @@
 #define TYPEART_FILTERUTIL_H
 
 #include "IRPath.h"
+#include "OmpUtil.h"
 #include "support/Logger.h"
 
 #include "llvm/IR/CallSite.h"
@@ -48,13 +49,25 @@ inline std::pair<llvm::Argument*, int> findArg(CallSite c, const Path& p) {
 
   Value* in          = arg.getValue();
   const auto arg_pos = llvm::find_if(c.args(), [&in](const Use& arg_use) -> bool { return arg_use.get() == in; });
+
   if (arg_pos == c.arg_end()) {
     return {nullptr, -1};
   }
-  const auto argNum  = std::distance(c.arg_begin(), arg_pos);
-  Argument& argument = *(c.getCalledFunction()->arg_begin() + argNum);
 
-  return {&argument, argNum};
+  auto arg_num = std::distance(c.arg_begin(), arg_pos);
+
+  if (omp::OmpContext::isOmpExecutor(c)) {
+    auto outlined = omp::OmpContext::getMicrotask(c);
+    if (outlined) {
+      // Calc the offset of arg in executor to actual arg of the outline function:
+      auto offset        = omp::OmpContext::getArgOffsetToMicrotask(arg_num);
+      Argument* argument = (outlined.getValue()->arg_begin() + offset);
+      return {argument, offset};
+    }
+  }
+
+  Argument* argument = c.getCalledFunction()->arg_begin() + arg_num;
+  return {argument, arg_num};
 }
 
 inline std::vector<llvm::Argument*> args(CallSite c, const Path& p) {
@@ -105,6 +118,34 @@ inline ArgCorrelation correlate2void(CallSite c, const Path& p) {
 inline ArgCorrelation correlate2pointer(CallSite c, const Path& p) {
   // weaker predicate than void pointer, but more generally applicable
   return detail::correlate(c, p, [](llvm::Type* type) { return type->isPointerTy(); });
+}
+
+inline bool isTempAlloc(llvm::Value* in) {
+  const auto farg_stored_to = [](llvm::AllocaInst* inst) -> bool {
+    bool match{false};
+    Function* f = inst->getFunction();
+
+    util::DefUseChain chain;
+    chain.traverse(inst, [&f, &match](auto val) {
+      if (llvm::StoreInst* store = llvm::dyn_cast<StoreInst>(val)) {
+        for (auto& args : f->args()) {
+          if (&args == store->getValueOperand()) {
+            match = true;
+            return util::DefUseChain::cancel;
+          }
+        }
+      }
+      return util::DefUseChain::no_match;
+    });
+
+    return match;
+  };
+  if (llvm::AllocaInst* inst = llvm::dyn_cast<llvm::AllocaInst>(in)) {
+    if (inst->getAllocatedType()->isPointerTy()) {
+      return farg_stored_to(inst);
+    }
+  }
+  return false;
 }
 
 }  // namespace typeart::filter
