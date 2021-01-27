@@ -3,8 +3,6 @@
 // REQUIRES: openmp
 // clang-format on
 
-// FIXME this does fail periodically when CHECK-NEXT is used w.r.t. the [Trace] Free
-
 void f() {
   char c[4];
   double d = 5;

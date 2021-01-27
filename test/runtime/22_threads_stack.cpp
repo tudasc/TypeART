@@ -29,11 +29,9 @@ int main(int argc, char** argv) {
 
   // CHECK: [Trace] Free 0x{{.*}} 0 int8 1 4
   // CHECK-NEXT: [Trace] Free 0x{{.*}} 6 double 8 1
-  // CHECK-NEXT: [Trace] Stack after free
 
   // CHECK: [Trace] Free 0x{{.*}} 0 int8 1 4
   // CHECK-NEXT: [Trace] Free 0x{{.*}} 6 double 8 1
-  // CHECK-NEXT: [Trace] Stack after free
 
 
   return 0;
