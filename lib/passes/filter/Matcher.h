@@ -74,7 +74,7 @@ class FunctionOracleMatcher final : public Matcher {
       if (f_name.startswith("__typeart_")) {
         return MatchResult::ShouldSkip;
       }
-      if (mem_operations.allocKind(f_name) || mem_operations.deallocKind(f_name)) {
+      if (mem_operations.kind(f_name)) {
         return MatchResult::ShouldSkip;
       }
     }
