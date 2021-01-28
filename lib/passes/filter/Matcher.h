@@ -5,6 +5,7 @@
 #ifndef TYPEART_MATCHER_H
 #define TYPEART_MATCHER_H
 
+#include "../analysis/MemOpData.h"
 #include "../support/Util.h"
 
 #include "llvm/ADT/StringSet.h"
@@ -54,6 +55,7 @@ class DefaultStringMatcher final : public Matcher {
 };
 
 class FunctionOracleMatcher final : public Matcher {
+  const MemOps mem_operations{};
   llvm::SmallDenseSet<llvm::StringRef> continue_set{{"sqrt"}, {"cos"}, {"sin"}, {"pow"}, {"fabs"}, {"abs"}, {"log"}};
   llvm::SmallDenseSet<llvm::StringRef> skip_set{{"printf"},       {"sprintf"}, {"snprintf"}, {"fprintf"}, {"puts"},
                                                 {"__cxa_atexit"}, {"fopen"},   {"fclose"},   {"scanf"},   {"strcmp"}};
@@ -62,11 +64,17 @@ class FunctionOracleMatcher final : public Matcher {
   MatchResult match(llvm::CallSite c) const override {
     const auto f = c.getCalledFunction();
     if (f != nullptr) {
-      const auto f_name = util::demangle(f->getName());
+      const StringRef f_name = util::demangle(f->getName());
       if (continue_set.count(f_name) > 0) {
         return MatchResult::ShouldContinue;
       }
       if (skip_set.count(f_name) > 0) {
+        return MatchResult::ShouldSkip;
+      }
+      if (f_name.startswith("__typeart_")) {
+        return MatchResult::ShouldSkip;
+      }
+      if (mem_operations.allocKind(f_name) || mem_operations.deallocKind(f_name)) {
         return MatchResult::ShouldSkip;
       }
     }
