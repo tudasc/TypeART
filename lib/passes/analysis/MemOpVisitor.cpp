@@ -32,16 +32,17 @@ void MemOpVisitor::visitCallBase(llvm::CallBase& cb) {
       return None;
     }
     const auto name = f->getName().str();
-    const auto res  = fMap.find(name);
+
+    const auto res = fMap.find(name);
     if (res != fMap.end()) {
       return {(*res).second};
     }
     return None;
   };
 
-  if (auto val = isInSet(alloc_map)) {
+  if (auto val = isInSet(mem_operations.allocs())) {
     visitMallocLike(cb, val.getValue());
-  } else if (auto val = isInSet(dealloc_map)) {
+  } else if (auto val = isInSet(mem_operations.deallocs())) {
     visitFreeLike(cb, val.getValue());
   }
 }
@@ -127,9 +128,12 @@ void MemOpVisitor::visitMallocLike(llvm::CallBase& ci, MemOpKind k) {
 void MemOpVisitor::visitFreeLike(llvm::CallBase& ci, MemOpKind k) {
   //  LOG_DEBUG(ci.getCalledFunction()->getName());
   MemOpKind kind = k;
+
+  // FIME is that superfluous?
   if (auto f = ci.getCalledFunction()) {
-    if (auto elem = dealloc_map.find(f->getName()); elem != std::end(dealloc_map)) {
-      kind = elem->getValue();
+    auto dkind = mem_operations.deallocKind(f->getName());
+    if (dkind) {
+      kind = dkind.getValue();
     }
   }
 
