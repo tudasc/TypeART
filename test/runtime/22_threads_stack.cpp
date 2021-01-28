@@ -9,7 +9,7 @@
 #include <stdio.h>
 
 void f() {
-  char c[4];
+  char c[7];
   double d = 5;
 }
 
@@ -27,11 +27,11 @@ int main(int argc, char** argv) {
 
   // CHECK-NOT: [Error]
 
-  // CHECK: [Trace] Free 0x{{.*}} 0 int8 1 4
-  // CHECK-NEXT: [Trace] Free 0x{{.*}} 6 double 8 1
+  // CHECK: [Trace] Free 0x{{.*}} 0 int8 1 7
+  // CHECK: [Trace] Free 0x{{.*}} 6 double 8 1
 
-  // CHECK: [Trace] Free 0x{{.*}} 0 int8 1 4
-  // CHECK-NEXT: [Trace] Free 0x{{.*}} 6 double 8 1
+  // CHECK: [Trace] Free 0x{{.*}} 0 int8 1 7
+  // CHECK: [Trace] Free 0x{{.*}} 6 double 8 1
 
 
   return 0;

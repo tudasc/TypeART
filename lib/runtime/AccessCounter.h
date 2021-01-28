@@ -140,6 +140,18 @@ class AccessRecorder {
     numUDefTypes += count;
   }
 
+  inline void incOmpContextStack() {
+    ++omp_stack;
+  }
+
+  inline void incOmpContextHeap() {
+    ++omp_heap;
+  }
+
+  inline void incOmpContextFree() {
+    ++omp_heap_free;
+  }
+
   Counter getHeapAllocs() const {
     return heapAllocs;
   }
@@ -203,6 +215,15 @@ class AccessRecorder {
   Counter getNumUDefTypes() const {
     return numUDefTypes;
   }
+  Counter getOmpHeapCalls() const {
+    return omp_heap;
+  }
+  Counter getOmpFreeCalls() const {
+    return omp_heap_free;
+  }
+  Counter getOmpStackCalls() const {
+    return omp_stack;
+  }
   const std::unordered_set<MemAddr>& getMissing() const {
     return missing;
   }
@@ -247,6 +268,10 @@ class AccessRecorder {
   AtomicCounter zeroAlloc        = 0;
   AtomicCounter nullAndZeroAlloc = 0;
   AtomicCounter numUDefTypes     = 0;
+  AtomicCounter omp_stack        = 0;
+  AtomicCounter omp_heap         = 0;
+  AtomicCounter omp_heap_free    = 0;
+
   std::unordered_set<MemAddr> missing;
   std::unordered_set<MemAddr> seen;
   TypeCountMap stackAlloc;
@@ -290,6 +315,12 @@ class NoneRecorder {
   [[maybe_unused]] inline void incZeroLengthAndNullAddr() {
   }
   [[maybe_unused]] inline void incUDefTypes(size_t count) {
+  }
+  [[maybe_unused]] inline void incOmpContextStack() {
+  }
+  [[maybe_unused]] inline void incOmpContextHeap() {
+  }
+  [[maybe_unused]] inline void incOmpContextFree() {
   }
 };
 

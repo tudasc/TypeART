@@ -298,6 +298,7 @@ void __typeart_alloc_omp(const void* addr, int typeId, size_t count) {
   RUNTIME_GUARD_BEGIN;
   const void* retAddr = __builtin_return_address(0);
   typeart::kRuntimeSystem.allocTracker.onAlloc(addr, typeId, count, retAddr);
+  typeart::kRuntimeSystem.recorder.incOmpContextHeap();
   RUNTIME_GUARD_END;
 }
 
@@ -305,6 +306,7 @@ void __typeart_alloc_stack_omp(const void* addr, int typeId, size_t count) {
   RUNTIME_GUARD_BEGIN;
   const void* retAddr = __builtin_return_address(0);
   typeart::kRuntimeSystem.allocTracker.onAllocStack(addr, typeId, count, retAddr);
+  typeart::kRuntimeSystem.recorder.incOmpContextStack();
   RUNTIME_GUARD_END;
 }
 
@@ -312,6 +314,7 @@ void __typeart_free_omp(const void* addr) {
   RUNTIME_GUARD_BEGIN;
   const void* retAddr = __builtin_return_address(0);
   typeart::kRuntimeSystem.allocTracker.onFreeHeap(addr, retAddr);
+  typeart::kRuntimeSystem.recorder.incOmpContextFree();
   RUNTIME_GUARD_END;
 }
 
