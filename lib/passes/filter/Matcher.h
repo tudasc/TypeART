@@ -64,7 +64,7 @@ class FunctionOracleMatcher final : public Matcher {
   MatchResult match(llvm::CallSite c) const override {
     const auto f = c.getCalledFunction();
     if (f != nullptr) {
-      const StringRef f_name = util::demangle(f->getName());
+      const auto f_name = util::demangle(f->getName());
       if (continue_set.count(f_name) > 0) {
         return MatchResult::ShouldContinue;
       }
