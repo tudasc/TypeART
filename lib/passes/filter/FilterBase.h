@@ -120,15 +120,24 @@ class BaseFilter : public Filter {
       }
 
       // TODO: here we have a definiton OR a omp call, e.g., @__kmpc_fork_call
-      LOG_DEBUG("Looking at: " << c.getCalledFunction()->getName())
+      LOG_DEBUG("Looking at: " << c.getCalledFunction()->getName());
+
+      if constexpr (OmpHelper::WithOmp) {
+        if (OmpHelper::isOmpExecutor(c)) {
+          if (OmpHelper::canDiscardMicrotaskArg(c, path2def)) {
+            LOG_DEBUG("Passed as internal OMP API arg, skipping " << path2def)
+            continue;
+          }
+        }
+      }
 
       auto argv = args(c, path2def);
       if (argv.size() > 1) {
         LOG_DEBUG("All args are looked at.")
       } else if (argv.size() == 1) {
-        LOG_DEBUG("Following 1 arg");
+        LOG_DEBUG("Following 1 arg.");
       } else {
-        LOG_DEBUG("No argument correlation!")
+        LOG_DEBUG("No argument correlation.")
       }
 
       if constexpr (OmpHelper::WithOmp) {
@@ -167,6 +176,7 @@ class BaseFilter : public Filter {
     const auto status = callsite(current, path);
     switch (status) {
       case FilterAnalysis::Keep:
+        LOG_DEBUG("Callsite check, keep")
         return false;
       case FilterAnalysis::Skip:
         skip = true;
@@ -185,7 +195,7 @@ class BaseFilter : public Filter {
       for (auto* successor : successors) {
         if constexpr (OmpHelper::WithOmp) {
           if (OmpHelper::isTaskRelatedStore(successor)) {
-            LOG_DEBUG("Keep, passed to OMP task struct.")
+            LOG_DEBUG("Keep, passed to OMP task struct. " << successor)
             path.push(successor);
             return false;
           }

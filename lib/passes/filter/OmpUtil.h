@@ -40,6 +40,14 @@ struct OmpContext {
     return false;
   }
 
+  static bool isOmpTaskCall(const llvm::CallSite& c) {
+    const auto called = c.getCalledFunction();
+    if (called != nullptr) {
+      return called->getName().endswith("__kmpc_omp_task");
+    }
+    return false;
+  }
+
   static bool isOmpTaskRelated(const llvm::CallSite& c) {
     const auto called = c.getCalledFunction();
     if (called != nullptr) {
@@ -72,6 +80,36 @@ struct OmpContext {
       return {f};
     }
     return llvm::None;
+  }
+
+  static bool canDiscardMicrotaskArg(CallSite c, const Path& path) {
+    auto arg = path.getEndPrev();
+    if (!arg) {
+      return false;
+    }
+
+    Value* in          = arg.getValue();
+    const auto arg_pos = llvm::find_if(c.args(), [&in](const Use& arg_use) -> bool { return arg_use.get() == in; });
+
+    if (arg_pos == c.arg_end()) {
+      return false;
+    }
+
+    auto arg_num = std::distance(c.arg_begin(), arg_pos);
+
+    if (isOmpExecutor(c)) {
+      return arg_num <= 2;
+    }
+
+    if (isOmpTaskAlloc(c)) {
+      return arg_num <= 5;  // task alloc inits the task, discard all 5
+    }
+
+    if (isOmpTaskCall(c)) {
+      return arg_num <= 2;  // task call executes, in theory, discard only first 2
+    }
+
+    return false;
   }
 
   static bool allocaReachesTask(llvm::AllocaInst* alloc) {
@@ -109,7 +147,10 @@ struct OmpContext {
       if (util::omp::isOmpContext(f)) {
         auto operand = store->getPointerOperand();
         if (llvm::GEPOperator* gep = llvm::dyn_cast<llvm::GEPOperator>(operand)) {
-          if (llvm::isa<llvm::StructType>(gep->getSourceElementType())) {
+          auto type = gep->getSourceElementType();
+          // Second condition filters out many struct.ident_t in lulesh omp:
+          if (llvm::isa<llvm::StructType>(type) && !type->getStructName().contains("struct.ident_t")) {
+            //            LOG_FATAL(*(gep->getSourceElementType()))
             return true;
           }
         }
@@ -146,8 +187,16 @@ struct OmpContext {
   }
 
   template <typename Distance>
-  static Distance getArgOffsetToMicrotask(Distance d) {
-    return d - Distance{1};
+  static Distance getArgOffsetToMicrotask(const CallSite& c, Distance d) {
+    if (d < 1) {
+      LOG_WARNING("OMP offset should be > 2 for non-omp-internal args to outlined region")
+      return d;
+    }
+    if (isOmpExecutor(c)) {
+      return d - Distance{1};
+    }
+    LOG_WARNING("Unsupported OMP call.")
+    return d;
   }
 };
 

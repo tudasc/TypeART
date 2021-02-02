@@ -18,6 +18,11 @@ namespace typeart::filter {
 struct IRPath {
   using Node = llvm::Value*;
   std::vector<llvm::Value*> path;
+  // FIXME
+  //  this mechanism tries to avoid endless recurison in loops, i.e.,
+  //  do we bounce around multiple phi nodes (visit counter >1), then
+  //  we should likely skip search, see IRSearch.h
+  std::unordered_map<llvm::Value*, int> phi_cache;
 
   llvm::Optional<Node> getStart() const {
     if (path.empty()) {
@@ -49,6 +54,9 @@ struct IRPath {
   }
 
   void push(Node n) {
+    if (llvm::isa<llvm::PHINode>(n)) {
+      ++(phi_cache[n]);
+    }
     path.push_back(n);
   }
 

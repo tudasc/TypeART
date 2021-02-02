@@ -60,7 +60,7 @@ inline std::pair<llvm::Argument*, int> findArg(CallSite c, const Path& p) {
     auto outlined = omp::OmpContext::getMicrotask(c);
     if (outlined) {
       // Calc the offset of arg in executor to actual arg of the outline function:
-      auto offset        = omp::OmpContext::getArgOffsetToMicrotask(arg_num);
+      auto offset        = omp::OmpContext::getArgOffsetToMicrotask(c, arg_num);
       Argument* argument = (outlined.getValue()->arg_begin() + offset);
       return {argument, offset};
     }
