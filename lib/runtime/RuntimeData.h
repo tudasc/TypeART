@@ -23,6 +23,8 @@
 #include <map>
 #endif
 
+#include "safe_ptr.h"
+
 #include <vector>
 
 namespace typeart {
@@ -51,9 +53,10 @@ struct RuntimeT {
   using PointerMap                = std::map<MemAddr, PointerInfo>;
   static constexpr char MapName[] = "std::map";
 #endif
-  using MapEntry   = PointerMap::value_type;
-  using MapKey     = PointerMap::key_type;
-  using StackEntry = Stack::value_type;
+  using PointerMapSafe = sf::contfree_safe_ptr<PointerMap>;
+  using MapEntry       = PointerMap::value_type;
+  using MapKey         = PointerMap::key_type;
+  using StackEntry     = Stack::value_type;
 };
 
 }  // namespace typeart

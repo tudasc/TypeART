@@ -1,4 +1,4 @@
-// RUN: clang++ -std=c++17 -I%S/../../ -I%S/../../lib/typelib -I%S/../../lib %s -o %s.exe
+// RUN: clang++ -std=c++17 -I%S/../../ -I%S/../../lib/typelib -I%S/../../lib -I%plugin_path/../../_deps/safe_ptr-build %s -o %s.exe
 // RUN: %s.exe 2>&1 | FileCheck %s
 
 // FIXME this test doesn't add to the coverage data.

@@ -120,8 +120,9 @@ AllocState AllocationTracker::doAlloc(const void* addr, int typeId, size_t count
   }
 
   {
-    std::lock_guard<std::shared_mutex> guard(allocMutex);
-    auto& def = allocTypes[addr];
+    auto xlockedTypes = sf::xlock_safe_ptr(allocTypesSafe);
+
+    auto& def = (*xlockedTypes)[addr];
 
     if (unlikely(def.typeId != -1)) {
       recorder.incAddrReuse();
@@ -166,15 +167,29 @@ void AllocationTracker::onAllocGlobal(const void* addr, int typeId, size_t count
 /**
  * Note: The calling function is responsible for ensuring mutual exclusion.
  */
-llvm::Optional<PointerInfo> AllocationTracker::removeEntry(const void* addr) {
-  const auto it = allocTypes.find(addr);
-  if (likely(it != allocTypes.end())) {
+llvm::Optional<PointerInfo> removeEntry(sf::xlocked_safe_ptr<RuntimeT::PointerMapSafe>& xlockedAllocs,
+                                        const void* addr) {
+  const auto it = xlockedAllocs->find(addr);
+  if (likely(it != xlockedAllocs->end())) {
     auto removed = it->second;
-    allocTypes.erase(it);
+    xlockedAllocs->erase(it);
     return removed;
   }
   return {};
 }
+
+///**
+// * Note: The calling function is responsible for ensuring mutual exclusion.
+// */
+// llvm::Optional<PointerInfo> AllocationTracker::removeEntry(const void* addr) {
+//  const auto it = allocTypes.find(addr);
+//  if (likely(it != allocTypes.end())) {
+//    auto removed = it->second;
+//    allocTypes.erase(it);
+//    return removed;
+//  }
+//  return {};
+//}
 
 FreeState AllocationTracker::doFreeHeap(const void* addr, const void* retAddr) {
   if (unlikely(addr == nullptr)) {
@@ -185,8 +200,8 @@ FreeState AllocationTracker::doFreeHeap(const void* addr, const void* retAddr) {
 
   llvm::Optional<PointerInfo> removed;
   {
-    std::lock_guard<std::shared_mutex> guard(allocMutex);
-    removed = removeEntry(addr);
+    auto xlockedAllocs = sf::xlock_safe_ptr(allocTypesSafe);
+    removed            = removeEntry(xlockedAllocs, addr);
   }
   if (unlikely(!removed)) {
     LOG_ERROR("Free on unregistered address " << addr << " (" << retAddr << ")");
@@ -219,10 +234,10 @@ void AllocationTracker::onLeaveScope(int alloca_count, const void* retAddr) {
   LOG_TRACE("Freeing stack (" << alloca_count << ")  " << std::distance(start_pos, threadData.stackVars.cend()))
 
   {
-    std::lock_guard<std::shared_mutex> guard(allocMutex);
-    std::for_each(start_pos, cend, [this, &retAddr](const void* addr) {
+    auto xlockedAllocs = sf::xlock_safe_ptr(allocTypesSafe);
+    std::for_each(start_pos, cend, [this, &xlockedAllocs, &retAddr](const void* addr) {
       assert(addr && "A stack address must not be null.");
-      auto removed = removeEntry(addr);
+      auto removed = removeEntry(xlockedAllocs, addr);
 
       if (unlikely(!removed)) {
         LOG_ERROR("Free on unregistered address " << addr << " (" << retAddr << ")");
@@ -241,15 +256,15 @@ void AllocationTracker::onLeaveScope(int alloca_count, const void* retAddr) {
 }
 
 llvm::Optional<RuntimeT::MapEntry> AllocationTracker::findBaseAlloc(const void* addr) {
-  std::shared_lock guard(allocMutex);
-  if (allocTypes.empty() || addr < allocTypes.begin()->first) {
+  auto slockedAllocs = sf::slock_safe_ptr(allocTypesSafe);
+  if (slockedAllocs->empty() || addr < slockedAllocs->begin()->first) {
     return llvm::None;
   }
 
-  auto it = allocTypes.lower_bound(addr);
-  if (it == allocTypes.end()) {
+  auto it = slockedAllocs->lower_bound(addr);
+  if (it == slockedAllocs->end()) {
     // No element bigger than base address
-    return {*allocTypes.rbegin()};
+    return {*slockedAllocs->rbegin()};
   }
 
   if (it->first == addr) {

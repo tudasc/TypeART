@@ -7,6 +7,7 @@
 
 #include "RuntimeData.h"
 #include "RuntimeInterface.h"
+#include "safe_ptr.h"
 
 #include <atomic>
 #include <map>
@@ -25,26 +26,50 @@ namespace softcounter {
 using Counter       = long long int;
 using AtomicCounter = std::atomic<Counter>;
 
+/**
+ * Updates an atomic maximum value.
+ * Based on https://stackoverflow.com/questions/16190078/how-to-atomically-update-a-maximum-value.
+ * @param maxVal The maximum value.
+ * @param newVal The new value.
+ */
+template <typename T>
+inline void updateMax(std::atomic<T>& maxVal, T newVal) noexcept {
+  T prevMax = maxVal;
+  while (prevMax < newVal && !maxVal.compare_exchange_weak(prevMax, newVal)) {
+  };
+}
+
 class AccessRecorder {
  public:
+  template <typename T>
+  using ContFreeObj =
+      sf::safe_obj<T, sf::contention_free_shared_mutex<>, std::unique_lock<sf::contention_free_shared_mutex<>>,
+                   sf::shared_lock_guard<sf::contention_free_shared_mutex<>>>;
   using TypeCountMap = std::unordered_map<int, Counter>;
-  ~AccessRecorder()  = default;
+  // using TypeCountMapSafe = sf::contfree_safe_ptr<TypeCountMap>;
+  using TypeCountMapSafe = ContFreeObj<TypeCountMap>;
+  using AddressSet       = std::unordered_set<MemAddr>;
+  // using AddressSetSafe = sf::contfree_safe_ptr<AddressSet>;
+  using AddressSetSafe = ContFreeObj<AddressSet>;
+
+  // using MutexT = sf::contention_free_shared_mutex<>;
+  using MutexT = std::shared_mutex;
+
+  ~AccessRecorder() = default;
 
   inline void incHeapAlloc(int typeId, size_t count) {
     ++curHeapAllocs;
 
-    std::lock_guard<std::mutex> guard(recorderMutex);
-
     // Always check here for max
     // A program without free would otherwise never update maxHeap (see test 20_softcounter_max)
-    if (curHeapAllocs > maxHeapAllocs) {
-      maxHeapAllocs = curHeapAllocs.load();
-    }
+    updateMax(maxHeapAllocs, curHeapAllocs.load());
 
     ++heapAllocs;
     if (count > 1) {
       ++heapArray;
     }
+
+    std::lock_guard lock(heapAllocMutex);
     ++heapAlloc[typeId];
   }
 
@@ -55,7 +80,7 @@ class AccessRecorder {
       ++stackArray;
     }
 
-    std::lock_guard<std::mutex> guard(recorderMutex);
+    std::lock_guard lock(stackAllocMutex);
     ++stackAlloc[typeId];
   }
 
@@ -65,8 +90,7 @@ class AccessRecorder {
       ++globalArray;
     }
 
-    std::lock_guard<std::mutex> guard(recorderMutex);
-
+    std::lock_guard lock(globalAllocMutex);
     ++globalAlloc[typeId];
   }
 
@@ -76,8 +100,7 @@ class AccessRecorder {
       ++stackArrayFree;
     }
 
-    std::lock_guard<std::mutex> guard(recorderMutex);
-
+    std::lock_guard lock(stackFreeMutex);
     ++stackFree[typeId];
   }
 
@@ -87,8 +110,7 @@ class AccessRecorder {
       ++heapArrayFree;
     }
 
-    std::lock_guard<std::mutex> guard(recorderMutex);
-
+    std::lock_guard lock(heapFreeMutex);
     ++heapFree[typeId];
   }
 
@@ -101,16 +123,14 @@ class AccessRecorder {
   }
 
   inline void decStackAlloc(size_t amount) {
-    std::lock_guard<std::mutex> guard(recorderMutex);
-    if (curStackAllocs > maxStackAllocs) {
-      maxStackAllocs = curStackAllocs.load();
-    }
+    updateMax(maxStackAllocs, curStackAllocs.load());
     curStackAllocs -= amount;
   }
 
   inline void incUsedInRequest(MemAddr addr) {
-    std::lock_guard<std::mutex> guard(recorderMutex);
     ++addrChecked;
+
+    std::lock_guard lock(seenMutex);
     seen.insert(addr);
   }
 
@@ -119,8 +139,9 @@ class AccessRecorder {
   }
 
   inline void incAddrMissing(MemAddr addr) {
-    std::lock_guard<std::mutex> guard(recorderMutex);
     ++addrMissing;
+
+    std::lock_guard lock(missingMutex);
     missing.insert(addr);
   }
 
@@ -224,25 +245,33 @@ class AccessRecorder {
   Counter getOmpStackCalls() const {
     return omp_stack;
   }
-  const std::unordered_set<MemAddr>& getMissing() const {
+
+  AddressSet getMissing() const {
+    sf::shared_lock_guard slock(missingMutex);
     return missing;
   }
-  const std::unordered_set<MemAddr>& getSeen() const {
+  AddressSet getSeen() const {
+    sf::shared_lock_guard slock(seenMutex);
     return seen;
   }
-  const TypeCountMap& getStackAlloc() const {
+  TypeCountMap getStackAlloc() const {
+    sf::shared_lock_guard slock(stackAllocMutex);
     return stackAlloc;
   }
-  const TypeCountMap& getHeapAlloc() const {
+  TypeCountMap getHeapAlloc() const {
+    sf::shared_lock_guard slock(heapAllocMutex);
     return heapAlloc;
   }
-  const TypeCountMap& getGlobalAlloc() const {
+  TypeCountMap getGlobalAlloc() const {
+    sf::shared_lock_guard slock(globalAllocMutex);
     return globalAlloc;
   }
-  const TypeCountMap& getStackFree() const {
+  TypeCountMap getStackFree() const {
+    sf::shared_lock_guard slock(stackFreeMutex);
     return stackFree;
   }
-  const TypeCountMap& getHeapFree() const {
+  TypeCountMap getHeapFree() const {
+    sf::shared_lock_guard slock(heapFreeMutex);
     return heapFree;
   }
 
@@ -272,15 +301,34 @@ class AccessRecorder {
   AtomicCounter omp_heap         = 0;
   AtomicCounter omp_heap_free    = 0;
 
-  std::unordered_set<MemAddr> missing;
-  std::unordered_set<MemAddr> seen;
-  TypeCountMap stackAlloc;
-  TypeCountMap heapAlloc;
-  TypeCountMap globalAlloc;
-  TypeCountMap stackFree;
-  TypeCountMap heapFree;
+  AddressSet missing;
+  mutable MutexT missingMutex;
 
-  std::mutex recorderMutex;
+  AddressSet seen;
+  mutable MutexT seenMutex;
+
+  TypeCountMap stackAlloc;
+  mutable MutexT stackAllocMutex;
+
+  TypeCountMap heapAlloc;
+  mutable MutexT heapAllocMutex;
+
+  TypeCountMap globalAlloc;
+  mutable MutexT globalAllocMutex;
+
+  TypeCountMap stackFree;
+  mutable MutexT stackFreeMutex;
+
+  TypeCountMap heapFree;
+  mutable MutexT heapFreeMutex;
+
+  //  AddressSetSafe missing;
+  //  AddressSetSafe seen;
+  //  TypeCountMapSafe stackAlloc;
+  //  TypeCountMapSafe heapAlloc;
+  //  TypeCountMapSafe globalAlloc;
+  //  TypeCountMapSafe stackFree;
+  //  TypeCountMapSafe heapFree;
 };
 
 /**
