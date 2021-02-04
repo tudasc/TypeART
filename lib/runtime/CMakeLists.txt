@@ -63,12 +63,12 @@ target_link_libraries(typeart-rt PUBLIC
   ${RUNTIME_LIB_DEPS}
 )
 
-target_include_directories(typeart-rt 
+target_include_directories(typeart-rt
   PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/runtime>
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/typelib>
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
-    $<INSTALL_INTERFACE:include>
+    $<BUILD_INTERFACE:${safe_ptr_include_dir}>
 )
 
 target_include_directories(typeart-rt

@@ -19,3 +19,5 @@ endif()
 if(USE_ABSL)
   add_subdirectory(abseil)
 endif()
+
+add_subdirectory(safe_ptr)
