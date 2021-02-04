@@ -32,6 +32,9 @@ struct RuntimeSystem {
   AllocationTracker allocTracker;
 
   static RuntimeSystem& get() {
+    // As opposed to a global variable, a singleton + instantiation during
+    // the first callback/query avoids some problems when
+    // preloading (especially with MUST).
     static RuntimeSystem instance;
     return instance;
   }
