@@ -23,9 +23,6 @@ std::string toString(const void* addr, const PointerInfo& info);
 }  // namespace debug
 
 struct RuntimeSystem {
-  RuntimeSystem();
-  ~RuntimeSystem();
-
  private:
   TypeDB typeDB{};
 
@@ -33,13 +30,22 @@ struct RuntimeSystem {
   Recorder recorder{};
   TypeResolution typeResolution;
   AllocationTracker allocTracker;
-
   // Needed in the allocation tracking functions to identify whether a call comes from within the runtime or the
   // application.
   static thread_local bool rtScope;
-};
 
-extern RuntimeSystem kRuntimeSystem;
+  static RuntimeSystem& get() {
+    // As opposed to a global variable, a singleton + instantiation during
+    // the first callback/query avoids some problems when
+    // preloading (especially with MUST).
+    static RuntimeSystem instance;
+    return instance;
+  }
+
+ private:
+  RuntimeSystem();
+  ~RuntimeSystem();
+};
 
 }  // namespace typeart
 

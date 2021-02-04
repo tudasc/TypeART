@@ -249,31 +249,31 @@ bool TypeResolution::isValidType(int id) const {
  */
 
 typeart_status typeart_get_builtin_type(const void* addr, typeart::BuiltinType* type) {
-  auto alloc = typeart::kRuntimeSystem.allocTracker.findBaseAlloc(addr);
+  auto alloc = typeart::RuntimeSystem::get().allocTracker.findBaseAlloc(addr);
   if (alloc) {
-    return typeart::kRuntimeSystem.typeResolution.getBuiltinInfo(addr, alloc->second, type);
+    return typeart::RuntimeSystem::get().typeResolution.getBuiltinInfo(addr, alloc->second, type);
   }
   return TA_UNKNOWN_ADDRESS;
 }
 
 typeart_status typeart_get_type(const void* addr, int* type, size_t* count) {
-  auto alloc = typeart::kRuntimeSystem.allocTracker.findBaseAlloc(addr);
-  typeart::kRuntimeSystem.recorder.incUsedInRequest(addr);
+  auto alloc = typeart::RuntimeSystem::get().allocTracker.findBaseAlloc(addr);
+  typeart::RuntimeSystem::get().recorder.incUsedInRequest(addr);
   if (alloc) {
-    return typeart::kRuntimeSystem.typeResolution.getTypeInfo(addr, alloc->first, alloc->second, type, count);
+    return typeart::RuntimeSystem::get().typeResolution.getTypeInfo(addr, alloc->first, alloc->second, type, count);
   }
   return TA_UNKNOWN_ADDRESS;
 }
 
 typeart_status typeart_get_containing_type(const void* addr, int* type, size_t* count, const void** base_address,
                                            size_t* offset) {
-  auto alloc = typeart::kRuntimeSystem.allocTracker.findBaseAlloc(addr);
+  auto alloc = typeart::RuntimeSystem::get().allocTracker.findBaseAlloc(addr);
   if (alloc) {
     auto& allocVal = alloc.getValue();
     *type          = alloc->second.typeId;
     *base_address  = alloc->first;
-    return typeart::kRuntimeSystem.typeResolution.getContainingTypeInfo(addr, alloc->first, alloc->second, count,
-                                                                        offset);
+    return typeart::RuntimeSystem::get().typeResolution.getContainingTypeInfo(addr, alloc->first, alloc->second, count,
+                                                                              offset);
   }
   return TA_UNKNOWN_ADDRESS;
 }
@@ -281,13 +281,13 @@ typeart_status typeart_get_containing_type(const void* addr, int* type, size_t* 
 typeart_status typeart_get_subtype(const void* base_addr, size_t offset, typeart_struct_layout container_layout,
                                    int* subtype, const void** subtype_base_addr, size_t* subtype_offset,
                                    size_t* subtype_count) {
-  return typeart::kRuntimeSystem.typeResolution.getSubTypeInfo(base_addr, offset, container_layout, subtype,
-                                                               subtype_base_addr, subtype_offset, subtype_count);
+  return typeart::RuntimeSystem::get().typeResolution.getSubTypeInfo(base_addr, offset, container_layout, subtype,
+                                                                     subtype_base_addr, subtype_offset, subtype_count);
 }
 
 typeart_status typeart_resolve_type(int id, typeart_struct_layout* struct_layout) {
   const typeart::StructTypeInfo* structInfo;
-  typeart_status status = typeart::kRuntimeSystem.typeResolution.getStructInfo(id, &structInfo);
+  typeart_status status = typeart::RuntimeSystem::get().typeResolution.getStructInfo(id, &structInfo);
   if (status == TA_OK) {
     struct_layout->id           = structInfo->id;
     struct_layout->name         = structInfo->name.c_str();
@@ -301,11 +301,11 @@ typeart_status typeart_resolve_type(int id, typeart_struct_layout* struct_layout
 }
 
 const char* typeart_get_type_name(int id) {
-  return typeart::kRuntimeSystem.typeResolution.getTypeName(id).c_str();
+  return typeart::RuntimeSystem::get().typeResolution.getTypeName(id).c_str();
 }
 
 void typeart_get_return_address(const void* addr, const void** retAddr) {
-  auto alloc = typeart::kRuntimeSystem.allocTracker.findBaseAlloc(addr);
+  auto alloc = typeart::RuntimeSystem::get().allocTracker.findBaseAlloc(addr);
 
   if (alloc) {
     *retAddr = alloc.getValue().second.debug;
