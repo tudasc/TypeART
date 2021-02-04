@@ -57,7 +57,7 @@ class DefaultStringMatcher final : public Matcher {
 class FunctionOracleMatcher final : public Matcher {
   const MemOps mem_operations{};
   llvm::SmallDenseSet<llvm::StringRef> continue_set{
-      {"sqrt"}, {"cos"}, {"sin"}, {"pow"}, {"fabs"}, {"abs"}, {"log"}, {"fscanf"},
+      {"sqrt"}, {"cos"}, {"sin"}, {"pow"}, {"fabs"}, {"abs"}, {"log"}, {"fscanf"}, {"cbrt"}, {"gettimeofday"}
   };
   llvm::SmallDenseSet<llvm::StringRef> skip_set{{"printf"}, {"sprintf"},      {"snprintf"}, {"fprintf"},
                                                 {"puts"},   {"__cxa_atexit"}, {"fopen"},    {"fclose"},

@@ -195,13 +195,12 @@ class BaseFilter : public Filter {
       for (auto* successor : successors) {
         if constexpr (OmpHelper::WithOmp) {
           if (OmpHelper::isTaskRelatedStore(successor)) {
-            LOG_DEBUG("Keep, passed to OMP task struct. " << successor)
+            LOG_DEBUG("Keep, passed to OMP task struct. Current: " << *current << " Succ: " << *successor)
             path.push(successor);
             return false;
           }
         }
 
-        LOG_DEBUG(*successor)
         if (path.contains(successor)) {
           // Avoid recursion (e.g., with store inst pointer operands pointing to an allocation)
           continue;
