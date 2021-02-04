@@ -23,9 +23,6 @@ std::string toString(const void* addr, const PointerInfo& info);
 }  // namespace debug
 
 struct RuntimeSystem {
-  RuntimeSystem();
-  ~RuntimeSystem();
-
  private:
   TypeDB typeDB{};
 
@@ -33,9 +30,16 @@ struct RuntimeSystem {
   Recorder recorder{};
   TypeResolution typeResolution;
   AllocationTracker allocTracker;
-};
 
-extern RuntimeSystem kRuntimeSystem;
+  static RuntimeSystem& get() {
+    static RuntimeSystem instance;
+    return instance;
+  }
+
+ private:
+  RuntimeSystem();
+  ~RuntimeSystem();
+};
 
 }  // namespace typeart
 
