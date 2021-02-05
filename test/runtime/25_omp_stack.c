@@ -17,7 +17,7 @@ int main(int argc, char** argv) {
 #pragma omp section
     f();
   }
-
+  
   // CHECK-NOT: [Error]
 
   // CHECK: [Trace] Free 0x{{.*}} 0 int8 1 4

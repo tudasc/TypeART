@@ -14,7 +14,6 @@ void f() {
 }
 
 int main(int argc, char** argv) {
-
   constexpr unsigned n = 4;
 
   // CHECK: [Trace] TypeART Runtime Trace
@@ -32,7 +31,6 @@ int main(int argc, char** argv) {
 
   // CHECK: [Trace] Free 0x{{.*}} 0 int8 1 7
   // CHECK: [Trace] Free 0x{{.*}} 6 double 8 1
-
 
   return 0;
 }

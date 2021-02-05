@@ -10,13 +10,12 @@
 
 void repeat_alloc_free(unsigned n) {
   for (int i = 0; i < n; i++) {
-    double* d = (double*) malloc(sizeof(double) * n);
+    double* d = (double*)malloc(sizeof(double) * n);
     free(d);
   }
 }
 
 int main(int argc, char** argv) {
-
   constexpr unsigned n = 1000;
 
   // CHECK: [Trace] TypeART Runtime Trace
