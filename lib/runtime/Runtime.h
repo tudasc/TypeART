@@ -24,6 +24,15 @@ std::string toString(const void* addr, const PointerInfo& info);
 
 struct RuntimeSystem {
  private:
+  // rtScope must be set to true before all other members are initialized.
+  // This is achieved by adding this struct as the first member.
+  struct RTScopeInitializer {
+    RTScopeInitializer() {
+      rtScope = true;
+    }
+  };
+
+  RTScopeInitializer rtScopeInit;
   TypeDB typeDB{};
 
  public:

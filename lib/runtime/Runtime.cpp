@@ -42,8 +42,9 @@ inline void printTraceStart() {
 
 static constexpr const char* defaultTypeFileName = "types.yaml";
 
-RuntimeSystem::RuntimeSystem() : typeResolution(typeDB, recorder), allocTracker(typeDB, recorder) {
-  rtScope = true;
+
+
+RuntimeSystem::RuntimeSystem() : rtScopeInit(), typeResolution(typeDB, recorder), allocTracker(typeDB, recorder) {
   debug::printTraceStart();
 
   auto loadTypes = [this](const std::string& file) -> bool {
@@ -94,6 +95,7 @@ RuntimeSystem::~RuntimeSystem() {
   rtScope = false;
 }
 
+// This is initially set to true in order to prevent tracking anything before the runtime library is properly set up.
 thread_local bool RuntimeSystem::rtScope = false;
 
 }  // namespace typeart
