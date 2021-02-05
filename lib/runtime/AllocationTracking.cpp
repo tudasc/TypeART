@@ -21,12 +21,10 @@ using namespace btree;
 #define likely(x) __builtin_expect(!!(x), 1)
 #define unlikely(x) __builtin_expect(!!(x), 0)
 
-#define RUNTIME_GUARD_BEGIN        \
-  if (typeart::typeart_rt_scope) { \
-    return;                        \
-  }                                \
-  typeart::typeart_rt_scope = true
-#define RUNTIME_GUARD_END typeart::typeart_rt_scope = false
+#define TYPEART_RUNTIME_GUARD(NAME) \
+  typeart::RTGuardRAII NAME;        \
+  if (!NAME.shouldTrack())          \
+    return;
 
 namespace typeart {
 
@@ -75,12 +73,7 @@ inline typename std::underlying_type<Enum>::type operator==(Enum lhs, Enum rhs) 
 
 using namespace debug;
 
-/**
- * Ensures that memory tracking functions are not called from within the runtime.
- * TODO: Problematic with respect to future thread safety considerations
- *       -> Change to thread-local
- */
-static bool typeart_rt_scope{false};
+
 
 AllocationTracker::AllocationTracker(const TypeDB& db, Recorder& recorder) : typeDB{db}, recorder{recorder} {
   stackVars.reserve(RuntimeT::StackReserve);
@@ -229,36 +222,31 @@ llvm::Optional<RuntimeT::MapEntry> AllocationTracker::findBaseAlloc(const void* 
 }  // namespace typeart
 
 void __typeart_alloc(const void* addr, int typeId, size_t count) {
-  RUNTIME_GUARD_BEGIN;
+  TYPEART_RUNTIME_GUARD(NAME);
   const void* retAddr = __builtin_return_address(0);
   typeart::RuntimeSystem::get().allocTracker.onAlloc(addr, typeId, count, retAddr);
-  RUNTIME_GUARD_END;
 }
 
 void __typeart_alloc_stack(const void* addr, int typeId, size_t count) {
-  RUNTIME_GUARD_BEGIN;
+  TYPEART_RUNTIME_GUARD(NAME);
   const void* retAddr = __builtin_return_address(0);
   typeart::RuntimeSystem::get().allocTracker.onAllocStack(addr, typeId, count, retAddr);
-  RUNTIME_GUARD_END;
 }
 
 void __typeart_alloc_global(const void* addr, int typeId, size_t count) {
-  RUNTIME_GUARD_BEGIN;
+  TYPEART_RUNTIME_GUARD(NAME);
   const void* retAddr = __builtin_return_address(0);
   typeart::RuntimeSystem::get().allocTracker.onAllocGlobal(addr, typeId, count, retAddr);
-  RUNTIME_GUARD_END;
 }
 
 void __typeart_free(const void* addr) {
-  RUNTIME_GUARD_BEGIN;
+  TYPEART_RUNTIME_GUARD(NAME);
   const void* retAddr = __builtin_return_address(0);
   typeart::RuntimeSystem::get().allocTracker.onFreeHeap(addr, retAddr);
-  RUNTIME_GUARD_END;
 }
 
 void __typeart_leave_scope(int alloca_count) {
-  RUNTIME_GUARD_BEGIN;
+  TYPEART_RUNTIME_GUARD(NAME);
   const void* retAddr = __builtin_return_address(0);
   typeart::RuntimeSystem::get().allocTracker.onLeaveScope(alloca_count, retAddr);
-  RUNTIME_GUARD_END;
 }
