@@ -78,7 +78,7 @@ RuntimeSystem::RuntimeSystem() : rtScopeInit(), typeResolution(typeDB, recorder)
 }
 
 RuntimeSystem::~RuntimeSystem() {
-  RTGuard guard;
+  rtScope = true;
 
   std::string stats;
   llvm::raw_string_ostream stream(stats);
