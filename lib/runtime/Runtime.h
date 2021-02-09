@@ -24,6 +24,15 @@ std::string toString(const void* addr, const PointerInfo& info);
 
 struct RuntimeSystem {
  private:
+  // rtScope must be set to true before all other members are initialized.
+  // This is achieved by adding this struct as the first member.
+  struct RTScopeInitializer {
+    RTScopeInitializer() {
+      rtScope = true;
+    }
+  };
+
+  RTScopeInitializer rtScopeInit;
   TypeDB typeDB{};
 
  public:
@@ -39,9 +48,33 @@ struct RuntimeSystem {
     return instance;
   }
 
+  /**
+   * Ensures that memory tracking functions are not called from within the runtime.
+   */
+  static bool rtScope;
+
  private:
   RuntimeSystem();
   ~RuntimeSystem();
+};
+
+struct RTGuard final {
+  RTGuard() : alreadyInRT(typeart::RuntimeSystem::rtScope) {
+    typeart::RuntimeSystem::rtScope = true;
+  }
+
+  ~RTGuard() {
+    if (!alreadyInRT) {
+      typeart::RuntimeSystem::rtScope = false;
+    }
+  }
+
+  bool shouldTrack() const {
+    return !alreadyInRT;
+  }
+
+ private:
+  const bool alreadyInRT;
 };
 
 }  // namespace typeart

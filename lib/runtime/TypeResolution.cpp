@@ -249,6 +249,7 @@ bool TypeResolution::isValidType(int id) const {
  */
 
 typeart_status typeart_get_builtin_type(const void* addr, typeart::BuiltinType* type) {
+  typeart::RTGuard guard;
   auto alloc = typeart::RuntimeSystem::get().allocTracker.findBaseAlloc(addr);
   if (alloc) {
     return typeart::RuntimeSystem::get().typeResolution.getBuiltinInfo(addr, alloc->second, type);
@@ -257,6 +258,7 @@ typeart_status typeart_get_builtin_type(const void* addr, typeart::BuiltinType* 
 }
 
 typeart_status typeart_get_type(const void* addr, int* type, size_t* count) {
+  typeart::RTGuard guard;
   auto alloc = typeart::RuntimeSystem::get().allocTracker.findBaseAlloc(addr);
   typeart::RuntimeSystem::get().recorder.incUsedInRequest(addr);
   if (alloc) {
@@ -267,6 +269,7 @@ typeart_status typeart_get_type(const void* addr, int* type, size_t* count) {
 
 typeart_status typeart_get_containing_type(const void* addr, int* type, size_t* count, const void** base_address,
                                            size_t* offset) {
+  typeart::RTGuard guard;
   auto alloc = typeart::RuntimeSystem::get().allocTracker.findBaseAlloc(addr);
   if (alloc) {
     auto& allocVal = alloc.getValue();
@@ -281,11 +284,13 @@ typeart_status typeart_get_containing_type(const void* addr, int* type, size_t* 
 typeart_status typeart_get_subtype(const void* base_addr, size_t offset, typeart_struct_layout container_layout,
                                    int* subtype, const void** subtype_base_addr, size_t* subtype_offset,
                                    size_t* subtype_count) {
+  typeart::RTGuard guard;
   return typeart::RuntimeSystem::get().typeResolution.getSubTypeInfo(base_addr, offset, container_layout, subtype,
                                                                      subtype_base_addr, subtype_offset, subtype_count);
 }
 
 typeart_status typeart_resolve_type(int id, typeart_struct_layout* struct_layout) {
+  typeart::RTGuard guard;
   const typeart::StructTypeInfo* structInfo;
   typeart_status status = typeart::RuntimeSystem::get().typeResolution.getStructInfo(id, &structInfo);
   if (status == TA_OK) {
@@ -301,10 +306,12 @@ typeart_status typeart_resolve_type(int id, typeart_struct_layout* struct_layout
 }
 
 const char* typeart_get_type_name(int id) {
+  typeart::RTGuard guard;
   return typeart::RuntimeSystem::get().typeResolution.getTypeName(id).c_str();
 }
 
 void typeart_get_return_address(const void* addr, const void** retAddr) {
+  typeart::RTGuard guard;
   auto alloc = typeart::RuntimeSystem::get().allocTracker.findBaseAlloc(addr);
 
   if (alloc) {

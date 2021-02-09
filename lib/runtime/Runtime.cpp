@@ -42,7 +42,7 @@ inline void printTraceStart() {
 
 static constexpr const char* defaultTypeFileName = "types.yaml";
 
-RuntimeSystem::RuntimeSystem() : typeResolution(typeDB, recorder), allocTracker(typeDB, recorder) {
+RuntimeSystem::RuntimeSystem() : rtScopeInit(), typeResolution(typeDB, recorder), allocTracker(typeDB, recorder) {
   debug::printTraceStart();
 
   auto loadTypes = [this](const std::string& file) -> bool {
@@ -74,9 +74,11 @@ RuntimeSystem::RuntimeSystem() : typeResolution(typeDB, recorder), allocTracker(
   }
   recorder.incUDefTypes(typeList.size());
   LOG_INFO("Recorded types: " << ss.str());
+  rtScope = false;
 }
 
 RuntimeSystem::~RuntimeSystem() {
+  RTGuard guard;
   std::string stats;
   llvm::raw_string_ostream stream(stats);
   softcounter::serialise(recorder, stream);
@@ -85,5 +87,7 @@ RuntimeSystem::~RuntimeSystem() {
     std::cerr << stream.str();
   }
 }
+
+bool RuntimeSystem::rtScope{false};
 
 }  // namespace typeart
