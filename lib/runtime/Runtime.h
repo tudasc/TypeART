@@ -50,7 +50,7 @@ struct RuntimeSystem {
 
   /**
    * Ensures that memory tracking functions are not called from within the runtime.
-  */
+   */
   static bool rtScope;
 
  private:
@@ -64,8 +64,9 @@ struct RTGuard final {
   }
 
   ~RTGuard() {
-    if (!alreadyInRT)
+    if (!alreadyInRT) {
       typeart::RuntimeSystem::rtScope = false;
+    }
   }
 
   bool shouldTrack() const {
