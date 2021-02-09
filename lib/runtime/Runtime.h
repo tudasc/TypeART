@@ -62,8 +62,9 @@ struct RTGuard final {
   }
 
   ~RTGuard() {
-    if (!alreadyInRT)
+    if (!alreadyInRT) {
       typeart::RuntimeSystem::rtScope = false;
+    }
   }
 
   bool shouldTrack() const {

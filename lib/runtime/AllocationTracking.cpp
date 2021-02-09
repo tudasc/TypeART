@@ -21,14 +21,15 @@ using namespace btree;
 #define likely(x) __builtin_expect(!!(x), 1)
 #define unlikely(x) __builtin_expect(!!(x), 0)
 
-#define CONCAT_(x,y) x##y
-#define CONCAT(x,y) CONCAT_(x,y)
+#define CONCAT_(x, y) x##y
+#define CONCAT(x, y) CONCAT_(x, y)
 #define GUARDNAME CONCAT(typeart_guard_, __LINE__)
 
-#define TYPEART_RUNTIME_GUARD \
-  typeart::RTGuard GUARDNAME;        \
-  if (!GUARDNAME.shouldTrack())          \
-    return;
+#define TYPEART_RUNTIME_GUARD     \
+  typeart::RTGuard GUARDNAME;     \
+  if (!GUARDNAME.shouldTrack()) { \
+    return;                       \
+  }
 
 namespace typeart {
 
