@@ -58,12 +58,12 @@ struct RuntimeSystem {
   ~RuntimeSystem();
 };
 
-struct RTGuardRAII final {
-  RTGuardRAII() : alreadyInRT(typeart::RuntimeSystem::rtScope) {
+struct RTGuard final {
+  RTGuard() : alreadyInRT(typeart::RuntimeSystem::rtScope) {
     typeart::RuntimeSystem::rtScope = true;
   }
 
-  ~RTGuardRAII() {
+  ~RTGuard() {
     if (!alreadyInRT)
       typeart::RuntimeSystem::rtScope = false;
   }

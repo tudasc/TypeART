@@ -78,7 +78,7 @@ RuntimeSystem::RuntimeSystem() : rtScopeInit(), typeResolution(typeDB, recorder)
 }
 
 RuntimeSystem::~RuntimeSystem() {
-  RTGuardRAII guard;
+  RTGuard guard;
   std::string stats;
   llvm::raw_string_ostream stream(stats);
   softcounter::serialise(recorder, stream);
