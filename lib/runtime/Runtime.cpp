@@ -42,8 +42,6 @@ inline void printTraceStart() {
 
 static constexpr const char* defaultTypeFileName = "types.yaml";
 
-
-
 RuntimeSystem::RuntimeSystem() : rtScopeInit(), typeResolution(typeDB, recorder), allocTracker(typeDB, recorder) {
   debug::printTraceStart();
 
@@ -80,10 +78,7 @@ RuntimeSystem::RuntimeSystem() : rtScopeInit(), typeResolution(typeDB, recorder)
 }
 
 RuntimeSystem::~RuntimeSystem() {
-  // This needs to be set. Otherwise, functions that have been instrumented and are called during the following
-  // operations will trigger the tracking callbacks. If logging is activated, this will lead then to a crash because
-  // llvm::outs() is already destroyed.
-  rtScope = true;
+  RTGuard guard;
 
   std::string stats;
   llvm::raw_string_ostream stream(stats);
@@ -92,7 +87,6 @@ RuntimeSystem::~RuntimeSystem() {
     // llvm::errs/LOG will crash with virtual call error
     std::cerr << stream.str();
   }
-  rtScope = false;
 }
 
 // This is initially set to true in order to prevent tracking anything before the runtime library is properly set up.

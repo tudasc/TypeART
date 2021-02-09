@@ -56,6 +56,25 @@ struct RuntimeSystem {
   ~RuntimeSystem();
 };
 
+struct RTGuard final {
+  RTGuard() : alreadyInRT(typeart::RuntimeSystem::rtScope) {
+    typeart::RuntimeSystem::rtScope = true;
+  }
+
+  ~RTGuard() {
+    if (!alreadyInRT) {
+      typeart::RuntimeSystem::rtScope = false;
+    }
+  }
+
+  bool shouldTrack() const {
+    return !alreadyInRT;
+  }
+
+ private:
+  const bool alreadyInRT;
+};
+
 }  // namespace typeart
 
 #endif  // TYPEART_RUNTIME_H
