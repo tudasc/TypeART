@@ -39,6 +39,32 @@ inline void updateMax(std::atomic<T>& maxVal, T newVal) noexcept {
   };
 }
 
+struct CounterStats {
+  static CounterStats create(const std::vector<Counter>& vals) {
+    unsigned n   = vals.size();
+    double sum   = std::accumulate(vals.begin(), vals.end(), 0.0);
+    double mean  = sum / n;
+    double sqSum = std::inner_product(vals.begin(), vals.end(), vals.begin(), 0.0);
+    double std   = std::sqrt(sqSum / n - mean * mean);
+    Counter min  = *std::min_element(vals.begin(), vals.end());
+    Counter max  = *std::max_element(vals.begin(), vals.end());
+    return CounterStats(sum, min, max, mean, std);
+  }
+
+  CounterStats(double sum, double min, double max, double mean, double std)
+      : sum(sum), minVal(min), maxVal(max), meanVal(mean), stdVal(std) {
+  }
+
+  CounterStats() {
+  }
+
+  const double sum{0};
+  const double minVal{0};
+  const double maxVal{0};
+  const double meanVal{0};
+  const double stdVal{0};
+};
+
 class AccessRecorder {
  public:
   template <typename T>
@@ -55,6 +81,89 @@ class AccessRecorder {
   // using MutexT = sf::contention_free_shared_mutex<>;
   using MutexT = std::shared_mutex;
 
+  class ThreadRecorder {
+   public:
+    inline void incHeapAlloc(size_t count) {
+      ++heapAllocs;
+      if (count > 1) {
+        heapArray++;
+      }
+    }
+
+    inline void incHeapFree(size_t count) {
+      ++heapAllocsFree;
+      if (count > 1) {
+        ++heapArrayFree;
+      }
+    }
+
+    inline void incStackAlloc(size_t count) {
+      ++curStackAllocs;
+      ++stackAllocs;
+      if (count > 1) {
+        ++stackArray;
+      }
+    }
+
+    inline void incStackFree(size_t count) {
+      ++stackAllocsFree;
+      if (count > 1) {
+        ++stackArrayFree;
+      }
+    }
+
+    inline void decStackAlloc(size_t amount) {
+      updateMax(maxStackAllocs, curStackAllocs.load());
+      curStackAllocs -= amount;
+    }
+
+    Counter getHeapAllocs() const {
+      return heapAllocs;
+    }
+    Counter getHeapArray() const {
+      return heapArray;
+    }
+    Counter getHeapAllocsFree() const {
+      return heapAllocsFree;
+    }
+    Counter getHeapArrayFree() const {
+      return heapArrayFree;
+    }
+    Counter getStackAllocs() const {
+      return stackAllocs;
+    }
+    Counter getMaxStackAllocs() const {
+      return maxStackAllocs;
+    }
+    Counter getCurStackAllocs() const {
+      return curStackAllocs;
+    }
+    Counter getStackArray() const {
+      return stackArray;
+    }
+    Counter getStackAllocsFree() const {
+      return stackAllocsFree;
+    }
+    Counter getStackArrayFree() const {
+      return stackArrayFree;
+    }
+
+   private:
+    AtomicCounter heapAllocs     = 0;
+    AtomicCounter heapArray      = 0;
+    AtomicCounter heapAllocsFree = 0;
+    AtomicCounter heapArrayFree  = 0;
+
+    AtomicCounter stackAllocs     = 0;
+    AtomicCounter curStackAllocs  = 0;
+    AtomicCounter maxStackAllocs  = 0;
+    AtomicCounter stackArray      = 0;
+    AtomicCounter stackAllocsFree = 0;
+    AtomicCounter stackArrayFree  = 0;
+  };
+
+  using ThreadRecorderMap = sf::contfree_safe_ptr<std::unordered_map<std::thread::id, ThreadRecorder>>;
+
   ~AccessRecorder() = default;
 
   inline void incHeapAlloc(int typeId, size_t count) {
@@ -69,16 +178,14 @@ class AccessRecorder {
       ++heapArray;
     }
 
+    getCurrentThreadRecorder().incHeapAlloc(count);
+
     std::lock_guard lock(heapAllocMutex);
     ++heapAlloc[typeId];
   }
 
   inline void incStackAlloc(int typeId, size_t count) {
-    ++curStackAllocs;
-    ++stackAllocs;
-    if (count > 1) {
-      ++stackArray;
-    }
+    getCurrentThreadRecorder().incStackAlloc(count);
 
     std::lock_guard lock(stackAllocMutex);
     ++stackAlloc[typeId];
@@ -95,10 +202,7 @@ class AccessRecorder {
   }
 
   inline void incStackFree(int typeId, size_t count) {
-    ++stackAllocsFree;
-    if (count > 1) {
-      ++stackArrayFree;
-    }
+    getCurrentThreadRecorder().incStackFree(count);
 
     std::lock_guard lock(stackFreeMutex);
     ++stackFree[typeId];
@@ -109,6 +213,8 @@ class AccessRecorder {
     if (count > 1) {
       ++heapArrayFree;
     }
+    
+    getCurrentThreadRecorder().incHeapFree(count);
 
     std::lock_guard lock(heapFreeMutex);
     ++heapFree[typeId];
@@ -123,8 +229,7 @@ class AccessRecorder {
   }
 
   inline void decStackAlloc(size_t amount) {
-    updateMax(maxStackAllocs, curStackAllocs.load());
-    curStackAllocs -= amount;
+    getCurrentThreadRecorder().decStackAlloc(amount);
   }
 
   inline void incUsedInRequest(MemAddr addr) {
@@ -177,7 +282,7 @@ class AccessRecorder {
     return heapAllocs;
   }
   Counter getStackAllocs() const {
-    return stackAllocs;
+    return getStackAllocsThreadStats().sum;
   }
   Counter getGlobalAllocs() const {
     return globalAllocs;
@@ -186,14 +291,14 @@ class AccessRecorder {
     return maxHeapAllocs;
   }
   Counter getMaxStackAllocs() const {
-    return maxStackAllocs;
+    return getMaxStackAllocsThreadStats().maxVal;
   }
   Counter getCurHeapAllocs() const {
     return curHeapAllocs;
   }
-  Counter getCurStackAllocs() const {
-    return curStackAllocs;
-  }
+  //  Counter getCurStackAllocs() const {
+  //    return curStackAllocs;
+  //  }
   Counter getAddrReuses() const {
     return addrReuses;
   }
@@ -204,7 +309,7 @@ class AccessRecorder {
     return addrChecked;
   }
   Counter getStackArray() const {
-    return stackArray;
+    return getStackArrayThreadStats().sum;
   }
   Counter getHeapArray() const {
     return heapArray;
@@ -213,10 +318,10 @@ class AccessRecorder {
     return globalArray;
   }
   Counter getStackAllocsFree() const {
-    return stackAllocsFree;
+    return getStackAllocsFreeThreadStats().sum;
   }
   Counter getStackArrayFree() const {
-    return stackArrayFree;
+    return getStackArrayFreeThreadStats().sum;
   }
   Counter getHeapAllocsFree() const {
     return heapAllocsFree;
@@ -245,6 +350,28 @@ class AccessRecorder {
   Counter getOmpStackCalls() const {
     return omp_stack;
   }
+
+#define THREAD_STATS_GETTER_FN(COUNTER_NAME)                                         \
+  CounterStats get##COUNTER_NAME##ThreadStats() const {                              \
+    auto slockedRecorders = sf::slocked_safe_ptr(threadRecorders);                   \
+    std::vector<Counter> vals(slockedRecorders->size());                             \
+    for (auto It = slockedRecorders->begin(); It != slockedRecorders->end(); It++) { \
+      vals.push_back(It->second.get##COUNTER_NAME());                                \
+    }                                                                                \
+    return CounterStats::create(vals);                                               \
+  }
+
+  THREAD_STATS_GETTER_FN(HeapAllocs)
+  THREAD_STATS_GETTER_FN(HeapArray)
+  THREAD_STATS_GETTER_FN(HeapAllocsFree)
+  THREAD_STATS_GETTER_FN(HeapArrayFree)
+  THREAD_STATS_GETTER_FN(StackAllocs)
+  THREAD_STATS_GETTER_FN(MaxStackAllocs)
+  THREAD_STATS_GETTER_FN(StackArray)
+  THREAD_STATS_GETTER_FN(StackAllocsFree)
+  THREAD_STATS_GETTER_FN(StackArrayFree)
+
+#undef THREAD_STATS_GETTER_FN
 
   AddressSet getMissing() const {
     sf::shared_lock_guard slock(missingMutex);
@@ -275,22 +402,35 @@ class AccessRecorder {
     return heapFree;
   }
 
+  const ThreadRecorderMap& getThreadRecorders() const {
+    return threadRecorders;
+  }
+
+  inline ThreadRecorder& getCurrentThreadRecorder() {
+    auto tid = std::this_thread::get_id();
+    return (*threadRecorders)[tid];
+  }
+
+  size_t getNumThreads() const {
+    return threadRecorders->size();
+  }
+
  private:
-  AtomicCounter heapAllocs       = 0;
-  AtomicCounter stackAllocs      = 0;
-  AtomicCounter globalAllocs     = 0;
-  AtomicCounter maxHeapAllocs    = 0;
-  AtomicCounter maxStackAllocs   = 0;
-  AtomicCounter curHeapAllocs    = 0;
-  AtomicCounter curStackAllocs   = 0;
-  AtomicCounter addrReuses       = 0;
-  AtomicCounter addrMissing      = 0;
-  AtomicCounter addrChecked      = 0;
-  AtomicCounter stackArray       = 0;
-  AtomicCounter heapArray        = 0;
-  AtomicCounter globalArray      = 0;
-  AtomicCounter stackAllocsFree  = 0;
-  AtomicCounter stackArrayFree   = 0;
+  AtomicCounter heapAllocs = 0;
+  //  AtomicCounter stackAllocs      = 0;
+  AtomicCounter globalAllocs  = 0;
+  AtomicCounter maxHeapAllocs = 0;
+  //  AtomicCounter maxStackAllocs   = 0;
+  AtomicCounter curHeapAllocs = 0;
+  //  AtomicCounter curStackAllocs   = 0;
+  AtomicCounter addrReuses  = 0;
+  AtomicCounter addrMissing = 0;
+  AtomicCounter addrChecked = 0;
+  //  AtomicCounter stackArray       = 0;
+  AtomicCounter heapArray   = 0;
+  AtomicCounter globalArray = 0;
+  //  AtomicCounter stackAllocsFree  = 0;
+  //  AtomicCounter stackArrayFree   = 0;
   AtomicCounter heapAllocsFree   = 0;
   AtomicCounter heapArrayFree    = 0;
   AtomicCounter nullAlloc        = 0;
@@ -300,6 +440,8 @@ class AccessRecorder {
   AtomicCounter omp_stack        = 0;
   AtomicCounter omp_heap         = 0;
   AtomicCounter omp_heap_free    = 0;
+
+  ThreadRecorderMap threadRecorders;
 
   AddressSet missing;
   mutable MutexT missingMutex;

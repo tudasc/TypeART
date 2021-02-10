@@ -108,6 +108,27 @@ void serialise(const Recorder& r, llvm::raw_ostream& buf) {
     }
 
     type_table_free.print(buf);
+
+    if (auto numThreads = r.getNumThreads(); numThreads > 1) {
+      Table thread_table("Thread stats (sum, min, max, mean, std)");
+      thread_table.put(Row::make("Number of threads", numThreads));
+
+      auto putStats = [&thread_table](std::string name, CounterStats stats) {
+        thread_table.put(Row::make(name, stats.sum, stats.minVal, stats.maxVal, stats.meanVal, stats.stdVal));
+      };
+
+      putStats("Heap Allocs", r.getHeapAllocsThreadStats());
+      putStats("Heap Arrays", r.getHeapArrayThreadStats());
+      putStats("Heap Allocs Free", r.getHeapAllocsFreeThreadStats());
+      putStats("Heap Array Free", r.getHeapArrayFreeThreadStats());
+      putStats("Stack Allocs", r.getStackAllocsThreadStats());
+      putStats("Stack Arrays", r.getStackArrayThreadStats());
+      putStats("Max. Stack Allocs", r.getMaxStackAllocsThreadStats());
+      putStats("Stack Allocs Free", r.getStackAllocsFreeThreadStats());
+      putStats("Stack Array Free", r.getStackArrayFreeThreadStats());
+
+      thread_table.print(buf);
+    }
   }
 }
 }  // namespace typeart::softcounter

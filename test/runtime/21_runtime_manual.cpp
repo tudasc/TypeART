@@ -68,7 +68,7 @@ void test_stack(softcounter::AccessRecorder& recorder) {
   // CHECK: 2
   o_(getStackAllocs());
   // CHECK: 2
-  o_(getCurStackAllocs());
+  o_(getCurrentThreadRecorder().getCurStackAllocs());
   // CHECK: 0
   o_(getMaxStackAllocs());
 
