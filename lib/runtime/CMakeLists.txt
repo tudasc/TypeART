@@ -48,6 +48,12 @@ if(WRITE_THREAD_COUNTERS)
     )
 endif()
 
+if(ENABLE_TSAN)
+    #message("Building with thread-sanitizer")
+    target_compile_options(typeart-rt PRIVATE -fsanitize=thread)
+    target_link_options(typeart-rt PRIVATE -fsanitize=thread)
+endif()
+
 if(USE_BTREE)
   target_link_libraries(typeart-rt PRIVATE
     google::btree

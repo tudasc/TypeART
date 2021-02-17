@@ -65,12 +65,12 @@ fi
 
 function make_no_optim() {
   # Order: heap and stack/global together, no optimization pass
-  $compiler @TYPEART_INCLUDE_DIRS@ "$omp_flags" -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $typeart_plugin -typeart-alloca -typeart-stats $ta_more_args | llc -x=ir -filetype=obj -o "$tmpfile".o
+  $compiler @TYPEART_INCLUDE_DIRS@ "$omp_flags" @TYPEART_SAN_FLAGS@ -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $typeart_plugin -typeart-alloca -typeart-stats $ta_more_args | llc -x=ir -filetype=obj -o "$tmpfile".o
 }
 
 function make_with_optim() {
   # Order: heap, optimize, alloca with additional args..
-  $compiler @TYPEART_INCLUDE_DIRS@ "$omp_flags" -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $typeart_plugin -typeart-stats $ta_more_args  | opt $optimize -S | opt $typeart_plugin -typeart-no-heap -typeart-alloca -typeart-stats $ta_more_args | llc -x=ir -filetype=obj -o "$tmpfile".o
+  $compiler @TYPEART_INCLUDE_DIRS@ "$omp_flags" @TYPEART_SAN_FLAGS@ -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $typeart_plugin -typeart-stats $ta_more_args  | opt $optimize -S | opt $typeart_plugin -typeart-no-heap -typeart-alloca -typeart-stats $ta_more_args | llc -x=ir -filetype=obj -o "$tmpfile".o
 }
 
 function compile() {
@@ -81,7 +81,7 @@ function compile() {
     make_with_optim
   fi
 
-  $compiler "$tmpfile".o "$omp_flags" "$threads_flags" -L@TYPEART_RT_DIR@ -ltypeart-rt -o "$tmpfile".exe
+  $compiler "$tmpfile".o "$omp_flags" "$threads_flags" @TYPEART_SAN_FLAGS@ -L@TYPEART_RT_DIR@ -ltypeart-rt -o "$tmpfile".exe
 }
 
 compile

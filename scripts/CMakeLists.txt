@@ -22,6 +22,12 @@ function(configure_typeart_script input output)
   set(TYPEART_PLUGIN typeartpass.so)
   set(TYPEART_INCLUDE_DIRS -I${PROJECT_SOURCE_DIR}/lib/typelib)
 
+  if(ENABLE_TSAN)
+    set(TYPEART_SAN_FLAGS "-fsanitize=thread")
+  else()
+    set(TYPEART_SAN_FLAGS "")
+  endif()
+
   # To get execute permission: create run.sh in the binary dir, and copy it to scripts folder with permission
   make_executable(${input} ${output})
 endfunction()
