@@ -20,6 +20,7 @@ option(ENABLE_CODE_COVERAGE "Enable code coverage statistics" OFF)
 option(ENABLE_LLVM_CODE_COVERAGE "Enable llvm-cov code coverage statistics" OFF)
 option(TEST_CONFIGURE_IDE "Add targets so the IDE (e.g., Clion) can interpret test files better" ON)
 mark_as_advanced(TEST_CONFIGURE_IDE)
+option(ENABLE_TSAN "Build runtime lib and tests with fsanitize=thread" OFF)
 
 include(AddLLVM)
 include(llvm-lit)
