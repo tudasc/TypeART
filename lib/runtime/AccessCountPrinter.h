@@ -16,6 +16,7 @@
 #include <string_view>
 #include <unordered_map>
 #include <unordered_set>
+#include <fstream>
 
 namespace typeart::softcounter {
 namespace memory {
@@ -112,24 +113,72 @@ void serialise(const Recorder& r, llvm::raw_ostream& buf) {
     auto numThreads = r.getNumThreads();
 
     Table thread_table("Thread stats (sum, min, max, mean, std)");
-    thread_table.put(Row::make("Number of threads", numThreads));
 
-    auto putStats = [&thread_table](std::string name, CounterStats stats) {
-      thread_table.put(Row::make(name, stats.sum, stats.minVal, stats.maxVal, stats.meanVal, stats.stdVal));
+    auto putVals = [&thread_table](std::string name, const std::vector<Counter>& vals) {
+      Row row(name);
+      for (auto& val : vals) {
+        row.put(Cell(val));
+      }
+      thread_table.put(std::move(row));
     };
 
-    putStats("Thread Heap Allocs", r.getHeapAllocsThreadStats());
-    putStats("Thread Heap Arrays", r.getHeapArrayThreadStats());
-    putStats("Thread Heap Allocs Free", r.getHeapAllocsFreeThreadStats());
-    putStats("Thread Heap Array Free", r.getHeapArrayFreeThreadStats());
-    putStats("Thread Stack Allocs", r.getStackAllocsThreadStats());
-    putStats("Thread Stack Arrays", r.getStackArrayThreadStats());
-    putStats("Thread Max. Stack Allocs", r.getMaxStackAllocsThreadStats());
-    putStats("Thread Stack Allocs Free", r.getStackAllocsFreeThreadStats());
-    putStats("Thread Stack Array Free", r.getStackArrayFreeThreadStats());
+    constexpr int printThreshold = 16;
+    thread_table.put(Row::make("Number of threads", numThreads));
 
+    if (numThreads <= printThreshold) {
+      putVals("Thread Heap Allocs", r.getHeapAllocsThreadData());
+      putVals("Thread Heap Arrays", r.getHeapArrayThreadData());
+      putVals("Thread Heap Allocs Free", r.getHeapAllocsFreeThreadData());
+      putVals("Thread Heap Array Free", r.getHeapArrayFreeThreadData());
+      putVals("Thread Stack Allocs", r.getStackAllocsThreadData());
+      putVals("Thread Stack Arrays", r.getStackArrayThreadData());
+      putVals("Thread Max. Stack Allocs", r.getMaxStackAllocsThreadData());
+      putVals("Thread Stack Allocs Free", r.getStackAllocsFreeThreadData());
+      putVals("Thread Stack Array Free", r.getStackArrayFreeThreadData());
+    } else {
+      thread_table.put(Row::make("Too many threads, output omitted."));
+    }
     thread_table.print(buf);
 
+#ifdef WRITE_THREAD_COUNTERS
+    auto threadsFile = "typeart-thread-counters.csv";
+    std::ofstream fout(threadsFile);
+
+    auto putLine = [&fout](const std::vector<size_t>& vals) {
+      if (vals.empty()) {
+        fout << std::endl;
+        return;
+      }
+      for (unsigned i = 0; i < vals.size()-1; i++) {
+        fout << vals[i] << ",";
+      }
+      fout << vals.back() << std::endl;
+    };
+
+    if (fout) {
+
+      fout << "\'Heap Allocs\'," << "\'Heap Arrays\'," << "\'Heap Allocs Free\'," << "\'Heap Array Free\'," << "\'Stack Allocs\'," << "\'Stack Arrays\'," << "\'Max. Stack Allocs\'," <<  "\'Stack Allocs Free\'," << "\'Stack Array Free\'" << std::endl;
+
+      auto threadIds = r.getThreadIds();
+      for (auto id : threadIds) {
+        std::vector<size_t> vals;
+        auto threadData = r.getThreadDataAsMap(id);
+        vals.push_back(threadData["heapAllocs"]);
+        vals.push_back(threadData["heapArray"]);
+        vals.push_back(threadData["heapAllocsFree"]);
+        vals.push_back(threadData["heapArrayFree"]);
+        vals.push_back(threadData["stackAllocs"]);
+        vals.push_back(threadData["stackArray"]);
+        vals.push_back(threadData["maxStackAllocs"]);
+        vals.push_back(threadData["stackAllocsFree"]);
+        vals.push_back(threadData["stackArrayFree"]);
+        putLine(vals);
+      }
+
+    } else {
+      LOG_ERROR("Unable to write thread counters to file " << threadsFile)
+    }
+#endif
   }
 }
 }  // namespace typeart::softcounter

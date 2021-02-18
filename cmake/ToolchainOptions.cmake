@@ -1,3 +1,5 @@
+include(CMakeDependentOption)
+
 find_package(LLVM 10 REQUIRED CONFIG)
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 
@@ -15,6 +17,7 @@ option(SHOW_STATS "Passes show the statistics vars." ON)
 option(MPI_LOGGER "Whether the logger should use MPI." ON)
 option(MPI_INTERCEPT_LIB "Build MPI interceptor library for prototyping and testing." ON)
 option(SOFTCOUNTERS "Enable software tracking of #tracked addrs. / #distinct checks / etc." OFF)
+cmake_dependent_option(WRITE_THREAD_COUNTERS "Write thread counters to file." ON "SOFTCOUNTERS" OFF)
 option(TEST_CONFIG "Set logging levels to appropriate levels for test runner to succeed" OFF)
 option(ENABLE_CODE_COVERAGE "Enable code coverage statistics" OFF)
 option(ENABLE_LLVM_CODE_COVERAGE "Enable llvm-cov code coverage statistics" OFF)

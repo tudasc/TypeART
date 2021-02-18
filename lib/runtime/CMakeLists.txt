@@ -42,6 +42,12 @@ if(SOFTCOUNTERS)
 	)
 endif()
 
+if(WRITE_THREAD_COUNTERS)
+    target_project_compile_definitions(typeart-rt
+        PRIVATE_DEFS WRITE_THREAD_COUNTERS=1
+    )
+endif()
+
 if(USE_BTREE)
   target_link_libraries(typeart-rt PRIVATE
     google::btree

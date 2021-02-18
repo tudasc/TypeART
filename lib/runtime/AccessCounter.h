@@ -12,6 +12,7 @@
 #include <atomic>
 #include <map>
 #include <mutex>
+#include <functional>
 #include <set>
 #include <sstream>
 #include <string>
@@ -41,10 +42,6 @@ inline void updateMax(std::atomic<T>& maxVal, T newVal) noexcept {
 
 struct CounterStats {
   static CounterStats create(const std::vector<Counter>& vals) {
-    for (auto& x : vals) {
-      std::cout << x << ", ";
-    }
-    std::cout << std::endl;
     unsigned n   = vals.size();
     double sum   = std::accumulate(vals.begin(), vals.end(), 0.0);
     double mean  = sum / n;
@@ -52,14 +49,12 @@ struct CounterStats {
     double std   = std::sqrt(sqSum / n - mean * mean);
     Counter min  = *std::min_element(vals.begin(), vals.end());
     Counter max  = *std::max_element(vals.begin(), vals.end());
-    std::cout << "n=" << n << ", sum=" << sum << ", mean=" << mean << ", min=" << min << ", max=" << max << std::endl;
     return CounterStats(sum, min, max, mean, std);
   }
 
   CounterStats(double sum, double min, double max, double mean, double std)
       : sum(sum), minVal(min), maxVal(max), meanVal(mean), stdVal(std) {
   }
-
 
   const double sum{0};
   const double minVal{0};
@@ -70,16 +65,16 @@ struct CounterStats {
 
 class AccessRecorder {
  public:
-//  template <typename T>
-//  using ContFreeObj =
-//      sf::safe_obj<T, sf::contention_free_shared_mutex<>, std::unique_lock<sf::contention_free_shared_mutex<>>,
-//                   std::shared_lock<sf::contention_free_shared_mutex<>>>;
+  //  template <typename T>
+  //  using ContFreeObj =
+  //      sf::safe_obj<T, sf::contention_free_shared_mutex<>, std::unique_lock<sf::contention_free_shared_mutex<>>,
+  //                   std::shared_lock<sf::contention_free_shared_mutex<>>>;
   using TypeCountMap = std::unordered_map<int, Counter>;
   // using TypeCountMapSafe = sf::contfree_safe_ptr<TypeCountMap>;
-//  using TypeCountMapSafe = ContFreeObj<TypeCountMap>;
-  using AddressSet       = std::unordered_set<MemAddr>;
+  //  using TypeCountMapSafe = ContFreeObj<TypeCountMap>;
+  using AddressSet = std::unordered_set<MemAddr>;
   // using AddressSetSafe = sf::contfree_safe_ptr<AddressSet>;
-//  using AddressSetSafe = ContFreeObj<AddressSet>;
+  //  using AddressSetSafe = ContFreeObj<AddressSet>;
 
   // using MutexT = sf::contention_free_shared_mutex<>;
   using MutexT = std::shared_mutex;
@@ -151,6 +146,21 @@ class AccessRecorder {
       return stackArrayFree;
     }
 
+    std::unordered_map<std::string, Counter> getValuesAsMap() const {
+      std::unordered_map<std::string, Counter> vals;
+      vals["heapAllocs"] = heapAllocs;
+      vals["heapArray"] = heapArray;
+      vals["heapAllocsFree"] = heapAllocsFree;
+      vals["heapArrayFree"] = heapArrayFree;
+      vals["stackAllocs"] = stackAllocs;
+      vals["curStackAllocs"] = curStackAllocs;
+      vals["maxStackAllocs"] = maxStackAllocs;
+      vals["stackArray"] = stackArray;
+      vals["stackAllocsFree"] = stackAllocsFree;
+      vals["stackArrayFree"] = stackArrayFree;
+      return vals;
+    }
+
    private:
     AtomicCounter heapAllocs     = 0;
     AtomicCounter heapArray      = 0;
@@ -165,7 +175,7 @@ class AccessRecorder {
     AtomicCounter stackArrayFree  = 0;
   };
 
-  using ThreadRecorderMap = std::unordered_map<std::thread::id, ThreadRecorder>;
+  using ThreadRecorderMap     = std::unordered_map<std::thread::id, ThreadRecorder>;
   using ThreadRecorderMapSafe = sf::contfree_safe_ptr<ThreadRecorderMap>;
 
   ~AccessRecorder() = default;
@@ -371,15 +381,32 @@ class AccessRecorder {
     return getCurrentThreadRecorder().getCurStackAllocs();
   }
 
-#define THREAD_STATS_GETTER_FN(COUNTER_NAME)                                         \
-  CounterStats get##COUNTER_NAME##ThreadStats() const {                              \
-    std::shared_lock guard(threadRecorderMutex);                                                                                 \
-    std::vector<Counter> vals;                                                       \
-    vals.reserve(threadRecorders.size());                             \
-    for (auto& [id, r] : threadRecorders) { \
-      vals.push_back(r.get##COUNTER_NAME());                                \
-    }                                                                                \
-    return CounterStats::create(vals);                                               \
+#define THREAD_VALS_GETTER_FN(COUNTER_NAME) \
+  std::vector<Counter> get##COUNTER_NAME##ThreadData() const { \
+     std::shared_lock guard(threadRecorderMutex);        \
+    std::vector<Counter> vals;                          \
+    vals.reserve(threadRecorders.size());               \
+    for (auto& [id, r] : threadRecorders) {             \
+      vals.push_back(r.get##COUNTER_NAME());            \
+    }                                       \
+    return vals;                                          \
+  }
+
+  THREAD_VALS_GETTER_FN(HeapAllocs)
+  THREAD_VALS_GETTER_FN(HeapArray)
+  THREAD_VALS_GETTER_FN(HeapAllocsFree)
+  THREAD_VALS_GETTER_FN(HeapArrayFree)
+  THREAD_VALS_GETTER_FN(StackAllocs)
+  THREAD_VALS_GETTER_FN(MaxStackAllocs)
+  THREAD_VALS_GETTER_FN(StackArray)
+  THREAD_VALS_GETTER_FN(StackAllocsFree)
+  THREAD_VALS_GETTER_FN(StackArrayFree)
+
+#undef THREAD_STATS_GETTER_FN
+
+#define THREAD_STATS_GETTER_FN(COUNTER_NAME) \
+  CounterStats get##COUNTER_NAME##ThreadStats() const { \
+     return CounterStats::create(get##COUNTER_NAME##ThreadData()); \
   }
 
   THREAD_STATS_GETTER_FN(HeapAllocs)
@@ -392,7 +419,8 @@ class AccessRecorder {
   THREAD_STATS_GETTER_FN(StackAllocsFree)
   THREAD_STATS_GETTER_FN(StackArrayFree)
 
-#undef THREAD_STATS_GETTER_FN
+
+#undef THREADS_STATS_GETTER_FN
 
   AddressSet getMissing() const {
     std::shared_lock slock(missingMutex);
@@ -422,10 +450,7 @@ class AccessRecorder {
     std::shared_lock slock(heapFreeMutex);
     return heapFree;
   }
-
-  const ThreadRecorderMap& getThreadRecorders() const {
-    return threadRecorders;
-  }
+  
 
   /**
    * Must be locked by the caller.
@@ -436,13 +461,27 @@ class AccessRecorder {
     return threadRecorders[tid];
   }
 
+  std::vector<std::thread::id> getThreadIds() const {
+    std::vector<std::thread::id> ids;
+    std::shared_lock slock(threadRecorderMutex);
+    std::transform(threadRecorders.begin(), threadRecorders.end(), std::back_inserter(ids), [](const auto& pair) {return pair.first;});
+    return ids;
+  }
+
+  std::unordered_map<std::string, Counter> getThreadDataAsMap(std::thread::id threadId) const {
+    std::shared_lock slock(threadRecorderMutex);
+    if (auto it = threadRecorders.find(threadId); it != threadRecorders.end()) {
+      return it->second.getValuesAsMap();
+    }
+    return {};
+  }
+
   size_t getNumThreads() const {
     std::shared_lock guard(threadRecorderMutex);
     return threadRecorders.size();
   }
 
  private:
-
   AtomicCounter heapAllocs = 0;
   //  AtomicCounter stackAllocs      = 0;
   AtomicCounter globalAllocs  = 0;
@@ -468,7 +507,7 @@ class AccessRecorder {
   AtomicCounter omp_heap         = 0;
   AtomicCounter omp_heap_free    = 0;
 
-//  ThreadRecorderMapSafe threadRecorders;
+  //  ThreadRecorderMapSafe threadRecorders;
   mutable MutexT threadRecorderMutex;
   ThreadRecorderMap threadRecorders;
 
