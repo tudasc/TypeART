@@ -9,6 +9,7 @@
 #include "support/Logger.h"
 #include "support/Table.h"
 
+#include <fstream>
 #include <map>
 #include <set>
 #include <sstream>
@@ -16,7 +17,6 @@
 #include <string_view>
 #include <unordered_map>
 #include <unordered_set>
-#include <fstream>
 
 namespace typeart::softcounter {
 namespace memory {
@@ -112,7 +112,9 @@ void serialise(const Recorder& r, llvm::raw_ostream& buf) {
 
     auto numThreads = r.getNumThreads();
 
-    Table thread_table("Thread stats (sum, min, max, mean, std)");
+    std::stringstream ss;
+    ss << "Per-thread counter values (" << numThreads << " threads)";
+    Table thread_table(ss.str());
 
     auto putVals = [&thread_table](std::string name, const std::vector<Counter>& vals) {
       Row row(name);
@@ -123,13 +125,12 @@ void serialise(const Recorder& r, llvm::raw_ostream& buf) {
     };
 
     constexpr int printThreshold = 16;
-    thread_table.put(Row::make("Number of threads", numThreads));
 
     if (numThreads <= printThreshold) {
       putVals("Thread Heap Allocs", r.getHeapAllocsThreadData());
       putVals("Thread Heap Arrays", r.getHeapArrayThreadData());
       putVals("Thread Heap Allocs Free", r.getHeapAllocsFreeThreadData());
-      putVals("Thread Heap Array Free", r.getHeapArrayFreeThreadData());
+      putVals("Thread Heap Arrays Free", r.getHeapArrayFreeThreadData());
       putVals("Thread Stack Allocs", r.getStackAllocsThreadData());
       putVals("Thread Stack Arrays", r.getStackArrayThreadData());
       putVals("Thread Max. Stack Allocs", r.getMaxStackAllocsThreadData());
@@ -149,15 +150,22 @@ void serialise(const Recorder& r, llvm::raw_ostream& buf) {
         fout << std::endl;
         return;
       }
-      for (unsigned i = 0; i < vals.size()-1; i++) {
+      for (unsigned i = 0; i < vals.size() - 1; i++) {
         fout << vals[i] << ",";
       }
       fout << vals.back() << std::endl;
     };
 
     if (fout) {
-
-      fout << "\'Heap Allocs\'," << "\'Heap Arrays\'," << "\'Heap Allocs Free\'," << "\'Heap Array Free\'," << "\'Stack Allocs\'," << "\'Stack Arrays\'," << "\'Max. Stack Allocs\'," <<  "\'Stack Allocs Free\'," << "\'Stack Array Free\'" << std::endl;
+      fout << "\'Heap Allocs\',"
+           << "\'Heap Arrays\',"
+           << "\'Heap Allocs Free\',"
+           << "\'Heap Array Free\',"
+           << "\'Stack Allocs\',"
+           << "\'Stack Arrays\',"
+           << "\'Max. Stack Allocs\',"
+           << "\'Stack Allocs Free\',"
+           << "\'Stack Array Free\'" << std::endl;
 
       auto threadIds = r.getThreadIds();
       for (auto id : threadIds) {

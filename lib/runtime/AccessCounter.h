@@ -10,9 +10,9 @@
 //#include "safe_ptr.h"
 
 #include <atomic>
+#include <functional>
 #include <map>
 #include <mutex>
-#include <functional>
 #include <set>
 #include <sstream>
 #include <string>
@@ -148,16 +148,16 @@ class AccessRecorder {
 
     std::unordered_map<std::string, Counter> getValuesAsMap() const {
       std::unordered_map<std::string, Counter> vals;
-      vals["heapAllocs"] = heapAllocs;
-      vals["heapArray"] = heapArray;
-      vals["heapAllocsFree"] = heapAllocsFree;
-      vals["heapArrayFree"] = heapArrayFree;
-      vals["stackAllocs"] = stackAllocs;
-      vals["curStackAllocs"] = curStackAllocs;
-      vals["maxStackAllocs"] = maxStackAllocs;
-      vals["stackArray"] = stackArray;
+      vals["heapAllocs"]      = heapAllocs;
+      vals["heapArray"]       = heapArray;
+      vals["heapAllocsFree"]  = heapAllocsFree;
+      vals["heapArrayFree"]   = heapArrayFree;
+      vals["stackAllocs"]     = stackAllocs;
+      vals["curStackAllocs"]  = curStackAllocs;
+      vals["maxStackAllocs"]  = maxStackAllocs;
+      vals["stackArray"]      = stackArray;
       vals["stackAllocsFree"] = stackAllocsFree;
-      vals["stackArrayFree"] = stackArrayFree;
+      vals["stackArrayFree"]  = stackArrayFree;
       return vals;
     }
 
@@ -192,7 +192,10 @@ class AccessRecorder {
       ++heapArray;
     }
 
-    getCurrentThreadRecorder().incHeapAlloc(count);
+    {
+      std::lock_guard threadRecorderGuard(threadRecorderMutex);
+      getCurrentThreadRecorder().incHeapAlloc(count);
+    }
 
     std::lock_guard lock(heapAllocMutex);
     ++heapAlloc[typeId];
@@ -381,15 +384,15 @@ class AccessRecorder {
     return getCurrentThreadRecorder().getCurStackAllocs();
   }
 
-#define THREAD_VALS_GETTER_FN(COUNTER_NAME) \
+#define THREAD_VALS_GETTER_FN(COUNTER_NAME)                    \
   std::vector<Counter> get##COUNTER_NAME##ThreadData() const { \
-     std::shared_lock guard(threadRecorderMutex);        \
-    std::vector<Counter> vals;                          \
-    vals.reserve(threadRecorders.size());               \
-    for (auto& [id, r] : threadRecorders) {             \
-      vals.push_back(r.get##COUNTER_NAME());            \
-    }                                       \
-    return vals;                                          \
+    std::shared_lock guard(threadRecorderMutex);               \
+    std::vector<Counter> vals;                                 \
+    vals.reserve(threadRecorders.size());                      \
+    for (auto& [id, r] : threadRecorders) {                    \
+      vals.push_back(r.get##COUNTER_NAME());                   \
+    }                                                          \
+    return vals;                                               \
   }
 
   THREAD_VALS_GETTER_FN(HeapAllocs)
@@ -404,9 +407,9 @@ class AccessRecorder {
 
 #undef THREAD_STATS_GETTER_FN
 
-#define THREAD_STATS_GETTER_FN(COUNTER_NAME) \
-  CounterStats get##COUNTER_NAME##ThreadStats() const { \
-     return CounterStats::create(get##COUNTER_NAME##ThreadData()); \
+#define THREAD_STATS_GETTER_FN(COUNTER_NAME)                      \
+  CounterStats get##COUNTER_NAME##ThreadStats() const {           \
+    return CounterStats::create(get##COUNTER_NAME##ThreadData()); \
   }
 
   THREAD_STATS_GETTER_FN(HeapAllocs)
@@ -418,7 +421,6 @@ class AccessRecorder {
   THREAD_STATS_GETTER_FN(StackArray)
   THREAD_STATS_GETTER_FN(StackAllocsFree)
   THREAD_STATS_GETTER_FN(StackArrayFree)
-
 
 #undef THREADS_STATS_GETTER_FN
 
@@ -450,7 +452,6 @@ class AccessRecorder {
     std::shared_lock slock(heapFreeMutex);
     return heapFree;
   }
-  
 
   /**
    * Must be locked by the caller.
@@ -458,13 +459,17 @@ class AccessRecorder {
    */
   inline ThreadRecorder& getCurrentThreadRecorder() {
     auto tid = std::this_thread::get_id();
+    //    if (threadRecorders.find(tid) == threadRecorders.end()) {
+    //      std::cout << "New thread registered: " << tid << std::endl;
+    //    }
     return threadRecorders[tid];
   }
 
   std::vector<std::thread::id> getThreadIds() const {
     std::vector<std::thread::id> ids;
     std::shared_lock slock(threadRecorderMutex);
-    std::transform(threadRecorders.begin(), threadRecorders.end(), std::back_inserter(ids), [](const auto& pair) {return pair.first;});
+    std::transform(threadRecorders.begin(), threadRecorders.end(), std::back_inserter(ids),
+                   [](const auto& pair) { return pair.first; });
     return ids;
   }
 

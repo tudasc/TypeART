@@ -9,7 +9,7 @@
 void ptr(const int n) {
   // Sections can sometimes cause Max. Heap Allocs to be 1 (instead of more likely 2), if
   // thread execution order always frees one pointer before malloc of other.
-#pragma omp parallel sections
+#pragma omp parallel sections num_threads(2)
   {
 #pragma omp section
     for (int i = 1; i <= n; i++) {
@@ -54,6 +54,16 @@ int main(int argc, char** argv) {
   // CHECK: {{(#|-)+}}
   // CHECK-NEXT: Free allocation type detail (heap, stack)
   // CHECK-NEXT: 6 : 200 ,    0 , double
+  // CHECK: Per-thread counter values (2 threads)
+  // CHECK-NEXT: Thread Heap Allocs       : 100 ,  100
+  // CHECK-NEXT: Thread Heap Arrays       : 100 ,  100
+  // CHECK-NEXT: Thread Heap Allocs Free  : 100 ,  100
+  // CHECK-NEXT: Thread Heap Arrays Free  : 100 ,  100
+  // CHECK-NEXT: Thread Stack Allocs      :   0 ,    0
+  // CHECK-NEXT: Thread Stack Arrays      :   0 ,    0
+  // CHECK-NEXT: Thread Max. Stack Allocs :   0 ,    0
+  // CHECK-NEXT: Thread Stack Allocs Free :   0 ,    0
+  // CHECK-NEXT: Thread Stack Array Free  :   0 ,    0
 
   return 0;
 }
