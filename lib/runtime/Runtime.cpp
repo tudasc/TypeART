@@ -74,7 +74,7 @@ RuntimeSystem::RuntimeSystem() : rtScopeInit(), typeResolution(typeDB, recorder)
   }
   recorder.incUDefTypes(typeList.size());
   LOG_INFO("Recorded types: " << ss.str());
-  rtScope = false;
+  rtScopeInit.reset();
 }
 
 RuntimeSystem::~RuntimeSystem() {

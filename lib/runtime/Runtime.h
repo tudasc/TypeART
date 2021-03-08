@@ -27,9 +27,16 @@ struct RuntimeSystem {
   // rtScope must be set to true before all other members are initialized.
   // This is achieved by adding this struct as the first member.
   struct RTScopeInitializer {
-    RTScopeInitializer() {
+    RTScopeInitializer() : rtScopeWasSet(rtScope){
       rtScope = true;
     }
+
+    void reset() {
+      // Reset rtScope to old value.
+      rtScope = rtScopeWasSet;
+    }
+   private:
+    bool rtScopeWasSet;
   };
 
   RTScopeInitializer rtScopeInit;
