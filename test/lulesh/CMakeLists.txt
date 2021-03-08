@@ -7,15 +7,22 @@ set(TEST_SCRIPT ${WORK_DIR}/run_integration_test.sh)
 set(LULESH_NP 8 CACHE STRING "Number of MPI processes for lulesh")
 mark_as_advanced(LULESH_NP)
 
+if (ENABLE_TSAN)
+    set(TSAN_OPTION "TSAN=yes")
+else()
+    set(TSAN_OPTION "TSAN=no")
+endif()
+
 function(add_integration_test name dir exe_dir np args)
     message(STATUS "Configuring benchmark ${name}")
 
     add_custom_target(build_${name}
-        COMMAND "make" TYPEART=yes
+        COMMAND "make" TYPEART=yes ${TSAN_OPTION}
         WORKING_DIRECTORY ${dir}
     )
     
     set_target_properties(build_${name} PROPERTIES ENVIRONMENT TYPEART_PATH=${CMAKE_BINARY_DIR})
+
     
     add_custom_target(clean_${name}
         COMMAND "make" clean
@@ -23,7 +30,7 @@ function(add_integration_test name dir exe_dir np args)
     )
     
     add_test(NAME test_build_${name}
-        COMMAND "make" TYPEART=yes
+        COMMAND "make" TYPEART=yes ${TSAN_OPTION}
         WORKING_DIRECTORY ${dir}
     )
         
