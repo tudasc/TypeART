@@ -15,6 +15,15 @@ option(ENABLE_LLVM_CODE_COVERAGE "Enable llvm-cov code coverage statistics" OFF)
 option(TEST_CONFIGURE_IDE "Add targets so the IDE (e.g., Clion) can interpret test files better" ON)
 mark_as_advanced(TEST_CONFIGURE_IDE)
 
+# tycart options - begin
+option(WITH_FTI "Enable FTI as backend for TyCart" OFF)
+option(WITH_VELOC "Enable VeloC as backend for TyCart" OFF)
+option(WITH_MINI_CPR "Enable mini-cpr as backend for TyCart" OFF)
+set(FTI_INSTALL_DIR "" CACHE PATH "Path to FTI install directory")
+set(VELOC_INSTALL_DIR "" CACHE PATH "Path to VeloC install directory")
+set(MINI_INSTALL_DIR "" CACHE PATH "Path to mini-cpr install directory")
+# tycart options - end
+
 include(AddLLVM)
 include(llvm-lit)
 include(clang-tidy)
