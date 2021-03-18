@@ -1,6 +1,8 @@
 set(PROJECT_NAME typeart-rt)
 set(TARGETS_EXPORT_NAME ${PROJECT_NAME}-targets)
 
+add_subdirectory(tycart)
+
 set(RUNTIME_LIB_SOURCES
   AccessCounter.h
   CallbackInterface.h
