@@ -35,9 +35,10 @@ target_link_libraries(tycart-rt
 
 target_include_directories(tycart-rt
         PUBLIC
-        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/runtime/tycart>
-        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/runtime>
-        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/typelib>
+        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/runtime/tycart>
+        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/runtime>
+        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/typelib>
+        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/support>
         $<INSTALL_INTERFACE:include>
         )
 
