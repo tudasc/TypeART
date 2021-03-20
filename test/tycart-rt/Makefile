@@ -8,11 +8,11 @@ TYPEART_BASE=../../
 
 
 ifneq ($(VELOC_INSTALL),)
-  INCLUDE_FLAGS=-I$(VELOC_INSTALL)/include -I$(TYPEART_BASE)/typelib -I$(TYPEART_BASE)/runtime/tycart -I$(TYPEART_BASE)/runtime
+  INCLUDE_FLAGS=-I$(VELOC_INSTALL)/include -I$(TYPEART_BASE)/lib/typelib -I$(TYPEART_BASE)/lib/runtime/tycart -I$(TYPEART_BASE)/lib/runtime -I$(TYPEART_BASE)/lib/passes
   CPR_FLAGS=-DWITH_VELOC
   CPR_LIBS=-L$(VELOC_INSTALL)/lib -lveloc-client -lveloc-modules
 else ifneq ($(FTI_INSTALL),)
-  INCLUDE_FLAGS=-I$(FTI_INSTALL)/include -I$(TYPEART_BASE)/typelib -I$(TYPEART_BASE)/runtime/tycart -I$(TYPEART_BASE)/runtime 
+  INCLUDE_FLAGS=-I$(FTI_INSTALL)/include -I$(TYPEART_BASE)/lib/typelib -I$(TYPEART_BASE)/lib/runtime/tycart -I$(TYPEART_BASE)/lib/runtime -I$(TYPEART_BASE)/lib/passes
   CPR_FLAGS=-DWITH_FTI
   CPR_LIBS=-L$(FTI_INSTALL)/lib -lfti
 else
@@ -20,10 +20,10 @@ else
 endif
 
 
-TYPEART_LIBS=-L$(TYPEART_BASE)/build/runtime/tycart -ltycart-rt  -L$(TYPEART_BASE)/build/runtime -ltypeart-rt
+TYPEART_LIBS=-L$(TYPEART_BASE)/build/lib/runtime/tycart -ltycart-rt  -L$(TYPEART_BASE)/build/lib/runtime -ltypeart-rt
 
 
-all: 01_noerr 02_noerr 03_noerr 10_err 11_err 12_err
+all: 01_noerr 02_noerr 10_err 11_err 12_err
 
 info:
 	echo "call with 'make run' and adjust VeloC path using 'make run VELOC_INSTALL=/path'"
@@ -32,9 +32,6 @@ info:
 	$(MPICXX) $(CPR_FLAGS) $(INCLUDE_FLAGS) $< $(TYPEART_LIBS) $(CPR_LIBS) -o $@
 
 02_noerr: 02_noerr.cpp
-	$(MPICXX) $(CPR_FLAGS)  $(INCLUDE_FLAGS) $< $(TYPEART_LIBS) $(CPR_LIBS) -o $@
-
-03_noerr: 03_noerr.cpp
 	$(MPICXX) $(CPR_FLAGS)  $(INCLUDE_FLAGS) $< $(TYPEART_LIBS) $(CPR_LIBS) -o $@
 
 10_err: 10_err.cpp
