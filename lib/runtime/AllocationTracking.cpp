@@ -12,6 +12,7 @@
 #include "support/Logger.h"
 
 #include <algorithm>
+#include <safe_ptr.h>
 #include <string>
 
 #ifdef USE_BTREE
@@ -91,52 +92,72 @@ thread_local ThreadData threadData;
 
 }  // namespace
 
-AllocationTracker::AllocationTracker(const TypeDB& db, Recorder& recorder) : typeDB{db}, recorder{recorder} {
+namespace detail {
+/**
+ * Note: The calling function is responsible for ensuring mutual exclusion.
+ */
+template <typename Map>
+llvm::Optional<PointerInfo> removeEntry(Map& allocs, MemAddr addr) {
+  if constexpr (RuntimeT::has_safe_map) {
+    const auto it = allocs->find(addr);
+    if (likely(it != allocs->end())) {
+      auto removed = it->second;
+      allocs->erase(it);
+      return removed;
+    }
+  } else {
+    const auto it = allocs.find(addr);
+    if (likely(it != allocs.end())) {
+      auto removed = it->second;
+      allocs.erase(it);
+      return removed;
+    }
+  }
+  return llvm::None;
 }
 
-AllocState AllocationTracker::doAlloc(const void* addr, int typeId, size_t count, const void* retAddr) {
-  AllocState status = AllocState::NO_INIT;
-  if (unlikely(!typeDB.isValid(typeId))) {
-    status |= AllocState::UNKNOWN_ID;
-    LOG_ERROR("Allocation of unknown type " << toString(addr, typeId, count, retAddr));
-  }
-
-  // Calling malloc with size 0 may return a nullptr or some address that can not be written to.
-  // In the second case, the allocation is tracked anyway so that onFree() does not report an error.
-  // On the other hand, an allocation on address 0x0 with size > 0 is an actual error.
-  if (unlikely(count == 0)) {
-    recorder.incZeroLengthAddr();
-    status |= AllocState::ZERO_COUNT;
-    LOG_WARNING("Zero-size allocation " << toString(addr, typeId, count, retAddr));
-    if (addr == nullptr) {
-      recorder.incZeroLengthAndNullAddr();
-      LOG_ERROR("Zero-size and nullptr allocation " << toString(addr, typeId, count, retAddr));
-      return status | AllocState::NULL_ZERO | AllocState::ADDR_SKIPPED;
-    }
-  } else if (unlikely(addr == nullptr)) {
-    recorder.incNullAddr();
-    LOG_ERROR("Zero-size allocation " << toString(addr, typeId, count, retAddr));
-    return status | AllocState::NULL_PTR | AllocState::ADDR_SKIPPED;
-  }
-
-  {
-    auto xlockedTypes = sf::xlock_safe_ptr(allocTypesSafe);
-
-    auto& def = (*xlockedTypes)[addr];
-
-    if (unlikely(def.typeId != -1)) {
-      recorder.incAddrReuse();
-      status |= AllocState::ADDR_REUSE;
-      LOG_WARNING("Pointer already in map " << toString(addr, typeId, count, retAddr));
-      LOG_WARNING("Overriden data in map " << toString(addr, def));
+template <typename Map>
+llvm::Optional<RuntimeT::MapEntry> find(Map& allocTypesSafe, MemAddr addr) {
+  if constexpr (RuntimeT::has_safe_map) {
+    auto slockedAllocs = sf::slock_safe_ptr(allocTypesSafe);
+    if (slockedAllocs->empty() || addr < slockedAllocs->begin()->first) {
+      return llvm::None;
     }
 
-    def.typeId = typeId;
-    def.count  = count;
-    def.debug  = retAddr;
-  }
+    auto it = slockedAllocs->lower_bound(addr);
+    if (it == slockedAllocs->end()) {
+      // No element bigger than base address
+      return {*slockedAllocs->rbegin()};
+    }
 
-  return status | AllocState::OK;
+    if (it->first == addr) {
+      // Exact match
+      return {*it};
+    }
+    // Base address
+    return {*std::prev(it)};
+  } else {
+    if (allocTypesSafe.empty() || addr < allocTypesSafe.begin()->first) {
+      return llvm::None;
+    }
+
+    auto it = allocTypesSafe.lower_bound(addr);
+    if (it == allocTypesSafe.end()) {
+      // No element bigger than base address
+      return {*allocTypesSafe.rbegin()};
+    }
+
+    if (it->first == addr) {
+      // Exact match
+      return {*it};
+    }
+    // Base address
+    return {*std::prev(it)};
+  }
+}
+}  // namespace detail
+
+AllocationTracker::AllocationTracker(const TypeDB& db, Recorder& recorder) : typeDB{db}, recorder{recorder} {
 }
 
 void AllocationTracker::onAlloc(const void* addr, int typeId, size_t count, const void* retAddr) {
@@ -164,32 +185,57 @@ void AllocationTracker::onAllocGlobal(const void* addr, int typeId, size_t count
   LOG_TRACE("Alloc " << toString(addr, typeId, count, retAddr) << " " << 'G');
 }
 
-/**
- * Note: The calling function is responsible for ensuring mutual exclusion.
- */
-llvm::Optional<PointerInfo> removeEntry(sf::xlocked_safe_ptr<RuntimeT::PointerMapSafe>& xlockedAllocs,
-                                        const void* addr) {
-  const auto it = xlockedAllocs->find(addr);
-  if (likely(it != xlockedAllocs->end())) {
-    auto removed = it->second;
-    xlockedAllocs->erase(it);
-    return removed;
+AllocState AllocationTracker::doAlloc(const void* addr, int typeId, size_t count, const void* retAddr) {
+  AllocState status = AllocState::NO_INIT;
+  if (unlikely(!typeDB.isValid(typeId))) {
+    status |= AllocState::UNKNOWN_ID;
+    LOG_ERROR("Allocation of unknown type " << toString(addr, typeId, count, retAddr));
   }
-  return {};
-}
 
-///**
-// * Note: The calling function is responsible for ensuring mutual exclusion.
-// */
-// llvm::Optional<PointerInfo> AllocationTracker::removeEntry(const void* addr) {
-//  const auto it = allocTypes.find(addr);
-//  if (likely(it != allocTypes.end())) {
-//    auto removed = it->second;
-//    allocTypes.erase(it);
-//    return removed;
-//  }
-//  return {};
-//}
+  // Calling malloc with size 0 may return a nullptr or some address that can not be written to.
+  // In the second case, the allocation is tracked anyway so that onFree() does not report an error.
+  // On the other hand, an allocation on address 0x0 with size > 0 is an actual error.
+  if (unlikely(count == 0)) {
+    recorder.incZeroLengthAddr();
+    status |= AllocState::ZERO_COUNT;
+    LOG_WARNING("Zero-size allocation " << toString(addr, typeId, count, retAddr));
+    if (addr == nullptr) {
+      recorder.incZeroLengthAndNullAddr();
+      LOG_ERROR("Zero-size and nullptr allocation " << toString(addr, typeId, count, retAddr));
+      return status | AllocState::NULL_ZERO | AllocState::ADDR_SKIPPED;
+    }
+  } else if (unlikely(addr == nullptr)) {
+    recorder.incNullAddr();
+    LOG_ERROR("Zero-size allocation " << toString(addr, typeId, count, retAddr));
+    return status | AllocState::NULL_PTR | AllocState::ADDR_SKIPPED;
+  }
+
+  {  // scope for the mutex
+    const auto set = [&](auto& def) {
+      if (unlikely(def.typeId != -1)) {
+        recorder.incAddrReuse();
+        status |= AllocState::ADDR_REUSE;
+        LOG_WARNING("Pointer already in map " << toString(addr, typeId, count, retAddr));
+        LOG_WARNING("Overridden data in map " << toString(addr, def));
+      }
+      def.typeId = typeId;
+      def.count  = count;
+      def.debug  = retAddr;
+    };
+
+    if constexpr (RuntimeT::has_safe_map) {
+      auto guard = sf::xlock_safe_ptr(allocTypesSafe);
+      set((*guard)[addr]);
+    } else {
+      std::lock_guard<std::shared_mutex> guard(allocMutex);
+#ifndef USE_SAFEPTR
+      set(allocTypesSafe[addr]);
+#endif
+    }
+  }
+
+  return status | AllocState::OK;
+}
 
 FreeState AllocationTracker::doFreeHeap(const void* addr, const void* retAddr) {
   if (unlikely(addr == nullptr)) {
@@ -200,9 +246,15 @@ FreeState AllocationTracker::doFreeHeap(const void* addr, const void* retAddr) {
 
   llvm::Optional<PointerInfo> removed;
   {
-    auto xlockedAllocs = sf::xlock_safe_ptr(allocTypesSafe);
-    removed            = removeEntry(xlockedAllocs, addr);
+    if constexpr (RuntimeT::has_safe_map) {
+      auto xlockedAllocs = sf::xlock_safe_ptr(allocTypesSafe);
+      removed            = detail::removeEntry(xlockedAllocs, addr);
+    } else {
+      std::lock_guard<std::shared_mutex> guard(allocMutex);
+      removed = detail::removeEntry(allocTypesSafe, addr);
+    }
   }
+
   if (unlikely(!removed)) {
     LOG_ERROR("Free on unregistered address " << addr << " (" << retAddr << ")");
     return FreeState::ADDR_SKIPPED | FreeState::UNREG_ADDR;
@@ -234,11 +286,7 @@ void AllocationTracker::onLeaveScope(int alloca_count, const void* retAddr) {
   LOG_TRACE("Freeing stack (" << alloca_count << ")  " << std::distance(start_pos, threadData.stackVars.cend()))
 
   {
-    auto xlockedAllocs = sf::xlock_safe_ptr(allocTypesSafe);
-    std::for_each(start_pos, cend, [this, &xlockedAllocs, &retAddr](const void* addr) {
-      assert(addr && "A stack address must not be null.");
-      auto removed = removeEntry(xlockedAllocs, addr);
-
+    const auto log_ = [&](auto& removed, MemAddr addr) {
       if (unlikely(!removed)) {
         LOG_ERROR("Free on unregistered address " << addr << " (" << retAddr << ")");
       } else {
@@ -247,7 +295,24 @@ void AllocationTracker::onLeaveScope(int alloca_count, const void* retAddr) {
           recorder.incStackFree(removed->typeId, removed->count);
         }
       }
-    });
+    };
+    if constexpr (RuntimeT::has_safe_map) {
+      auto xlockedAllocs = sf::xlock_safe_ptr(allocTypesSafe);
+      std::for_each(start_pos, cend, [&](MemAddr addr) {
+        assert(addr && "A stack address must not be null.");
+        llvm::Optional<PointerInfo> removed;
+        removed = detail::removeEntry(xlockedAllocs, addr);
+        log_(removed, addr);
+      });
+    } else {
+      std::lock_guard<std::shared_mutex> guard(allocMutex);
+      std::for_each(start_pos, cend, [&](MemAddr addr) {
+        assert(addr && "A stack address must not be null.");
+        llvm::Optional<PointerInfo> removed;
+        removed = detail::removeEntry(allocTypesSafe, addr);
+        log_(removed, addr);
+      });
+    }
   }
 
   threadData.stackVars.erase(start_pos, cend);
@@ -256,23 +321,12 @@ void AllocationTracker::onLeaveScope(int alloca_count, const void* retAddr) {
 }
 
 llvm::Optional<RuntimeT::MapEntry> AllocationTracker::findBaseAlloc(const void* addr) {
-  auto slockedAllocs = sf::slock_safe_ptr(allocTypesSafe);
-  if (slockedAllocs->empty() || addr < slockedAllocs->begin()->first) {
-    return llvm::None;
+  if constexpr (RuntimeT::has_safe_map) {
+    return detail::find(allocTypesSafe, addr);
+  } else {
+    std::shared_lock guard(allocMutex);
+    return detail::find(allocTypesSafe, addr);
   }
-
-  auto it = slockedAllocs->lower_bound(addr);
-  if (it == slockedAllocs->end()) {
-    // No element bigger than base address
-    return {*slockedAllocs->rbegin()};
-  }
-
-  if (it->first == addr) {
-    // Exact match
-    return {*it};
-  }
-  // Base address
-  return {*std::prev(it)};
 }
 
 }  // namespace typeart

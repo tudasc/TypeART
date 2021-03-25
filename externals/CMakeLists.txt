@@ -20,4 +20,6 @@ if(USE_ABSL)
   add_subdirectory(abseil)
 endif()
 
-add_subdirectory(safe_ptr)
+if (ENABLE_SAFEPTR)
+  add_subdirectory(safe_ptr)
+endif()

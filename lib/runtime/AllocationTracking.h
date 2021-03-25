@@ -39,7 +39,8 @@ enum class FreeState : unsigned {
 };
 
 class AllocationTracker {
-  RuntimeT::PointerMapSafe allocTypesSafe;
+  RuntimeT::PointerMap allocTypesSafe;
+  std::shared_mutex allocMutex;
   const TypeDB& typeDB;
   Recorder& recorder;
 

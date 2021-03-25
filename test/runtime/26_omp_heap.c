@@ -7,7 +7,7 @@
 
 void repeat_alloc_free(unsigned n) {
   for (int i = 0; i < n; i++) {
-    double* d = (double*) malloc(sizeof(double) * n);
+    double* d = (double*)malloc(sizeof(double) * n);
     free(d);
   }
 }

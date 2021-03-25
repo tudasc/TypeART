@@ -7,17 +7,11 @@ set(TEST_SCRIPT ${WORK_DIR}/run_integration_test.sh)
 set(LULESH_NP 8 CACHE STRING "Number of MPI processes for lulesh")
 mark_as_advanced(LULESH_NP)
 
-if (ENABLE_TSAN)
-    set(TSAN_OPTION "TSAN=yes")
-else()
-    set(TSAN_OPTION "TSAN=no")
-endif()
-
 function(add_integration_test name dir exe_dir np args)
     message(STATUS "Configuring benchmark ${name}")
 
     add_custom_target(build_${name}
-        COMMAND "make" TYPEART=yes ${TSAN_OPTION}
+        COMMAND "make" TYPEART=yes
         WORKING_DIRECTORY ${dir}
     )
     
@@ -30,7 +24,7 @@ function(add_integration_test name dir exe_dir np args)
     )
     
     add_test(NAME test_build_${name}
-        COMMAND "make" TYPEART=yes ${TSAN_OPTION}
+        COMMAND "make" TYPEART=yes
         WORKING_DIRECTORY ${dir}
     )
         
@@ -54,4 +48,8 @@ function(add_integration_test name dir exe_dir np args)
     set_tests_properties(${name} PROPERTIES ENVIRONMENT LLVM_PROFILE_FILE=${TYPEART_PROFILE_DIR}/code-%p-lulesh.profraw)
 endfunction()
 
-add_integration_test("lulesh2.0" "${WORK_DIR}" "${WORK_DIR}" ${LULESH_NP} "-s 12 -i 200")
+if(ENABLE_TSAN)
+    message(WARNING  "TSAN with lulesh is currently unsupported")
+else()
+    add_integration_test("lulesh2.0" "${WORK_DIR}" "${WORK_DIR}" ${LULESH_NP} "-s 12 -i 200")
+endif()

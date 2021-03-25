@@ -7,16 +7,19 @@
 
 #include "RuntimeData.h"
 #include "RuntimeInterface.h"
-//#include "safe_ptr.h"
 
 #include <atomic>
+#include <cmath>
 #include <functional>
 #include <map>
 #include <mutex>
+#include <numeric>
 #include <set>
+#include <shared_mutex>
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <thread>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -27,6 +30,7 @@ namespace softcounter {
 using Counter       = long long int;
 using AtomicCounter = std::atomic<Counter>;
 
+namespace detail {
 /**
  * Updates an atomic maximum value.
  * Based on https://stackoverflow.com/questions/16190078/how-to-atomically-update-a-maximum-value.
@@ -62,121 +66,114 @@ struct CounterStats {
   const double meanVal{0};
   const double stdVal{0};
 };
+}  // namespace detail
+
+namespace thread {
+class ThreadRecorder {
+  friend class AccessRecorder;
+
+ public:
+  inline void incHeapAlloc(size_t count) {
+    ++heapAllocs;
+    if (count > 1) {
+      heapArray++;
+    }
+  }
+
+  inline void incHeapFree(size_t count) {
+    ++heapAllocsFree;
+    if (count > 1) {
+      ++heapArrayFree;
+    }
+  }
+
+  inline void incStackAlloc(size_t count) {
+    ++curStackAllocs;
+    ++stackAllocs;
+    if (count > 1) {
+      ++stackArray;
+    }
+  }
+
+  inline void incStackFree(size_t count) {
+    ++stackAllocsFree;
+    if (count > 1) {
+      ++stackArrayFree;
+    }
+  }
+
+  inline void decStackAlloc(size_t amount) {
+    detail::updateMax(maxStackAllocs, curStackAllocs.load());
+    curStackAllocs -= amount;
+  }
+
+  Counter getHeapAllocs() const {
+    return heapAllocs;
+  }
+  Counter getHeapArray() const {
+    return heapArray;
+  }
+  Counter getHeapAllocsFree() const {
+    return heapAllocsFree;
+  }
+  Counter getHeapArrayFree() const {
+    return heapArrayFree;
+  }
+  Counter getStackAllocs() const {
+    return stackAllocs;
+  }
+  Counter getMaxStackAllocs() const {
+    return maxStackAllocs;
+  }
+  Counter getCurStackAllocs() const {
+    return curStackAllocs;
+  }
+  Counter getStackArray() const {
+    return stackArray;
+  }
+  Counter getStackAllocsFree() const {
+    return stackAllocsFree;
+  }
+  Counter getStackArrayFree() const {
+    return stackArrayFree;
+  }
+
+  std::unordered_map<std::string, Counter> getValuesAsMap() const {
+    std::unordered_map<std::string, Counter> vals;
+    vals["heapAllocs"]      = heapAllocs;
+    vals["heapArray"]       = heapArray;
+    vals["heapAllocsFree"]  = heapAllocsFree;
+    vals["heapArrayFree"]   = heapArrayFree;
+    vals["stackAllocs"]     = stackAllocs;
+    vals["curStackAllocs"]  = curStackAllocs;
+    vals["maxStackAllocs"]  = maxStackAllocs;
+    vals["stackArray"]      = stackArray;
+    vals["stackAllocsFree"] = stackAllocsFree;
+    vals["stackArrayFree"]  = stackArrayFree;
+    return vals;
+  }
+
+ private:
+  AtomicCounter heapAllocs      = 0;
+  AtomicCounter heapArray       = 0;
+  AtomicCounter heapAllocsFree  = 0;
+  AtomicCounter heapArrayFree   = 0;
+  AtomicCounter stackAllocs     = 0;
+  AtomicCounter curStackAllocs  = 0;
+  AtomicCounter maxStackAllocs  = 0;
+  AtomicCounter stackArray      = 0;
+  AtomicCounter stackAllocsFree = 0;
+  AtomicCounter stackArrayFree  = 0;
+};
+
+}  // namespace thread
 
 class AccessRecorder {
  public:
-  //  template <typename T>
-  //  using ContFreeObj =
-  //      sf::safe_obj<T, sf::contention_free_shared_mutex<>, std::unique_lock<sf::contention_free_shared_mutex<>>,
-  //                   std::shared_lock<sf::contention_free_shared_mutex<>>>;
-  using TypeCountMap = std::unordered_map<int, Counter>;
-  // using TypeCountMapSafe = sf::contfree_safe_ptr<TypeCountMap>;
-  //  using TypeCountMapSafe = ContFreeObj<TypeCountMap>;
-  using AddressSet = std::unordered_set<MemAddr>;
-  // using AddressSetSafe = sf::contfree_safe_ptr<AddressSet>;
-  //  using AddressSetSafe = ContFreeObj<AddressSet>;
-
-  // using MutexT = sf::contention_free_shared_mutex<>;
-  using MutexT = std::shared_mutex;
-
-  class ThreadRecorder {
-   public:
-    inline void incHeapAlloc(size_t count) {
-      ++heapAllocs;
-      if (count > 1) {
-        heapArray++;
-      }
-    }
-
-    inline void incHeapFree(size_t count) {
-      ++heapAllocsFree;
-      if (count > 1) {
-        ++heapArrayFree;
-      }
-    }
-
-    inline void incStackAlloc(size_t count) {
-      ++curStackAllocs;
-      ++stackAllocs;
-      if (count > 1) {
-        ++stackArray;
-      }
-    }
-
-    inline void incStackFree(size_t count) {
-      ++stackAllocsFree;
-      if (count > 1) {
-        ++stackArrayFree;
-      }
-    }
-
-    inline void decStackAlloc(size_t amount) {
-      updateMax(maxStackAllocs, curStackAllocs.load());
-      curStackAllocs -= amount;
-    }
-
-    Counter getHeapAllocs() const {
-      return heapAllocs;
-    }
-    Counter getHeapArray() const {
-      return heapArray;
-    }
-    Counter getHeapAllocsFree() const {
-      return heapAllocsFree;
-    }
-    Counter getHeapArrayFree() const {
-      return heapArrayFree;
-    }
-    Counter getStackAllocs() const {
-      return stackAllocs;
-    }
-    Counter getMaxStackAllocs() const {
-      return maxStackAllocs;
-    }
-    Counter getCurStackAllocs() const {
-      return curStackAllocs;
-    }
-    Counter getStackArray() const {
-      return stackArray;
-    }
-    Counter getStackAllocsFree() const {
-      return stackAllocsFree;
-    }
-    Counter getStackArrayFree() const {
-      return stackArrayFree;
-    }
-
-    std::unordered_map<std::string, Counter> getValuesAsMap() const {
-      std::unordered_map<std::string, Counter> vals;
-      vals["heapAllocs"]      = heapAllocs;
-      vals["heapArray"]       = heapArray;
-      vals["heapAllocsFree"]  = heapAllocsFree;
-      vals["heapArrayFree"]   = heapArrayFree;
-      vals["stackAllocs"]     = stackAllocs;
-      vals["curStackAllocs"]  = curStackAllocs;
-      vals["maxStackAllocs"]  = maxStackAllocs;
-      vals["stackArray"]      = stackArray;
-      vals["stackAllocsFree"] = stackAllocsFree;
-      vals["stackArrayFree"]  = stackArrayFree;
-      return vals;
-    }
-
-   private:
-    AtomicCounter heapAllocs     = 0;
-    AtomicCounter heapArray      = 0;
-    AtomicCounter heapAllocsFree = 0;
-    AtomicCounter heapArrayFree  = 0;
-
-    AtomicCounter stackAllocs     = 0;
-    AtomicCounter curStackAllocs  = 0;
-    AtomicCounter maxStackAllocs  = 0;
-    AtomicCounter stackArray      = 0;
-    AtomicCounter stackAllocsFree = 0;
-    AtomicCounter stackArrayFree  = 0;
-  };
-
-  using ThreadRecorderMap     = std::unordered_map<std::thread::id, ThreadRecorder>;
-  using ThreadRecorderMapSafe = sf::contfree_safe_ptr<ThreadRecorderMap>;
+  using TypeCountMap      = std::unordered_map<int, Counter>;
+  using AddressSet        = std::unordered_set<MemAddr>;
+  using MutexT            = std::shared_mutex;
+  using ThreadRecorderMap = std::unordered_map<std::thread::id, thread::ThreadRecorder>;
 
   ~AccessRecorder() = default;
 
@@ -185,7 +182,7 @@ class AccessRecorder {
 
     // Always check here for max
     // A program without free would otherwise never update maxHeap (see test 20_softcounter_max)
-    updateMax(maxHeapAllocs, curHeapAllocs.load());
+    detail::updateMax(maxHeapAllocs, curHeapAllocs.load());
 
     ++heapAllocs;
     if (count > 1) {
@@ -325,9 +322,6 @@ class AccessRecorder {
   Counter getCurHeapAllocs() const {
     return curHeapAllocs;
   }
-  //  Counter getCurStackAllocs() const {
-  //    return curStackAllocs;
-  //  }
   Counter getAddrReuses() const {
     return addrReuses;
   }
@@ -379,9 +373,13 @@ class AccessRecorder {
   Counter getOmpStackCalls() const {
     return omp_stack;
   }
-  Counter getCurrentThreadStackAllocs() {
-    std::lock_guard slock(threadRecorderMutex);
-    return getCurrentThreadRecorder().getCurStackAllocs();
+  /**
+   * Must be locked by the caller.
+   * @return
+   */
+  inline thread::ThreadRecorder& getCurrentThreadRecorder() {
+    const auto tid = std::this_thread::get_id();
+    return threadRecorders[tid];
   }
 
 #define THREAD_VALS_GETTER_FN(COUNTER_NAME)                    \
@@ -389,7 +387,7 @@ class AccessRecorder {
     std::shared_lock guard(threadRecorderMutex);               \
     std::vector<Counter> vals;                                 \
     vals.reserve(threadRecorders.size());                      \
-    for (auto& [id, r] : threadRecorders) {                    \
+    for (const auto& [id, r] : threadRecorders) {              \
       vals.push_back(r.get##COUNTER_NAME());                   \
     }                                                          \
     return vals;                                               \
@@ -407,9 +405,9 @@ class AccessRecorder {
 
 #undef THREAD_STATS_GETTER_FN
 
-#define THREAD_STATS_GETTER_FN(COUNTER_NAME)                      \
-  CounterStats get##COUNTER_NAME##ThreadStats() const {           \
-    return CounterStats::create(get##COUNTER_NAME##ThreadData()); \
+#define THREAD_STATS_GETTER_FN(COUNTER_NAME)                              \
+  detail::CounterStats get##COUNTER_NAME##ThreadStats() const {           \
+    return detail::CounterStats::create(get##COUNTER_NAME##ThreadData()); \
   }
 
   THREAD_STATS_GETTER_FN(HeapAllocs)
@@ -453,18 +451,6 @@ class AccessRecorder {
     return heapFree;
   }
 
-  /**
-   * Must be locked by the caller.
-   * @return
-   */
-  inline ThreadRecorder& getCurrentThreadRecorder() {
-    auto tid = std::this_thread::get_id();
-    //    if (threadRecorders.find(tid) == threadRecorders.end()) {
-    //      std::cout << "New thread registered: " << tid << std::endl;
-    //    }
-    return threadRecorders[tid];
-  }
-
   std::vector<std::thread::id> getThreadIds() const {
     std::vector<std::thread::id> ids;
     std::shared_lock slock(threadRecorderMutex);
@@ -473,35 +459,21 @@ class AccessRecorder {
     return ids;
   }
 
-  std::unordered_map<std::string, Counter> getThreadDataAsMap(std::thread::id threadId) const {
-    std::shared_lock slock(threadRecorderMutex);
-    if (auto it = threadRecorders.find(threadId); it != threadRecorders.end()) {
-      return it->second.getValuesAsMap();
-    }
-    return {};
-  }
-
   size_t getNumThreads() const {
     std::shared_lock guard(threadRecorderMutex);
     return threadRecorders.size();
   }
 
  private:
-  AtomicCounter heapAllocs = 0;
-  //  AtomicCounter stackAllocs      = 0;
-  AtomicCounter globalAllocs  = 0;
-  AtomicCounter maxHeapAllocs = 0;
-  //  AtomicCounter maxStackAllocs   = 0;
-  AtomicCounter curHeapAllocs = 0;
-  //  AtomicCounter curStackAllocs   = 0;
-  AtomicCounter addrReuses  = 0;
-  AtomicCounter addrMissing = 0;
-  AtomicCounter addrChecked = 0;
-  //  AtomicCounter stackArray       = 0;
-  AtomicCounter heapArray   = 0;
-  AtomicCounter globalArray = 0;
-  //  AtomicCounter stackAllocsFree  = 0;
-  //  AtomicCounter stackArrayFree   = 0;
+  AtomicCounter heapAllocs       = 0;
+  AtomicCounter globalAllocs     = 0;
+  AtomicCounter maxHeapAllocs    = 0;
+  AtomicCounter curHeapAllocs    = 0;
+  AtomicCounter addrReuses       = 0;
+  AtomicCounter addrMissing      = 0;
+  AtomicCounter addrChecked      = 0;
+  AtomicCounter heapArray        = 0;
+  AtomicCounter globalArray      = 0;
   AtomicCounter heapAllocsFree   = 0;
   AtomicCounter heapArrayFree    = 0;
   AtomicCounter nullAlloc        = 0;
@@ -536,14 +508,6 @@ class AccessRecorder {
 
   TypeCountMap heapFree;
   mutable MutexT heapFreeMutex;
-
-  //  AddressSetSafe missing;
-  //  AddressSetSafe seen;
-  //  TypeCountMapSafe stackAlloc;
-  //  TypeCountMapSafe heapAlloc;
-  //  TypeCountMapSafe globalAlloc;
-  //  TypeCountMapSafe stackFree;
-  //  TypeCountMapSafe heapFree;
 };
 
 /**

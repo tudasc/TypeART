@@ -71,16 +71,23 @@ elseif(USE_ABSL)
   )
 endif()
 
+if(ENABLE_SAFEPTR)
+  target_project_compile_definitions(typeart-rt
+    PRIVATE_DEFS USE_SAFEPTR
+  )
+endif ()
+
 target_link_libraries(typeart-rt PUBLIC
   ${RUNTIME_LIB_DEPS}
 )
 
-target_include_directories(typeart-rt
+target_include_directories(typeart-rt 
   PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/runtime>
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/typelib>
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
     $<BUILD_INTERFACE:${safe_ptr_include_dir}>
+    $<INSTALL_INTERFACE:include>
 )
 
 target_include_directories(typeart-rt

@@ -5,7 +5,6 @@
 
 #include <stdlib.h>
 
-
 void foo() {
   double d[32];
   float f[32];
@@ -26,7 +25,6 @@ void ptr(const int n) {
 }
 
 int main(int argc, char** argv) {
-
   const int n = 100;
 
   ptr(n);
