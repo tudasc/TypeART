@@ -95,7 +95,7 @@ struct MapOp {
 };
 
 template <typename BaseOp>
-struct StandardMap : public BaseOp {
+struct StandardMap : protected BaseOp {
   RuntimeT::PointerMapBaseT allocTypesSafe;
   mutable std::shared_mutex alloc_m;
 
@@ -148,7 +148,7 @@ struct StandardMap : public BaseOp {
 
 #ifdef USE_SAFEPTR
 template <typename BaseOp>
-struct SafePtrdMap : public BaseOp {
+struct SafePtrdMap : protected BaseOp {
   RuntimeT::PointerMap allocTypesSafe;
 
   template <Mode m = Mode::thread_safe>
