@@ -6,9 +6,8 @@
 #define TYPEART_ALLOCATIONTRACKING_H
 
 #include "AccessCounter.h"
+#include "AllocMapWrapper.h"
 #include "RuntimeData.h"
-
-#include <shared_mutex>
 
 namespace llvm {
 template <typename T>
@@ -39,8 +38,7 @@ enum class FreeState : unsigned {
 };
 
 class AllocationTracker {
-  RuntimeT::PointerMap allocTypesSafe;
-  std::shared_mutex allocMutex;
+  PointerMap wrapper;
   const TypeDB& typeDB;
   Recorder& recorder;
 

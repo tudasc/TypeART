@@ -11,8 +11,10 @@
 #include "TypeDB.h"
 #include "support/Logger.h"
 
+#include "llvm/ADT/Optional.h"
+
 #include <algorithm>
-#include <safe_ptr.h>
+//#include <safe_ptr.h>
 #include <string>
 
 #ifdef USE_BTREE
@@ -80,7 +82,7 @@ inline typename std::underlying_type<Enum>::type operator==(Enum lhs, Enum rhs) 
 using namespace debug;
 
 namespace {
-struct ThreadData {
+struct ThreadData final {
   RuntimeT::Stack stackVars;
 
   ThreadData() {
@@ -91,71 +93,6 @@ struct ThreadData {
 thread_local ThreadData threadData;
 
 }  // namespace
-
-namespace detail {
-/**
- * Note: The calling function is responsible for ensuring mutual exclusion.
- */
-template <typename Map>
-llvm::Optional<PointerInfo> removeEntry(Map& allocs, MemAddr addr) {
-  if constexpr (RuntimeT::has_safe_map) {
-    const auto it = allocs->find(addr);
-    if (likely(it != allocs->end())) {
-      auto removed = it->second;
-      allocs->erase(it);
-      return removed;
-    }
-  } else {
-    const auto it = allocs.find(addr);
-    if (likely(it != allocs.end())) {
-      auto removed = it->second;
-      allocs.erase(it);
-      return removed;
-    }
-  }
-  return llvm::None;
-}
-
-template <typename Map>
-llvm::Optional<RuntimeT::MapEntry> find(Map& allocTypesSafe, MemAddr addr) {
-  if constexpr (RuntimeT::has_safe_map) {
-    auto slockedAllocs = sf::slock_safe_ptr(allocTypesSafe);
-    if (slockedAllocs->empty() || addr < slockedAllocs->begin()->first) {
-      return llvm::None;
-    }
-
-    auto it = slockedAllocs->lower_bound(addr);
-    if (it == slockedAllocs->end()) {
-      // No element bigger than base address
-      return {*slockedAllocs->rbegin()};
-    }
-
-    if (it->first == addr) {
-      // Exact match
-      return {*it};
-    }
-    // Base address
-    return {*std::prev(it)};
-  } else {
-    if (allocTypesSafe.empty() || addr < allocTypesSafe.begin()->first) {
-      return llvm::None;
-    }
-
-    auto it = allocTypesSafe.lower_bound(addr);
-    if (it == allocTypesSafe.end()) {
-      // No element bigger than base address
-      return {*allocTypesSafe.rbegin()};
-    }
-
-    if (it->first == addr) {
-      // Exact match
-      return {*it};
-    }
-    // Base address
-    return {*std::prev(it)};
-  }
-}
-}  // namespace detail
 
 AllocationTracker::AllocationTracker(const TypeDB& db, Recorder& recorder) : typeDB{db}, recorder{recorder} {
 }
@@ -210,28 +147,12 @@ AllocState AllocationTracker::doAlloc(const void* addr, int typeId, size_t count
     return status | AllocState::NULL_PTR | AllocState::ADDR_SKIPPED;
   }
 
-  {  // scope for the mutex
-    const auto set = [&](auto& def) {
-      if (unlikely(def.typeId != -1)) {
-        recorder.incAddrReuse();
-        status |= AllocState::ADDR_REUSE;
-        LOG_WARNING("Pointer already in map " << toString(addr, typeId, count, retAddr));
-        LOG_WARNING("Overridden data in map " << toString(addr, def));
-      }
-      def.typeId = typeId;
-      def.count  = count;
-      def.debug  = retAddr;
-    };
-
-    if constexpr (RuntimeT::has_safe_map) {
-      auto guard = sf::xlock_safe_ptr(allocTypesSafe);
-      set((*guard)[addr]);
-    } else {
-      std::lock_guard<std::shared_mutex> guard(allocMutex);
-#ifndef USE_SAFEPTR
-      set(allocTypesSafe[addr]);
-#endif
-    }
+  const auto overriden = wrapper.put<Mode::thread_safe>(addr, PointerInfo{typeId, count, retAddr});
+  if (unlikely(overriden)) {
+    recorder.incAddrReuse();
+    status |= AllocState::ADDR_REUSE;
+    LOG_WARNING("Pointer already in map " << toString(addr, typeId, count, retAddr));
+    // LOG_WARNING("Overridden data in map " << toString(addr, def));
   }
 
   return status | AllocState::OK;
@@ -244,16 +165,7 @@ FreeState AllocationTracker::doFreeHeap(const void* addr, const void* retAddr) {
     return FreeState::ADDR_SKIPPED | FreeState::NULL_PTR;
   }
 
-  llvm::Optional<PointerInfo> removed;
-  {
-    if constexpr (RuntimeT::has_safe_map) {
-      auto xlockedAllocs = sf::xlock_safe_ptr(allocTypesSafe);
-      removed            = detail::removeEntry(xlockedAllocs, addr);
-    } else {
-      std::lock_guard<std::shared_mutex> guard(allocMutex);
-      removed = detail::removeEntry(allocTypesSafe, addr);
-    }
-  }
+  llvm::Optional<PointerInfo> removed = wrapper.remove<Mode::thread_safe>(addr);
 
   if (unlikely(!removed)) {
     LOG_ERROR("Free on unregistered address " << addr << " (" << retAddr << ")");
@@ -285,35 +197,18 @@ void AllocationTracker::onLeaveScope(int alloca_count, const void* retAddr) {
   const auto start_pos = (cend - alloca_count);
   LOG_TRACE("Freeing stack (" << alloca_count << ")  " << std::distance(start_pos, threadData.stackVars.cend()))
 
-  {
-    const auto log_ = [&](auto& removed, MemAddr addr) {
-      if (unlikely(!removed)) {
-        LOG_ERROR("Free on unregistered address " << addr << " (" << retAddr << ")");
-      } else {
-        LOG_TRACE("Free " << toString(addr, *removed));
-        if constexpr (!std::is_same_v<Recorder, softcounter::NoneRecorder>) {
-          recorder.incStackFree(removed->typeId, removed->count);
-        }
-      }
-    };
-    if constexpr (RuntimeT::has_safe_map) {
-      auto xlockedAllocs = sf::xlock_safe_ptr(allocTypesSafe);
-      std::for_each(start_pos, cend, [&](MemAddr addr) {
-        assert(addr && "A stack address must not be null.");
-        llvm::Optional<PointerInfo> removed;
-        removed = detail::removeEntry(xlockedAllocs, addr);
-        log_(removed, addr);
-      });
+  std::for_each(start_pos, cend, [&](MemAddr addr) {
+    assert(addr && "A stack address must not be null.");
+    llvm::Optional<PointerInfo> removed = wrapper.remove<Mode::thread_safe>(addr);
+    if (unlikely(!removed)) {
+      LOG_ERROR("Free on unregistered address " << addr << " (" << retAddr << ")");
     } else {
-      std::lock_guard<std::shared_mutex> guard(allocMutex);
-      std::for_each(start_pos, cend, [&](MemAddr addr) {
-        assert(addr && "A stack address must not be null.");
-        llvm::Optional<PointerInfo> removed;
-        removed = detail::removeEntry(allocTypesSafe, addr);
-        log_(removed, addr);
-      });
+      LOG_TRACE("Free " << toString(addr, *removed));
+      if constexpr (!std::is_same_v<Recorder, softcounter::NoneRecorder>) {
+        recorder.incStackFree(removed->typeId, removed->count);
+      }
     }
-  }
+  });
 
   threadData.stackVars.erase(start_pos, cend);
   recorder.decStackAlloc(alloca_count);
@@ -321,12 +216,7 @@ void AllocationTracker::onLeaveScope(int alloca_count, const void* retAddr) {
 }
 
 llvm::Optional<RuntimeT::MapEntry> AllocationTracker::findBaseAlloc(const void* addr) {
-  if constexpr (RuntimeT::has_safe_map) {
-    return detail::find(allocTypesSafe, addr);
-  } else {
-    std::shared_lock guard(allocMutex);
-    return detail::find(allocTypesSafe, addr);
-  }
+  return wrapper.find<Mode::thread_safe>(addr);
 }
 
 }  // namespace typeart

@@ -63,6 +63,7 @@ struct RuntimeT {
   static constexpr bool has_safe_map{false};
 #endif
   using MapEntry   = PointerMapBaseT::value_type;
+  using MappedType = PointerMapBaseT::mapped_type;
   using MapKey     = PointerMapBaseT::key_type;
   using StackEntry = Stack::value_type;
 };

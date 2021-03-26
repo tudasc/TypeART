@@ -72,6 +72,9 @@ elseif(USE_ABSL)
 endif()
 
 if(ENABLE_SAFEPTR)
+  target_link_libraries(typeart-rt PRIVATE
+    sf::pointer
+  )
   target_project_compile_definitions(typeart-rt
     PRIVATE_DEFS USE_SAFEPTR
   )
