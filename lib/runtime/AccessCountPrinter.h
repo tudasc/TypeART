@@ -115,6 +115,7 @@ void serialise(const Recorder& r, llvm::raw_ostream& buf) {
     std::stringstream ss;
     ss << "Per-thread counter values (" << numThreads << " threads)";
     Table thread_table(ss.str());
+    thread_table.table_header = '#';
 
     auto print_thread_row = [&thread_table](std::string name, const std::vector<Counter>& vals) {
       Row row(std::move(name));
