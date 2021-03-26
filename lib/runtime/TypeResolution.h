@@ -10,7 +10,11 @@
 #include "RuntimeInterface.h"
 #include "TypeDB.h"
 
+#include <cstddef>
+#include <string>
+
 namespace typeart {
+struct PointerInfo;
 
 class TypeResolution {
   const TypeDB& typeDB;

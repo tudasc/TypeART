@@ -4,8 +4,19 @@
 
 #include "TypeResolution.h"
 
-#include "AccessCountPrinter.h"
+#include "AllocationTracking.h"
 #include "Runtime.h"
+#include "RuntimeData.h"
+#include "support/Logger.h"
+
+#include "llvm/ADT/Optional.h"
+#include "llvm/Support/raw_ostream.h"
+
+#include <cassert>
+#include <cstddef>
+#include <cstdint>
+#include <utility>
+#include <vector>
 
 namespace typeart {
 

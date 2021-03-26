@@ -12,10 +12,13 @@
 #include "support/Logger.h"
 
 #include "llvm/ADT/Optional.h"
+#include "llvm/Support/raw_ostream.h"
 
 #include <algorithm>
-//#include <safe_ptr.h>
-#include <string>
+#include <cassert>
+#include <iterator>
+#include <type_traits>
+#include <vector>
 
 #ifdef USE_BTREE
 using namespace btree;

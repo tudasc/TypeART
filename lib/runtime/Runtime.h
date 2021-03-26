@@ -10,7 +10,11 @@
 #include "TypeDB.h"
 #include "TypeResolution.h"
 
+#include <cstddef>
+#include <string>
+
 namespace typeart {
+struct PointerInfo;
 
 namespace debug {
 

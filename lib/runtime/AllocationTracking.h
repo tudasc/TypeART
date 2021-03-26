@@ -9,6 +9,8 @@
 #include "AllocMapWrapper.h"
 #include "RuntimeData.h"
 
+#include <cstddef>
+
 namespace llvm {
 template <typename T>
 class Optional;
