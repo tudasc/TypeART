@@ -15,6 +15,7 @@ namespace typeart {
 enum class Mode { thread_safe = 0, thread_unsafe };
 
 namespace mixin {
+enum class BulkOperation { remove = 0 };
 
 namespace detail {
 template <typename Map>
@@ -35,7 +36,7 @@ struct PtrWrap final {
 };
 
 template <typename Map>
-[[nodiscard]] PtrWrap<Map> as_ptr(Map& m) {
+[[nodiscard]] inline PtrWrap<Map> as_ptr(Map& m) {
   return PtrWrap<Map>{m};
 }
 }  // namespace detail
@@ -79,6 +80,18 @@ struct MapOp {
     }
     return llvm::None;
   }
+
+  template <BulkOperation Operation, typename Xlocked, typename FwdIter, typename Callback>
+  inline static void bulk_op(Xlocked&& allocs, FwdIter&& s, FwdIter&& e, Callback&& log) {
+    if constexpr (Operation == BulkOperation::remove) {
+      std::for_each(s, e, [&allocs, &log](MemAddr addr) {
+        auto removed = do_remove(std::forward<Xlocked>(allocs), addr);
+        log(removed, addr);
+      });
+    } else {
+      static_assert(true, "Unsupported operation");
+    }
+  }
 };
 
 template <typename BaseOp>
@@ -118,6 +131,19 @@ struct StandardMap : public BaseOp {
       return BaseOp::do_remove(as_ptr(allocTypesSafe), addr);
     }
   }
+
+  template <Mode m = Mode::thread_safe, typename FwdIter, typename Callback>
+  inline void remove_range(FwdIter&& s, FwdIter&& e, Callback&& log) {
+    using namespace detail;
+    if constexpr (m == Mode::thread_safe) {
+      std::lock_guard<std::shared_mutex> guard(alloc_m);
+      BaseOp::template bulk_op<BulkOperation::remove>(as_ptr(allocTypesSafe), std::forward<FwdIter>(s),
+                                                      std::forward<FwdIter>(e), std::forward<Callback>(log));
+    } else {
+      BaseOp::template bulk_op<BulkOperation::remove>(as_ptr(allocTypesSafe), std::forward<FwdIter>(s),
+                                                      std::forward<FwdIter>(e), std::forward<Callback>(log));
+    }
+  }
 };
 
 #ifdef USE_SAFEPTR
@@ -142,6 +168,14 @@ struct SafePtrdMap : public BaseOp {
     static_assert(m != Mode::thread_unsafe, "SafePtrMap is always thread safe.");
     auto guard = sf::xlock_safe_ptr(allocTypesSafe);
     return BaseOp::do_remove(guard, addr);
+  }
+
+  template <Mode m = Mode::thread_safe, typename FwdIter, typename Callback>
+  inline void remove_range(FwdIter&& s, FwdIter&& e, Callback&& log) {
+    using namespace detail;
+    auto guard = sf::xlock_safe_ptr(allocTypesSafe);
+    BaseOp::template bulk_op<BulkOperation::remove>(guard, std::forward<FwdIter>(s), std::forward<FwdIter>(e),
+                                                    std::forward<Callback>(log));
   }
 };
 #endif

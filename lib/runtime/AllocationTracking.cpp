@@ -200,9 +200,7 @@ void AllocationTracker::onLeaveScope(int alloca_count, const void* retAddr) {
   const auto start_pos = (cend - alloca_count);
   LOG_TRACE("Freeing stack (" << alloca_count << ")  " << std::distance(start_pos, threadData.stackVars.cend()))
 
-  std::for_each(start_pos, cend, [&](MemAddr addr) {
-    assert(addr && "A stack address must not be null.");
-    llvm::Optional<PointerInfo> removed = wrapper.remove<Mode::thread_safe>(addr);
+  wrapper.remove_range(start_pos, cend, [&](llvm::Optional<PointerInfo>& removed, MemAddr addr) {
     if (unlikely(!removed)) {
       LOG_ERROR("Free on unregistered address " << addr << " (" << retAddr << ")");
     } else {
