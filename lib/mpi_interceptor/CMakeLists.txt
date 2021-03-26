@@ -19,6 +19,10 @@ if(${MPI_C_FOUND} AND ${PYTHONINTERP_FOUND})
     ${LIB_SOURCE}
   )
 
+  set_property(TARGET interceptor-rt PROPERTY C_STANDARD 11)
+  set_property(TARGET interceptor-rt PROPERTY C_STANDARD_REQUIRED TRUE)
+
+
   target_define_file_basename(interceptor-rt)
   
   target_include_directories(interceptor-rt
