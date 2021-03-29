@@ -150,7 +150,7 @@ AllocState AllocationTracker::doAlloc(const void* addr, int typeId, size_t count
     return status | AllocState::NULL_PTR | AllocState::ADDR_SKIPPED;
   }
 
-  const auto overriden = wrapper.put<Mode::thread_safe>(addr, PointerInfo{typeId, count, retAddr});
+  const auto overriden = wrapper.put(addr, PointerInfo{typeId, count, retAddr});
   if (unlikely(overriden)) {
     recorder.incAddrReuse();
     status |= AllocState::ADDR_REUSE;
@@ -168,7 +168,7 @@ FreeState AllocationTracker::doFreeHeap(const void* addr, const void* retAddr) {
     return FreeState::ADDR_SKIPPED | FreeState::NULL_PTR;
   }
 
-  llvm::Optional<PointerInfo> removed = wrapper.remove<Mode::thread_safe>(addr);
+  llvm::Optional<PointerInfo> removed = wrapper.remove(addr);
 
   if (unlikely(!removed)) {
     LOG_ERROR("Free on unregistered address " << addr << " (" << retAddr << ")");
@@ -217,7 +217,7 @@ void AllocationTracker::onLeaveScope(int alloca_count, const void* retAddr) {
 }
 
 llvm::Optional<RuntimeT::MapEntry> AllocationTracker::findBaseAlloc(const void* addr) {
-  return wrapper.find<Mode::thread_safe>(addr);
+  return wrapper.find(addr);
 }
 
 }  // namespace typeart

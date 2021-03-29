@@ -24,6 +24,9 @@
 #endif
 
 #ifdef USE_SAFEPTR
+#ifdef DISABLE_THREAD_SAFETY
+#error TypeART-RT: Safe_ptr and disabled thread safety illegal
+#endif
 #include "safe_ptr.h"
 #endif
 

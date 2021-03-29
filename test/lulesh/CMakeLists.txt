@@ -49,7 +49,7 @@ function(add_integration_test name dir exe_dir np args)
 endfunction()
 
 if(ENABLE_TSAN)
-    message(WARNING  "TSAN with lulesh is currently unsupported")
+    message(STATUS  "TSAN with lulesh is currently unsupported")
 else()
     add_integration_test("lulesh2.0" "${WORK_DIR}" "${WORK_DIR}" ${LULESH_NP} "-s 12 -i 200")
 endif()

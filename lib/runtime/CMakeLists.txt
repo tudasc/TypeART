@@ -42,12 +42,6 @@ if(SOFTCOUNTERS)
 	)
 endif()
 
-if(WRITE_THREAD_COUNTERS)
-    target_project_compile_definitions(typeart-rt
-        PRIVATE_DEFS WRITE_THREAD_COUNTERS=1
-    )
-endif()
-
 if(ENABLE_TSAN)
     #message("Building with thread-sanitizer")
     target_compile_options(typeart-rt PRIVATE -fsanitize=thread)
@@ -79,6 +73,12 @@ if(ENABLE_SAFEPTR)
     PRIVATE_DEFS USE_SAFEPTR
   )
 endif ()
+
+if(DISABLE_THREAD_SAFETY)
+  target_project_compile_definitions(typeart-rt
+    PRIVATE_DEFS DISABLE_THREAD_SAFETY
+    )
+endif()
 
 target_link_libraries(typeart-rt PUBLIC
   ${RUNTIME_LIB_DEPS}

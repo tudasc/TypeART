@@ -1,6 +1,6 @@
 // clang-format off
-// RUN: OMP_NUM_THREAD=4 %run %s -o -O1 --thread 2>&1 | FileCheck %s
-// REQUIRES: openmp && softcounter
+// RUN: %run %s -o -O1 --thread 2>&1 | FileCheck %s
+// REQUIRES: thread && softcounter
 // clang-format on
 
 #include "../../lib/runtime/CallbackInterface.h"
