@@ -77,7 +77,7 @@ endif ()
 if(DISABLE_THREAD_SAFETY)
   target_project_compile_definitions(typeart-rt
     PRIVATE_DEFS DISABLE_THREAD_SAFETY
-    )
+  )
 endif()
 
 target_link_libraries(typeart-rt PUBLIC
@@ -89,7 +89,6 @@ target_include_directories(typeart-rt
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/runtime>
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/typelib>
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
-    $<BUILD_INTERFACE:${safe_ptr_include_dir}>
     $<INSTALL_INTERFACE:include>
 )
 
