@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <vector>
 #include <algorithm>
+#include <random>
 
 template <typename S, typename E>
 void repeat_alloc(S s, E e) {
@@ -20,12 +21,13 @@ void repeat_dealloc(S s, E e) {
 }
 
 std::vector<int> unique_rand(const unsigned size) {
-  std::srand(42);
   std::vector<int> vec(size);
-  std::generate(vec.begin(), vec.end(), std::rand);
+  std::iota(vec.begin(), vec.end(), 1);
 
-  sort(vec.begin(), vec.end());
-  vec.erase(unique(vec.begin(), vec.end()), vec.end());
+  std::random_device rd;
+  std::mt19937 g(rd());
+
+  std::shuffle(vec.begin(), vec.end(), g);
 
   return vec;
 }

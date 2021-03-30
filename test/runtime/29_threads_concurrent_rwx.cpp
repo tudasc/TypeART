@@ -12,6 +12,7 @@
 #include <atomic>
 #include <thread>
 #include <chrono>
+#include <random>
 
 std::atomic_bool stop{false};
 
@@ -42,10 +43,10 @@ void repeat_type_check(S s, E e) {
       typeart_status status = typeart_get_type(reinterpret_cast<const void*>(addr), &id_result, &count_check);
       if (status == TA_OK) {
         if (count_check != 20) {
-          fprintf(stderr, "[Error]: Length mismatch\n");
+          fprintf(stderr, "[Error]: Length mismatch of %i (%04x) \n", addr, addr);
         }
         if (id_result != 6) {
-          fprintf(stderr, "[Error]: Type mismatch\n");
+          fprintf(stderr, "[Error]: Type mismatch of %i (%04x)\n", addr, addr);
         }
       }
     });
@@ -53,21 +54,22 @@ void repeat_type_check(S s, E e) {
 }
 
 std::vector<int> unique_rand(const unsigned size) {
-  std::srand(42);
   std::vector<int> vec(size);
-  std::generate(vec.begin(), vec.end(), std::rand);
+  std::iota(vec.begin(), vec.end(), 1);
 
-  sort(vec.begin(), vec.end());
-  vec.erase(unique(vec.begin(), vec.end()), vec.end());
+  std::random_device rd;
+  std::mt19937 g(rd());
+
+  std::shuffle(vec.begin(), vec.end(), g);
 
   return vec;
 }
 
 int main(int argc, char** argv) {
-  constexpr unsigned size = 400;
+  constexpr unsigned size = 200;
   auto vec                = unique_rand(size);
   auto beg                = std::begin(vec);
-  auto h                  = beg + (size / 4);
+  auto h                  = beg + (size / 2);
   auto e                  = std::end(vec);
 
   std::thread malloc_1(repeat_alloc<decltype(beg), decltype(h)>, beg, h);
@@ -89,10 +91,10 @@ int main(int argc, char** argv) {
 
   // CHECK: Allocation type detail (heap, stack, global)
   // CHECK: 6   : 100 ,     0 ,    0 , double
-  // CHECK: 7   : 300 ,      0 ,    0 , float128
+  // CHECK: 7   : 100 ,      0 ,    0 , float128
 
   // We free only 3/4 of allocations
   // CHECK: Free allocation type detail (heap, stack)
-  // CHECK: 7   : 300 ,     0 , float128
+  // CHECK: 7   : 100 ,     0 , float128
   return 0;
 }
