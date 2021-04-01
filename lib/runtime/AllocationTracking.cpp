@@ -151,6 +151,7 @@ AllocState AllocationTracker::doAlloc(const void* addr, int typeId, size_t count
   }
 
   const auto overriden = wrapper.put(addr, PointerInfo{typeId, count, retAddr});
+
   if (unlikely(overriden)) {
     recorder.incAddrReuse();
     status |= AllocState::ADDR_REUSE;
@@ -215,7 +216,7 @@ void AllocationTracker::onLeaveScope(int alloca_count, const void* retAddr) {
   recorder.decStackAlloc(alloca_count);
   LOG_TRACE("Stack after free: " << threadData.stackVars.size());
 }
-
+// Base address
 llvm::Optional<RuntimeT::MapEntry> AllocationTracker::findBaseAlloc(const void* addr) {
   return wrapper.find(addr);
 }
