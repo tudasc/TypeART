@@ -6,13 +6,12 @@
 #include "../../lib/runtime/CallbackInterface.h"
 
 #include <random>
-#include <stdlib.h>
 #include <vector>
 #include <algorithm>
 
 template <typename S, typename E>
 void repeat_alloc(S s, E e) {
-  std::for_each(s, e, [&](auto& elem) { __typeart_alloc(reinterpret_cast<const void*>(elem), 6, 20); });
+  std::for_each(s, e, [&](auto elem) { __typeart_alloc(reinterpret_cast<const void*>(elem), 6, 20); });
 }
 
 std::vector<int> unique_rand(const unsigned size) {
@@ -20,7 +19,7 @@ std::vector<int> unique_rand(const unsigned size) {
   std::iota(vec.begin(), vec.end(), 1);
 
   std::random_device rd;
-  std::mt19937 g(rd());
+  std::mt19937 g(42);
 
   std::shuffle(vec.begin(), vec.end(), g);
 

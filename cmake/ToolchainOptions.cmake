@@ -23,7 +23,7 @@ option(ENABLE_LLVM_CODE_COVERAGE "Enable llvm-cov code coverage statistics" OFF)
 option(TEST_CONFIGURE_IDE "Add targets so the IDE (e.g., Clion) can interpret test files better" ON)
 mark_as_advanced(TEST_CONFIGURE_IDE)
 option(ENABLE_TSAN "Build runtime lib and tests with fsanitize=thread" OFF)
-option(ENABLE_SAFEPTR "Use external safe_ptr map wrapper instead of mutex" ON)
+option(ENABLE_SAFEPTR "Use external safe_ptr map wrapper instead of mutex" OFF)
 cmake_dependent_option(DISABLE_THREAD_SAFETY "Explicitly make runtime *not* thread-safe." OFF "NOT ENABLE_SAFEPTR" OFF)
 
 include(AddLLVM)
