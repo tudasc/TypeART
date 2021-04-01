@@ -9,6 +9,7 @@
 #include "support/Logger.h"
 #include "support/Table.h"
 
+#include <fstream>
 #include <map>
 #include <set>
 #include <sstream>
@@ -16,6 +17,7 @@
 #include <string_view>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 
 namespace typeart::softcounter {
 namespace memory {
@@ -108,6 +110,31 @@ void serialise(const Recorder& r, llvm::raw_ostream& buf) {
     }
 
     type_table_free.print(buf);
+
+    const auto numThreads = r.getNumThreads();
+    std::stringstream ss;
+    ss << "Per-thread counter values (" << numThreads << " threads)";
+    Table thread_table(ss.str());
+    thread_table.table_header = '#';
+
+    auto print_thread_row = [&thread_table](std::string name, const std::vector<Counter>& vals) {
+      Row row(std::move(name));
+      for (const auto& val : vals) {
+        row.put(Cell(val));
+      }
+      thread_table.put(std::move(row));
+    };
+
+    print_thread_row("Thread Heap Allocs", r.getHeapAllocsThreadData());
+    print_thread_row("Thread Heap Arrays", r.getHeapArrayThreadData());
+    print_thread_row("Thread Heap Allocs Free", r.getHeapAllocsFreeThreadData());
+    print_thread_row("Thread Heap Arrays Free", r.getHeapArrayFreeThreadData());
+    print_thread_row("Thread Stack Allocs", r.getStackAllocsThreadData());
+    print_thread_row("Thread Stack Arrays", r.getStackArrayThreadData());
+    print_thread_row("Thread Max. Stack Allocs", r.getMaxStackAllocsThreadData());
+    print_thread_row("Thread Stack Allocs Free", r.getStackAllocsFreeThreadData());
+    print_thread_row("Thread Stack Array Free", r.getStackArrayFreeThreadData());
+    thread_table.print(buf);
   }
 }
 }  // namespace typeart::softcounter

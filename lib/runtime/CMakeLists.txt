@@ -65,6 +65,21 @@ elseif(USE_ABSL)
   )
 endif()
 
+if(ENABLE_SAFEPTR)
+  target_link_libraries(typeart-rt PRIVATE
+    sf::pointer
+  )
+  target_project_compile_definitions(typeart-rt
+    PRIVATE_DEFS USE_SAFEPTR
+  )
+endif ()
+
+if(DISABLE_THREAD_SAFETY)
+  target_project_compile_definitions(typeart-rt
+    PRIVATE_DEFS DISABLE_THREAD_SAFETY
+  )
+endif()
+
 target_link_libraries(typeart-rt PUBLIC
   ${RUNTIME_LIB_DEPS}
 )

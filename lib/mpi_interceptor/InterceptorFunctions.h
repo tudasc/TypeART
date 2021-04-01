@@ -11,6 +11,7 @@
 #include "runtime/RuntimeInterface.h"
 
 #include <mpi.h>
+#include <stdatomic.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/resource.h>
@@ -20,18 +21,18 @@ int ta_check_buffer(const char* mpi_name, const void* called_from, const void* b
 void ta_print_loc(const void* call_adr);
 
 typedef struct CallCounter {
-  size_t send;
-  size_t recv;
-  size_t send_recv;
-  size_t unsupported;
+  _Atomic size_t send;
+  _Atomic size_t recv;
+  _Atomic size_t send_recv;
+  _Atomic size_t unsupported;
 } CCounter;
 
 static CCounter counter = {0, 0, 0, 0};
 
 typedef struct MPISemCounter {
-  size_t null_count;
-  size_t null_buff;
-  size_t error;
+  _Atomic size_t null_count;
+  _Atomic size_t null_buff;
+  _Atomic size_t error;
 } MPICounter;
 
 static MPICounter mcounter = {0, 0, 0};

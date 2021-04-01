@@ -86,6 +86,10 @@ function compile() {
 
 compile
 
+if [ $with_omp == 1 ]; then
+  export TSAN_OPTIONS='ignore_noninstrumented_modules=1'
+fi
+
 if [ $with_intercept == 1 ]; then
   echo -e Executing with runtime and interceptor lib
   LD_LIBRARY_PATH="$LD_LIBRARY_PATH:@TYPEART_RT_DIR@" LD_PRELOAD=@TYPEART_MPI_INTERCEPT_DIR@/@TYPEART_MPI_INTERCEPT_LIB@ ./"$tmpfile".exe

@@ -5,6 +5,10 @@ on:
     branches: [ master, devel ]
   pull_request:
 
+env:
+  CXX: clang++-10
+  CC: clang-10
+
 jobs:
   build-and-run-testbench:
     runs-on: ubuntu-20.04
@@ -43,14 +47,19 @@ jobs:
           sudo ln -f -s /usr/bin/opt-10 /usr/bin/opt
           sudo ln -f -s /usr/bin/llc-10 /usr/bin/llc
           sudo ln -f -s /usr/bin/clang-tidy-10 /usr/bin/clang-tidy
-          echo "CC=clang-10" >> $GITHUB_ENV
-          echo "CXX=clang++-10" >> $GITHUB_ENV
           echo "EXTERNAL_LIT=/usr/lib/llvm-10/build/utils/lit/lit.py" >> $GITHUB_ENV
 
-      - name: Build & install TypeART
+      - name: Configure TypeART
         run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Release -DMPI_INTERCEPT_LIB=ON -DSHOW_STATS=ON -DSOFTCOUNTERS=ON
-          cmake --build build --parallel --target install
+          cmake -B build -DCMAKE_BUILD_TYPE=Release \
+            -DMPI_INTERCEPT_LIB=ON \
+            -DSHOW_STATS=ON \
+            -DSOFTCOUNTERS=ON \
+            -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT}
+
+      - name: Build & install
+        run: |
+          cmake --build build --parallel 2 --target install
           echo "TYPEART_PATH=${GITHUB_WORKSPACE}/install/typeart" >> $GITHUB_ENV
 
       - name: Setup tests

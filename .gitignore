@@ -48,4 +48,8 @@ test/**/Output/
 test/*/*.ll
 test/*/*.s
 test/*/*.o
+test/**/*.log
+test/**/*.exe
+test/**/*.yaml
+test/**/*.profraw
 **/musttypes

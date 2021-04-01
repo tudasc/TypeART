@@ -6,9 +6,17 @@
 
 #include "AccessCountPrinter.h"
 #include "AccessCounter.h"
+#include "RuntimeData.h"
 #include "TypeIO.h"
+#include "support/Logger.h"
 
+#include "llvm/Support/raw_ostream.h"
+
+#include <cstdlib>
 #include <iostream>
+#include <set>
+#include <unordered_map>
+#include <vector>
 
 namespace typeart {
 
@@ -78,7 +86,7 @@ RuntimeSystem::RuntimeSystem() : rtScopeInit(), typeResolution(typeDB, recorder)
 }
 
 RuntimeSystem::~RuntimeSystem() {
-  RTGuard guard;
+  rtScope = true;
 
   std::string stats;
   llvm::raw_string_ostream stream(stats);

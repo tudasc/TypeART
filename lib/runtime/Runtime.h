@@ -10,7 +10,11 @@
 #include "TypeDB.h"
 #include "TypeResolution.h"
 
+#include <cstddef>
+#include <string>
+
 namespace typeart {
+struct PointerInfo;
 
 namespace debug {
 
@@ -27,7 +31,7 @@ struct RuntimeSystem {
   // rtScope must be set to true before all other members are initialized.
   // This is achieved by adding this struct as the first member.
   struct RTScopeInitializer {
-    RTScopeInitializer() : rtScopeWasSet(rtScope){
+    RTScopeInitializer() : rtScopeWasSet(rtScope) {
       rtScope = true;
     }
 
@@ -35,6 +39,7 @@ struct RuntimeSystem {
       // Reset rtScope to old value.
       rtScope = rtScopeWasSet;
     }
+
    private:
     bool rtScopeWasSet;
   };
