@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-tests_noerr=(01_noerr 02_noerr 03_noerr)
+tests_noerr=(01_noerr 02_noerr)
 tests_err=(10_err 11_err 12_err)
 
 echo "This script assumes bash"

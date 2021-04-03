@@ -4,7 +4,7 @@
 MPICXX=mpicxx
 VELOC_INSTALL=${VELOC_PATH}
 FTI_INSTALL=${FTI_PATH}
-TYPEART_BASE=../../
+TYPEART_BASE=../..
 
 
 ifneq ($(VELOC_INSTALL),)
@@ -16,7 +16,7 @@ else ifneq ($(FTI_INSTALL),)
   CPR_FLAGS=-DWITH_FTI
   CPR_LIBS=-L$(FTI_INSTALL)/lib -lfti
 else
-	$(error Need to specify either VELOC_PATH or FTI_PATH)
+  $(error Need to specify either VELOC_PATH or FTI_PATH)
 endif
 
 
