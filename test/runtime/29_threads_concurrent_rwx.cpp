@@ -1,5 +1,5 @@
 // clang-format off
-// RUN: %run %s -o -O1 --thread 2>&1 | FileCheck %s
+// RUN: %run %s -o -O1 --thread --manual 2>&1 | FileCheck %s
 // REQUIRES: thread && softcounter
 // clang-format on
 
@@ -17,14 +17,14 @@ std::atomic_bool stop{false};
 
 template <typename S, typename E>
 void repeat_alloc(S s, E e) {
-  std::for_each(s, e, [&](auto elem) { __typeart_alloc(reinterpret_cast<const void*>(elem), 6, 20); });
+  std::for_each(s, e, [&](auto elem) { __typeart_alloc(reinterpret_cast<const void*>(elem), int{6}, size_t{20}); });
 }
 
 template <typename S, typename E>
 void repeat_alloc_free_v2(S s, E e) {
   using namespace std::chrono_literals;
   std::for_each(s, e, [&](auto elem) {
-    __typeart_alloc(reinterpret_cast<const void*>(elem), 7, 10);
+    __typeart_alloc(reinterpret_cast<const void*>(elem), int{7}, size_t{10});
     std::this_thread::sleep_for(1ms);
     __typeart_free(reinterpret_cast<const void*>(elem));
   });
@@ -38,12 +38,12 @@ void repeat_type_check(S s, E e) {
       size_t count_check{0};
       typeart_status status = typeart_get_type(reinterpret_cast<const void*>(addr), &id_result, &count_check);
       if (status == TA_OK) {
-        if (count_check != 20) {
-          fprintf(stderr, "[Error]: Length mismatch of %i (%03x) is: type=%i count=%i\n", addr, addr, id_result,
+        if (count_check != size_t{20}) {
+          fprintf(stderr, "[Error]: Length mismatch of %i (%#02x) is: type=%i count=%zu\n", addr, addr, id_result,
                   count_check);
         }
-        if (id_result != 6) {
-          fprintf(stderr, "[Error]: Type mismatch of %i (%03x) is: type=%i count=%i\n", addr, addr, id_result,
+        if (id_result != int{6}) {
+          fprintf(stderr, "[Error]: Type mismatch of %i (%#02x) is: type=%i count=%zu\n", addr, addr, id_result,
                   count_check);
         }
       }
@@ -55,7 +55,6 @@ std::vector<int> unique_rand(const unsigned size) {
   std::vector<int> vec(size);
   std::iota(vec.begin(), vec.end(), 1);
 
-  std::random_device rd;
   std::mt19937 g(42);
 
   std::shuffle(vec.begin(), vec.end(), g);

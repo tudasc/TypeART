@@ -1,5 +1,5 @@
 // clang-format off
-// RUN: OMP_NUM_THREADS=3 %run %s -o -O1 --omp 2>&1 | FileCheck %s
+// RUN: OMP_NUM_THREADS=3 %run %s -o -O1 --omp --manual 2>&1 | FileCheck %s
 // REQUIRES: openmp && softcounter
 // clang-format on
 
