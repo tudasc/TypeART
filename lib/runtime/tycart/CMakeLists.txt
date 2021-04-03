@@ -28,10 +28,22 @@ if(WITH_MINI_CPR)
     target_compile_definitions(tycart-rt PRIVATE WITH_MINI_CPR)
 endif()
 
-target_link_libraries(tycart-rt
+if(WITH_FTI OR WITH_VELOC)
+    find_package(MPI REQUIRED)
+    message(STATUS "Run: ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} ${MPIEXEC_MAX_NUMPROCS} ${MPIEXEC_PREFLAGS} EXECUTABLE ${MPIEXEC_POSTFLAGS} ARGS")
+    target_link_libraries(tycart-rt
+        MPI::MPI_CXX
         # Include VeloC / FTI
         ${CPR_BACKEND_LIBRARIES}
         )
+else()
+    target_link_libraries(tycart-rt
+        # Include VeloC / FTI
+        ${CPR_BACKEND_LIBRARIES}
+        )
+endif()
+
+
 
 target_include_directories(tycart-rt
         PUBLIC
