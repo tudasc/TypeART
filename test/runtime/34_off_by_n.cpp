@@ -50,10 +50,10 @@ int main(int argc, char** argv) {
 
 // CHECK-NOT: [Error]
 
-// CHECK: {{.*}}:Out of bounds for the lookup: (0x{{[0-9a-d]+}} 6 double 8 1 (0x{{[0-9a-d]+}})) #Elements too far: 1
+// CHECK: {{.*}}:Out of bounds for the lookup: (0x{{[0-9a-f]+}} 6 double 8 1 (0x{{[0-9a-f]+}})) #Elements too far: 1
 // CHECK: [Check]: Status: 1
 
-// CHECK: {{.*}}:Out of bounds for the lookup: (0x{{[0-9a-d]+}} 6 double 8 1 (0x{{[0-9a-d]+}})) #Elements too far: 4
+// CHECK: {{.*}}:Out of bounds for the lookup: (0x{{[0-9a-f]+}} 6 double 8 1 (0x{{[0-9a-f]+}})) #Elements too far: 4
 // CHECK: [Check]: Status: 1
 
 // CHECK-NOT: {{.*}}:Out of bounds for the lookup
