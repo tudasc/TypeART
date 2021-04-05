@@ -146,7 +146,7 @@ AllocState AllocationTracker::doAlloc(const void* addr, int typeId, size_t count
     }
   } else if (unlikely(addr == nullptr)) {
     recorder.incNullAddr();
-    LOG_ERROR("Zero-size allocation " << toString(addr, typeId, count, retAddr));
+    LOG_ERROR("Nullptr allocation " << toString(addr, typeId, count, retAddr));
     return status | AllocState::NULL_PTR | AllocState::ADDR_SKIPPED;
   }
 
