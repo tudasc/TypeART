@@ -11,6 +11,8 @@
 #include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringRef.h"
 
+#include <unordered_map>
+
 namespace llvm {
 class Function;
 class Type;

@@ -12,7 +12,9 @@
 #include "llvm/IR/Value.h"
 #include "llvm/Support/raw_ostream.h"
 
+#include <unordered_map>
 #include <vector>
+
 namespace typeart::filter {
 
 struct IRPath {

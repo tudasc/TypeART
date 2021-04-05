@@ -24,8 +24,7 @@ namespace memory {
 struct MemOverhead {
   static constexpr auto pointerMapSize = sizeof(RuntimeT::PointerMap);  // Map overhead
   static constexpr auto perNodeSizeMap =
-      sizeof(std::remove_pointer<std::map<MemAddr, PointerInfo>::iterator::_Link_type>::type) +
-      sizeof(RuntimeT::MapEntry);                                         // not applicable to btree
+      64U + sizeof(RuntimeT::MapEntry);  // rough estimate, not applicable to btree; 64U is internal node size
   static constexpr auto stackVectorSize  = sizeof(RuntimeT::Stack);       // Stack overhead
   static constexpr auto perNodeSizeStack = sizeof(RuntimeT::StackEntry);  // Stack allocs
   double stack{0};
