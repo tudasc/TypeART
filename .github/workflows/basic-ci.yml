@@ -8,24 +8,100 @@ on:
 env:
   CXX: clang++-10
   CC: clang-10
+  OMP_NUM_THREAD: 2
 
 jobs:
-  build-and-run-test:
+  format-check:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Format source code
+        run: |
+          find demo lib test \
+            -type f \
+            -a \( -name "*.c" -o -name "*.cpp" -o -name "*.h" \) \
+            -not -path "*/lulesh/*" \
+            -print0 \
+            | xargs -0 clang-format-10 -i
+
+      - name: List newly formatted files
+        run: git status --porcelain --untracked-files=no
+
+      - name: Check format
+        run: git status --porcelain --untracked-files=no | xargs -o -I {} test -z \"{}\"
+
+  lit-suite:
     runs-on: ubuntu-20.04
     if: "!contains(github.event.head_commit.message, '[ci skip]')"
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {
+            name: Thread-safe-safeptr,
+            build_type: Debug,
+            safe_ptr: true,
+            tsan: true,
+          }
+          - {
+            name: Thread-safe,
+            build_type: Debug,
+            safe_ptr: false,
+            tsan: true,
+          }
+          - {
+            name: Thread-unsafe,
+            build_type: Debug,
+            thread_unsafe: true,
+          }
+          - {
+            name: Coverage-thread-safe-safeptr,
+            build_type: Debug,
+            safe_ptr: true,
+            coverage: true,
+          }
+          - {
+            name: Coverage-thread-safe,
+            build_type: Debug,
+            safe_ptr: false,
+            coverage: true,
+          }
+          - {
+            name: Coverage-thread-unsafe,
+            build_type: Debug,
+            thread_unsafe: true,
+            coverage: true,
+          }
+          - {
+            name: Thread-safe-libc++,
+            build_type: Debug,
+            cxxflags: -stdlib=libc++,
+            skip_test: true,
+          }
+
     steps:
       - uses: actions/checkout@v2
 
       - name: Install LLVM
         run: sudo apt-get install libllvm10 llvm-10 llvm-10-dev
 
+      - name: Install LLVM OpenMP runtime
+        run: sudo apt-get install libomp-10-dev libomp5-10
+
       - name: Install Clang
         run: sudo apt-get install clang-10 clang-tidy-10
+
+      - name: Install libc++
+        if: contains(matrix.config.cxxflags, '-stdlib=libc++')
+        run: sudo apt-get install --no-install-recommends libc++-10-dev libc++abi-10-dev
 
       - name: Install OpenMPI
         run: sudo apt-get install libopenmpi-dev openmpi-bin
 
       - name: Install lcov
+        if: matrix.config.coverage
         run: sudo apt-get install lcov
 
       - name: Setup env
@@ -41,48 +117,58 @@ jobs:
       - name: Configure TypeART
         run: |
           cmake -B build \
-            -DTEST_CONFIG=ON \
-            -DENABLE_CODE_COVERAGE=ON \
-            -DSOFTCOUNTERS=ON \
-            -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT}
+            -DTEST_CONFIG=ON -DSOFTCOUNTERS=ON \
+            -DENABLE_CODE_COVERAGE=${{ matrix.config.coverage }} \
+            -DENABLE_TSAN=${{ matrix.config.tsan }} \
+            -DENABLE_SAFEPTR=${{ matrix.config.safe_ptr }} \
+            -DDISABLE_THREAD_SAFETY=${{ matrix.config.thread_unsafe }} \
+            -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT} \
+            -DCMAKE_CXX_FLAGS="${{ matrix.config.cxxflags }}" \
+            -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }}
 
       - name: Build TypeART
         run: cmake --build build --parallel 2
 
-      - name: Test TypeART with coverage
-        run: |
-          cmake --build build --target lcov-clean
-          cmake --build build --target test -- ARGS=-VV
+      - name: Prepare TypeART coverage
+        if: matrix.config.coverage
+        run: cmake --build build --target lcov-clean
+
+      - name: Test TypeART lit-suite
+        if: matrix.config.skip_test == false
+        run: cmake --build build --target lit-pass-test
 
       - name: Build coverage report
+        if: matrix.config.coverage
         run: cmake --build build --target lcov-html
 
-      - name: Build TypeART release
+      - name: Prepare coverage artifact
+        if: matrix.config.coverage
         run: |
-          cmake -B build_lulesh -DCMAKE_BUILD_TYPE=Release -DMPI_INTERCEPT_LIB=ON -DSHOW_STATS=ON -DSOFTCOUNTERS=ON
-          cmake --build build_lulesh --parallel
+          mkdir -p artifact/${{ matrix.config.name }}
+          mv build/profiles/ artifact/${{ matrix.config.name }}
 
-      - name: Test TypeART release on lulesh
-        working-directory: build_lulesh
-        run: ctest -V -R lulesh -O lulesh2.0_build.log
-
-      - name: Prepare artifact
-        run: |
-          mkdir -p artifact/lulesh
-          mkdir -p artifact/coverage
-          mv build_lulesh/lulesh2.0_build.log artifact/lulesh/
-          mv test/lulesh/lulesh2.0_out.log artifact/lulesh/
-          mv test/lulesh/types.yaml artifact/lulesh/lulesh2.0_types.yaml
-          mv build/profiles/ artifact/coverage
-
-      - name: Upload lulesh test artifact
+      - name: Upload test coverage artifact
+        if: matrix.config.coverage
         uses: actions/upload-artifact@v2
         with:
-          name: typeart-ci
+          name: typeart-ci-coverage
           path: artifact
 
-      - name: Coveralls
+      - name: Coveralls (parallel)
+        if: matrix.config.coverage
         uses: coverallsapp/github-action@master
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path-to-lcov: build/typeart.coverage
+          flag-name: ${{ matrix.config.name }}
+          parallel: true
+
+  finish-coverage:
+    needs: lit-suite
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Coveralls Finished
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          parallel-finished: true
