@@ -21,12 +21,23 @@ function(configure_typeart_script input output)
   set(TYPEART_ANALYSIS_PLUGIN meminstfinderpass.so)
   set(TYPEART_PLUGIN typeartpass.so)
   set(TYPEART_INCLUDE_DIRS -I${PROJECT_SOURCE_DIR}/lib/typelib)
+  set(TYPEART_SAN_FLAGS "")
 
   if(ENABLE_TSAN)
-    set(TYPEART_SAN_FLAGS "-fsanitize=thread")
-  else()
-    set(TYPEART_SAN_FLAGS "")
+    target_tsan_flags(TYPEART_SAN_FLAGS)
   endif()
+
+  if(ENABLE_ASAN)
+    target_asan_flags(asan_flags)
+    set(TYPEART_SAN_FLAGS ${TYPEART_SAN_FLAGS} ${asan_flags})
+  endif()
+
+  if(ENABLE_UBSAN)
+    target_ubsan_flags(ubsan_flags)
+    set(TYPEART_SAN_FLAGS ${TYPEART_SAN_FLAGS} ${ubsan_flags})
+  endif()
+
+  list(JOIN TYPEART_SAN_FLAGS " " TYPEART_SAN_FLAGS)
 
   # To get execute permission: create run.sh in the binary dir, and copy it to scripts folder with permission
   make_executable(${input} ${output})
