@@ -1,7 +1,6 @@
+#include <RuntimeInterface.h>
 #include <mpi.h>
 #include <stdio.h>
-
-#include <RuntimeInterface.h>
 
 int isCompatible(MPI_Datatype mpi_type, typeart_builtin_type recorded_type) {
   // This comparison is not exhaustive and is only used for this simple demo
@@ -60,8 +59,8 @@ void analyseBuffer(const void* buf, int count, MPI_Datatype type) {
       } else {
         const char* recorded_name = typeart_get_type_name(type_id);
 
-        fprintf(stdout, "Error: Incompatible buffer of type %d (%s) - expected %s instead\n", type_id,
-                recorded_name, type_name);
+        fprintf(stdout, "Error: Incompatible buffer of type %d (%s) - expected %s instead\n", type_id, recorded_name,
+                type_name);
       }
 
     } else {
@@ -118,16 +117,14 @@ int MPI_Sendrecv(const void* sendbuf, int sendcount, MPI_Datatype sendtype, int 
 int MPI_Bcast(void* buf, int sendcount, MPI_Datatype sendtype, int root, MPI_Comm comm) {
   int rank;
   MPI_Comm_rank(comm, &rank);
-  if( rank == root ) {
+  if (rank == root) {
     printf("Analyze Send\n");
     analyseBuffer(buf, sendcount, sendtype);
-//  analyseBuffer(0, sendcount, sendtype);
+    //  analyseBuffer(0, sendcount, sendtype);
   } else {
     printf("Analyze Recv\n");
     analyseBuffer(buf, sendcount, sendtype);
-//  analyseBuffer(0, recvcount, recvtype);
+    //  analyseBuffer(0, recvcount, recvtype);
   }
   return PMPI_Bcast(buf, sendcount, sendtype, root, comm);
 }
-
-
