@@ -10,7 +10,7 @@
 int main(int argc, char** argv) {
   const int type{6};
   const size_t extent{6};
-  const size_t expected_count{1};
+  const size_t expected_count{extent};
 
   const auto check = [&](double* addr) {
     int id_result{-1};
@@ -31,26 +31,25 @@ int main(int argc, char** argv) {
 
   auto* d = new double[extent];
 
-  __typeart_alloc(reinterpret_cast<const void*>(&d[0]), type, 1);
-  __typeart_alloc(reinterpret_cast<const void*>(&d[1]), type, 1);
+  // CHECK: [Error]{{.*}}Free on nullptr
+  __typeart_free(nullptr);
+  // CHECK: [Error]{{.*}}Free on unregistered address
+  __typeart_free(reinterpret_cast<const void*>(d));
 
+  // CHECK: [Trace] Alloc 0x{{[0-9a-f]+}} 6 double 8 6
+  __typeart_alloc(reinterpret_cast<const void*>(&d[0]), type, extent);
   // CHECK-NOT: [Error]
+  // CHECK-NOT: [Check]
   check(&d[0]);
-  check(&d[1]);
-  // CHECK: {{.*}}:Out of bounds for the lookup: (0x{{[0-9a-f]+}} 6 double 8 1 (0x{{[0-9a-f]+}})) #Elements too far: 1
-  // CHECK: [Check]: Status: 1
-  check(&d[2]);  // one off
-  // CHECK: {{.*}}:Out of bounds for the lookup: (0x{{[0-9a-f]+}} 6 double 8 1 (0x{{[0-9a-f]+}})) #Elements too far: 4
-  // CHECK: [Check]: Status: 1
-  check(&d[5]);  // four off
 
-  // CHECK-NOT: {{.*}}:Out of bounds for the lookup
-  // CHECK-NOT: [Error]
-  // CHECK: [Check]: Status: 1
-  double* p_0 = (&d[0]) - 1;
-  check(p_0);  // -1 off
+  // CHECK: [Trace] Free 0x{{[0-9a-f]+}} 6 double 8 6
+  __typeart_free(reinterpret_cast<const void*>(d));
+  // CHECK: [Error]{{.*}}Free on unregistered address
+  __typeart_free(reinterpret_cast<const void*>(d));
 
   delete[] d;
 
   return 0;
 }
+
+
