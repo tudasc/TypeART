@@ -169,7 +169,7 @@ TypeResolution::TypeArtStatus TypeResolution::getTypeInfo(const void* addr, cons
   // Resolve struct recursively
   const auto* structInfo = typeDB.getStructInfo(containingType);
   if (structInfo != nullptr) {
-    const void* containingTypeAddr = addByteOffset(addr, -internalOffset);
+    const void* containingTypeAddr = addByteOffset(addr, -std::ptrdiff_t(internalOffset));
     return getTypeInfoInternal(containingTypeAddr, internalOffset, *structInfo, type, count);
   }
   return TA_INVALID_ID;
