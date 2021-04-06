@@ -8,6 +8,7 @@ on:
 env:
   CXX: clang++-10
   CC: clang-10
+  EXTERNAL_LIT: /usr/lib/llvm-10/build/utils/lit/lit.py
 
 jobs:
   run-testbench:
@@ -58,7 +59,6 @@ jobs:
           sudo ln -f -s /usr/bin/opt-10 /usr/bin/opt
           sudo ln -f -s /usr/bin/llc-10 /usr/bin/llc
           sudo ln -f -s /usr/bin/clang-tidy-10 /usr/bin/clang-tidy
-          echo "EXTERNAL_LIT=/usr/lib/llvm-10/build/utils/lit/lit.py" >> $GITHUB_ENV
 
       - name: Configure TypeART
         run: |
@@ -151,7 +151,6 @@ jobs:
           sudo ln -f -s /usr/bin/opt-10 /usr/bin/opt
           sudo ln -f -s /usr/bin/llc-10 /usr/bin/llc
           sudo ln -f -s /usr/bin/clang-tidy-10 /usr/bin/clang-tidy
-          echo "EXTERNAL_LIT=/usr/lib/llvm-10/build/utils/lit/lit.py" >> $GITHUB_ENV
 
       - name: Configure TypeART
         run: |
@@ -239,7 +238,6 @@ jobs:
           sudo ln -f -s /usr/bin/opt-10 /usr/bin/opt
           sudo ln -f -s /usr/bin/llc-10 /usr/bin/llc
           sudo ln -f -s /usr/bin/clang-tidy-10 /usr/bin/clang-tidy
-          echo "EXTERNAL_LIT=/usr/lib/llvm-10/build/utils/lit/lit.py" >> $GITHUB_ENV
 
       - name: Configure TypeART
         run: |

@@ -8,6 +8,7 @@ on:
 env:
   CXX: clang++-10
   CC: clang-10
+  EXTERNAL_LIT: /usr/lib/llvm-10/build/utils/lit/lit.py
   OMP_NUM_THREAD: 2
 
 jobs:
@@ -55,30 +56,35 @@ jobs:
             name: Thread-unsafe,
             build_type: Debug,
             thread_unsafe: true,
+            tsan: false,
           }
           - {
             name: Coverage-thread-safe-safeptr,
             build_type: Debug,
             safe_ptr: true,
             coverage: true,
+            tsan: false,
           }
           - {
             name: Coverage-thread-safe,
             build_type: Debug,
             safe_ptr: false,
             coverage: true,
+            tsan: false,
           }
           - {
             name: Coverage-thread-unsafe,
             build_type: Debug,
             thread_unsafe: true,
             coverage: true,
+            tsan: false,
           }
           - {
             name: Thread-safe-libc++,
             build_type: Debug,
             cxxflags: -stdlib=libc++,
             skip_test: true,
+            tsan: true,
           }
 
     steps:
@@ -112,7 +118,6 @@ jobs:
           sudo ln -f -s /usr/bin/FileCheck-10 /usr/bin/FileCheck
           sudo ln -f -s /usr/bin/llc-10 /usr/bin/llc
           sudo ln -f -s /usr/bin/clang-tidy-10 /usr/bin/clang-tidy
-          echo "EXTERNAL_LIT=/usr/lib/llvm-10/build/utils/lit/lit.py" >> $GITHUB_ENV
 
       - name: Configure TypeART
         run: |
@@ -120,6 +125,8 @@ jobs:
             -DTEST_CONFIG=ON -DSOFTCOUNTERS=ON \
             -DENABLE_CODE_COVERAGE=${{ matrix.config.coverage }} \
             -DENABLE_TSAN=${{ matrix.config.tsan }} \
+            -DENABLE_ASAN=${{ matrix.config.tsan == false }} \
+            -DENABLE_UBSAN=${{ matrix.config.tsan == false }} \
             -DENABLE_SAFEPTR=${{ matrix.config.safe_ptr }} \
             -DDISABLE_THREAD_SAFETY=${{ matrix.config.thread_unsafe }} \
             -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT} \
