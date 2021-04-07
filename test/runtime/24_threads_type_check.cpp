@@ -1,4 +1,5 @@
 // clang-format off
+// RUN: %run %s --thread 2>&1 | FileCheck %s --check-prefix=CHECK-TSAN
 // RUN: %run %s --thread 2>&1 | FileCheck %s
 // REQUIRES: thread && softcounter
 // clang-format on
@@ -54,7 +55,8 @@ int main(int argc, char** argv) {
   free(f1);
   free(f2);
 
-  // CHECK-NOT: [Error]
+  // CHECK-TSAN-NOT: ThreadSanitizer
+
   // CHECK-NOT: Error
   // CHECK: Allocation type detail (heap, stack, global)
   // CHECK: 6   : 3000 ,    0 ,    0 , double

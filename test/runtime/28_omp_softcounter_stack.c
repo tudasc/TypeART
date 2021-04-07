@@ -1,4 +1,5 @@
 // clang-format off
+// RUN: %run %s -o -O0 --omp 2>&1 | FileCheck %s --check-prefix=CHECK-TSAN
 // RUN: %run %s -o -O0 --omp 2>&1 | FileCheck %s
 // REQUIRES: openmp && softcounter
 // clang-format on
@@ -28,6 +29,8 @@ int main(int argc, char** argv) {
   const int n = 100;
 
   ptr(n);
+  // CHECK-TSAN-NOT: ThreadSanitizer
+
   // CHECK: [Trace] TypeART Runtime Trace
   // TODO: CHECK-NOT: [Error] - Currently we get 'Pointer already in map' followed by 'Free on unregistered address'
   // CHECK: Alloc Stats from softcounters

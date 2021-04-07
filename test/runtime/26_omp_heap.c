@@ -1,4 +1,5 @@
 // clang-format off
+// RUN: %run %s --omp 2>&1 | FileCheck %s --check-prefix=CHECK-TSAN
 // RUN: %run %s --omp 2>&1 | FileCheck %s
 // REQUIRES: openmp && softcounter
 // clang-format on
@@ -26,7 +27,9 @@ int main(int argc, char** argv) {
     repeat_alloc_free(n);
   }
 
-  // CHECK-NOT: [Error]
+  // CHECK-TSAN-NOT: ThreadSanitizer
+
+  // CHECK-NOT: Error
   // CHECK: Allocation type detail (heap, stack, global)
   // CHECK: 6   : 3000 ,    0 ,    0 , double
   // CHECK: Free allocation type detail (heap, stack)

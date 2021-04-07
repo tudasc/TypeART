@@ -1,4 +1,5 @@
 // clang-format off
+// RUN: %run %s --omp 2>&1 | FileCheck %s --check-prefix=CHECK-TSAN
 // RUN: %run %s --omp 2>&1 | FileCheck %s
 // REQUIRES: openmp
 // clang-format on
@@ -18,7 +19,9 @@ int main(int argc, char** argv) {
     f();
   }
 
-  // CHECK-NOT: [Error]
+  // CHECK-TSAN-NOT: ThreadSanitizer
+
+  // CHECK-NOT: Error
 
   // CHECK: [Trace] Free 0x{{.*}} 0 int8 1 4
   // CHECK-DAG: [Trace] Free 0x{{.*}} 6 double 8 1

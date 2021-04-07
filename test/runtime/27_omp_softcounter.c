@@ -1,4 +1,7 @@
 // clang-format off
+// RUN: %run %s --omp --call-filter 2>&1 | FileCheck %s --check-prefix=CHECK-TSAN
+// RUN: %run %s -o -O2 --omp --call-filter 2>&1 | FileCheck %s --check-prefix=CHECK-TSAN
+
 // RUN: %run %s -o -O2 --omp --call-filter 2>&1 | FileCheck %s
 // RUN: %run %s --omp --call-filter 2>&1 | FileCheck %s
 // REQUIRES: openmp && softcounter
@@ -28,6 +31,8 @@ int main(int argc, char** argv) {
   const int n = 100;
 
   ptr(n);
+
+  // CHECK-TSAN-NOT: ThreadSanitizer
 
   // CHECK: [Trace] TypeART Runtime Trace
   // CHECK-NOT: [Error]

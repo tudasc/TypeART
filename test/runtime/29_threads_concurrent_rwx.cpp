@@ -1,4 +1,5 @@
 // clang-format off
+// RUN: %run %s -o -O1 --thread --manual 2>&1 | FileCheck %s --check-prefix=CHECK-TSAN
 // RUN: %run %s -o -O1 --thread --manual 2>&1 | FileCheck %s
 // REQUIRES: thread && softcounter
 // clang-format on
@@ -83,6 +84,7 @@ int main(int argc, char** argv) {
 
   check_1.join();
 
-  // CHECK-NOT: [Error]
+  // CHECK-TSAN-NOT: ThreadSanitizer
+  // CHECK-NOT: Error
   return 0;
 }

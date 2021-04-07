@@ -30,7 +30,7 @@ function(target_asan_flags flags)
 endfunction()
 
 function(target_ubsan_flags flags)
-  set(${flags} -fsanitize=undefined -fno-sanitize=vptr,function PARENT_SCOPE)
+  set(${flags} -fsanitize=undefined -fno-sanitize=vptr,function -fno-sanitize-recover=undefined,integer PARENT_SCOPE)
 endfunction()
 
 function(target_asan_options target)
