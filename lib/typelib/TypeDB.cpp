@@ -4,8 +4,10 @@
 
 #include "TypeDB.h"
 
-//#include <form.h> FIXME why needed?
+#include "typelib/TypeInterface.h"
+
 #include <iostream>
+#include <utility>
 
 namespace typeart {
 

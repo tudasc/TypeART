@@ -10,8 +10,20 @@
 #include "typelib/TypeIO.h"
 #include "typelib/TypeInterface.h"
 
-#include <iostream>
+#include "llvm/ADT/None.h"
+#include "llvm/ADT/StringRef.h"
+#include "llvm/ADT/iterator.h"
+#include "llvm/IR/DataLayout.h"
+#include "llvm/IR/DerivedTypes.h"
+#include "llvm/IR/Type.h"
+#include "llvm/Support/Casting.h"
+#include "llvm/Support/TypeSize.h"
+#include "llvm/Support/raw_ostream.h"
+
+#include <cassert>
+#include <cstdint>
 #include <utility>
+#include <vector>
 
 namespace typeart {
 

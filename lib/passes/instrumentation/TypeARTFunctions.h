@@ -20,6 +20,7 @@ class Module;
 }  // namespace llvm
 
 namespace typeart {
+class InstrumentationHelper;
 
 enum class IFunc : unsigned {
   heap,

@@ -4,6 +4,10 @@
 
 #include "FilterUtil.h"
 
+#include "llvm/IR/CallSite.h"
+#include "llvm/IR/Intrinsics.h"
+#include "llvm/Support/raw_ostream.h"
+
 namespace typeart::filter {
 
 void FunctionAnalysis::clear() {

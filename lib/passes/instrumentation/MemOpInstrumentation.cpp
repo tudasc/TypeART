@@ -4,18 +4,34 @@
 
 #include "MemOpInstrumentation.h"
 
-#include "../TypeManager.h"
+#include "Instrumentation.h"
 #include "InstrumentationHelper.h"
 #include "TransformUtil.h"
 #include "TypeARTFunctions.h"
+#include "analysis/MemOpData.h"
 #include "support/Logger.h"
 #include "support/OmpUtil.h"
 #include "support/Util.h"
 
+#include "llvm/ADT/ArrayRef.h"
+#include "llvm/IR/BasicBlock.h"
+#include "llvm/IR/Constants.h"
+#include "llvm/IR/DerivedTypes.h"
+#include "llvm/IR/Function.h"
+#include "llvm/IR/GlobalValue.h"
 #include "llvm/IR/IRBuilder.h"
+#include "llvm/IR/Instruction.h"
 #include "llvm/IR/Instructions.h"
-#include "llvm/Transforms/Utils/CtorUtils.h"
+#include "llvm/IR/Type.h"
+#include "llvm/Support/Casting.h"
+#include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/Utils/ModuleUtils.h"
+
+#include <string>
+
+namespace llvm {
+class Value;
+}  // namespace llvm
 
 using namespace llvm;
 

@@ -3,6 +3,8 @@
 //
 #include "Instrumentation.h"
 
+#include <utility>
+
 namespace typeart {
 
 InstrumentationContext::InstrumentationContext(std::unique_ptr<ArgumentCollector> col,

@@ -5,12 +5,26 @@
 #include "MemOpArgCollector.h"
 
 #include "../TypeManager.h"
+#include "Instrumentation.h"
 #include "InstrumentationHelper.h"
 #include "support/Logger.h"
 #include "support/TypeUtil.h"
 #include "support/Util.h"
+#include "typelib/TypeInterface.h"
 
+#include "llvm/IR/Constants.h"
 #include "llvm/IR/Instructions.h"
+#include "llvm/IR/Module.h"
+#include "llvm/IR/Type.h"
+#include "llvm/Support/raw_ostream.h"
+
+#include <cassert>
+#include <cstddef>
+
+namespace llvm {
+class DataLayout;
+class Value;
+}  // namespace llvm
 
 namespace tu = typeart::util::type;
 using namespace llvm;

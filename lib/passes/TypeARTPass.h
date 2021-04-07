@@ -5,10 +5,10 @@
 #include "instrumentation/Instrumentation.h"
 #include "instrumentation/InstrumentationHelper.h"
 #include "instrumentation/TypeARTFunctions.h"
-#include "typelib/TypeDB.h"
 
 #include "llvm/Pass.h"
 
+#include <memory>
 #include <string>
 
 namespace llvm {
@@ -16,6 +16,8 @@ class Constant;
 class Module;
 class Function;
 class AnalysisUsage;
+class Value;
+class raw_ostream;
 }  // namespace llvm
 
 namespace typeart::pass {

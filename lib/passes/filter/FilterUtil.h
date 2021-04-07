@@ -7,12 +7,33 @@
 
 #include "IRPath.h"
 #include "OmpUtil.h"
+#include "support/DefUseChain.h"
 #include "support/Logger.h"
 
+#include "llvm/ADT/None.h"
+#include "llvm/ADT/Optional.h"
+#include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/SmallVector.h"
+#include "llvm/ADT/iterator_range.h"
+#include "llvm/IR/Argument.h"
 #include "llvm/IR/CallSite.h"
+#include "llvm/IR/Function.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Intrinsics.h"
+#include "llvm/IR/Type.h"
+#include "llvm/IR/Use.h"
+#include "llvm/Support/Casting.h"
 #include "llvm/Support/raw_ostream.h"
+
+#include <algorithm>
+#include <iterator>
+#include <utility>
+#include <vector>
+
+namespace llvm {
+class Value;
+class raw_ostream;
+}  // namespace llvm
 
 using namespace llvm;
 
