@@ -4,36 +4,74 @@
 #include "util.h"
 
 #include <stdio.h>
+#include <stddef.h>
 #include <stdlib.h>
 
 
 struct Datastruct {
   int start;
   double middle;
-  float end;
+  float end[2];
 };
 
-int main(int argc, char** argv) {
-  struct Datastruct  data;
-
-  __typeart_alloc((const void*)&data, 257, 1);
-
+void type_check(const void* addr){
   int id_result         = 0;
   size_t count_check    = 0;
-  typeart_status status = typeart_get_type((const void*)&data.middle, &id_result, &count_check);
+  typeart_status status;
+  status = typeart_get_type(addr, &id_result, &count_check);
 
   if (status != TA_OK) {
-    fprintf(stderr, "[Error]: Status not OK: %i\n", status);
+    fprintf(stderr, "[Error]: Status not OK: %i for %p\n", status, addr);
   } else {
-    if (1 != count_check) {
-      fprintf(stderr, "[Error]: Count check failed %zu\n", count_check);
-    }
-    if (6 != id_result) {
-      fprintf(stderr, "[Error]: ID check failed %i\n", id_result);
-    }
-    fprintf(stderr, "[Trace]: Status OK: %i %zu\n", id_result, count_check);
+    fprintf(stderr, "Status OK: %i %zu\n", id_result, count_check);
   }
+}
+
+void type_check_containing(const void* addr){
+  size_t offset   = 0;
+  const void* base_adrr = NULL;
+  int id_result         = 0;
+  size_t count_check    = 0;
+  typeart_status status;
+
+  status = typeart_get_containing_type(addr, &id_result, &count_check, &base_adrr, &offset);
+
+  if (status != TA_OK) {
+    fprintf(stderr, "[Error]: Status not OK: %i for %p\n", status, addr);
+  } else {
+    fprintf(stderr, "Status OK: %i %zu %zu %p\n", id_result, count_check, offset, base_adrr);
+  }
+}
+
+int main(int argc, char** argv) {
+
+// CHECK-NOT: [Error]
+
+  struct Datastruct  data;
+  __typeart_alloc((const void*)&data, 257, 1);
+
+  // CHECK: Status OK: 6 1
+  type_check((const void* )&data.middle);
+
+
+  struct Datastruct  data_ar[3];
+  // CHECK: [Trace] Alloc [[POINTER:0x[0-9a-f]+]] 257
+  __typeart_alloc((const void*)&data_ar[0], 257, 3);
+
+  // CHECK: Status OK: 5 2
+  type_check((const void*)&data_ar[2].end);
+  // CHECK: Status OK: 257 1 16 [[POINTER]]
+  type_check_containing((const void*)&data_ar[2].end);
+  // CHECK: Status OK: 257 2 20 [[POINTER]]
+  type_check_containing((const void*)&data_ar[1].end[1]);
+
+  // This pointer check hits the third element of our array data_ar:
+  // type_check_containing((const void*)&data_ar[1].end[2]);
+
+  // CHECK: Status not OK: 1
+  type_check_containing((const void*)&data_ar[2].end[2]);
+  // CHECK: Status not OK: 1
+  type_check_containing((const void*)&data_ar[3].start);
   return 0;
 }
 
-// CHECK-NOT: [Error]
