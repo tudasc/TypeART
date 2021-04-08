@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import subprocess
@@ -7,7 +8,7 @@ from shutil import copyfile
 import time
 import random
 
-uuts = ["veloc/gol/", "fti/gol/", "mini-cpr/gol/"]
+uuts = ["veloc/gol/"]
 
 
 def main():
@@ -19,12 +20,12 @@ def main():
 	num_false_positive = 0
 	failures = []
 	false_positive = False
-	both_types = "long double"
+	both_types = "int"
 
 	for uut in uuts:
 		print("\nBeginning count-mismatch tests of TY_protect macro with " + uut)
 		actual_size = 2500
-		num_count_tests = 100
+		num_count_tests = 3
 		print("Running", num_count_tests, "count-mismatch tests with actual size =", actual_size, ", type =", both_types)
 		for i in range(num_count_tests):
 			false_positive = False

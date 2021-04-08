@@ -3,19 +3,19 @@
 //*************************
 // VELOC Checkpoint - Restart
 //*************************
-#include <../../../include/VELOC/include/veloc.h>
+#include <veloc.h>
 
 #define CHKP_INTERVAL 20
 
 //*************************
 // Type-Assert Macro
 //*************************
-#include "../../../include/TypeART/runtime/typecheck_macro.h"
+#include "../../../../../lib/runtime/tycart/typecheck_macro.h"
 
 //*************************
 // Testing Macros
 //*************************
-#include "../../../test/gol_testing.h"
+#include "../../gol_testing.h"
 
 struct InitFunc {
 public:
