@@ -37,5 +37,3 @@ int main(int argc, char** argv) {
   __typeart_leave_scope(3);
   return 0;
 }
-
-

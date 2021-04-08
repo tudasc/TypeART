@@ -3,10 +3,9 @@
 #include "../../lib/runtime/CallbackInterface.h"
 #include "util.h"
 
-#include <stdio.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <stdlib.h>
-
 
 struct Datastruct {
   int start;
@@ -14,9 +13,9 @@ struct Datastruct {
   float end[2];
 };
 
-void type_check(const void* addr){
-  int id_result         = 0;
-  size_t count_check    = 0;
+void type_check(const void* addr) {
+  int id_result      = 0;
+  size_t count_check = 0;
   typeart_status status;
   status = typeart_get_type(addr, &id_result, &count_check);
 
@@ -27,8 +26,8 @@ void type_check(const void* addr){
   }
 }
 
-void type_check_containing(const void* addr){
-  size_t offset   = 0;
+void type_check_containing(const void* addr) {
+  size_t offset         = 0;
   const void* base_adrr = NULL;
   int id_result         = 0;
   size_t count_check    = 0;
@@ -44,17 +43,15 @@ void type_check_containing(const void* addr){
 }
 
 int main(int argc, char** argv) {
+  // CHECK-NOT: [Error]
 
-// CHECK-NOT: [Error]
-
-  struct Datastruct  data;
+  struct Datastruct data;
   __typeart_alloc((const void*)&data, 257, 1);
 
   // CHECK: Status OK: 6 1
-  type_check((const void* )&data.middle);
+  type_check((const void*)&data.middle);
 
-
-  struct Datastruct  data_ar[3];
+  struct Datastruct data_ar[3];
   // CHECK: [Trace] Alloc [[POINTER:0x[0-9a-f]+]] 257
   __typeart_alloc((const void*)&data_ar[0], 257, 3);
 
@@ -74,4 +71,3 @@ int main(int argc, char** argv) {
   type_check_containing((const void*)&data_ar[3].start);
   return 0;
 }
-

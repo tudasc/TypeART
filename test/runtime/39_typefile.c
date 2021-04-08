@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-
 struct Datastruct {
   int start;
   double middle;
