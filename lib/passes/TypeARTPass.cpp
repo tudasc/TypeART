@@ -170,6 +170,9 @@ void TypeArtPass::declareInstrumentationFunctions(Module& m) {
   auto alloc_arg_types      = instrumentation_helper.make_parameters(IType::ptr, IType::type_id, IType::extent);
   auto free_arg_types       = instrumentation_helper.make_parameters(IType::ptr);
   auto leavescope_arg_types = instrumentation_helper.make_parameters(IType::stack_count);
+  auto assert_arg_types = instrumentation_helper.make_parameters(IType::ptr, IType::type_id);
+  auto assert_arg_types_len = instrumentation_helper.make_parameters(IType::ptr, IType::type_id, IType::extent);
+  auto assert_arg_types_tycart_auto = instrumentation_helper.make_parameters(IType::type_id, IType::ptr, IType::extent, )
 
   typeart_alloc.f        = decl.make_function(IFunc::heap, typeart_alloc.name, alloc_arg_types);
   typeart_alloc_stack.f  = decl.make_function(IFunc::stack, typeart_alloc_stack.name, alloc_arg_types);

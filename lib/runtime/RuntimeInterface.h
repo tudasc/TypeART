@@ -162,6 +162,9 @@ const char* typeart_get_type_name(int id);
  */
 void typeart_get_return_address(const void* addr, const void** retAddr);
 
+void __typeart_assert_type_stub(const void* addr, const void* typePtr);
+void __typeart_assert_type_stub_len(const void* addr, const void* typePtr, size_t);
+
 #ifdef __cplusplus
 }
 #endif
