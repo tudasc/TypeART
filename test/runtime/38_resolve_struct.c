@@ -62,12 +62,5 @@ int main(int argc, char** argv) {
   // CHECK: Status OK: 257 2 20 [[POINTER]]
   type_check_containing((const void*)&data_ar[1].end[1]);
 
-  // This pointer check hits the third element of our array data_ar:
-  // type_check_containing((const void*)&data_ar[1].end[2]);
-
-  // CHECK: Status not OK: 1
-  type_check_containing((const void*)&data_ar[2].end[2]);
-  // CHECK: Status not OK: 1
-  type_check_containing((const void*)&data_ar[3].start);
   return 0;
 }
