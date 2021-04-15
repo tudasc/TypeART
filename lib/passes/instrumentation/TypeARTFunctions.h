@@ -25,6 +25,12 @@ enum class IFunc : unsigned {
   global,
   free,
   scope,
+  // TyCart - BEGIN
+  assert_type,
+  assert_type_len,
+  assert_tycart,
+  assert_tycart_auto,
+  // TyCart - END
 };
 
 class TAFunctionQuery {

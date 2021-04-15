@@ -170,15 +170,24 @@ void TypeArtPass::declareInstrumentationFunctions(Module& m) {
   auto alloc_arg_types      = instrumentation_helper.make_parameters(IType::ptr, IType::type_id, IType::extent);
   auto free_arg_types       = instrumentation_helper.make_parameters(IType::ptr);
   auto leavescope_arg_types = instrumentation_helper.make_parameters(IType::stack_count);
-  auto assert_arg_types = instrumentation_helper.make_parameters(IType::ptr, IType::type_id);
-  auto assert_arg_types_len = instrumentation_helper.make_parameters(IType::ptr, IType::type_id, IType::extent);
-  auto assert_arg_types_tycart_auto = instrumentation_helper.make_parameters(IType::type_id, IType::ptr, IType::extent, )
 
   typeart_alloc.f        = decl.make_function(IFunc::heap, typeart_alloc.name, alloc_arg_types);
   typeart_alloc_stack.f  = decl.make_function(IFunc::stack, typeart_alloc_stack.name, alloc_arg_types);
   typeart_alloc_global.f = decl.make_function(IFunc::global, typeart_alloc_global.name, alloc_arg_types);
   typeart_free.f         = decl.make_function(IFunc::free, typeart_free.name, free_arg_types);
   typeart_leave_scope.f  = decl.make_function(IFunc::scope, typeart_leave_scope.name, leavescope_arg_types);
+  
+  // TyCart - BEGIN
+  auto assert_arg_types = instrumentation_helper.make_parameters(IType::ptr, IType::type_id);
+  auto assert_len_arg_types = instrumentation_helper.make_parameters(IType::ptr, IType::type_id, IType::extent);
+  auto assert_tycart_arg_types = instrumentation_helper.make_parameters(IType::cp_id, IType::ptr, IType::extent, IType::type_size, IType::type_id);
+  auto assert_tycart_auto_arg_types = instrumentation_helper.make_parameters(IType::cp_id, IType::ptr, IType::type_size, IType::type_id);
+  
+  typeart_assert_type.f = decl.make_function(IFunc::assert_type, typeart_assert_type.name, assert_arg_types);
+  typeart_assert_type_len.f = decl.make_funciton(IFunc::assert_type_len, typeart_assert_type_len.name, assert_len_arg_types);
+  typeart_assert_tycart.f = decl.make_function(IFunc::assert_tycart, typeart_assert_tycart.name, assert_tycart_arg_types);
+  typeart_assert_tycart_auto.f = decl.make_function(IFunc::assert_tycart_auto, typeart_assert_tycart_auto.name, assert_tycart_auto_arg_types);
+  // TyCart - END
 }
 
 void TypeArtPass::printStats(llvm::raw_ostream& out) {

@@ -40,6 +40,12 @@ llvm::Type* InstrumentationHelper::getTypeFor(IType id) {
       return Type::getInt32Ty(c);
     case IType::stack_count:
       return Type::getInt32Ty(c);
+    // TyCart - BEGIN
+    case IType::cp_id:
+      return Type::getInt32Ty(c);
+    case IType::type_size:
+      return IType::getInt64Ty(c);
+    // TyCart - END
     default:
       LOG_WARNING("Unknown IType selected.");
       return nullptr;
