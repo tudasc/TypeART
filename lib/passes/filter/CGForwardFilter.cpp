@@ -7,6 +7,24 @@
 #include "CGInterface.h"
 #include "Matcher.h"
 #include "OmpUtil.h"
+#include "filter/FilterBase.h"
+#include "filter/FilterUtil.h"
+#include "support/Logger.h"
+#include "support/Util.h"
+
+#include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/StringRef.h"
+#include "llvm/IR/Instructions.h"
+#include "llvm/IR/Type.h"
+#include "llvm/IR/Value.h"
+#include "llvm/Support/Casting.h"
+#include "llvm/Support/raw_ostream.h"
+
+#include <utility>
+
+namespace llvm {
+class Function;
+}  // namespace llvm
 
 namespace typeart::filter {
 

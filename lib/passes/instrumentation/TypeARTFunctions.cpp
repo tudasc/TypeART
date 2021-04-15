@@ -6,12 +6,24 @@
 
 #include "support/Logger.h"
 
+#include "llvm/ADT/ArrayRef.h"
+#include "llvm/ADT/StringMap.h"
+#include "llvm/ADT/StringRef.h"
 #include "llvm/IR/Argument.h"
+#include "llvm/IR/Attributes.h"
+#include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/GlobalValue.h"
-#include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Type.h"
+#include "llvm/Support/Casting.h"
+#include "llvm/Support/raw_ostream.h"
+
+#include <string>
+
+namespace typeart {
+class InstrumentationHelper;
+}  // namespace typeart
 
 using namespace llvm;
 

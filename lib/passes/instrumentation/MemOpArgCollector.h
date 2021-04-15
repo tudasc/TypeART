@@ -6,6 +6,7 @@
 #define TYPEART_MEMOPARGCOLLECTOR_H
 
 #include "Instrumentation.h"
+#include "analysis/MemOpData.h"
 
 namespace typeart {
 class TypeManager;

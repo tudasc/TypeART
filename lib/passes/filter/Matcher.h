@@ -67,17 +67,21 @@ class FunctionOracleMatcher final : public Matcher {
     const auto f = c.getCalledFunction();
     if (f != nullptr) {
       const auto f_name = util::demangle(f->getName());
+      StringRef f_name_ref{f_name};
       if (continue_set.count(f_name) > 0) {
         return MatchResult::ShouldContinue;
       }
       if (skip_set.count(f_name) > 0) {
         return MatchResult::ShouldSkip;
       }
-      if (StringRef(f_name).startswith("__typeart_")) {
+      if (f_name_ref.startswith("__typeart_")) {
         return MatchResult::ShouldSkip;
       }
       if (mem_operations.kind(f_name)) {
         return MatchResult::ShouldSkip;
+      }
+      if (f_name_ref.startswith("__ubsan") || f_name_ref.startswith("__asan") || f_name_ref.startswith("__msan")) {
+        return MatchResult::ShouldContinue;
       }
     }
     return MatchResult::NoMatch;

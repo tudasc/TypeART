@@ -45,7 +45,18 @@ inline void updateMax(std::atomic<T>& maxVal, T newVal) noexcept {
 }
 
 struct CounterStats {
+ private:
+  CounterStats(double sum, double min, double max, double mean, double std)
+      : sum(sum), minVal(min), maxVal(max), meanVal(mean), stdVal(std) {
+  }
+
+  CounterStats() = default;
+
+ public:
   static CounterStats create(const std::vector<Counter>& vals) {
+    if (vals.empty()) {
+      return CounterStats{};
+    }
     unsigned n   = vals.size();
     double sum   = std::accumulate(vals.begin(), vals.end(), 0.0);
     double mean  = sum / n;
@@ -54,10 +65,6 @@ struct CounterStats {
     Counter min  = *std::min_element(vals.begin(), vals.end());
     Counter max  = *std::max_element(vals.begin(), vals.end());
     return CounterStats(sum, min, max, mean, std);
-  }
-
-  CounterStats(double sum, double min, double max, double mean, double std)
-      : sum(sum), minVal(min), maxVal(max), meanVal(mean), stdVal(std) {
   }
 
   const double sum{0};

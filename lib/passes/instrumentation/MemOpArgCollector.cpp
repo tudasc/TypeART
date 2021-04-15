@@ -5,12 +5,26 @@
 #include "MemOpArgCollector.h"
 
 #include "../TypeManager.h"
+#include "Instrumentation.h"
 #include "InstrumentationHelper.h"
 #include "support/Logger.h"
 #include "support/TypeUtil.h"
 #include "support/Util.h"
+#include "typelib/TypeInterface.h"
 
+#include "llvm/IR/Constants.h"
 #include "llvm/IR/Instructions.h"
+#include "llvm/IR/Module.h"
+#include "llvm/IR/Type.h"
+#include "llvm/Support/raw_ostream.h"
+
+#include <cassert>
+#include <cstddef>
+
+namespace llvm {
+class DataLayout;
+class Value;
+}  // namespace llvm
 
 namespace tu = typeart::util::type;
 using namespace llvm;
@@ -36,7 +50,7 @@ HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
     int typeId     = type_m->getOrRegisterType(malloc_call->getType()->getPointerElementType(),
                                            dl);  // retrieveTypeID(tu::getVoidType(c));
     if (typeId == TA_UNKNOWN_TYPE) {
-      LOG_ERROR("Unknown allocated type. Not instrumenting. " << util::dump(*malloc_call));
+      LOG_ERROR("Unknown heap type. Not instrumenting. " << util::dump(*malloc_call));
       // TODO notify caller that we skipped: via lambda callback function
       continue;
     }
@@ -65,7 +79,7 @@ HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
         continue;
       }
     } else {
-      LOG_ERROR("Primary bitcast is null. malloc: " << util::dump(*malloc_call))
+      LOG_WARNING("Primary bitcast is null. malloc: " << util::dump(*malloc_call))
     }
 
     auto* typeIdConst    = instr_helper->getConstantFor(IType::type_id, typeId);
@@ -169,7 +183,8 @@ StackArgList MemOpArgCollector::collectStack(const AllocaDataList& allocs) {
     int typeId = type_m->getOrRegisterType(elementType, dl);
 
     if (typeId == TA_UNKNOWN_TYPE) {
-      LOG_ERROR("Type is not supported: " << util::dump(*elementType));
+      LOG_ERROR("Unknown stack type. Not instrumenting. " << util::dump(*elementType));
+      continue;
     }
 
     auto* typeIdConst = instr_helper->getConstantFor(IType::type_id, typeId);
@@ -200,7 +215,13 @@ GlobalArgList MemOpArgCollector::collectGlobal(const GlobalDataList& globals) {
       type        = tu::getArrayElementType(type);
     }
 
-    int typeId             = type_m->getOrRegisterType(type, dl);
+    int typeId = type_m->getOrRegisterType(type, dl);
+
+    if (typeId == TA_UNKNOWN_TYPE) {
+      LOG_ERROR("Unknown global type. Not instrumenting. " << util::dump(*type));
+      continue;
+    }
+
     auto* typeIdConst      = instr_helper->getConstantFor(IType::type_id, typeId);
     auto* numElementsConst = instr_helper->getConstantFor(IType::extent, numElements);
     // auto globalPtr         = IRB.CreateBitOrPointerCast(global, instr.getTypeFor(IType::ptr));

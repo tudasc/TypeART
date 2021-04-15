@@ -7,10 +7,11 @@
 
 #include "MemInstFinderPass.h"
 
-#include "MemOpVisitor.h"
+#include "analysis/MemOpData.h"
 #include "filter/CGForwardFilter.h"
 #include "filter/CGInterface.h"
 #include "filter/Filter.h"
+#include "filter/Matcher.h"
 #include "filter/StandardFilter.h"
 #include "filter/StdForwardFilter.h"
 #include "support/Logger.h"
@@ -18,10 +19,28 @@
 #include "support/TypeUtil.h"
 #include "support/Util.h"
 
+#include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/Statistic.h"
+#include "llvm/ADT/StringRef.h"
+#include "llvm/ADT/iterator_range.h"
+#include "llvm/IR/BasicBlock.h"
+#include "llvm/IR/DerivedTypes.h"
+#include "llvm/IR/Function.h"
+#include "llvm/IR/GlobalValue.h"
 #include "llvm/IR/Instructions.h"
+#include "llvm/IR/Module.h"
+#include "llvm/IR/Type.h"
+#include "llvm/Pass.h"
+#include "llvm/PassAnalysisSupport.h"
+#include "llvm/PassSupport.h"
+#include "llvm/Support/Casting.h"
 #include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Format.h"
+#include "llvm/Support/raw_ostream.h"
+
+#include <algorithm>
+#include <cstdlib>
+#include <utility>
 
 using namespace llvm;
 

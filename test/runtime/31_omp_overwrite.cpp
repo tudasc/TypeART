@@ -1,4 +1,5 @@
 // clang-format off
+// RUN: OMP_NUM_THREADS=3 %run %s -o -O1 --omp --manual 2>&1 | FileCheck %s --check-prefix=CHECK-TSAN
 // RUN: OMP_NUM_THREADS=3 %run %s -o -O1 --omp --manual 2>&1 | FileCheck %s
 // REQUIRES: openmp && softcounter
 // clang-format on
@@ -42,7 +43,9 @@ int main(int argc, char** argv) {
     { repeat_alloc(beg, e); }
   }
 
-  // CHECK-NOT: [Error]
+  // CHECK-TSAN-NOT: ThreadSanitizer
+
+  // CHECK-NOT: Error
 
   // 3 Threads, using the same 100 pointers, i.e., 200 are overriden:
   // CHECK: Alloc Stats from softcounters

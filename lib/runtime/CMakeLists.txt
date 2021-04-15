@@ -43,9 +43,15 @@ if(SOFTCOUNTERS)
 endif()
 
 if(ENABLE_TSAN)
-    #message("Building with thread-sanitizer")
-    target_compile_options(typeart-rt PRIVATE -fsanitize=thread)
-    target_link_options(typeart-rt PRIVATE -fsanitize=thread)
+    target_tsan_options(typeart-rt)
+endif()
+
+if(ENABLE_ASAN)
+  target_asan_options(typeart-rt)
+endif()
+
+if(ENABLE_UBSAN)
+  target_ubsan_options(typeart-rt)
 endif()
 
 if(USE_BTREE)

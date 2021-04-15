@@ -1,4 +1,5 @@
 // clang-format off
+// RUN: OMP_NUM_THREADS=3 %run %s -o -O1 --omp --manual 2>&1 | FileCheck %s --check-prefix=CHECK-TSAN
 // RUN: OMP_NUM_THREADS=3 %run %s -o -O1 --omp --manual 2>&1 | FileCheck %s
 // REQUIRES: openmp && softcounter
 // clang-format on
@@ -59,7 +60,9 @@ int main(int argc, char** argv) {
     { repeat_dealloc(h1, h2); }
   }
 
-  // CHECK-NOT: [Error]
+  // CHECK-TSAN-NOT: ThreadSanitizer
+
+  // CHECK-NOT: Error
 
   // CHECK: Allocation type detail (heap, stack, global)
   // CHECK: 6   : 300 ,     0 ,    0 , double

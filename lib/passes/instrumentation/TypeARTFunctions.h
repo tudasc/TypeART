@@ -11,6 +11,8 @@
 #include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringRef.h"
 
+#include <unordered_map>
+
 namespace llvm {
 class Function;
 class Type;
@@ -18,6 +20,7 @@ class Module;
 }  // namespace llvm
 
 namespace typeart {
+class InstrumentationHelper;
 
 enum class IFunc : unsigned {
   heap,

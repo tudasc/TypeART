@@ -10,9 +10,10 @@ using namespace llvm;
 #include "support/Logger.h"
 #include "support/Util.h"
 
+#include "llvm/IR/Instructions.h"
+
 #include <algorithm>
 #include <functional>
-#include <llvm/IR/Instructions.h>
 
 namespace typeart::util {
 

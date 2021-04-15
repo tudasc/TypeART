@@ -11,9 +11,11 @@
 #include "MemOpData.h"
 #include "MemOpVisitor.h"
 
+#include "llvm/ADT/DenseMap.h"
 #include "llvm/Pass.h"
 
 #include <memory>
+#include <string>
 
 namespace llvm {
 class Module;
@@ -21,6 +23,8 @@ class Function;
 class AllocaInst;
 class CallSite;
 class GlobalValue;
+class AnalysisUsage;
+class raw_ostream;
 }  // namespace llvm
 
 namespace typeart {

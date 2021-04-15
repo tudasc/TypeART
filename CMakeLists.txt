@@ -31,6 +31,8 @@ add_format_target(format-sources
   lib/typelib/*.h
   lib/support/*.cpp
   lib/support/*.h
+  demo/*.c
+  demo/*.h
   )
 
 add_subdirectory(externals)

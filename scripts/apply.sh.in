@@ -6,6 +6,8 @@ ta_more_args=""
 with_omp=0
 omp_flags=""
 skip_typeart=0
+sanitizer_flags=""
+with_thread=0
 
 shift # skip over $1
 while (( "$#" )); do
@@ -63,21 +65,23 @@ if [ -e "types.yaml" ]; then
   rm "types.yaml"
 fi
 
+sanitizer_flags="@TYPEART_SAN_FLAGS@"
+
 function make_no_optim() {
   # Order: heap and stack/global together, no optimization pass
   if [ $skip_typeart == 0 ]; then
-    $compiler @TYPEART_INCLUDE_DIRS@ "$omp_flags" "$threads_flags" -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $typeart_plugin -typeart-alloca -typeart-stats $ta_more_args -S 2>&1
+    $compiler @TYPEART_INCLUDE_DIRS@ "$omp_flags" "$threads_flags" $sanitizer_flags -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $typeart_plugin -typeart-alloca -typeart-stats $ta_more_args -S 2>&1
   else
-    $compiler @TYPEART_INCLUDE_DIRS@ "$omp_flags" "$threads_flags" -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - 2>&1
+    $compiler @TYPEART_INCLUDE_DIRS@ "$omp_flags" "$threads_flags" $sanitizer_flags -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - 2>&1
   fi
 }
 
 function make_with_optim() {
   # Order: heap, optimize, alloca with additional args..
   if [ $skip_typeart == 0 ]; then
-    $compiler @TYPEART_INCLUDE_DIRS@ "$omp_flags" "$threads_flags" -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $typeart_plugin -typeart-stats -S | opt $optimize -S | opt $typeart_plugin -typeart-no-heap -typeart-alloca -typeart-stats  $ta_more_args -S 2>&1
+    $compiler @TYPEART_INCLUDE_DIRS@ "$omp_flags" "$threads_flags" $sanitizer_flags -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $typeart_plugin -typeart-stats -S | opt $optimize -S | opt $typeart_plugin -typeart-no-heap -typeart-alloca -typeart-stats  $ta_more_args -S 2>&1
   else
-    $compiler @TYPEART_INCLUDE_DIRS@ "$omp_flags" "$threads_flags" -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $optimize -S  2>&1
+    $compiler @TYPEART_INCLUDE_DIRS@ "$omp_flags" "$threads_flags" $sanitizer_flags -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $optimize -S  2>&1
   fi
 }
 

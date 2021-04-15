@@ -5,6 +5,21 @@
 #include "StdForwardFilter.h"
 
 #include "OmpUtil.h"
+#include "filter/FilterBase.h"
+#include "filter/FilterUtil.h"
+#include "filter/Matcher.h"
+#include "support/Logger.h"
+
+#include "llvm/IR/Instructions.h"
+#include "llvm/IR/Value.h"
+#include "llvm/Support/Casting.h"
+#include "llvm/Support/raw_ostream.h"
+
+#include <utility>
+
+namespace llvm {
+class Function;
+}  // namespace llvm
 
 namespace typeart::filter {
 

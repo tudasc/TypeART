@@ -1,4 +1,5 @@
 // clang-format off
+// RUN: %run %s --thread 2>&1 | FileCheck %s --check-prefix=CHECK-TSAN
 // RUN: %run %s --thread 2>&1 | FileCheck %s
 // REQUIRES: thread && softcounter
 // clang-format on
@@ -28,7 +29,9 @@ int main(int argc, char** argv) {
   t2.join();
   t3.join();
 
-  // CHECK-NOT: [Error]
+  // CHECK-TSAN-NOT: ThreadSanitizer
+
+  // CHECK-NOT: Error
   // CHECK: Allocation type detail (heap, stack, global)
   // CHECK: 6   : 3000 ,    0 ,    0 , double
   // CHECK: Free allocation type detail (heap, stack)

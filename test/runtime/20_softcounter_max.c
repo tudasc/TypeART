@@ -1,4 +1,4 @@
-// RUN: %run %s -o -O1 2>&1 | FileCheck %s
+// RUN: ASAN_OPTIONS=detect_leaks=0 %run %s -o -O1 2>&1 | FileCheck %s
 // REQUIRES: softcounter
 
 #include <stdlib.h>

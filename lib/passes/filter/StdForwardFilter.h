@@ -7,6 +7,24 @@
 
 #include "FilterBase.h"
 #include "Matcher.h"
+#include "filter/IRPath.h"
+
+#include "llvm/IR/CallSite.h"
+
+#include <memory>
+
+namespace llvm {
+class Function;
+class Value;
+}  // namespace llvm
+namespace typeart {
+namespace filter {
+namespace omp {
+struct OmpContext;
+}  // namespace omp
+struct DefaultSearch;
+}  // namespace filter
+}  // namespace typeart
 
 namespace typeart::filter {
 

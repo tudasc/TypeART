@@ -39,7 +39,7 @@ void printParticles(struct particle* p, int count, int rank) {
 }
 
 int main(int argc, char** argv) {
-  int size = -1;
+  int size    = -1;
   int my_rank = -1, i, j;
 
   int array_of_blocklengths[COUNT] = {1, 1, 3, 3, 1};
@@ -47,7 +47,7 @@ int main(int argc, char** argv) {
 #ifdef USE_STACK
   struct particle localParticles[COUNT], remoteParticles[COUNT];
 #else
-  struct particle* localParticles = malloc(sizeof(struct particle) * COUNT);
+  struct particle* localParticles  = malloc(sizeof(struct particle) * COUNT);
   struct particle* remoteParticles = malloc(sizeof(struct particle) * COUNT);
 #endif
 

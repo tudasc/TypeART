@@ -1,22 +1,36 @@
 #include "TypeARTPass.h"
 
-//#include "RuntimeInterface.h"
 #include "analysis/MemInstFinderPass.h"
 #include "instrumentation/MemOpArgCollector.h"
 #include "instrumentation/MemOpInstrumentation.h"
 #include "instrumentation/TypeARTFunctions.h"
 #include "support/Logger.h"
 #include "support/Table.h"
-#include "typelib/TypeIO.h"
+#include "typelib/TypeDB.h"
 
+#include "llvm/ADT/DenseMap.h"
+#include "llvm/ADT/None.h"
+#include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/Statistic.h"
-#include "llvm/IR/Instructions.h"
+#include "llvm/ADT/StringRef.h"
+#include "llvm/IR/DataLayout.h"
+#include "llvm/IR/Function.h"
 #include "llvm/IR/Module.h"
+#include "llvm/Pass.h"
+#include "llvm/PassAnalysisSupport.h"
+#include "llvm/PassSupport.h"
 #include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Format.h"
-#include "llvm/Transforms/Utils/CtorUtils.h"
+#include "llvm/Support/raw_ostream.h"
 
+#include <cassert>
+#include <cstddef>
 #include <string>
+#include <utility>
+
+namespace llvm {
+class BasicBlock;
+}  // namespace llvm
 
 using namespace llvm;
 
