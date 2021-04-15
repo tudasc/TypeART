@@ -8,7 +8,7 @@ from shutil import copyfile
 import time
 import random
 
-uuts = ["veloc/gol/"]
+uuts = ["mini-cpr/gol/", "veloc/gol/"]
 
 
 def main():

@@ -18,7 +18,7 @@ type_set = [	"char",\
 			"long int",\
 			"float", "double"]
 
-uuts = ["veloc/gol/"]
+uuts = ["mini-cpr/gol/", "veloc/gol/"]
 
 def main():
 	t_start = time.time()
