@@ -20,6 +20,10 @@ struct MemOpVisitor : public llvm::InstVisitor<MemOpVisitor> {
   MallocDataList mallocs;
   FreeDataList frees;
   AllocaDataList allocas;
+  
+  // TyCart - BEGIN
+  AssertDataList asserts;
+  // TyCart - END
 
  private:
   MemOps mem_operations{};
@@ -31,6 +35,10 @@ struct MemOpVisitor : public llvm::InstVisitor<MemOpVisitor> {
   void visitMallocLike(llvm::CallBase& ci, MemOpKind k);
   void visitFreeLike(llvm::CallBase& ci, MemOpKind k);
   void visitAllocaInst(llvm::AllocaInst& ai);
+  
+  // TyCart - BEGIN
+  void visitTypeAssert(llvm::CallBase& cb, AssertKind k);
+  // TyCart  END
 };
 
 }  // namespace typeart::finder

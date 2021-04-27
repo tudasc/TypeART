@@ -52,8 +52,16 @@ static cl::opt<bool> ClUseCallFilter("call-filter",
 static cl::opt<std::string> ClCallFilterImpl("call-filter-impl", cl::desc("Select the filter implementation."),
                                              cl::Hidden, cl::init("default"));
 
-static cl::opt<std::string> ClCallFilterGlob("call-filter-str", cl::desc("Filter values based on string."), cl::Hidden,
-                                             cl::init("*MPI_*"));
+
+// TyCart - BEGIN
+// TyCart exploits this command line argument...
+
+//static cl::opt<std::string> ClCallFilterGlob("call-filter-str", cl::desc("Filter values based on string."), cl::Hidden,
+//                                            cl::init("*MPI_*"));
+
+// ... to filter for TyCart asserts
+static cl::opt<const char*> ClCallFilterGlob("call-filter-str", cl::desc("Filter alloca instructions based on string."), cl::Hidden, cl::init("__tycart_assert_*"));
+// TyCart - END
 
 static cl::opt<std::string> ClCallFilterDeepGlob("call-filter-deep-str",
                                                  cl::desc("Filter values based on API, i.e., passed as void*."),
@@ -66,6 +74,7 @@ static cl::opt<std::string> ClCallFilterCGFile("call-filter-cg-file", cl::desc("
 static cl::opt<bool> ClCallFilterDeep("call-filter-deep",
                                       cl::desc("If the CallFilter matches, we look if the value is passed as a void*."),
                                       cl::Hidden, cl::init(false));
+
 
 STATISTIC(NumDetectedHeap, "Number of detected heap allocs");
 STATISTIC(NumFilteredDetectedHeap, "Number of filtered heap allocs");

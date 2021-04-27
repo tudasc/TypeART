@@ -48,6 +48,10 @@ struct FunctionData {
   MallocDataList mallocs;
   FreeDataList frees;
   AllocaDataList allocas;
+  
+  // TyCart - BEGIN
+  AssertDataList asserts;
+  // TyCart - END
 };
 
 class MemInstFinderPass : public llvm::ModulePass {

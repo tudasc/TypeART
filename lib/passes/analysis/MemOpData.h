@@ -31,6 +31,10 @@ enum class MemOpKind : uint8_t {
   AnyFree            = FreeLike | DeleteLike
 };
 
+// TyCart - BEGIN
+enum class AssertKind { TYPE, TYPELEN, TYCART, TYCART_FTI_T, TYCART_AUTO, INTROSPECT_MARK };
+// TyCart - END
+
 struct MemOps {
   inline llvm::Optional<MemOpKind> kind(llvm::StringRef function) const {
     if (auto alloc = allocKind(function)) {
@@ -106,6 +110,17 @@ struct MemOps {
       {"_ZdaPvjSt11align_val_t", MemOpKind::DeleteLike},              /* delete[](void*, unsigned int, align_val_t) */
       {"_ZdaPvmSt11align_val_t", MemOpKind::DeleteLike},              /* delete[](void*, unsigned long, align_val_t) */
   };
+  
+  // TyCart - BEGIN
+  const llvm::StringMap<AssertKind> assert_map{
+      {"__typeart_assert_type_stub", AssertKind::TYPE},
+      {"__typeart_assert_type_stub_len", AssertKind::TYPELEN},
+      {"__tycart_assert_stub", AssertKind::TYCART},
+      {"__tycart_register_FTI_t_stub", AssertKind::TYCART_FTI_T},
+      {"__tycart_assert_auto_stub", AssertKind::TYCART_AUTO}
+  };
+  // TyCart - END
+  
   //clang-format off
 };
 
@@ -129,6 +144,13 @@ struct AllocaData {
   bool is_vla{false};
 };
 
+// TyCart - BEGIN
+struct AssertData {
+  llvm::CallBase* call{nullptr};
+  AssertKind kind;
+};
+// TyCart - END
+
 struct GlobalData {
   llvm::GlobalVariable* global{nullptr};
 };
@@ -137,6 +159,10 @@ using GlobalDataList = llvm::SmallVector<GlobalData, 8>;
 using MallocDataList = llvm::SmallVector<MallocData, 8>;
 using FreeDataList   = llvm::SmallVector<FreeData, 8>;
 using AllocaDataList = llvm::SmallVector<AllocaData, 8>;
+
+// TyCart - BEGIN
+using AssertDataList = llvm::SmallVector<AssertData, 8>;
+// TyCart - END
 
 }  // namespace typeart
 #endif  // TYPEART_MEMOPDATA_H

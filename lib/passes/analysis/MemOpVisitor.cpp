@@ -159,6 +159,12 @@ void MemOpVisitor::visitAllocaInst(llvm::AllocaInst& ai) {
   //  LOG_DEBUG("Alloca: " << util::dump(ai) << " -> lifetime marker: " << util::dump(lifetimes));
 }  // namespace typeart
 
+// TyCart - BEGIN
+void MemOpVisitor::visitTypeAssert(llvm::CallBase& cb, AssertKind k) {
+  asserts.push_back({&cb, k});
+}
+// TyCart - END
+
 void MemOpVisitor::clear() {
   allocas.clear();
   mallocs.clear();
