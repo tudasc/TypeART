@@ -5,10 +5,34 @@ on:
     branches: [ master, devel ]
   pull_request:
 
+env:
+  CXX: clang++-10
+  CC: clang-10
+  EXTERNAL_LIT: /usr/lib/llvm-10/build/utils/lit/lit.py
+
 jobs:
-  build-and-run-testbench:
+  run-testbench:
     runs-on: ubuntu-20.04
-    if: "!contains(github.event.head_commit.message, '[ci skip]') && !contains(github.event.head_commit.message, '[ci ext skip]')"
+    if: "!contains(github.event.head_commit.message, '[ci skip]')"
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {
+            name: "Thread-safe-safeptr",
+            thread-safety: true,
+            safe-ptr: true,
+          }
+          - {
+            name: "Thread-safe",
+            thread-safety: true,
+            safe-ptr: false,
+          }
+          - {
+            name: "Thread-unsafe",
+            thread-safety: false,
+            safe-ptr: false,
+          }
     steps:
       - uses: actions/checkout@v2
 
@@ -18,6 +42,90 @@ jobs:
           repository: tudasc/typeart-bench
           ssh-key: ${{ secrets.AUTH_SSH_CI_EXT }}
           path: test-bench
+
+      - name: Install LLVM
+        run: sudo apt-get install libllvm10 llvm-10 llvm-10-dev
+
+      - name: Install Clang
+        run: sudo apt-get install clang-10 clang-tidy-10
+
+      - name: Install OpenMPI
+        run: sudo apt-get install libopenmpi-dev openmpi-bin
+
+      - name: Setup env
+        run: |
+          sudo ln -f -s /usr/bin/clang-10 /usr/bin/clang
+          sudo ln -f -s /usr/bin/clang++-10 /usr/bin/clang++
+          sudo ln -f -s /usr/bin/opt-10 /usr/bin/opt
+          sudo ln -f -s /usr/bin/llc-10 /usr/bin/llc
+          sudo ln -f -s /usr/bin/clang-tidy-10 /usr/bin/clang-tidy
+
+      - name: Configure TypeART
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release \
+            -DMPI_INTERCEPT_LIB=ON \
+            -DSHOW_STATS=ON \
+            -DSOFTCOUNTERS=ON \
+            -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT} \
+            -DENABLE_SAFEPTR=${{ matrix.config.safe-ptr }} \
+            -DDISABLE_THREAD_SAFETY=${{ matrix.config.thread-safety }}
+
+      - name: Build & install TypeART
+        run: |
+          cmake --build build --parallel 2 --target install
+          echo "TYPEART_PATH=${GITHUB_WORKSPACE}/install/typeart" >> $GITHUB_ENV
+
+      - name: Setup tests
+        working-directory: test-bench
+        run: cmake -B build -DLOG_PATH=${GITHUB_WORKSPACE}/test-bench/artifact
+
+      - name: Run lulesh
+        working-directory: test-bench/build
+        run: ctest -V -R lulesh -O lulesh2.0_build.log
+
+      - name: Run 104.milc
+        working-directory: test-bench/build
+        run: ctest -V -R 104.milc -O 104.milc_build.log
+
+      - name: Run 122.tachyon
+        working-directory: test-bench/build
+        run: ctest -V -R 122.tachyon -O 122.tachyon_build.log
+
+      - name: Run amg2013
+        working-directory: test-bench/build
+        run: ctest -V -R amg2013 -O amg2013_build.log
+
+      - name: Prepare artifact
+        run: |
+          mkdir -p artifact/bench
+          mv test-bench/build/*_build.log artifact/bench
+          mv test-bench/artifact/* artifact/bench
+
+      - name: Upload test-bench artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: typeart-ci-ext
+          path: artifact
+
+  run-AD-testbench:
+    runs-on: ubuntu-20.04
+    if: "!contains(github.event.head_commit.message, '[ci skip]')"
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {
+            name: "Thread-safe",
+            thread-safety: true,
+            safe-ptr: false,
+          }
+          - {
+            name: "Thread-unsafe",
+            thread-safety: false,
+            safe-ptr: false,
+          }
+    steps:
+      - uses: actions/checkout@v2
 
       - name: Checkout AD test-bench
         uses: actions/checkout@v2
@@ -43,35 +151,21 @@ jobs:
           sudo ln -f -s /usr/bin/opt-10 /usr/bin/opt
           sudo ln -f -s /usr/bin/llc-10 /usr/bin/llc
           sudo ln -f -s /usr/bin/clang-tidy-10 /usr/bin/clang-tidy
-          echo "CC=clang-10" >> $GITHUB_ENV
-          echo "CXX=clang++-10" >> $GITHUB_ENV
-          echo "EXTERNAL_LIT=/usr/lib/llvm-10/build/utils/lit/lit.py" >> $GITHUB_ENV
+
+      - name: Configure TypeART
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release \
+            -DMPI_INTERCEPT_LIB=ON \
+            -DSHOW_STATS=ON \
+            -DSOFTCOUNTERS=ON \
+            -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT} \
+            -DENABLE_SAFEPTR=${{ matrix.config.safe-ptr }} \
+            -DDISABLE_THREAD_SAFETY=${{ matrix.config.thread-safety }}
 
       - name: Build & install TypeART
         run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Release -DMPI_INTERCEPT_LIB=ON -DSHOW_STATS=ON -DSOFTCOUNTERS=ON
-          cmake --build build --parallel --target install
+          cmake --build build --parallel 2 --target install
           echo "TYPEART_PATH=${GITHUB_WORKSPACE}/install/typeart" >> $GITHUB_ENV
-
-      - name: Setup tests
-        working-directory: test-bench
-        run: cmake -B build -DLOG_PATH=${GITHUB_WORKSPACE}/test-bench/artifact
-
-      - name: Run lulesh
-        working-directory: test-bench/build
-        run: ctest -V -R lulesh -O lulesh2.0_build.log
-
-      - name: Run 104.milc
-        working-directory: test-bench/build
-        run: ctest -V -R 104.milc -O 104.milc_build.log
-
-      - name: Run 122.tachyon
-        working-directory: test-bench/build
-        run: ctest -V -R 122.tachyon -O 122.tachyon_build.log
-
-      - name: Run amg2013
-        working-directory: test-bench/build
-        run: ctest -V -R amg2013 -O amg2013_build.log
 
       - name: Setup AD tests
         working-directory: ad-test-bench
@@ -83,17 +177,103 @@ jobs:
 
       - name: Prepare artifact
         run: |
-          mkdir -p artifact/bench
           mkdir -p artifact/ad-bench
-          mv test-bench/build/*_build.log artifact/bench
-          mv test-bench/artifact/* artifact/bench
           mv ad-test-bench/build/*_build.log artifact/ad-bench
           mv ad-test-bench/artifact/* artifact/ad-bench
 
-      - name: Upload test-bench artifact
+      - name: Upload AD test-bench artifact
         uses: actions/upload-artifact@v2
         with:
-          name: typeart-ci-ext
+          name: typeart-ci-ext-ad
           path: artifact
-        
 
+  run-OMP-testbench:
+    runs-on: ubuntu-20.04
+    if: "!contains(github.event.head_commit.message, '[ci skip]')"
+
+    env:
+      OMP_NUM_THREAD: 2
+
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {
+            name: "Thread-safe-safeptr",
+            thread-safety: true,
+            safe-ptr: true,
+          }
+          - {
+            name: "Thread-safe",
+            thread-safety: true,
+            safe-ptr: false,
+          }
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Checkout OMP test-bench
+        uses: actions/checkout@v2
+        with:
+          repository: tudasc/typeart-bench
+          ssh-key: ${{ secrets.AUTH_SSH_CI_EXT }}
+          ref: ci/omp
+          path: omp-test-bench
+
+      - name: Install LLVM
+        run: sudo apt-get install libllvm10 llvm-10 llvm-10-dev
+
+      - name: Install Clang
+        run: sudo apt-get install clang-10 clang-tidy-10
+
+      - name: Install OpenMPI
+        run: sudo apt-get install libopenmpi-dev openmpi-bin
+
+      - name: Install LLVM OpenMP runtime
+        run: sudo apt-get install libomp-10-dev libomp5-10
+
+      - name: Setup env
+        run: |
+          sudo ln -f -s /usr/bin/clang-10 /usr/bin/clang
+          sudo ln -f -s /usr/bin/clang++-10 /usr/bin/clang++
+          sudo ln -f -s /usr/bin/opt-10 /usr/bin/opt
+          sudo ln -f -s /usr/bin/llc-10 /usr/bin/llc
+          sudo ln -f -s /usr/bin/clang-tidy-10 /usr/bin/clang-tidy
+
+      - name: Configure TypeART
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release \
+            -DMPI_INTERCEPT_LIB=ON \
+            -DSHOW_STATS=ON \
+            -DSOFTCOUNTERS=ON \
+            -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT} \
+            -DENABLE_SAFEPTR=${{ matrix.config.safe-ptr }} \
+            -DDISABLE_THREAD_SAFETY=${{ matrix.config.thread-safety }}
+
+      - name: Build & install TypeART
+        run: |
+          cmake --build build --parallel 2 --target install
+          echo "TYPEART_PATH=${GITHUB_WORKSPACE}/install/typeart" >> $GITHUB_ENV
+
+      - name: Setup tests
+        working-directory: omp-test-bench
+        run: cmake -B build -DLOG_PATH=${GITHUB_WORKSPACE}/omp-test-bench/artifact
+
+      - name: Run lulesh
+        working-directory: omp-test-bench/build
+        run: ctest -V -R lulesh -O lulesh2.0_build.log
+
+      - name: Run amg2013
+        working-directory: omp-test-bench/build
+        run: ctest -V -R amg2013 -O amg2013_build.log
+
+      - name: Prepare artifact
+        run: |
+          mkdir -p artifact/bench
+          mv omp-test-bench/build/*_build.log artifact/bench
+          mv omp-test-bench/artifact/* artifact/bench
+
+      - name: Upload omp-test-bench artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: typeart-ci-ext-omp
+          path: artifact

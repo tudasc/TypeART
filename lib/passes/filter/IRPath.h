@@ -8,15 +8,23 @@
 #include "llvm/ADT/Optional.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/IR/CallSite.h"
+#include "llvm/IR/Function.h"
 #include "llvm/IR/Value.h"
 #include "llvm/Support/raw_ostream.h"
 
+#include <unordered_map>
 #include <vector>
+
 namespace typeart::filter {
 
 struct IRPath {
   using Node = llvm::Value*;
   std::vector<llvm::Value*> path;
+  // FIXME
+  //  this mechanism tries to avoid endless recurison in loops, i.e.,
+  //  do we bounce around multiple phi nodes (visit counter >1), then
+  //  we should likely skip search, see IRSearch.h
+  std::unordered_map<llvm::Value*, int> phi_cache;
 
   llvm::Optional<Node> getStart() const {
     if (path.empty()) {
@@ -48,6 +56,9 @@ struct IRPath {
   }
 
   void push(Node n) {
+    if (llvm::isa<llvm::PHINode>(n)) {
+      ++(phi_cache[n]);
+    }
     path.push_back(n);
   }
 
@@ -64,7 +75,26 @@ inline llvm::raw_ostream& operator<<(llvm::raw_ostream& os, const IRPath& p) {
   }
   auto begin = std::begin(vec);
   os << "path = [" << **begin;
-  std::for_each(std::next(begin), std::end(vec), [&](const auto* v) { os << " ->" << *v; });
+  std::for_each(std::next(begin), std::end(vec), [&](const auto* v) {
+    os << " ->";
+    if (const auto f = llvm::dyn_cast<llvm::Function>(v); f != nullptr && !f->isDeclaration()) {
+      // do not print body of defined function, from "define" to "{"
+      std::string buf;
+      llvm::raw_string_ostream fo(buf);
+      fo << *f;
+
+      llvm::StringRef fref(fo.str());
+      auto pos_start     = fref.find("define");
+      const auto pos_end = fref.find("{");
+      if (pos_start == llvm::StringRef::npos || pos_start > pos_end) {
+        pos_start = 0;
+      }
+      auto fsig = fref.substr(pos_start, pos_end - pos_start);
+      os << " Function: " << fsig;
+    } else {
+      os << *v;
+    }
+  });
   os << "]";
   return os;
 }
@@ -84,6 +114,10 @@ struct CallsitePath {
     } else {
       start = root;
     }
+  }
+
+  bool empty() const {
+    return intermediatePath.empty() && terminatingPath.path.empty();
   }
 
   // Can return nullptr
@@ -123,6 +157,11 @@ struct CallsitePath {
   void push(const IRPath& p) {
     auto csite = p.getEnd();
     if (csite) {
+      // Omp extension: we may pass the outlined area directly as llvm::Function
+      if (auto f = llvm::dyn_cast<llvm::Function>(csite.getValue())) {
+        intermediatePath.emplace_back(f, p);
+        return;
+      }
       llvm::CallSite c(csite.getValue());
       intermediatePath.emplace_back(c.getCalledFunction(), p);
     }
@@ -140,7 +179,7 @@ struct CallsitePath {
 
   bool contains(llvm::CallSite c) {
     llvm::Function* f = c.getCalledFunction();
-    if (f && f == start) {
+    if ((f != nullptr) && f == start) {
       return true;
     }
     return llvm::find_if(intermediatePath, [&f](const auto& node) { return node.first == f; }) !=
@@ -150,7 +189,7 @@ struct CallsitePath {
 
 inline llvm::raw_ostream& operator<<(llvm::raw_ostream& os, const CallsitePath::Node& n) {
   auto f = n.first;
-  if (f) {
+  if (f != nullptr) {
     os << f->getName();
   } else {
     os << "--";

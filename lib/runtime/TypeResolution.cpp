@@ -4,8 +4,19 @@
 
 #include "TypeResolution.h"
 
-#include "AccessCountPrinter.h"
+#include "AllocationTracking.h"
 #include "Runtime.h"
+#include "RuntimeData.h"
+#include "support/Logger.h"
+
+#include "llvm/ADT/Optional.h"
+#include "llvm/Support/raw_ostream.h"
+
+#include <cassert>
+#include <cstddef>
+#include <cstdint>
+#include <utility>
+#include <vector>
 
 namespace typeart {
 
@@ -93,13 +104,13 @@ TypeResolution::TypeArtStatus TypeResolution::getTypeInfoInternal(const void* ba
   assert(offset < containerInfo.extent && "Something went wrong with the base address computation");
 
   TypeArtStatus status;
-  int subType;
+  int subType{-1};
   const void* subTypeBaseAddr;
-  size_t subTypeOffset;
-  size_t subTypeCount;
+  size_t subTypeOffset{0};
+  size_t subTypeCount{0};
   const StructTypeInfo* structInfo = &containerInfo;
 
-  bool resolve = true;
+  bool resolve{true};
 
   // Resolve type recursively, until the address matches exactly
   while (resolve) {
@@ -131,8 +142,8 @@ TypeResolution::TypeArtStatus TypeResolution::getTypeInfoInternal(const void* ba
 TypeResolution::TypeArtStatus TypeResolution::getTypeInfo(const void* addr, const void* basePtr,
                                                           const PointerInfo& ptrInfo, int* type, size_t* count) const {
   int containingType = ptrInfo.typeId;
-  size_t containingTypeCount;
-  size_t internalOffset;
+  size_t containingTypeCount{0};
+  size_t internalOffset{0};
 
   // First, retrieve the containing type
   TypeArtStatus status = getContainingTypeInfo(addr, basePtr, ptrInfo, &containingTypeCount, &internalOffset);
@@ -158,7 +169,7 @@ TypeResolution::TypeArtStatus TypeResolution::getTypeInfo(const void* addr, cons
   // Resolve struct recursively
   const auto* structInfo = typeDB.getStructInfo(containingType);
   if (structInfo != nullptr) {
-    const void* containingTypeAddr = addByteOffset(addr, -internalOffset);
+    const void* containingTypeAddr = addByteOffset(addr, -std::ptrdiff_t(internalOffset));
     return getTypeInfoInternal(containingTypeAddr, internalOffset, *structInfo, type, count);
   }
   return TA_INVALID_ID;
@@ -184,8 +195,8 @@ TypeResolution::TypeArtStatus TypeResolution::getContainingTypeInfo(const void* 
   if (addr >= blockEnd) {
     const std::ptrdiff_t offset = static_cast<const uint8_t*>(addr) - static_cast<const uint8_t*>(basePtr);
     const auto oob_index        = (offset / typeSize) - basePtrInfo.count + 1;
-    LOG_ERROR("Out of bounds for the lookup: (" << debug::toString(addr, basePtrInfo)
-                                                << ") #Elements too far: " << oob_index);
+    LOG_WARNING("Out of bounds for the lookup: (" << debug::toString(addr, basePtrInfo)
+                                                  << ") #Elements too far: " << oob_index);
     return TA_UNKNOWN_ADDRESS;
   }
 

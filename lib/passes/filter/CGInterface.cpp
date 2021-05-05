@@ -3,8 +3,16 @@
 #include "support/Logger.h"
 #include "support/Util.h"
 
+#include "llvm/ADT/Optional.h"
+#include "llvm/Support/Error.h"
 #include "llvm/Support/ErrorOr.h"
+#include "llvm/Support/JSON.h"
 #include "llvm/Support/MemoryBuffer.h"
+#include "llvm/Support/raw_ostream.h"
+
+#include <algorithm>
+#include <cassert>
+#include <cstdlib>
 
 namespace typeart::filter {
 

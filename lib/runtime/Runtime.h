@@ -10,7 +10,11 @@
 #include "TypeDB.h"
 #include "TypeResolution.h"
 
+#include <cstddef>
+#include <string>
+
 namespace typeart {
+struct PointerInfo;
 
 namespace debug {
 
@@ -27,9 +31,17 @@ struct RuntimeSystem {
   // rtScope must be set to true before all other members are initialized.
   // This is achieved by adding this struct as the first member.
   struct RTScopeInitializer {
-    RTScopeInitializer() {
+    RTScopeInitializer() : rtScopeWasSet(rtScope) {
       rtScope = true;
     }
+
+    void reset() {
+      // Reset rtScope to old value.
+      rtScope = rtScopeWasSet;
+    }
+
+   private:
+    bool rtScopeWasSet;
   };
 
   RTScopeInitializer rtScopeInit;
@@ -40,6 +52,8 @@ struct RuntimeSystem {
   TypeResolution typeResolution;
   AllocationTracker allocTracker;
 
+  static thread_local bool rtScope;
+
   static RuntimeSystem& get() {
     // As opposed to a global variable, a singleton + instantiation during
     // the first callback/query avoids some problems when
@@ -47,11 +61,6 @@ struct RuntimeSystem {
     static RuntimeSystem instance;
     return instance;
   }
-
-  /**
-   * Ensures that memory tracking functions are not called from within the runtime.
-   */
-  static bool rtScope;
 
  private:
   RuntimeSystem();

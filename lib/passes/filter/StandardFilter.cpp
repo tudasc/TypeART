@@ -4,6 +4,28 @@
 
 #include "StandardFilter.h"
 
+#include "support/Logger.h"
+#include "support/Util.h"
+
+#include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/SmallPtrSet.h"
+#include "llvm/ADT/SmallVector.h"
+#include "llvm/ADT/StringRef.h"
+#include "llvm/IR/Argument.h"
+#include "llvm/IR/CallSite.h"
+#include "llvm/IR/Function.h"
+#include "llvm/IR/Instruction.h"
+#include "llvm/IR/Instructions.h"
+#include "llvm/IR/Intrinsics.h"
+#include "llvm/IR/Type.h"
+#include "llvm/IR/Use.h"
+#include "llvm/IR/Value.h"
+#include "llvm/Support/Casting.h"
+#include "llvm/Support/raw_ostream.h"
+
+#include <algorithm>
+#include <iterator>
+
 namespace typeart::filter::deprecated {
 
 StandardFilter::StandardFilter(const std::string& glob, bool CallFilterDeep)

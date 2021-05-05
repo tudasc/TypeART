@@ -19,6 +19,10 @@ if(${MPI_C_FOUND} AND ${PYTHONINTERP_FOUND})
     ${LIB_SOURCE}
   )
 
+  set_property(TARGET interceptor-rt PROPERTY C_STANDARD 11)
+  set_property(TARGET interceptor-rt PROPERTY C_STANDARD_REQUIRED TRUE)
+
+
   target_define_file_basename(interceptor-rt)
   
   target_include_directories(interceptor-rt
@@ -33,6 +37,11 @@ if(${MPI_C_FOUND} AND ${PYTHONINTERP_FOUND})
       ${MPI_C_INCLUDE_PATH}
       ${LLVM_INCLUDE_DIRS}
   )
+
+  if(ENABLE_TSAN)
+    target_compile_options(interceptor-rt PRIVATE -fsanitize=thread)
+    target_link_options(interceptor-rt PRIVATE -fsanitize=thread)
+  endif()
 
   target_link_libraries(interceptor-rt
     typeart-rt

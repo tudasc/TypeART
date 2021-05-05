@@ -16,7 +16,6 @@ type_file="$(pwd)/types.yaml"
 
 echo "Executing integration test: mpiexec -n $np $exe $args with typeart runtime=$TYPEART_PATH_RT and typeart intercept=$TYPEART_PATH_INTERCEPT inside folder: $(pwd)"
 
-
 LD_PRELOAD="$TYPEART_PATH_RT/libtypeart-rt.so $TYPEART_PATH_INTERCEPT/libinterceptor-rt.so" TA_EXE_TARGET=$exe TA_TYPE_FILE=${type_file} mpiexec --oversubscribe -n $np $exe $args &> "$log_file"
 
 app_result=$?

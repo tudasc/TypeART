@@ -42,6 +42,18 @@ if(SOFTCOUNTERS)
 	)
 endif()
 
+if(ENABLE_TSAN)
+    target_tsan_options(typeart-rt)
+endif()
+
+if(ENABLE_ASAN)
+  target_asan_options(typeart-rt)
+endif()
+
+if(ENABLE_UBSAN)
+  target_ubsan_options(typeart-rt)
+endif()
+
 if(USE_BTREE)
   target_link_libraries(typeart-rt PRIVATE
     google::btree
@@ -56,6 +68,21 @@ elseif(USE_ABSL)
 
   target_project_compile_definitions(typeart-rt
      PRIVATE_DEFS USE_ABSL
+  )
+endif()
+
+if(ENABLE_SAFEPTR)
+  target_link_libraries(typeart-rt PRIVATE
+    sf::pointer
+  )
+  target_project_compile_definitions(typeart-rt
+    PRIVATE_DEFS USE_SAFEPTR
+  )
+endif ()
+
+if(DISABLE_THREAD_SAFETY)
+  target_project_compile_definitions(typeart-rt
+    PRIVATE_DEFS DISABLE_THREAD_SAFETY
   )
 endif()
 

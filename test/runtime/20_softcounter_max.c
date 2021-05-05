@@ -1,4 +1,4 @@
-// RUN: %run %s -o -O1 2>&1 | FileCheck %s
+// RUN: ASAN_OPTIONS=detect_leaks=0 %run %s -o -O1 2>&1 | FileCheck %s
 // REQUIRES: softcounter
 
 #include <stdlib.h>
@@ -26,6 +26,7 @@ int main(void) {
 // CHECK-NEXT: Distinct Addresses missed  :   0 ,    - ,    -
 // CHECK-NEXT: Total free heap            :   0 ,    0 ,    -
 // CHECK-NEXT: Total free stack           :   0 ,    0 ,    -
+// CHECK-NEXT: OMP Stack/Heap/Free        :   0 ,    0 ,    0
 // CHECK-NEXT: Null/Zero/NullZero Addr    :   0 ,    0 ,    0
 // CHECK-NEXT: User-def. types            :   0 ,    - ,    -
 // CHECK-NEXT: Estimated memory use (KiB) :   {{[4-9]}} ,    - ,    -

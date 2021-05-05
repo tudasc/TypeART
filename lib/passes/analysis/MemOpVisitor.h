@@ -13,6 +13,12 @@
 #include "llvm/ADT/StringMap.h"
 #include "llvm/IR/InstVisitor.h"
 
+namespace llvm {
+class AllocaInst;
+class CallBase;
+class Module;
+}  // namespace llvm
+
 namespace typeart::finder {
 
 struct MemOpVisitor : public llvm::InstVisitor<MemOpVisitor> {

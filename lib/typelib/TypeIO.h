@@ -5,7 +5,6 @@
 #ifndef LLVM_MUST_SUPPORT_CONFIGIO_H
 #define LLVM_MUST_SUPPORT_CONFIGIO_H
 
-#include <memory>
 #include <string>
 
 namespace typeart {

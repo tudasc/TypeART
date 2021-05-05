@@ -7,11 +7,25 @@
 
 #include "MemOpVisitor.h"
 
+#include "analysis/MemOpData.h"
 #include "support/Logger.h"
 #include "support/TypeUtil.h"
-#include "support/Util.h"
 
-#include <algorithm>
+#include "llvm/ADT/None.h"
+#include "llvm/ADT/Optional.h"
+#include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/SmallPtrSet.h"
+#include "llvm/ADT/StringRef.h"
+#include "llvm/IR/Constants.h"
+#include "llvm/IR/Function.h"
+#include "llvm/IR/InstrTypes.h"
+#include "llvm/IR/Instructions.h"
+#include "llvm/IR/Module.h"
+#include "llvm/IR/Value.h"
+#include "llvm/Support/Casting.h"
+#include "llvm/Support/raw_ostream.h"
+
+#include <cstddef>
 
 namespace typeart::finder {
 

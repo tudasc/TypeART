@@ -1,7 +1,12 @@
 #include "Logger.h"
-#include "mpi.h"
 
+#include "llvm/Support/raw_ostream.h"
+
+#include <algorithm>
 #include <cstdlib>
+#include <iterator>
+#include <mpi.h>
+#include <string>
 #include <vector>
 
 inline std::vector<int> getRanks() {

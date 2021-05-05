@@ -15,12 +15,12 @@
 #include "llvm/ADT/StringRef.h"
 #include "llvm/IR/IRBuilder.h"
 
+#include <cstddef>
 #include <functional>
 #include <map>
 #include <string>
 
 namespace llvm {
-class LLVMContext;
 class Function;
 class Module;
 class Value;

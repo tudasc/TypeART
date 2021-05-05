@@ -6,9 +6,17 @@
 
 #include "AccessCountPrinter.h"
 #include "AccessCounter.h"
+#include "RuntimeData.h"
 #include "TypeIO.h"
+#include "support/Logger.h"
 
+#include "llvm/Support/raw_ostream.h"
+
+#include <cstdlib>
 #include <iostream>
+#include <set>
+#include <unordered_map>
+#include <vector>
 
 namespace typeart {
 
@@ -74,11 +82,12 @@ RuntimeSystem::RuntimeSystem() : rtScopeInit(), typeResolution(typeDB, recorder)
   }
   recorder.incUDefTypes(typeList.size());
   LOG_INFO("Recorded types: " << ss.str());
-  rtScope = false;
+  rtScopeInit.reset();
 }
 
 RuntimeSystem::~RuntimeSystem() {
-  RTGuard guard;
+  rtScope = true;
+
   std::string stats;
   llvm::raw_string_ostream stream(stats);
   softcounter::serialise(recorder, stream);
@@ -88,6 +97,7 @@ RuntimeSystem::~RuntimeSystem() {
   }
 }
 
-bool RuntimeSystem::rtScope{false};
+// This is initially set to true in order to prevent tracking anything before the runtime library is properly set up.
+thread_local bool RuntimeSystem::rtScope = false;
 
 }  // namespace typeart

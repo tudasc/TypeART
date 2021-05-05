@@ -5,17 +5,18 @@
 #include "TypeIO.h"
 
 #include "TypeDB.h"
-#include "TypeInterface.h"
 #include "support/Logger.h"
 
-#include "llvm/Support/ErrorOr.h"
+#include "llvm/ADT/StringRef.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/YAMLParser.h"
 #include "llvm/Support/YAMLTraits.h"
 #include "llvm/Support/raw_ostream.h"
 
-#include <algorithm>
+#include <memory>
+#include <system_error>
+#include <vector>
 
 using namespace llvm::yaml;
 

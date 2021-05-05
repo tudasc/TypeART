@@ -1,6 +1,7 @@
-// RUN: clang++ -std=c++17 -I%S/../../ -I%S/../../lib/typelib -I%S/../../lib %s -o %s.exe
+// clang-format off
+// RUN: clang++ -std=c++17 -I%S/../../ -I%S/../../lib/typelib -I%S/../../lib  %s -o %s.exe
 // RUN: %s.exe 2>&1 | FileCheck %s
-
+// clang-format on
 // FIXME this test doesn't add to the coverage data.
 
 #define ENABLE_SOFTCOUNTER 1
@@ -67,8 +68,6 @@ void test_stack(softcounter::AccessRecorder& recorder) {
   recorder.incStackAlloc(1, 1);
   // CHECK: 2
   o_(getStackAllocs());
-  // CHECK: 2
-  o_(getCurStackAllocs());
   // CHECK: 0
   o_(getMaxStackAllocs());
 

@@ -7,6 +7,7 @@
 
 #include "InstrumentationHelper.h"
 #include "TypeARTFunctions.h"
+#include "support/OmpUtil.h"
 
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/IR/IRBuilder.h"
@@ -44,6 +45,8 @@ struct StackCounter {
 
     // Find return instructions:
     // if(counter > 0) call runtime for stack cleanup
+    const auto callback_id = util::omp::isOmpContext(f) ? IFunc::scope_omp : IFunc::scope;
+
     EscapeEnumerator ee(*f);
     while (IRBuilder<>* irb = ee.Next()) {
       auto* I = &(*irb->GetInsertPoint());
@@ -52,7 +55,8 @@ struct StackCounter {
       auto* cond      = irb->CreateICmpNE(counter_load, instr_helper->getConstantFor(IType::stack_count), "__ta_cond");
       auto* then_term = SplitBlockAndInsertIfThen(cond, I, false);
       irb->SetInsertPoint(then_term);
-      irb->CreateCall(fquery->getFunctionFor(IFunc::scope), ArrayRef<Value*>{counter_load});
+
+      irb->CreateCall(fquery->getFunctionFor(callback_id), ArrayRef<Value*>{counter_load});
     }
   }
 };
