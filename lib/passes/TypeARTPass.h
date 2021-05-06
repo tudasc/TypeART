@@ -40,8 +40,6 @@ class TypeArtPass : public llvm::ModulePass {
   TypeArtFunc typeart_assert_tycart_auto{"__tycart_assert_auto"};
   // TyCart - END
 
-  // TODO Call/Invoke Handling?
-
   TypeManager typeManager;
   InstrumentationHelper instrumentation_helper;
   TAFunctions functions;
