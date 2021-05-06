@@ -120,6 +120,25 @@ bool TypeArtPass::runOnFunc(Function& f) {
   const auto& mallocs = fData.mallocs;
   const auto& allocas = fData.allocas;
   const auto& frees   = fData.frees;
+  
+  // TyCart - BEGIN
+  const auto& asserts = fData.asserts;
+  
+  // TODO write lambda processTypeAssert
+  const auto processTypeAssert = [&](const AssertData& ad) -> bool {
+    LOG_ERROR("Processing assert");
+    
+    if (!ad.call) {
+      LOG_ERROR("CallInst is null");
+    }
+    
+    // TODO handle all kinds of asserts
+  }
+  
+  for (const auto& assertCall : asserts) {
+    mod |= processTypeAssert(assertCall);
+  }
+  // TyCart - END
 
   if (!ClIgnoreHeap) {
     // instrument collected calls of bb:
