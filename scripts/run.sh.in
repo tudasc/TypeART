@@ -15,7 +15,7 @@ shift # skip over $1
 while (( "$#" )); do
   case "$1" in
     -o|--optimization)
-      if [ -n "$2" ] && [ ${2:0:2} == "-O" ]; then
+      if [ -n "$2" ] && [ "${2:0:2}" == "-O" ]; then
         optimize=$2
         shift 2
       else
@@ -49,7 +49,7 @@ done
 extension="${target##*.}"
 tmpfile=${target##*/}
 
-if [ $extension == "c" ]; then
+if [ "$extension" == "c" ]; then
   compiler=clang
   if [ $with_omp == 1 ]; then
     omp_flags=@OpenMP_C_FLAGS@ # -I@OpenMP_C_INCLUDE_DIRS@
