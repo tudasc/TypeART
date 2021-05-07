@@ -64,8 +64,10 @@ void MemOpVisitor::visitCallBase(llvm::CallBase& cb) {
 void MemOpVisitor::visitMallocLike(llvm::CallBase& ci, MemOpKind k) {
   //  LOG_DEBUG("Found malloc-like: " << ci.getCalledFunction()->getName());
 
+  SmallPtrSet<GetElementPtrInst*, 2> geps;
   SmallPtrSet<BitCastInst*, 4> bcasts;
 
+  BitCastInst* primary_cast{nullptr};
   for (auto user : ci.users()) {
     // Simple case: Pointer is immediately casted
     if (auto inst = dyn_cast<BitCastInst>(user)) {
@@ -78,63 +80,58 @@ void MemOpVisitor::visitMallocLike(llvm::CallBase& ci, MemOpKind k) {
         if (auto loadInst = dyn_cast<LoadInst>(storeUser)) {
           for (auto loadUser : loadInst->users()) {
             if (auto bcastInst = dyn_cast<BitCastInst>(loadUser)) {
-              LOG_MSG(*bcastInst)
+              // LOG_MSG(*bcastInst)
               bcasts.insert(bcastInst);
             }
           }
         }
       }
     }
-    // FIXME this is a try to fix issue #13 ; may require more sophisticated dataflow tracking
+    // GEP indicates that an array cookie is added to the allocation. (Fixes #13)
     if (auto gep = dyn_cast<GetElementPtrInst>(user)) {
-      // if (gep->getPointerOperand() == ci) {
-      for (auto gep_user : gep->users()) {
-        if (auto bcastInst = dyn_cast<BitCastInst>(gep_user)) {
-          bcasts.insert(bcastInst);
-        }
-      }
-      //}
+      geps.insert(gep);
     }
   }
 
-  BitCastInst* primary_cast{nullptr};
   if (!bcasts.empty()) {
     primary_cast = *bcasts.begin();
   }
 
+  // Handle array cookies.
   using namespace util::type;
-  // const auto is_i64 = [](auto* type) { return type->isPointerTy() && type->getPointerElementType()->isIntegerTy(64);
-  // };
-
-  const bool has_specific = llvm::count_if(bcasts, [&](auto bcast) {
-                              auto dest = bcast->getDestTy();
-                              return !isVoidPtr(dest) && !isi64Ptr(dest);
-                            }) > 0;
-
-  for (auto bcast : bcasts) {
-    auto dest = bcast->getDestTy();
-    if (!isVoidPtr(dest)) {
-      auto cast = bcast;
-      if (isi64Ptr(dest) && has_specific) {  // LLVM likes to treat mallocs with i64 ptr type, skip if we have sth else
-        continue;
+  if (geps.size() == 1) {
+    // The memory allocation has an unpadded array cookie.
+    auto gep = *geps.begin();
+    for (auto gep_user : gep->users()) {
+      if (auto bcast_inst = dyn_cast<BitCastInst>(gep_user)) {
+        bcasts.insert(bcast_inst);
+        primary_cast = bcast_inst;
       }
-      primary_cast = cast;
     }
+  } else if (geps.size() == 2) {
+    // The memory allocation has a padded array cookie.
+    auto gep_it     = geps.begin();
+    auto cookie_gep = *gep_it++;
+    auto gep        = *gep_it;
+    for (auto gep_user : gep->users()) {
+      if (auto bcast_inst = dyn_cast<BitCastInst>(gep_user)) {
+        if (!isi64Ptr(bcast_inst->getDestTy())) {
+          bcasts.insert(bcast_inst);
+          primary_cast = bcast_inst;
+        }
+      }
+    }
+  } else if (geps.size() > 2) {
+    // Found a case where the address of an allocation is used more than two
+    // times as an argument to a GEP instruction. This is unexpected as at most
+    // two GEPs, for calculating the offsets of an array cookie itself and the
+    // array pointer, are expected.
+    LOG_ERROR("Expected at most two GEP instructions!");
   }
 
   if (primary_cast == nullptr) {
     LOG_DEBUG("Primay bitcast null: " << ci)
   }
-  /*
-  std::for_each(bcasts.begin(), bcasts.end(), [&](auto bcast) {
-    using namespace util::type;
-    auto dest = bcast->getDestTy();
-    if (!isVoidPtr(dest)) {
-      primary_cast = bcast;
-    }
-  });
-  */
-  //  LOG_DEBUG("  >> number of bitcasts found: " << bcasts.size());
 
   mallocs.push_back(MallocData{&ci, primary_cast, bcasts, k, isa<InvokeInst>(ci)});
 }
