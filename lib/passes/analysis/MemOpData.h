@@ -14,6 +14,8 @@ class CallBase;
 class BitCastInst;
 class AllocaInst;
 class GlobalVariable;
+class StoreInst;
+class Value;
 }  // namespace llvm
 
 namespace typeart {
@@ -109,8 +111,14 @@ struct MemOps {
   //clang-format off
 };
 
+struct ArrayCookieData {
+  llvm::StoreInst* cookie_store{nullptr};
+  llvm::Value* padding;
+};
+
 struct MallocData {
   llvm::CallBase* call{nullptr};
+  llvm::Optional<ArrayCookieData> array_cookie{llvm::None};
   llvm::BitCastInst* primary{nullptr};  // Non-null if non (void*) cast exists
   llvm::SmallPtrSet<llvm::BitCastInst*, 4> bitcasts;
   MemOpKind kind;
