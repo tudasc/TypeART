@@ -74,27 +74,28 @@ sanitizer_flags="@TYPEART_SAN_FLAGS@"
 function make_no_optim() {
   # Order: heap and stack/global together, no optimization pass
   if [ $skip_typeart == 0 ]; then
-    $compiler @TYPEART_INCLUDE_DIRS@ "$omp_flags" $sanitizer_flags -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $typeart_plugin -typeart-alloca -typeart-stats $ta_more_args | llc -x=ir -filetype=obj -o "$tmpfile".o
+    $compiler $typeart_includes "$omp_flags" $sanitizer_flags -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $typeart_plugin -typeart-alloca -typeart-stats $ta_more_args | llc -x=ir -filetype=obj -o "$tmpfile".o
   else
     # First create types.yaml
-    $compiler @TYPEART_INCLUDE_DIRS@ "$omp_flags" $sanitizer_flags -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $typeart_plugin -typeart-alloca -typeart-stats $ta_more_args > /dev/null
-    $compiler @TYPEART_INCLUDE_DIRS@ "$omp_flags" $sanitizer_flags -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | llc -x=ir -filetype=obj -o "$tmpfile".o
+    $compiler $typeart_includes "$omp_flags" $sanitizer_flags -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $typeart_plugin -typeart-alloca -typeart-stats $ta_more_args > /dev/null
+    $compiler $typeart_includes "$omp_flags" $sanitizer_flags -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | llc -x=ir -filetype=obj -o "$tmpfile".o
   fi
 }
 
 function make_with_optim() {
   # Order: heap, optimize, alloca with additional args..
   if [ $skip_typeart == 0 ]; then
-    $compiler @TYPEART_INCLUDE_DIRS@ "$omp_flags" $sanitizer_flags -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $typeart_plugin -typeart-stats $ta_more_args  | opt $optimize -S | opt $typeart_plugin -typeart-no-heap -typeart-alloca -typeart-stats $ta_more_args | llc -x=ir -filetype=obj -o "$tmpfile".o
+    $compiler $typeart_includes "$omp_flags" $sanitizer_flags -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $typeart_plugin -typeart-stats $ta_more_args  | opt $optimize -S | opt $typeart_plugin -typeart-no-heap -typeart-alloca -typeart-stats $ta_more_args | llc -x=ir -filetype=obj -o "$tmpfile".o
   else
     # First create types.yaml
-    $compiler @TYPEART_INCLUDE_DIRS@ "$omp_flags" $sanitizer_flags -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $typeart_plugin -typeart-stats $ta_more_args  | opt $optimize -S | opt $typeart_plugin -typeart-no-heap -typeart-alloca -typeart-stats $ta_more_args > /dev/null
-    $compiler @TYPEART_INCLUDE_DIRS@ "$omp_flags" $sanitizer_flags -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $optimize  | llc -x=ir -filetype=obj -o "$tmpfile".o
+    $compiler $typeart_includes "$omp_flags" $sanitizer_flags -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $typeart_plugin -typeart-stats $ta_more_args  | opt $optimize -S | opt $typeart_plugin -typeart-no-heap -typeart-alloca -typeart-stats $ta_more_args > /dev/null
+    $compiler $typeart_includes "$omp_flags" $sanitizer_flags -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $optimize  | llc -x=ir -filetype=obj -o "$tmpfile".o
   fi
 }
 
 function compile() {
   local typeart_plugin="-load @TYPEART_ANALYSIS_PASS_DIR@/@TYPEART_ANALYSIS_PLUGIN@ -load @TYPEART_PASS_DIR@/@TYPEART_PLUGIN@ -typeart"
+  local typeart_includes="@TYPEART_INCLUDE_DIRS@"
   if [ "$optimize" == " " ]; then
     make_no_optim
   else
