@@ -29,6 +29,12 @@ struct MemOpVisitor : public llvm::InstVisitor<MemOpVisitor> {
 
  private:
   MemOps mem_operations{};
+  bool collectAllocas;
+  bool collectHeap;
+
+ public:
+  MemOpVisitor();
+  MemOpVisitor(bool collectAllocas, bool collectHeap);
 
  public:
   void clear();

@@ -31,6 +31,13 @@ namespace typeart::finder {
 
 using namespace llvm;
 
+MemOpVisitor::MemOpVisitor() : MemOpVisitor(true, true) {
+}
+
+MemOpVisitor::MemOpVisitor(bool collectAllocas, bool collectHeap)
+    : collectAllocas(collectAllocas), collectHeap(collectHeap) {
+}
+
 void MemOpVisitor::visitModuleGlobals(Module& m) {
   for (auto& g : m.globals()) {
     globals.emplace_back(GlobalData{&g});
@@ -38,6 +45,9 @@ void MemOpVisitor::visitModuleGlobals(Module& m) {
 }
 
 void MemOpVisitor::visitCallBase(llvm::CallBase& cb) {
+  if (!collectHeap) {
+    return;
+  }
   const auto isInSet = [&](const auto& fMap) -> llvm::Optional<MemOpKind> {
     const auto* f = cb.getCalledFunction();
     if (!f) {
@@ -189,6 +199,9 @@ void MemOpVisitor::visitFreeLike(llvm::CallBase& ci, MemOpKind k) {
 //}
 
 void MemOpVisitor::visitAllocaInst(llvm::AllocaInst& ai) {
+  if (!collectAllocas) {
+    return;
+  }
   //  LOG_DEBUG("Found alloca " << ai);
   Value* arraySizeOperand = ai.getArraySize();
   size_t arraySize{0};
