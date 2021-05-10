@@ -45,7 +45,6 @@ static cl::opt<bool> ClTypeArtStats("typeart-stats", cl::desc("Show statistics f
 extern cl::opt<bool> ClIgnoreHeap;
 extern cl::opt<bool> ClTypeArtAlloca;
 
-
 static cl::opt<std::string> ClTypeFile("typeart-outfile", cl::desc("Location of the generated type file."), cl::Hidden,
                                        cl::init("types.yaml"));
 
