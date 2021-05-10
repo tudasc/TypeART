@@ -74,8 +74,11 @@ InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
       case MemOpKind::NewLike:
         [[fallthrough]];
       case MemOpKind::MallocLike: {
-        auto bytes   = args.get_value(ArgMap::ID::byte_count);  // can be null (for calloc, realloc)
-        elementCount = single_byte_type ? bytes : IRB.CreateUDiv(bytes, typeSizeConst);
+        elementCount = args.lookup(ArgMap::ID::element_count);
+        if (!elementCount) {
+          auto bytes   = args.get_value(ArgMap::ID::byte_count);  // can be null (for calloc, realloc)
+          elementCount = single_byte_type ? bytes : IRB.CreateUDiv(bytes, typeSizeConst);
+        }
         break;
       }
       case MemOpKind::CallocLike: {

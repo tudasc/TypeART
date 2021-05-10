@@ -92,6 +92,10 @@ HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
       case MemOpKind::NewLike:
         [[fallthrough]];
       case MemOpKind::MallocLike:
+        if (mdata.array_cookie.hasValue()) {
+          elementCount = mdata.array_cookie.getValue().cookie_store->getValueOperand();
+        }
+
         byte_count = mallocArg;
         break;
       case MemOpKind::CallocLike: {

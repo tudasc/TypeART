@@ -49,6 +49,10 @@ struct ArgMap {
     return llvm::None;
   }*/
 
+  auto lookup(Key key) const -> llvm::Value* {
+    return args.lookup(key);
+  }
+
   template <typename T>
   T* get_as(Key key) const {
     T* elem{nullptr};
