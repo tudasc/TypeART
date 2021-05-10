@@ -13,7 +13,7 @@ shift # skip over $1
 while (( "$#" )); do
   case "$1" in
     -o|--optimization)
-      if [ -n "$2" ] && [ ${2:0:2} == "-O" ]; then
+      if [ -n "$2" ] && [ "${2:0:2}" == "-O" ]; then
         optimize=$2
         shift 2
       else
@@ -43,22 +43,21 @@ done
 eval set -- "ta_more_args"
 
 extension="${target##*.}"
-tmpfile=${target##*/}
 
-if [ $extension == "c" ]; then
+if [ "$extension" == "c" ]; then
   compiler=clang
   if [ $with_omp == 1 ]; then
-    omp_flags=@OpenMP_C_FLAGS@ #-I@OpenMP_C_INCLUDE_DIRS@
+    omp_flags="@OpenMP_C_FLAGS@" #-I@OpenMP_C_INCLUDE_DIRS@
   fi
 else
   compiler=clang++
   if [ $with_omp == 1 ]; then
-    omp_flags=@OpenMP_CXX_FLAGS@ # -I@OpenMP_CXX_INCLUDE_DIRS@
+    omp_flags="@OpenMP_CXX_FLAGS@" # -I@OpenMP_CXX_INCLUDE_DIRS@
   fi
 fi
 
 if [ $with_thread == 1 ]; then
-  threads_flags=@CMAKE_THREAD_LIBS_INIT@
+  threads_flags="@CMAKE_THREAD_LIBS_INIT@"
 fi
 
 if [ -e "types.yaml" ]; then
@@ -70,23 +69,28 @@ sanitizer_flags="@TYPEART_SAN_FLAGS@"
 function make_no_optim() {
   # Order: heap and stack/global together, no optimization pass
   if [ $skip_typeart == 0 ]; then
-    $compiler @TYPEART_INCLUDE_DIRS@ "$omp_flags" "$threads_flags" $sanitizer_flags -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $typeart_plugin -typeart-alloca -typeart-stats $ta_more_args -S 2>&1
+    $compiler $typeart_includes $omp_flags $threads_flags $sanitizer_flags -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $typeart_plugin $typeart_combined_mode_args $ta_more_args -S 2>&1
   else
-    $compiler @TYPEART_INCLUDE_DIRS@ "$omp_flags" "$threads_flags" $sanitizer_flags -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - 2>&1
+    $compiler $typeart_includes $omp_flags $threads_flags $sanitizer_flags -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - 2>&1
   fi
 }
 
 function make_with_optim() {
-  # Order: heap, optimize, alloca with additional args..
+  # Order: heap, optimize, alloca with additional args.
   if [ $skip_typeart == 0 ]; then
-    $compiler @TYPEART_INCLUDE_DIRS@ "$omp_flags" "$threads_flags" $sanitizer_flags -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $typeart_plugin -typeart-stats -S | opt $optimize -S | opt $typeart_plugin -typeart-no-heap -typeart-alloca -typeart-stats  $ta_more_args -S 2>&1
+    $compiler $typeart_includes $omp_flags $threads_flags $sanitizer_flags -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $typeart_plugin $typeart_heap_mode_args -S | opt $optimize -S | opt $typeart_plugin $typeart_stack_mode_args  $ta_more_args -S 2>&1
   else
-    $compiler @TYPEART_INCLUDE_DIRS@ "$omp_flags" "$threads_flags" $sanitizer_flags -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $optimize -S  2>&1
+    $compiler $typeart_includes $omp_flags $threads_flags $sanitizer_flags -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $optimize -S  2>&1
   fi
 }
 
 function compile() {
   local typeart_plugin="-load @TYPEART_ANALYSIS_PASS_DIR@/@TYPEART_ANALYSIS_PLUGIN@ -load @TYPEART_PASS_DIR@/@TYPEART_PLUGIN@ -typeart"
+  local typeart_includes="@TYPEART_INCLUDE_DIRS@"
+  local typeart_stack_mode_args="-typeart-no-heap -typeart-alloca -typeart-stats"
+  local typeart_heap_mode_args="-typeart-no-heap=false -typeart-stats"
+  local typeart_combined_mode_args="-typeart-no-heap=false -typeart-alloca -typeart-stats"
+
   if [ "$optimize" == "" ]; then
     make_no_optim
   else
