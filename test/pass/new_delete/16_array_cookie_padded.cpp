@@ -1,6 +1,5 @@
 // clang-format off
 // RUN: %cpp-to-llvm %s | %apply-typeart -S 2>&1 | FileCheck %s
-// Wrong size is calculated due to using Znam call, instead of bitcast to struct.S1*
 // clang-format on
 
 struct alignas(16) S1 {
