@@ -62,22 +62,21 @@ void MemOpVisitor::visitCallBase(llvm::CallBase& cb) {
 }
 
 template <class T>
-auto expect_single_user(llvm::Value* value) -> T* {
+auto expectSingleUser(llvm::Value* value) -> T* {
   auto users    = value->users();
   auto users_it = users.begin();
   auto first    = *users_it++;
   assert(users_it == users.end());
   assert(isa<T>(first));
   return dyn_cast<T>(first);
-};
+}
 
-void MemOpVisitor::visitMallocLike(llvm::CallBase& ci, MemOpKind k) {
-  //  LOG_DEBUG("Found malloc-like: " << ci.getCalledFunction()->getName());
+using MallocGeps   = SmallPtrSet<GetElementPtrInst*, 2>;
+using MallocBcasts = SmallPtrSet<BitCastInst*, 4>;
 
-  SmallPtrSet<GetElementPtrInst*, 2> geps;
-  SmallPtrSet<BitCastInst*, 4> bcasts;
-
-  BitCastInst* primary_cast{nullptr};
+auto collectRelevantMallocUsers(llvm::CallBase& ci) -> std::pair<MallocGeps, MallocBcasts> {
+  auto geps   = MallocGeps{};
+  auto bcasts = MallocBcasts{};
   for (auto user : ci.users()) {
     // Simple case: Pointer is immediately casted
     if (auto inst = dyn_cast<BitCastInst>(user)) {
@@ -102,62 +101,71 @@ void MemOpVisitor::visitMallocLike(llvm::CallBase& ci, MemOpKind k) {
       geps.insert(gep);
     }
   }
+  return {geps, bcasts};
+}
 
-  if (!bcasts.empty()) {
-    primary_cast = *bcasts.begin();
-  }
-
-  // Handle array cookies.
+auto handleUnpaddedArrayCookie(MallocGeps const& geps, MallocBcasts& bcasts, BitCastInst*& primary_cast)
+    -> llvm::Optional<ArrayCookieData> {
   using namespace util::type;
-  auto const array_cookie_from = [](llvm::GetElementPtrInst* array_gep, llvm::BitCastInst* inst) -> ArrayCookieData {
-    assert(isi64Ptr(inst->getDestTy()));
-    auto cookie_store = expect_single_user<StoreInst>(inst);
-    assert(array_gep->getNumIndices() == 1);
-    return ArrayCookieData{cookie_store, array_gep->getOperand(1)};
-  };
+  // We expect only the bitcast to size_t for the array cookie store.
+  assert(bcasts.size() == 1);
+  auto cookie_bcast = *bcasts.begin();
+  assert(isi64Ptr(cookie_bcast->getDestTy()));
+  auto cookie_store = expectSingleUser<StoreInst>(cookie_bcast);
 
-  auto array_cookie = llvm::Optional<ArrayCookieData>{};
+  auto array_gep = *geps.begin();
+  assert(array_gep->getNumIndices() == 1);
+  auto array_bcast = expectSingleUser<BitCastInst>(array_gep);
+  bcasts.insert(array_bcast);
+  primary_cast = array_bcast;
+
+  return {ArrayCookieData{cookie_store, array_gep->getOperand(1)}};
+}
+
+auto handlePaddedArrayCookie(MallocGeps const& geps, MallocBcasts& bcasts, BitCastInst*& primary_cast)
+    -> llvm::Optional<ArrayCookieData> {
+  using namespace util::type;
+  // We expect bitcasts only after the GEP instructions in this case.
+  assert(bcasts.size() == 0);
+
+  auto gep_it       = geps.begin();
+  auto cookie_gep   = *gep_it++;
+  auto cookie_bcast = expectSingleUser<BitCastInst>(cookie_gep);
+  assert(isi64Ptr(cookie_bcast->getDestTy()));
+  auto cookie_store = expectSingleUser<StoreInst>(cookie_bcast);
+
+  auto array_gep = *gep_it;
+  assert(array_gep->getNumIndices() == 1);
+  auto array_bcast = expectSingleUser<BitCastInst>(array_gep);
+  bcasts.insert(array_bcast);
+  primary_cast = array_bcast;
+
+  return {ArrayCookieData{cookie_store, array_gep->getOperand(1)}};
+}
+
+auto handleGepInstrs(MallocGeps const& geps, MallocBcasts& bcasts, BitCastInst*& primary_cast)
+    -> llvm::Optional<ArrayCookieData> {
   if (geps.size() == 1) {
-    // We expect only the bitcast to size_t for the array cookie store.
-    assert(bcasts.size() == 1);
-
-    // The memory allocation has an unpadded array cookie.
-    auto array_gep   = *geps.begin();
-    auto array_bcast = expect_single_user<BitCastInst>(array_gep);
-    bcasts.insert(array_bcast);
-    primary_cast = array_bcast;
-
-    // In case of an unpadded array cookie we expect a single bitcast to size_t.
-    for (auto const& bcast : bcasts) {
-      bcast->dump();
-    }
-    array_cookie = {array_cookie_from(array_gep, *bcasts.begin())};
+    return handleUnpaddedArrayCookie(geps, bcasts, primary_cast);
   } else if (geps.size() == 2) {
-    // We expect bitcasts only after the GEP instructions in this case.
-    assert(bcasts.size() == 0);
-
-    // The memory allocation has a padded array cookie.
-    auto gep_it      = geps.begin();
-    auto cookie_gep  = *gep_it++;
-    auto array_gep   = *gep_it;
-    auto array_bcast = expect_single_user<BitCastInst>(array_gep);
-    if (!isi64Ptr(array_bcast->getDestTy())) {
-      bcasts.insert(array_bcast);
-      primary_cast = array_bcast;
-    }
-    array_cookie = {array_cookie_from(cookie_gep, expect_single_user<BitCastInst>(cookie_gep))};
+    return handlePaddedArrayCookie(geps, bcasts, primary_cast);
   } else if (geps.size() > 2) {
     // Found a case where the address of an allocation is used more than two
     // times as an argument to a GEP instruction. This is unexpected as at most
     // two GEPs, for calculating the offsets of an array cookie itself and the
     // array pointer, are expected.
-    LOG_ERROR("Expected at most two GEP instructions!");
+    LOG_FATAL("Expected at most two GEP instructions!");
   }
+  return llvm::None;
+}
 
+void MemOpVisitor::visitMallocLike(llvm::CallBase& ci, MemOpKind k) {
+  auto [geps, bcasts] = collectRelevantMallocUsers(ci);
+  auto primary_cast   = bcasts.empty() ? nullptr : *bcasts.begin();
+  auto array_cookie   = handleGepInstrs(geps, bcasts, primary_cast);
   if (primary_cast == nullptr) {
     LOG_DEBUG("Primay bitcast null: " << ci)
   }
-
   mallocs.push_back(MallocData{&ci, array_cookie, primary_cast, bcasts, k, isa<InvokeInst>(ci)});
 }
 
