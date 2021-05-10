@@ -138,13 +138,14 @@ auto handlePaddedArrayCookie(MallocGeps const& geps, MallocBcasts& bcasts, BitCa
   // We expect bitcasts only after the GEP instructions in this case.
   assert(bcasts.size() == 0);
 
-  auto gep_it       = geps.begin();
-  auto cookie_gep   = *gep_it++;
+  auto gep_it     = geps.begin();
+  auto array_gep  = *gep_it++;
+  auto cookie_gep = *gep_it++;
+
   auto cookie_bcast = expectSingleUser<BitCastInst>(cookie_gep);
   assert(isi64Ptr(cookie_bcast->getDestTy()));
   auto cookie_store = expectSingleUser<StoreInst>(cookie_bcast);
 
-  auto array_gep = *gep_it;
   assert(array_gep->getNumIndices() == 1);
   auto array_bcast = expectSingleUser<BitCastInst>(array_gep);
   bcasts.insert(array_bcast);
