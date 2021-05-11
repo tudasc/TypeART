@@ -16,6 +16,7 @@ class AllocaInst;
 class GlobalVariable;
 class StoreInst;
 class Value;
+class GetElementPtrInst;
 }  // namespace llvm
 
 namespace typeart {
@@ -113,7 +114,7 @@ struct MemOps {
 
 struct ArrayCookieData {
   llvm::StoreInst* cookie_store{nullptr};
-  llvm::Value* padding;
+  llvm::GetElementPtrInst* array_ptr_gep{nullptr};
 };
 
 struct MallocData {
@@ -127,6 +128,7 @@ struct MallocData {
 
 struct FreeData {
   llvm::CallBase* call{nullptr};
+  llvm::GetElementPtrInst* array_cookie_gep{nullptr};  // nullptr iff no array cookie was detected
   MemOpKind kind;
   bool is_invoke{false};
 };

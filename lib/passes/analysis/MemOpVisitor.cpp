@@ -129,7 +129,7 @@ auto handleUnpaddedArrayCookie(MallocGeps const& geps, MallocBcasts& bcasts, Bit
   bcasts.insert(array_bcast);
   primary_cast = array_bcast;
 
-  return {ArrayCookieData{cookie_store, array_gep->getOperand(1)}};
+  return {ArrayCookieData{cookie_store, array_gep}};
 }
 
 auto handlePaddedArrayCookie(MallocGeps const& geps, MallocBcasts& bcasts, BitCastInst*& primary_cast)
@@ -151,7 +151,7 @@ auto handlePaddedArrayCookie(MallocGeps const& geps, MallocBcasts& bcasts, BitCa
   bcasts.insert(array_bcast);
   primary_cast = array_bcast;
 
-  return {ArrayCookieData{cookie_store, array_gep->getOperand(1)}};
+  return {ArrayCookieData{cookie_store, array_gep}};
 }
 
 auto handleGepInstrs(MallocGeps const& geps, MallocBcasts& bcasts, BitCastInst*& primary_cast)
@@ -192,7 +192,8 @@ void MemOpVisitor::visitFreeLike(llvm::CallBase& ci, MemOpKind k) {
     }
   }
 
-  frees.emplace_back(FreeData{&ci, kind, isa<InvokeInst>(ci)});
+  auto array_cookie_gep = dyn_cast<GetElementPtrInst>(ci.getArgOperand(0));
+  frees.emplace_back(FreeData{&ci, array_cookie_gep, kind, isa<InvokeInst>(ci)});
 }
 
 // void MemOpVisitor::visitIntrinsicInst(llvm::IntrinsicInst& ii) {
