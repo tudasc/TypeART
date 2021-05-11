@@ -16,6 +16,7 @@
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/IR/CallSite.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/InstrTypes.h"
@@ -72,13 +73,32 @@ void MemOpVisitor::visitCallBase(llvm::CallBase& cb) {
 }
 
 template <class T>
-auto expectSingleUser(llvm::Value* value) -> T* {
-  auto users    = value->users();
-  auto users_it = users.begin();
-  auto first    = *users_it++;
-  assert(users_it == users.end());
-  assert(isa<T>(first));
-  return dyn_cast<T>(first);
+auto get_single_user_as(llvm::Value* value) -> T* {
+  auto users           = value->users();
+  const auto num_users = value->getNumUses();
+
+  assert(num_users > 0);
+
+  // Check for calls: In case of ASAN, the array cookie is passed to its API.
+  // TODO: this may need to be extended to include other such calls
+  const auto num_asan_calls = llvm::count_if(users, [](User* user) {
+    CallSite csite(user);
+    if (!(csite.isCall() || csite.isInvoke()) || csite.getCalledFunction() == nullptr) {
+      return false;
+    }
+    const auto name = csite.getCalledFunction()->getName();
+    return name.startswith("__asan");
+  });
+
+  assert(num_asan_calls == (num_users - 1));
+
+  // This should return the type T we need:
+  auto user = llvm::find_if(users, [](auto user) { return isa<T>(*user); });
+  if (user == std::end(users)) {
+    LOG_FATAL("Could not find non-asan-call user of " << *value);
+    return nullptr;
+  }
+  return dyn_cast<T>(*user);
 }
 
 using MallocGeps   = SmallPtrSet<GetElementPtrInst*, 2>;
@@ -121,11 +141,11 @@ auto handleUnpaddedArrayCookie(MallocGeps const& geps, MallocBcasts& bcasts, Bit
   assert(bcasts.size() == 1);
   auto cookie_bcast = *bcasts.begin();
   assert(isi64Ptr(cookie_bcast->getDestTy()));
-  auto cookie_store = expectSingleUser<StoreInst>(cookie_bcast);
+  auto cookie_store = get_single_user_as<StoreInst>(cookie_bcast);
 
   auto array_gep = *geps.begin();
   assert(array_gep->getNumIndices() == 1);
-  auto array_bcast = expectSingleUser<BitCastInst>(array_gep);
+  auto array_bcast = get_single_user_as<BitCastInst>(array_gep);
   bcasts.insert(array_bcast);
   primary_cast = array_bcast;
 
@@ -142,12 +162,12 @@ auto handlePaddedArrayCookie(MallocGeps const& geps, MallocBcasts& bcasts, BitCa
   auto array_gep  = *gep_it++;
   auto cookie_gep = *gep_it++;
 
-  auto cookie_bcast = expectSingleUser<BitCastInst>(cookie_gep);
+  auto cookie_bcast = get_single_user_as<BitCastInst>(cookie_gep);
   assert(isi64Ptr(cookie_bcast->getDestTy()));
-  auto cookie_store = expectSingleUser<StoreInst>(cookie_bcast);
+  auto cookie_store = get_single_user_as<StoreInst>(cookie_bcast);
 
   assert(array_gep->getNumIndices() == 1);
-  auto array_bcast = expectSingleUser<BitCastInst>(array_gep);
+  auto array_bcast = get_single_user_as<BitCastInst>(array_gep);
   bcasts.insert(array_bcast);
   primary_cast = array_bcast;
 
