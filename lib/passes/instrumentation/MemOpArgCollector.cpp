@@ -146,8 +146,8 @@ FreeArgList MemOpArgCollector::collectFree(const FreeDataList& frees) {
       case MemOpKind::DeleteLike:
         [[fallthrough]];
       case MemOpKind::FreeLike:
-        freeArg =
-            fdata.array_cookie_gep != nullptr ? fdata.array_cookie_gep->getPointerOperand() : free_call->getOperand(0);
+        freeArg = fdata.array_cookie_gep.hasValue() ? fdata.array_cookie_gep.getValue()->getPointerOperand()
+                                                    : free_call->getOperand(0);
         break;
       default:
         LOG_ERROR("Unknown free kind. Not instrumenting. " << util::dump(*free_call));

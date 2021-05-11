@@ -73,7 +73,7 @@ void MemOpVisitor::visitCallBase(llvm::CallBase& cb) {
 }
 
 template <class T>
-auto get_single_user_as(llvm::Value* value) -> T* {
+T* get_single_user_as(llvm::Value* value) {
   auto users           = value->users();
   const auto num_users = value->getNumUses();
 
@@ -104,7 +104,7 @@ auto get_single_user_as(llvm::Value* value) -> T* {
 using MallocGeps   = SmallPtrSet<GetElementPtrInst*, 2>;
 using MallocBcasts = SmallPtrSet<BitCastInst*, 4>;
 
-auto collectRelevantMallocUsers(llvm::CallBase& ci) -> std::pair<MallocGeps, MallocBcasts> {
+std::pair<MallocGeps, MallocBcasts> collectRelevantMallocUsers(llvm::CallBase& ci) {
   auto geps   = MallocGeps{};
   auto bcasts = MallocBcasts{};
   for (auto user : ci.users()) {
@@ -134,8 +134,8 @@ auto collectRelevantMallocUsers(llvm::CallBase& ci) -> std::pair<MallocGeps, Mal
   return {geps, bcasts};
 }
 
-auto handleUnpaddedArrayCookie(MallocGeps const& geps, MallocBcasts& bcasts, BitCastInst*& primary_cast)
-    -> llvm::Optional<ArrayCookieData> {
+llvm::Optional<ArrayCookieData> handleUnpaddedArrayCookie(const MallocGeps& geps, MallocBcasts& bcasts,
+                                                          BitCastInst*& primary_cast) {
   using namespace util::type;
   // We expect only the bitcast to size_t for the array cookie store.
   assert(bcasts.size() == 1);
@@ -152,11 +152,11 @@ auto handleUnpaddedArrayCookie(MallocGeps const& geps, MallocBcasts& bcasts, Bit
   return {ArrayCookieData{cookie_store, array_gep}};
 }
 
-auto handlePaddedArrayCookie(MallocGeps const& geps, MallocBcasts& bcasts, BitCastInst*& primary_cast)
-    -> llvm::Optional<ArrayCookieData> {
+llvm::Optional<ArrayCookieData> handlePaddedArrayCookie(const MallocGeps& geps, MallocBcasts& bcasts,
+                                                        BitCastInst*& primary_cast) {
   using namespace util::type;
   // We expect bitcasts only after the GEP instructions in this case.
-  assert(bcasts.size() == 0);
+  assert(bcasts.empty());
 
   auto gep_it     = geps.begin();
   auto array_gep  = *gep_it++;
@@ -174,8 +174,8 @@ auto handlePaddedArrayCookie(MallocGeps const& geps, MallocBcasts& bcasts, BitCa
   return {ArrayCookieData{cookie_store, array_gep}};
 }
 
-auto handleGepInstrs(MallocGeps const& geps, MallocBcasts& bcasts, BitCastInst*& primary_cast)
-    -> llvm::Optional<ArrayCookieData> {
+llvm::Optional<ArrayCookieData> handleGepInstrs(const MallocGeps& geps, MallocBcasts& bcasts,
+                                                BitCastInst*& primary_cast) {
   if (geps.size() == 1) {
     return handleUnpaddedArrayCookie(geps, bcasts, primary_cast);
   } else if (geps.size() == 2) {
@@ -212,7 +212,8 @@ void MemOpVisitor::visitFreeLike(llvm::CallBase& ci, MemOpKind k) {
     }
   }
 
-  auto array_cookie_gep = dyn_cast<GetElementPtrInst>(ci.getArgOperand(0));
+  auto gep              = dyn_cast<GetElementPtrInst>(ci.getArgOperand(0));
+  auto array_cookie_gep = gep != nullptr ? llvm::Optional<llvm::GetElementPtrInst*>{gep} : llvm::None;
   frees.emplace_back(FreeData{&ci, array_cookie_gep, kind, isa<InvokeInst>(ci)});
 }
 

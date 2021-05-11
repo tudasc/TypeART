@@ -128,7 +128,7 @@ struct MallocData {
 
 struct FreeData {
   llvm::CallBase* call{nullptr};
-  llvm::GetElementPtrInst* array_cookie_gep{nullptr};  // nullptr iff no array cookie was detected
+  llvm::Optional<llvm::GetElementPtrInst*> array_cookie_gep{llvm::None};
   MemOpKind kind;
   bool is_invoke{false};
 };
