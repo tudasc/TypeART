@@ -86,6 +86,10 @@ static cl::opt<bool> ClCallFilterDeep("call-filter-deep",
                                       cl::desc("If the CallFilter matches, we look if the value is passed as a void*."),
                                       cl::Hidden, cl::init(false));
 
+cl::opt<bool> ClIgnoreHeap("typeart-no-heap", cl::desc("Ignore heap allocation/free instruction."), cl::Hidden,
+                           cl::init(false));
+cl::opt<bool> ClTypeArtAlloca("typeart-alloca", cl::desc("Track alloca instructions."), cl::Hidden, cl::init(false));
+
 STATISTIC(NumDetectedHeap, "Number of detected heap allocs");
 STATISTIC(NumFilteredDetectedHeap, "Number of filtered heap allocs");
 STATISTIC(NumDetectedAllocs, "Number of detected allocs");
@@ -166,7 +170,8 @@ CallFilter::~CallFilter() = default;
 
 char MemInstFinderPass::ID = 0;
 
-MemInstFinderPass::MemInstFinderPass() : llvm::ModulePass(ID), mOpsCollector(), filter(ClCallFilterGlob.getValue()) {
+MemInstFinderPass::MemInstFinderPass()
+    : llvm::ModulePass(ID), mOpsCollector(ClTypeArtAlloca, !ClIgnoreHeap), filter(ClCallFilterGlob.getValue()) {
 }
 
 void MemInstFinderPass::getAnalysisUsage(llvm::AnalysisUsage& info) const {

@@ -42,6 +42,7 @@ HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
   for (const MallocData& mdata : mallocs) {
     ArgMap arg_map;
     const auto malloc_call      = mdata.call;
+    Value* pointer              = malloc_call;
     BitCastInst* primaryBitcast = mdata.primary;
     auto kind                   = mdata.kind;
 
@@ -92,6 +93,12 @@ HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
       case MemOpKind::NewLike:
         [[fallthrough]];
       case MemOpKind::MallocLike:
+        if (mdata.array_cookie.hasValue()) {
+          auto array_cookie_data = mdata.array_cookie.getValue();
+          elementCount           = array_cookie_data.cookie_store->getValueOperand();
+          pointer                = array_cookie_data.array_ptr_gep;
+        }
+
         byte_count = mallocArg;
         break;
       case MemOpKind::CallocLike: {
@@ -115,7 +122,7 @@ HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
         continue;
     }
 
-    arg_map[ArgMap::ID::pointer]       = malloc_call;
+    arg_map[ArgMap::ID::pointer]       = pointer;
     arg_map[ArgMap::ID::type_id]       = typeIdConst;
     arg_map[ArgMap::ID::type_size]     = typeSizeConst;
     arg_map[ArgMap::ID::byte_count]    = byte_count;
@@ -139,7 +146,8 @@ FreeArgList MemOpArgCollector::collectFree(const FreeDataList& frees) {
       case MemOpKind::DeleteLike:
         [[fallthrough]];
       case MemOpKind::FreeLike:
-        freeArg = free_call->getOperand(0);
+        freeArg = fdata.array_cookie_gep.hasValue() ? fdata.array_cookie_gep.getValue()->getPointerOperand()
+                                                    : free_call->getOperand(0);
         break;
       default:
         LOG_ERROR("Unknown free kind. Not instrumenting. " << util::dump(*free_call));

@@ -2,22 +2,17 @@
 // RUN: %cpp-to-llvm %s | %apply-typeart -S 2>&1 | FileCheck %s
 // clang-format on
 
-#include <new>
-
 struct S1 {
   int x;
-  virtual ~S1() = default;
+  ~S1(){};
 };
 
-// CHECK: invoke i8* @_Znam(i64 40)
-// CHECK: call void @__typeart_alloc(i8* [[POINTER:%[0-9]+]], i32 {{2[5-9][0-9]}}, i64 2)
-// CHECK: bitcast i8* [[POINTER]] to %struct.S1*
+// CHECK: [[MEM:%[0-9]+]] = call i8* @_Znam(i64 16)
+// CHECK: [[ARR:%[0-9]+]] = getelementptr inbounds i8, i8* [[MEM]], i64 8
+// CHECK: call void @__typeart_alloc(i8* [[ARR:%[0-9]+]], i32 {{2[0-9]+}}, i64 2)
+// CHECK: bitcast i8* [[ARR]] to %struct.S1*
 int main() {
-  try {
-    S1* ss = new S1[2];
-  } catch (...) {
-  }
-
+  S1* ss = new S1[2];
   return 0;
 }
 

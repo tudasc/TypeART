@@ -48,9 +48,13 @@ InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
     Instruction* malloc_call = args.get_as<Instruction>(ArgMap::ID::pointer);
 
     Instruction* insertBefore = malloc_call->getNextNode();
-    if (malloc.is_invoke) {
-      const InvokeInst* inv = dyn_cast<InvokeInst>(malloc_call);
-      insertBefore          = &(*inv->getNormalDest()->getFirstInsertionPt());
+    if (malloc.array_cookie.hasValue()) {
+      insertBefore = malloc.array_cookie.getValue().array_ptr_gep->getNextNode();
+    } else {
+      if (malloc.is_invoke) {
+        const InvokeInst* inv = dyn_cast<InvokeInst>(malloc_call);
+        insertBefore          = &(*inv->getNormalDest()->getFirstInsertionPt());
+      }
     }
 
     IRBuilder<> IRB(insertBefore);
@@ -74,8 +78,11 @@ InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
       case MemOpKind::NewLike:
         [[fallthrough]];
       case MemOpKind::MallocLike: {
-        auto bytes   = args.get_value(ArgMap::ID::byte_count);  // can be null (for calloc, realloc)
-        elementCount = single_byte_type ? bytes : IRB.CreateUDiv(bytes, typeSizeConst);
+        elementCount = args.lookup(ArgMap::ID::element_count);
+        if (elementCount == nullptr) {
+          auto bytes   = args.get_value(ArgMap::ID::byte_count);  // can be null (for calloc, realloc)
+          elementCount = single_byte_type ? bytes : IRB.CreateUDiv(bytes, typeSizeConst);
+        }
         break;
       }
       case MemOpKind::CallocLike: {
