@@ -30,6 +30,7 @@
 #include "safe_ptr.h"
 #endif
 
+#include <cstddef>  // size_t
 #include <vector>
 
 namespace typeart {
