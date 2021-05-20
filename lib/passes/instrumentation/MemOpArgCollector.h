@@ -21,6 +21,10 @@ class MemOpArgCollector final : public ArgumentCollector {
   FreeArgList collectFree(const FreeDataList& frees) override;
   StackArgList collectStack(const AllocaDataList& allocs) override;
   GlobalArgList collectGlobal(const GlobalDataList& globals) override;
+  
+  // TyCart - BEGIN
+  AssertArgList collectAssert(const AssertDataList& asserts) override;
+  // TyCart - END
 };
 }  // namespace typeart
 

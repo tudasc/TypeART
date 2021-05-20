@@ -72,10 +72,18 @@ using FreeContainer   = detail::MemContainer<FreeData>;
 using StackContainer  = detail::MemContainer<AllocaData>;
 using GlobalContainer = detail::MemContainer<GlobalData>;
 
+// TyCart - BEGIN
+using AssertContainer = detail::MemContainer<AssertData>;
+// TyCart - END
+
 using HeapArgList   = llvm::SmallVector<HeapContainer, 16>;
 using FreeArgList   = llvm::SmallVector<FreeContainer, 16>;
 using StackArgList  = llvm::SmallVector<StackContainer, 16>;
 using GlobalArgList = llvm::SmallVector<GlobalContainer, 8>;
+
+// TyCart - BEGIN
+using AssertArgList = llvm::SmallVector<AssertContainer, 8>;
+// TyCart - END
 
 using InstrCount = size_t;
 
@@ -85,6 +93,11 @@ class ArgumentCollector {
   virtual FreeArgList collectFree(const FreeDataList& frees)         = 0;
   virtual StackArgList collectStack(const AllocaDataList& frees)     = 0;
   virtual GlobalArgList collectGlobal(const GlobalDataList& globals) = 0;
+  
+  // TyCart - BEGIN
+  virtual AssertArgList collectAssert(const AssertDataList& asserts) = 0;
+  // TyCart - END
+  
   virtual ~ArgumentCollector()                                       = default;
 };
 
@@ -94,6 +107,11 @@ class MemoryInstrument {
   virtual InstrCount instrumentFree(const FreeArgList& frees)       = 0;
   virtual InstrCount instrumentStack(const StackArgList& frees)     = 0;
   virtual InstrCount instrumentGlobal(const GlobalArgList& globals) = 0;
+  
+  // TyCart - BEGIN
+  virtual InstrCount instrumentAssert(const AssertArgList& asserts) = 0;
+  // TyCart - END
+  
   virtual ~MemoryInstrument()                                       = default;
 };
 
@@ -109,6 +127,10 @@ class InstrumentationContext {
   InstrCount handleFree(const FreeDataList& frees);
   InstrCount handleStack(const AllocaDataList& frees);
   InstrCount handleGlobal(const GlobalDataList& globals);
+  
+  // TyCart - BEGIN
+  InstrCount handleAssert(const AssertDataList& asserts);
+  // TyCart - END
 };
 
 }  // namespace typeart

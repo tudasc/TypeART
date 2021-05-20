@@ -192,4 +192,14 @@ InstrCount MemOpInstrumentation::instrumentGlobal(const GlobalArgList& globals) 
   return counter;
 }
 
+// TyCart - BEGIN
+InstrCount MemOpInstrumentation::instrumentAssert(const AssertArgList& asserts) {
+  InstrCount counter{0};
+  
+  // TODO instrument different asserts here
+  
+  return counter;
+}
+// TyCart - END
+
 }  // namespace typeart

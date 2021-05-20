@@ -215,4 +215,17 @@ GlobalArgList MemOpArgCollector::collectGlobal(const GlobalDataList& globals) {
   return list;
 }
 
+// TyCart - Begin
+AssertArgList MemOpArgCollector(const AssertDataList& asserts) {
+  AssertArgList list;
+  list.reserve(asserts.size());
+  const llvm::DataLayout& dl = instr_helper->getModule()->getDataLayout();
+  
+  for (const AssertData& adata : asserts) {
+    ArgMap arg_map;
+    // TODO implement collector
+  }
+}
+// TyCart - END
+
 }  // namespace typeart
