@@ -55,7 +55,11 @@ if [ "$extension" == "c" ]; then
     omp_flags="@OpenMP_C_FLAGS@" # -I@OpenMP_C_INCLUDE_DIRS@
   fi
 else
-  compiler=clang++
+  if [[ $with_intercept != 1 ]]; then
+    compiler=clang++
+  else
+    compiler=mpic++
+  fi
   if [ $with_omp == 1 ]; then
     omp_flags="@OpenMP_CXX_FLAGS@" # -I@OpenMP_CXX_INCLUDE_DIRS@
   fi
@@ -74,22 +78,22 @@ sanitizer_flags="@TYPEART_SAN_FLAGS@"
 function make_no_optim() {
   # Order: heap and stack/global together, no optimization pass
   if [ $skip_typeart == 0 ]; then
-    $compiler $typeart_includes $omp_flags $sanitizer_flags -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $typeart_plugin $typeart_combined_mode_args $ta_more_args | llc -x=ir -filetype=obj -o "$tmpfile".o
+    OMPI_CXX=clang++ $compiler $typeart_includes $omp_flags $sanitizer_flags -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $typeart_plugin $typeart_combined_mode_args $ta_more_args | llc -x=ir -filetype=obj -o "$tmpfile".o
   else
     # First create types.yaml:
-    $compiler $typeart_includes $omp_flags $sanitizer_flags -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $typeart_plugin $typeart_combined_mode_args $ta_more_args > /dev/null
-    $compiler $typeart_includes $omp_flags $sanitizer_flags -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | llc -x=ir -filetype=obj -o "$tmpfile".o
+    OMPI_CXX=clang++ $compiler $typeart_includes $omp_flags $sanitizer_flags -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $typeart_plugin $typeart_combined_mode_args $ta_more_args > /dev/null
+    OMPI_CXX=clang++ $compiler $typeart_includes $omp_flags $sanitizer_flags -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | llc -x=ir -filetype=obj -o "$tmpfile".o
   fi
 }
 
 function make_with_optim() {
   # Order: heap, optimize, alloca with additional args.
   if [ $skip_typeart == 0 ]; then
-    $compiler $typeart_includes $omp_flags $sanitizer_flags -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $typeart_plugin $typeart_heap_mode_args $ta_more_args  | opt $optimize -S | opt $typeart_plugin $typeart_stack_mode_args $ta_more_args | llc -x=ir -filetype=obj -o "$tmpfile".o
+    OMPI_CXX=clang++ $compiler $typeart_includes $omp_flags $sanitizer_flags -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $typeart_plugin $typeart_heap_mode_args $ta_more_args  | opt $optimize -S | opt $typeart_plugin $typeart_stack_mode_args $ta_more_args | llc -x=ir -filetype=obj -o "$tmpfile".o
   else
     # First create types.yaml:
-    $compiler $typeart_includes $omp_flags $sanitizer_flags -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $typeart_plugin $typeart_heap_mode_args $ta_more_args  | opt $optimize -S | opt $typeart_plugin $typeart_stack_mode_args $ta_more_args > /dev/null
-    $compiler $typeart_includes $omp_flags $sanitizer_flags -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $optimize  | llc -x=ir -filetype=obj -o "$tmpfile".o
+    OMPI_CXX=clang++ $compiler $typeart_includes $omp_flags $sanitizer_flags -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $typeart_plugin $typeart_heap_mode_args $ta_more_args  | opt $optimize -S | opt $typeart_plugin $typeart_stack_mode_args $ta_more_args > /dev/null
+    OMPI_CXX=clang++ $compiler $typeart_includes $omp_flags $sanitizer_flags -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $optimize  | llc -x=ir -filetype=obj -o "$tmpfile".o
   fi
 }
 
@@ -106,7 +110,7 @@ function compile() {
     make_with_optim
   fi
 
-  $compiler "$tmpfile".o $omp_flags $threads_flags $sanitizer_flags -L@TYPEART_RT_DIR@ -ltypeart-rt -o "$tmpfile".exe
+  OMPI_CXX=clang++ $compiler "$tmpfile".o $omp_flags $threads_flags $sanitizer_flags -L@TYPEART_RT_DIR@ -ltypeart-rt -o "$tmpfile".exe
 }
 
 compile
@@ -117,7 +121,7 @@ fi
 
 if [ $with_intercept == 1 ]; then
   echo -e Executing with runtime and interceptor lib
-  LD_LIBRARY_PATH="$LD_LIBRARY_PATH:@TYPEART_RT_DIR@" LD_PRELOAD=@TYPEART_MPI_INTERCEPT_DIR@/@TYPEART_MPI_INTERCEPT_LIB@ ./"$tmpfile".exe
+  LD_LIBRARY_PATH="$LD_LIBRARY_PATH:@TYPEART_RT_DIR@" LD_PRELOAD=@TYPEART_MPI_INTERCEPT_DIR@/@TYPEART_MPI_INTERCEPT_LIB@ mpirun -n 2 "$tmpfile".exe
 else
   echo -e Executing with runtime lib
   LD_LIBRARY_PATH="$LD_LIBRARY_PATH:@TYPEART_RT_DIR@" ./"$tmpfile".exe
