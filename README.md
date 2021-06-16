@@ -1,12 +1,23 @@
 # TypeART &middot; [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause) ![](https://github.com/tudasc/TypeART/workflows/TypeART-CI/badge.svg?branch=master) ![](https://github.com/tudasc/TypeART/workflows/TypeART-CI-ext/badge.svg?branch=master) [![Coverage Status](https://coveralls.io/repos/github/tudasc/TypeART/badge.svg?branch=master)](https://coveralls.io/github/tudasc/TypeART)
 
+## What is TypeART?
+
 TypeART \[[TA18](#ref-typeart-2018); [TA20](#ref-typeart-2020)\] is a type and memory allocation tracking sanitizer. It
-consists of an LLVM compiler pass and a corresponding runtime to track relevant memory allocation information during the
-execution of a target program. It instruments heap, stack and global variable allocations with a callback to our
-runtime. The callback consists of the runtime memory pointer value, what type (built-ins, user-defined structs etc.) and
+consists of an LLVM compiler pass plugin and a corresponding runtime to track memory allocations during the execution of
+a target program. It instruments heap, stack and global variable allocations with a callback to our runtime. The
+callback consists of 1) the memory address, 2) the type-layout of the allocation (built-ins, user-defined structs etc.)
+and 3)
 extent of the value. This allows users of our runtime to query detailed type information behind arbitrary memory
-locations, as long as they are mapped. TypeART works with OpenMP codes and its runtime is thread-safe (since release
-1.6).
+locations, as long as they are mapped. TypeART also works with OpenMP codes and its runtime is thread-safe (since
+release 1.6).
+
+## Why use it?
+
+Employ TypeART whenever you need type information of allocations in your program to verify some property, and generate
+diagnostics if it doesn't hold. For instance, low-level C-language APIs use `void`-pointers as generic types to call
+some library function. The user must specify its type and length manually. With TypeART, it is straightforward to verify
+that a `void`-pointer argument to an API is, e.g., a type `T` array with length `n`. Examples for type unsafe APIs
+include MPI, checkpointing libraries and numeric solver libraries.
 
 ### Use Case: MUST - A dynamic MPI correctness checker
 
@@ -16,8 +27,7 @@ its [project page](https://www.hpc.rwth-aachen.de/must/). MUST relies on interce
 consequence, though, MUST is unaware of the *effective*
 type of the allocated `void*` buffers used for the low-level MPI API. To that end, TypeART was developed to track
 memory (de-)allocation relevant to MPI communication. With TypeART, MUST can check for type compatibility between the
-type-less communication buffer and the declared MPI datatype at all phases of the MPI communication, namely message
-assembly, message transfer and message disassembly into the receiving buffer.
+type-less communication buffer and the declared MPI datatype.
 
 #### Type checking for MPI calls
 
@@ -39,7 +49,7 @@ MUST and TypeART also handle MPI [derived datatypes](https://www.mpi-forum.org/d
 with complex underlying datastructures. For more details, see our publications below or download the current release of
 MUST with TypeART (1.8 or higher) on the [MUST homepage](https://itc.rwth-aachen.de/must/).
 
-#### References
+### References
 
 <table style="border:0px">
 <tr>
@@ -76,17 +86,22 @@ Making use of TypeART consists of two phases:
 2. execute the target program with a runtime library (based on the TypeART runtime) to accept the callbacks from the
    instrumented code and actually do some useful analysis.
 
-To that end, the interface [RuntimeInterface.h](runtime/RuntimeInterface.h) can be used to query type information during
-the target code execution.
+To that end, the interface [RuntimeInterface.h](lib/runtime/RuntimeInterface.h) can then be used to query type
+information during the target code execution.
 
 ### 1. Compiling a target code
+
+Our LLVM compiler pass plugins instrument allocations and also serialize the static type layouts of these allocations to
+a yaml file (default name `types.yaml`).
+
+The serialized layouts correspond to a `type-id` that
 
 #### LLVM pass
 
 The LLVM pass instruments memory allocations, and extracts their type information. TypeART handles heap, stack and
 global variables. An optional static data-flow filter discards (during compilation) stack and global variables if, e.g.,
 they are never passed to an MPI call. For each relevant allocation, the pass determines the 1) memory address, 2)
-extent/size of the allocation and 3) a type-id is generated for the instumentation.
+extent/size of the allocation and 3) a type-id is generated for the instrumentation.
 
 ###### Type-id
 
@@ -152,10 +167,10 @@ $> cmake --build build --target install --parallel
 ##### Runtime
 
 - `SOFTCOUNTERS` (default: **off**) : Enable runtime tracking of #tracked addrs. / #distinct checks / etc.
-- `USE_ABSL` (default: **on**) : Enable usage of btree-backed map of the abseil project instead of std::map for the
-  runtime.
-- `USE_BTREE` (default: **off**) : *Deprecated* Enable usage of a btree-backed map (alternative to abseil) instead of
+- `USE_ABSL` (default: **on**) : Enable usage of btree-backed map of the [Abseil project](https://abseil.io/) instead of
   std::map for the runtime.
+- `USE_BTREE` (default: **off**) : *Deprecated* Enable usage of
+  a [btree-backed map](https://github.com/ahueck/cpp-btree) (alternative to Abseil) instead of std::map for the runtime.
 
 ###### Runtime Thread safety options
 
@@ -167,7 +182,7 @@ Default mode is to protect the global data structure with a (shared) mutex. Two 
 
 ##### Logging and Passes
 
-- `SHOW_STATS` (default: **on**) : Passes show the statistics w.r.t. allocations etc.
+- `SHOW_STATS` (default: **on**) : Passes show compile-time statistic w.r.t. allocations counts.
 - `MPI_LOGGER` (default: **on**) : Enable better logging support in MPI execution context
 - `MPI_INTERCEPT_LIB` (default: **on**) : Library can be used by preloading to intercept MPI calls and check whether
   TypeART tracks the buffer pointer
