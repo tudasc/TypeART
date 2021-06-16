@@ -1,55 +1,54 @@
-BUILDDIR ?= ../build
+# TYPEART_PATH set to install base path of TypeART
+
 MPIRUN ?= mpirun
 MPICC ?= OMPI_CC=clang mpicc
 CC ?= cc
-TYPEART_PASS_DIR = $(BUILDDIR)/lib
-TYPEART_RUNTIME_DIR = $(BUILDDIR)/runtime
-CLFLAGS = -L$(TYPEART_RUNTIME_DIR) -ltypeart-rt
-CFLAGS = -Xclang -load -Xclang $(TYPEART_PASS_DIR)/analysis/meminstfinderpass.so -Xclang -load -Xclang $(TYPEART_PASS_DIR)/typeartpass.so -mllvm -alloca-array-only=false -mllvm -typeart-alloca
 
+TYPEART_LIBPATH = ${TYPEART_PATH}/lib
+TYPEART_INCPATH = ${TYPEART_PATH}/include
 
-all: libtool.so 01_ex 02_ex toy toy-stack toy-nostack
+typeart_plugin=-load $(TYPEART_LIBPATH)/meminstfinderpass.so -load $(TYPEART_LIBPATH)/typeartpass.so -typeart
+typeart_stack_mode_args=-typeart-no-heap -typeart-alloca -typeart-stats
+typeart_heap_mode_args=-typeart-no-heap=false -typeart-stats
+
+CLFLAGS = -L$(TYPEART_LIBPATH) -ltypeart-rt
+
+all: libtool.so 01_ex 02_ex toy toy-stack
 
 libtool.so: tool.c
-	$(MPICC) -I../runtime/ -I../typelib/  $(CLFLAGS) -shared -fPIC $< -o $@
+	$(MPICC) -I$(TYPEART_INCPATH) $(CLFLAGS) -shared -fPIC $< -o $@
 
 01_ex: 01_struct_example.c  
-	$(MPICC) $(CFLAGS) $(CLFLAGS) $< -o $@ -O1
+	$(MPICC) -I$(TYPEART_INCPATH) -g -O1 -Xclang -disable-llvm-passes -S -emit-llvm $< -o - | opt $(typeart_plugin) $(typeart_heap_mode_args) -S | opt -O1 -S | opt $(typeart_plugin) $(typeart_stack_mode_args) -S | llc -x=ir -filetype=obj -o $@.o
+	$(MPICC) $(CLFLAGS) $@.o -o $@
 02_ex: 02_broken_struct_example.c
-	$(MPICC) $(CFLAGS) $(CLFLAGS) $< -o $@ -O1
+	$(MPICC) -I$(TYPEART_INCPATH) -g -O1 -Xclang -disable-llvm-passes -S -emit-llvm $< -o - | opt $(typeart_plugin) $(typeart_heap_mode_args) | opt -O1 -S | opt $(typeart_plugin) $(typeart_stack_mode_args) | llc -x=ir -filetype=obj -o $@.o
+	$(MPICC) $(CLFLAGS) $@.o -o $@
 03_ex: 03_array_example.c
-	$(MPICC) $(CFLAGS) $(CLFLAGS) $< -o $@ -O1
-
-toy: toy.c  
-	$(MPICC) -I../runtime/ -I../typelib/  $(CFLAGS) $(CLFLAGS) $< -o $@ -g
+	$(MPICC) -I$(TYPEART_INCPATH) -g -O1 -Xclang -disable-llvm-passes -S -emit-llvm $< -o - | opt $(typeart_plugin) $(typeart_heap_mode_args) | opt -O1 -S | opt $(typeart_plugin) $(typeart_stack_mode_args) | llc -x=ir -filetype=obj -o $@.o
+	$(MPICC) $(CLFLAGS) $@.o -o $@
 
 toy-stack: toy.c  
-	$(MPICC) -I../runtime/ -I../typelib/ -S -emit-llvm $< -o $@.ll -g
-	opt -load $(TYPEART_PASS_DIR)/analysis/meminstfinderpass.so -load $(TYPEART_PASS_DIR)/typeartpass.so -typeart -typeart-alloca -alloca-array-only=false < $@.ll -o $@.ll > /dev/null
-	llc $@.ll -o $@.s
-	$(MPICC) $(CLFLAGS) $@.s -o $@  
+	$(MPICC) -I$(TYPEART_INCPATH) -g -O1 -Xclang -disable-llvm-passes -S -emit-llvm $< -o - | opt $(typeart_plugin) $(typeart_heap_mode_args) | opt -O1 -S | opt $(typeart_plugin) $(typeart_stack_mode_args) | llc -x=ir -filetype=obj -o $@.o
+	$(MPICC) $(CLFLAGS) $@.o -o $@
 
-toy-nostack: toy.c  
-	$(MPICC) -I../runtime/ -I../typelib/ -DNOSTACK -S -emit-llvm $< -o $@.ll -g
-	opt -load $(TYPEART_PASS_DIR)/analysis/meminstfinderpass.so -load $(TYPEART_PASS_DIR)/typeartpass.so -typeart < $@.ll -o $@.ll > /dev/null
-	llc $@.ll -o $@.s
-	$(MPICC) $(CLFLAGS) $@.s -o $@  
+toy: toy.c
+	$(MPICC) -I$(TYPEART_INCPATH) -DNOSTACK -g -O1 -Xclang -disable-llvm-passes -S -emit-llvm $< -o - | opt $(typeart_plugin) $(typeart_heap_mode_args) | opt -O1 -S | opt $(typeart_plugin) $(typeart_stack_mode_args) | llc -x=ir -filetype=obj -o $@.o
+	$(MPICC) $(CLFLAGS) $@.o -o $@
 
-
-runtoy: toy toy-stack toy-nostack
-	env LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:$(TYPEART_RUNTIME_DIR) ./toy
-	env LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:$(TYPEART_RUNTIME_DIR) ./toy-stack
-	env LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:$(TYPEART_RUNTIME_DIR) ./toy-nostack
+runtoy: toy toy-stack
+	env LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:$(TYPEART_LIBPATH) ./toy
+	env LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:$(TYPEART_LIBPATH) ./toy-stack
 
 run: run01 run02 run03
 
 run01: 01_ex libtool.so
-	env LD_PRELOAD=./libtool.so LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:$(TYPEART_RUNTIME_DIR) $(MPIRUN) -np 1 01_ex
+	env LD_PRELOAD=./libtool.so LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:$(TYPEART_LIBPATH) $(MPIRUN) -np 1 01_ex
 run02: 02_ex libtool.so
-	env LD_PRELOAD=./libtool.so LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:$(TYPEART_RUNTIME_DIR) $(MPIRUN) -np 1 02_ex
+	env LD_PRELOAD=./libtool.so LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:$(TYPEART_LIBPATH) $(MPIRUN) -np 1 02_ex
 run03: 03_ex libtool.so
-	env LD_PRELOAD=./libtool.so LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:$(TYPEART_RUNTIME_DIR) $(MPIRUN) -np 4 03_ex
+	env LD_PRELOAD=./libtool.so LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:$(TYPEART_LIBPATH) $(MPIRUN) -np 4 03_ex
 
 
 clean:
-	rm *~ libtool.so 01_ex 02_ex types.yaml
+	rm *.o libtool.so 01_ex 02_ex toy toy-stack types.yaml

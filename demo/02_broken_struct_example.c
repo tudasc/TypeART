@@ -56,7 +56,7 @@ int main(int argc, char** argv) {
   MPI_Aint first_var_address;
   MPI_Aint second_var_address;
 
-  MPI_Datatype array_of_types[COUNT] = {MPI_LB, MPI_INT, MPI_DOUBLE, MPI_DOUBLE, MPI_UB};
+  MPI_Datatype array_of_types[COUNT - 2] = {MPI_INT, MPI_DOUBLE, MPI_DOUBLE};
   MPI_Datatype parttype, fulltype, veltype, postype;
 
   MPI_Status status;
@@ -86,18 +86,17 @@ int main(int argc, char** argv) {
   array_of_displacements[3] = array_of_displacements[2] + sizeof(double) * 3;
   array_of_displacements[4] = array_of_displacements[3] + sizeof(double) * 3 + sizeof(void*);
 
-  MPI_Type_create_struct(COUNT - 2, array_of_blocklengths + 1, array_of_displacements + 1, array_of_types + 1,
-                         &parttype);
+  MPI_Type_create_struct(COUNT - 2, array_of_blocklengths + 1, array_of_displacements + 1, array_of_types, &parttype);
   MPI_Type_create_resized(parttype, array_of_displacements[0], array_of_displacements[COUNT - 1], &fulltype);
   MPI_Type_commit(&fulltype);
   MPI_Type_free(&parttype);
 
-  MPI_Type_create_struct(1, array_of_blocklengths + 2, array_of_displacements + 2, array_of_types + 2, &parttype);
+  MPI_Type_create_struct(1, array_of_blocklengths + 2, array_of_displacements + 2, array_of_types + 1, &parttype);
   MPI_Type_create_resized(parttype, array_of_displacements[0], array_of_displacements[COUNT - 1], &veltype);
   MPI_Type_commit(&veltype);
   MPI_Type_free(&parttype);
 
-  MPI_Type_create_struct(1, array_of_blocklengths + 3, array_of_displacements + 3, array_of_types + 3, &parttype);
+  MPI_Type_create_struct(1, array_of_blocklengths + 3, array_of_displacements + 3, array_of_types + 2, &parttype);
   MPI_Type_create_resized(parttype, array_of_displacements[0], array_of_displacements[COUNT - 1], &postype);
   MPI_Type_commit(&postype);
   MPI_Type_free(&parttype);
