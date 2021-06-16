@@ -5,6 +5,7 @@ optimize=""
 ta_more_args=""
 with_omp=0
 with_intercept=0
+mpi_output_filename=""
 with_thread=0
 omp_flags=""
 thread_flags=""
@@ -34,6 +35,10 @@ while (( "$#" )); do
     --mpi_intercept)
       with_intercept=1
       shift
+      ;;
+    --mpi_output_filename)
+      mpi_output_filename=$2
+      shift 2
       ;;
     --manual)
       skip_typeart=1
@@ -120,8 +125,13 @@ if [ $with_omp == 1 ]; then
 fi
 
 if [ $with_intercept == 1 ]; then
+  if [ "$mpi_output_filename" == "" ]; then
+    mpirun_args=""
+  else
+    mpirun_args="--output-filename $mpi_output_filename"
+  fi
   echo -e Executing with runtime and interceptor lib
-  LD_LIBRARY_PATH="$LD_LIBRARY_PATH:@TYPEART_RT_DIR@" LD_PRELOAD=@TYPEART_MPI_INTERCEPT_DIR@/@TYPEART_MPI_INTERCEPT_LIB@ mpirun -n 2 "$tmpfile".exe
+  LD_LIBRARY_PATH="$LD_LIBRARY_PATH:@TYPEART_RT_DIR@" LD_PRELOAD=@TYPEART_MPI_INTERCEPT_DIR@/@TYPEART_MPI_INTERCEPT_LIB@ mpirun -n 2 $mpirun_args "$tmpfile".exe
 else
   echo -e Executing with runtime lib
   LD_LIBRARY_PATH="$LD_LIBRARY_PATH:@TYPEART_RT_DIR@" ./"$tmpfile".exe
