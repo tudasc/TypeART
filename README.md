@@ -79,54 +79,55 @@ the [MUST homepage](https://itc.rwth-aachen.de/must/).
 </tr>
 </table>
 
-## Using TypeART
+## 1. Using TypeART
 
 Making use of TypeART consists of two phases:
 
 1. Compile your code with Clang/LLVM-10 using the TypeART LLVM pass plugins to 1) extract static type information to a
    `yaml`-file and 2) instrument all relevant allocations.
-2. Execute the target program with a runtime library (a **client** based on the TypeART runtime) to accept the callbacks
+2. Execute the target program with a runtime library (a *client* based on the TypeART runtime) to accept the callbacks
    from the instrumented code and actually do some useful analysis. To that end, the
    interface [RuntimeInterface.h](lib/runtime/RuntimeInterface.h) can be used as a type-information query interface for
    clients.
 
-### 1. Compiling a target code
+### 1.1 Compiling a target code
 
 Our LLVM compiler pass plugins instrument allocations and also serialize the static type layouts of these allocations to
 a yaml file (default name `types.yaml`).
 
-#### Building with TypeART
+#### 1.1.1 Building with TypeART
 
 A typical compile invocation may first compile code to object files and then link with any libraries, e.g.:
 
 ```shell
 # Compile with Clang
-$> clang -O2 $COMPILE_FLAGS -c code.cpp -o code.o
+$> clang++ -O2 $(COMPILE_FLAGS) -c code.cpp -o code.o
 # Link
-$> clang $LINK_FLAGS code.o -o binary
+$> clang++ $(LINK_FLAGS) code.o -o binary
 ```
 
-With TypeART this recipe needs to be changed, as we rely on the LLVM `opt` (optimizer) tool to load and apply our
+With TypeART, the recipe needs to be changed, as we rely on the LLVM `opt` (optimizer) tool to load and apply our
 TypeART passes to a target code based on the LLVM intermediate representation. To that end, the following steps are
-currently required:
+currently needed:
 
 1. Compile the code down to LLVM IR, and pipe the output to the LLVM `opt` tool. (Keeping your original compile flags)
-2. Apply heap instrumentation with TypeART.
+2. Apply heap instrumentation with TypeART through `opt`.
 3. Optimize the code with -Ox using `opt`.
-4. Apply stack and global instrumentation with TypeART.
-5. Pipe the final output to LLVM `llc` to generate the final object file
+4. Apply stack and global instrumentation with TypeART through `opt`.
+5. Pipe the final output to LLVM `llc` to generate the final object file.
 
-Once the object file is created, the link step needs to link the TypeART runtime (for the added instrumentation
-callbacks).
+Subsequently, the TypeART runtime library is linked (for the added instrumentation callbacks).
 
 ```shell
 # Compile
-$> clang $COMPILE_FLAGS $EMIT_LLVM_IR_FLAGS code.cpp | opt $TYPEART_PLUGIN $HEAP_ONLY_FLAGS | opt -O2 | opt $TYPEART_PLUGIN $STACK_ONLY_FLAGS | llc $TO_OBJECT_FILE  
+$> clang++ $(COMPILE_FLAGS) $(EMIT_LLVM_IR_FLAGS) code.cpp | opt $(TYPEART_PLUGIN) $(HEAP_ONLY_FLAGS) | opt -O2 | opt $(TYPEART_PLUGIN) $(STACK_ONLY_FLAGS) | llc $(TO_OBJECT_FILE)
 # Link
-$> $CXX $LINK_FLAGS -L$(TYPEART_LIBPATH) -ltypeart-rt  code.o -o binary
+$> clang++ $(LINK_FLAGS) -L$(TYPEART_LIBPATH) -ltypeart-rt code.o -o binary
 ```
 
-##### LLVM compiler pass
+Please consult the [demo Makefile](demo/Makefile) for an example recipe, and required flags for TypeART.
+
+##### LLVM compiler pass -- Analysis and instrumentation
 
 The analysis pass finds all heap, stack and global allocations. Based on a data-flow filter, it discards stack and
 global allocation if they are never passed to a specified API (default: `MPI`). Subsequently, it serializes the
@@ -162,20 +163,20 @@ extent). See below for an example instrumentation.
 
 ###### Type-id (`types.yaml`)
 
-### 2. Executing an instrumented target code
+### 1.2 Executing an instrumented target code
 
-### Example: MPI Demo
+### 1.3 Example: MPI Demo
 
 The folder [demo](demo) contains an example of MPI related type errors that can be detected using TypeART. The code is
 compiled with our instrumentation, and executed by preloading the MPI related check library implemented
 in [tool.c](demo/tool.c), which is linked against the TypeART runtime and uses the aforementioned query interface. It
 overloads the required MPI calls and checks that the passed `void* buffer` is correct.
 
-## Building TypeART
+## 2. Building TypeART
 
 TypeART requires [LLVM](https://llvm.org) version 10 and CMake version >= 3.14.
 
-### Building
+### 2.1 Building
 
 TypeART uses CMake to build, cf. [GitHub CI build file](.github/workflows/basic-ci.yml) for a complete recipe to build.
 Example build recipe (debug build, installs to default prefix
@@ -188,7 +189,7 @@ $> cmake -B build
 $> cmake --build build --target install --parallel
 ```
 
-#### CMake Configuration: Options for users
+#### 2.1.1 CMake Configuration: Options for users
 
 ##### Runtime
 
