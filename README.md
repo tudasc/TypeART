@@ -17,7 +17,7 @@ Employ TypeART whenever you need type information of allocations in your program
 diagnostics if it doesn't hold. For instance, low-level C-language APIs use `void`-pointers as generic types to call
 some library function. The user must specify its type and length manually. With TypeART, it is straightforward to verify
 that a `void`-pointer argument to an API is, e.g., a type `T` array with length `n`. Examples for type unsafe APIs
-include MPI, checkpointing libraries and numeric solver libraries.
+include the Message-Passing Interface (MPI), checkpointing libraries and numeric solver libraries.
 
 ### Use Case: MUST - A dynamic MPI correctness checker
 
@@ -32,22 +32,23 @@ type-less communication buffer and the declared MPI datatype.
 #### Type checking for MPI calls
 
 Consider the MPI function `MPI_Send(const void* buffer, int count, MPI_Datatype datatype, ...)`. Without TypeART, MUST
-cannot check 1) if the `buffer` argument is compatible with the declared `MPI_Dataype` and 2) if its minimum size
-is `count`. For instance, if the datatype is `MPI_DOUBLE`, we expect the `buffer` argument to be a `double*`-array with
-a minimum size of `count`:
+cannot check 1) if the `buffer` argument is compatible with the declared `MPI_Dataype` and 2) if `count` does not exceed
+the `buffer` allocation size. For instance, if the datatype is `MPI_DOUBLE`, we expect the `buffer` argument to be
+a `double*`-array with a minimum size specified by `count`:
 
-```{.c}
-// TypeART tracks this allocation: memory address, type and size
+```c
+// TypeART tracks this allocation (memory address, type and size):
 double* array = (double*) malloc(length*sizeof(double));
 // MUST intercepts this MPI call, and asks TypeARTs runtime library for type information:
-//   1. Is the first argument of type double?
+//   1. Is the first argument of type double (due to MPI_DOUBLE)?
 //   2. Is the allocation at least of size *length*? 
-MPI_Send((void*) array, length, MPI_Double, ...)
+MPI_Send((void*) array, length, MPI_DOUBLE, ...)
 ```
 
 MUST and TypeART also handle MPI [derived datatypes](https://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node77.htm)
-with complex underlying datastructures. For more details, see our publications below or download the current release of
-MUST with TypeART (1.8 or higher) on the [MUST homepage](https://itc.rwth-aachen.de/must/).
+with complex underlying datastructures, see [our demo folder](demo). For more details, see our publications below or
+download the current release of MUST with TypeART (1.8 or higher) on
+the [MUST homepage](https://itc.rwth-aachen.de/must/).
 
 ### References
 
@@ -82,59 +83,84 @@ MUST with TypeART (1.8 or higher) on the [MUST homepage](https://itc.rwth-aachen
 
 Making use of TypeART consists of two phases:
 
-1. Compile and instrument the target code with our LLVM passes, and,
-2. execute the target program with a runtime library (based on the TypeART runtime) to accept the callbacks from the
-   instrumented code and actually do some useful analysis.
-
-To that end, the interface [RuntimeInterface.h](lib/runtime/RuntimeInterface.h) can then be used to query type
-information during the target code execution.
+1. Compile your code with Clang/LLVM-10 using the TypeART LLVM pass plugins to 1) extract static type information to a
+   `yaml`-file and 2) instrument all relevant allocations.
+2. Execute the target program with a runtime library (a **client** based on the TypeART runtime) to accept the callbacks
+   from the instrumented code and actually do some useful analysis. To that end, the
+   interface [RuntimeInterface.h](lib/runtime/RuntimeInterface.h) can be used as a type-information query interface for
+   clients.
 
 ### 1. Compiling a target code
 
 Our LLVM compiler pass plugins instrument allocations and also serialize the static type layouts of these allocations to
 a yaml file (default name `types.yaml`).
 
-The serialized layouts correspond to a `type-id` that
+#### Building with TypeART
 
-#### LLVM pass
+A typical compile invocation may first compile code to object files and then link with any libraries, e.g.:
 
-The LLVM pass instruments memory allocations, and extracts their type information. TypeART handles heap, stack and
-global variables. An optional static data-flow filter discards (during compilation) stack and global variables if, e.g.,
-they are never passed to an MPI call. For each relevant allocation, the pass determines the 1) memory address, 2)
-extent/size of the allocation and 3) a type-id is generated for the instrumentation.
+```shell
+# Compile with Clang
+$> clang -O2 $COMPILE_FLAGS -c code.cpp -o code.o
+# Link
+$> clang $LINK_FLAGS code.o -o binary
+```
 
-###### Type-id
+With TypeART this recipe needs to be changed, as we rely on the LLVM `opt` (optimizer) tool to load and apply our
+TypeART passes to a target code based on the LLVM intermediate representation. To that end, the following steps are
+currently required:
 
-The type information is necessary to correlate the type of the buffer passed to an MPI call with the MPI datatype the
-user declared.
+1. Compile the code down to LLVM IR, and pipe the output to the LLVM `opt` tool. (Keeping your original compile flags)
+2. Apply heap instrumentation with TypeART.
+3. Optimize the code with -Ox using `opt`.
+4. Apply stack and global instrumentation with TypeART.
+5. Pipe the final output to LLVM `llc` to generate the final object file
 
-##### Example of Instrumentation: Handling malloc
+Once the object file is created, the link step needs to link the TypeART runtime (for the added instrumentation
+callbacks).
 
-To instrument relevant allocations and extract the necessary type information, the LLVM pass searches for specific
-patterns, e.g., how calls to ```malloc``` look like in LLVM IR. Calls to the ```malloc``` function are typically call
-instructions followed by a ```bitcast``` instruction to cast the returned pointer to the desired type.
+```shell
+# Compile
+$> clang $COMPILE_FLAGS $EMIT_LLVM_IR_FLAGS code.cpp | opt $TYPEART_PLUGIN $HEAP_ONLY_FLAGS | opt -O2 | opt $TYPEART_PLUGIN $STACK_ONLY_FLAGS | llc $TO_OBJECT_FILE  
+# Link
+$> $CXX $LINK_FLAGS -L$(TYPEART_LIBPATH) -ltypeart-rt  code.o -o binary
+```
 
-~~~{.ll}
-; %0 == n * sizeof(float)
-%1 = tail call i8* @malloc(i64 %0)
-%2 = bitcast i8* %1 to float*
-~~~
+##### LLVM compiler pass
 
-The patterns has all the information we require for our instrumentation. Our transformation first detects the type that
-the returned pointer is casted to, then it computes the extent of the allocation. The information is passed to our
-instrumentation function.
+The analysis pass finds all heap, stack and global allocations. Based on a data-flow filter, it discards stack and
+global allocation if they are never passed to a specified API (default: `MPI`). Subsequently, it serializes the
+user-defined types (`struct`, `class` etc.) of each allocation and attaches a so-called type-id to each type for the
+runtime callbacks. The instrumentation pass uses the filtered set of allocations and adds instrumentation callbacks to
+our runtime, passing 1) the memory pointer, 2) the corresponding type-id and 3) the number of allocated elements (
+extent). See below for an example instrumentation.
 
-~~~{.ll}
-; %0 == n * sizeof(float)
-; %1 holds the returned pointer value
-%1 = tail call i8* @malloc(i64 %0)
-; compute the number of elements
-%2 = udiv i64 %0, 4
-; call TypeART runtime (5 is the type-id for float)
-call void @__typeart_alloc(i8 *%1, i32 5, i64 %2)
-; original bitcast
-%3 = bitcast i8* %1 to float *
-~~~
+###### Example instrumentation in LLVM intermediate representation (IR)
+
+- Original LLVM IR code, a simple heap allocation with malloc of a `double`-array. It contains all information needed
+  for TypeART:
+
+    ~~~llvm
+    ; Assume: %size == n * sizeof(double)
+    %pointer = call i8* @malloc(i64 %size)
+    %pointer_double = bitcast i8* %pointer to double*
+    ~~~
+
+- Corresponding TypeART instrumentation:
+
+    ~~~llvm
+    ; Assume: %size == n * sizeof(double)
+    ; Heap allocation -- %pointer holds the returned pointer value:
+    %pointer = call i8* @malloc(i64 %size)
+    ; TypeART instrumentation -- compute the number of double-elements:
+    %extent = udiv i64 %size, 8
+    ; TypeART runtime callback (pointer, type-id, length) -- 6 is the type-id for double:
+    call void @__typeart_alloc(i8* %pointer, i32 6, i64 %extent)
+    ; Original bitcast:
+    %pointer_double = bitcast i8* %pointer to double*
+    ~~~
+
+###### Type-id (`types.yaml`)
 
 ### 2. Executing an instrumented target code
 
@@ -155,7 +181,7 @@ TypeART uses CMake to build, cf. [GitHub CI build file](.github/workflows/basic-
 Example build recipe (debug build, installs to default prefix
 `${typeart_SOURCE_DIR}/install/typeart`)
 
-```{.sh}
+```sh
 $> git clone https://github.com/tudasc/TypeART
 $> cd TypeART
 $> cmake -B build
@@ -182,7 +208,7 @@ Default mode is to protect the global data structure with a (shared) mutex. Two 
 
 ##### Logging and Passes
 
-- `SHOW_STATS` (default: **on**) : Passes show compile-time statistic w.r.t. allocations counts.
+- `SHOW_STATS` (default: **on**) : Passes show compile-time summary w.r.t. allocations counts.
 - `MPI_LOGGER` (default: **on**) : Enable better logging support in MPI execution context
 - `MPI_INTERCEPT_LIB` (default: **on**) : Library can be used by preloading to intercept MPI calls and check whether
   TypeART tracks the buffer pointer
