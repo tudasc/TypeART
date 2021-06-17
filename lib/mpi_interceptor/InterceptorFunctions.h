@@ -248,10 +248,10 @@ void ta_exit() {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   struct rusage end;
   getrusage(RUSAGE_SELF, &end);
-  printf("CCounter (%i) { Send: %zu Recv: %zu Send_Recv: %zu Unsupported: %zu MAX RSS[KBytes]: %ld }\n", rank,
-         counter.send, counter.recv, counter.send_recv, counter.unsupported, end.ru_maxrss);
-  printf("MCounter (%i) { Error: %zu Null_Buf: %zu Null_Count: %zu }\n", rank, mcounter.error, mcounter.null_buff,
-         mcounter.null_count);
+  fprintf(stderr, "CCounter (%i) { Send: %zu Recv: %zu Send_Recv: %zu Unsupported: %zu MAX RSS[KBytes]: %ld }\n", rank,
+          counter.send, counter.recv, counter.send_recv, counter.unsupported, end.ru_maxrss);
+  fprintf(stderr, "MCounter (%i) { Error: %zu Null_Buf: %zu Null_Count: %zu }\n", rank, mcounter.error,
+          mcounter.null_buff, mcounter.null_count);
 }
 
 #endif /* TEST_MPI_INTERCEPTOR_INTERCEPTORFUNCTIONS_H_ */
