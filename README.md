@@ -2,21 +2,24 @@
 
 ## What is TypeART?
 
-TypeART \[[TA18](#ref-typeart-2018); [TA20](#ref-typeart-2020)\] is a type and memory allocation tracking sanitizer. It
-consists of an LLVM compiler pass plugin and a corresponding runtime to track memory allocations during the execution of
-a target program. It instruments heap, stack and global variable allocations with a callback to our runtime. The
-callback consists of 1) the memory address, 2) the type-layout of the allocation (built-ins, user-defined structs etc.)
-and 3)
+TypeART \[[TA18](#ref-typeart-2018); [TA20](#ref-typeart-2020)\] is a type and memory allocation tracking sanitizer
+based on the LLVM compiler toolchain. It consists of an LLVM compiler pass plugin for instrumentation and a
+corresponding runtime to track memory allocations during the execution of a target program.
+
+TypeART instruments heap, stack and global variable allocations with a callback to our runtime. The callback consists of
+(1) the memory address, (2) the type-layout information of the allocation (built-ins, user-defined structs etc.) and (3)
 extent of the value. This allows users of our runtime to query detailed type information behind arbitrary memory
-locations, as long as they are mapped. TypeART also works with OpenMP codes and its runtime is thread-safe (since
-release 1.6).
+locations, as long as they are mapped.
+
+TypeART also works with OpenMP codes and its runtime is thread-safe (since release 1.6).
 
 ## Why use it?
 
 Employ TypeART whenever you need type information of allocations in your program to verify some property, and generate
-diagnostics if it doesn't hold. For instance, low-level C-language APIs use `void`-pointers as generic types. Often, the
-user must specify its type and length manually. This can be error prone, especially in larger, long-lived projects with
-changing developers.
+diagnostics if it doesn't hold.
+
+For instance, low-level C-language APIs use `void`-pointers as generic types. Often, the user must specify its type and
+length manually. This can be error prone, especially in larger, long-lived projects with changing developers.
 
 With TypeART, it is straightforward to verify that a `void`-pointer argument to an API is, e.g., a type `T` array with
 length `n`. Examples for type unsafe APIs include the Message-Passing Interface (MPI), checkpointing libraries and
@@ -26,8 +29,9 @@ numeric solver libraries.
 
 MUST \[[MU13](#ref-must-2013)\] is a dynamic MPI correctness checker that is able to, e.g., detect deadlocks or a
 mismatch of MPI datatypes of the sending and receiving process, see
-its [project page](https://www.hpc.rwth-aachen.de/must/). MUST relies on intercepting MPI calls for its analysis. As a
-consequence, though, MUST is unaware of the *effective*
+its [project page](https://www.hpc.rwth-aachen.de/must/).
+
+MUST relies on intercepting MPI calls for its analysis. As a consequence, though, MUST is unaware of the *effective*
 type of the allocated `void*` buffers used for the low-level MPI API. To that end, TypeART was developed to track
 memory (de-)allocation relevant to MPI communication. With TypeART, MUST can check for type compatibility between the
 type-less communication buffer and the declared MPI datatype.
@@ -100,10 +104,9 @@ a yaml file (default name `types.yaml`).
 
 #### 1.1.0 Caveats
 
-Unfortunately, applying TypeART is not yet user-friendly. You must change the build system, to accommodate the direct
-use of the LLVM optimizer tool `opt`, which is also loading and applying our compiler pass extension. A more convenient
-way through compiler wrappers (like [mpicc](https://www.open-mpi.org/doc/v4.1/man1/mpicc.1.php)) are planned for a
-future release.
+Unfortunately, applying TypeART is not yet user-friendly. You must change the build system to accommodate the use of the
+LLVM optimizer tool `opt`. It loads and applies our compiler pass extension. A more convenient way through Clang
+compiler wrappers (like [mpicc](https://www.open-mpi.org/doc/v4.1/man1/mpicc.1.php)) are planned for a future release.
 
 #### 1.1.1 Building with TypeART
 
@@ -129,7 +132,7 @@ currently needed:
 Subsequently, the TypeART runtime library is linked (for the added instrumentation callbacks).
 
 ```shell
-# Compile: 1.Code-To-LLVM | 2.TypeART_HEAP | 3.Optimize | 4.TypeART_Stack | 5. Object 
+# Compile: 1.Code-To-LLVM | 2.TypeART_HEAP | 3.Optimize | 4.TypeART_Stack | 5.Object-file 
 $> clang++ $(COMPILE_FLAGS) $(EMIT_LLVM_IR_FLAGS) code.cpp | opt $(TYPEART_PLUGIN) $(HEAP_ONLY_FLAGS) | opt -O2 -S | opt $(TYPEART_PLUGIN) $(STACK_ONLY_FLAGS) | llc $(TO_OBJECT_FILE)
 # Link:
 $> clang++ $(LINK_FLAGS) -L$(TYPEART_LIBPATH) -ltypeart-rt code.o -o binary
@@ -195,10 +198,10 @@ TypeART requires [LLVM](https://llvm.org) version 10 and CMake version >= 3.14.
 
 - `MPI` library: Needed for some tests, the [demo](demo), our [MPI interceptor library](lib/mpi_interceptor), and for
   logging with our TypeART runtime library within an MPI target application.
-- `OpenMP`-enabled clang compiler: Needed for some tests.
+- `OpenMP`-enabled Clang compiler: Needed for some tests.
 
 Other smaller, external dependencies are defined within the [externals folder](externals) (depending on configuration
-options). These are automatically downloaded during configuration time (internet required).
+options), see Section 2.2.1. These are automatically downloaded during configuration time (internet required).
 
 ### 2.2 Building
 
@@ -213,7 +216,7 @@ $> cmake -B build
 $> cmake --build build --target install --parallel
 ```
 
-#### 2.1.1 CMake Configuration: Options for users
+#### 2.2.1 CMake Configuration: Options for users
 
 ##### Runtime
 
