@@ -19,10 +19,10 @@ libtool.so: tool.c
 	$(MPICC) -I$(TYPEART_INCPATH) $(CLFLAGS) -shared -fPIC $< -o $@
 
 01_ex: 01_struct_example.c  
-	$(MPICC) -I$(TYPEART_INCPATH) -g -O1 -Xclang -disable-llvm-passes -S -emit-llvm $< -o - | opt $(typeart_plugin) $(typeart_heap_mode_args) | opt -O1 -S | opt $(typeart_plugin) $(typeart_stack_mode_args) | llc -x=ir -filetype=obj -o $@.o
+	$(MPICC) -g -O1 -Xclang -disable-llvm-passes -S -emit-llvm $< -o - | opt $(typeart_plugin) $(typeart_heap_mode_args) | opt -O1 -S | opt $(typeart_plugin) $(typeart_stack_mode_args) | llc -x=ir -filetype=obj -o $@.o
 	$(MPICC) $(CLFLAGS) $@.o -o $@
 02_ex: 02_broken_struct_example.c
-	$(MPICC) -I$(TYPEART_INCPATH) -g -O1 -Xclang -disable-llvm-passes -S -emit-llvm $< -o - | opt $(typeart_plugin) $(typeart_heap_mode_args) | opt -O1 -S | opt $(typeart_plugin) $(typeart_stack_mode_args) | llc -x=ir -filetype=obj -o $@.o
+	$(MPICC) -g -O1 -Xclang -disable-llvm-passes -S -emit-llvm $< -o - | opt $(typeart_plugin) $(typeart_heap_mode_args) | opt -O1 -S | opt $(typeart_plugin) $(typeart_stack_mode_args) | llc -x=ir -filetype=obj -o $@.o
 	$(MPICC) $(CLFLAGS) $@.o -o $@
 
 toy-stack: toy.c  
