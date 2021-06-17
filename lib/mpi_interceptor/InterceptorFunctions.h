@@ -237,6 +237,18 @@ int ta_check_type(const MPICallInfo* call, MPI_Datatype type, int* mpi_count) {
       *mpi_count *= array_of_integers[0];
       return result;
     }
+    case MPI_COMBINER_VECTOR: {
+      int result = ta_check_type(call, array_of_datatypes[0], mpi_count);
+      if (array_of_integers[2] <= 0) {
+        fprintf(stderr, "R[%d][Error][%d] %s: non-positive strides for MPI_Type_vector are currently not supported\n",
+                call->rank, call->buffer.is_const, call->function_name);
+        ta_print_loc(call->called_from);
+        return -1;
+      }
+      // count * blocklength + (count - 1) * stride
+      *mpi_count *= array_of_integers[0] * (array_of_integers[1] + array_of_integers[2]) - array_of_integers[2];
+      return result;
+    }
     default:
       fprintf(stderr, "R[%d][Error][%d] %s: the MPI type combiner %d is currently not supported", call->rank,
               call->buffer.is_const, call->function_name, combiner);
