@@ -14,10 +14,13 @@ release 1.6).
 ## Why use it?
 
 Employ TypeART whenever you need type information of allocations in your program to verify some property, and generate
-diagnostics if it doesn't hold. For instance, low-level C-language APIs use `void`-pointers as generic types to call
-some library function. The user must specify its type and length manually. With TypeART, it is straightforward to verify
-that a `void`-pointer argument to an API is, e.g., a type `T` array with length `n`. Examples for type unsafe APIs
-include the Message-Passing Interface (MPI), checkpointing libraries and numeric solver libraries.
+diagnostics if it doesn't hold. For instance, low-level C-language APIs use `void`-pointers as generic types. Often, the
+user must specify its type and length manually. This can be error prone, especially in larger, long-lived projects with
+changing developers.
+
+With TypeART, it is straightforward to verify that a `void`-pointer argument to an API is, e.g., a type `T` array with
+length `n`. Examples for type unsafe APIs include the Message-Passing Interface (MPI), checkpointing libraries and
+numeric solver libraries.
 
 ### Use Case: MUST - A dynamic MPI correctness checker
 
@@ -95,14 +98,21 @@ Making use of TypeART consists of two phases:
 Our LLVM compiler pass plugins instrument allocations and also serialize the static type layouts of these allocations to
 a yaml file (default name `types.yaml`).
 
+#### 1.1.0 Caveats
+
+Unfortunately, applying TypeART is not yet user-friendly. You must change the build system, to accommodate the direct
+use of the LLVM optimizer tool `opt`, which is also loading and applying our compiler pass extension. A more convenient
+way through compiler wrappers (like [mpicc](https://www.open-mpi.org/doc/v4.1/man1/mpicc.1.php)) are planned for a
+future release.
+
 #### 1.1.1 Building with TypeART
 
 A typical compile invocation may first compile code to object files and then link with any libraries, e.g.:
 
 ```shell
-# Compile with Clang
+# Compile:
 $> clang++ -O2 $(COMPILE_FLAGS) -c code.cpp -o code.o
-# Link
+# Link:
 $> clang++ $(LINK_FLAGS) code.o -o binary
 ```
 
@@ -119,27 +129,32 @@ currently needed:
 Subsequently, the TypeART runtime library is linked (for the added instrumentation callbacks).
 
 ```shell
-# Compile
-$> clang++ $(COMPILE_FLAGS) $(EMIT_LLVM_IR_FLAGS) code.cpp | opt $(TYPEART_PLUGIN) $(HEAP_ONLY_FLAGS) | opt -O2 | opt $(TYPEART_PLUGIN) $(STACK_ONLY_FLAGS) | llc $(TO_OBJECT_FILE)
-# Link
+# Compile: 1.Code-To-LLVM | 2.TypeART_HEAP | 3.Optimize | 4.TypeART_Stack | 5. Object 
+$> clang++ $(COMPILE_FLAGS) $(EMIT_LLVM_IR_FLAGS) code.cpp | opt $(TYPEART_PLUGIN) $(HEAP_ONLY_FLAGS) | opt -O2 -S | opt $(TYPEART_PLUGIN) $(STACK_ONLY_FLAGS) | llc $(TO_OBJECT_FILE)
+# Link:
 $> clang++ $(LINK_FLAGS) -L$(TYPEART_LIBPATH) -ltypeart-rt code.o -o binary
 ```
 
 Please consult the [demo Makefile](demo/Makefile) for an example recipe, and required flags for TypeART.
 
-##### LLVM compiler pass -- Analysis and instrumentation
+##### LLVM compiler pass - Analysis and instrumentation
 
-The analysis pass finds all heap, stack and global allocations. Based on a data-flow filter, it discards stack and
-global allocation if they are never passed to a specified API (default: `MPI`). Subsequently, it serializes the
-user-defined types (`struct`, `class` etc.) of each allocation and attaches a so-called type-id to each type for the
-runtime callbacks. The instrumentation pass uses the filtered set of allocations and adds instrumentation callbacks to
-our runtime, passing 1) the memory pointer, 2) the corresponding type-id and 3) the number of allocated elements (
-extent). See below for an example instrumentation.
+The analysis pass finds all heap, stack and global allocations. An allocation data-flow filter discards all stack and
+global allocations if they are not passed to a target API (default `MPI` calls). Subsequently, type layouts for
+user-defined types (e.g., `struct`) of these allocations are serialized to a file and a so-called `type-id` number is
+created for each such unique type.
+
+The instrumentation pass adds the instrumentation callbacks to our runtime, passing 1) the memory pointer, 2) the
+corresponding type-id and 3) the number of allocated elements (extent).
 
 ###### Example instrumentation in LLVM intermediate representation (IR)
 
-- Original LLVM IR code, a simple heap allocation with malloc of a `double`-array. It contains all information needed
-  for TypeART:
+- C and corresponding LLVM IR code: A simple heap allocation with malloc of a `double`-array. It contains all
+  information needed for TypeART:
+
+    ~~~c
+    double* pointer = (double*) malloc(n * sizeof(double));
+    ~~~
 
     ~~~llvm
     ; Assume: %size == n * sizeof(double)
@@ -176,7 +191,16 @@ overloads the required MPI calls and checks that the passed `void* buffer` is co
 
 TypeART requires [LLVM](https://llvm.org) version 10 and CMake version >= 3.14.
 
-### 2.1 Building
+### 2.1 Optional software requirements
+
+- `MPI` library: Needed for some tests, the [demo](demo), our [MPI interceptor library](lib/mpi_interceptor), and for
+  logging with our TypeART runtime library within an MPI target application.
+- `OpenMP`-enabled clang compiler: Needed for some tests.
+
+Other smaller, external dependencies are defined within the [externals folder](externals) (depending on configuration
+options). These are automatically downloaded during configuration time (internet required).
+
+### 2.2 Building
 
 TypeART uses CMake to build, cf. [GitHub CI build file](.github/workflows/basic-ci.yml) for a complete recipe to build.
 Example build recipe (debug build, installs to default prefix
@@ -199,7 +223,7 @@ $> cmake --build build --target install --parallel
 - `USE_BTREE` (default: **off**) : *Deprecated* Enable usage of
   a [btree-backed map](https://github.com/ahueck/cpp-btree) (alternative to Abseil) instead of std::map for the runtime.
 
-###### Runtime Thread safety options
+###### Thread-safety options
 
 Default mode is to protect the global data structure with a (shared) mutex. Two main options exist:
 
