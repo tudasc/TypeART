@@ -230,6 +230,8 @@ int ta_check_type(const MPICallInfo* call, MPI_Datatype type, int* mpi_count) {
       }
       return ta_check_builtin_type(call, mpi_type_id, mpi_count);
     }
+    case MPI_COMBINER_DUP:
+      return ta_check_type(call, array_of_datatypes[0], mpi_count);
     case MPI_COMBINER_CONTIGUOUS: {
       int result = ta_check_type(call, array_of_datatypes[0], mpi_count);
       *mpi_count *= array_of_integers[0];
