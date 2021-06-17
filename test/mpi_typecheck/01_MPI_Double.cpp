@@ -24,6 +24,20 @@ int main(int argc, char** argv) {
     MPI_Recv(f, n, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
   }
 
+  if (rank == 0) {
+    // clang-format off
+    // RANK0: R[0][Info][1] MPI_Send: buffer 0x{{.*}} has type double, MPI type is double
+    // RANK0: R[0][Error][1] MPI_Send: buffer 0x{{.*}} too small. The buffer can only hold 16 elements (17 required)
+    // clang-format on
+    MPI_Send(f, n + 1, MPI_DOUBLE, 1, 0, MPI_COMM_WORLD);
+  } else {
+    // clang-format off
+    // RANK1: R[1][Info][0] MPI_Recv: buffer 0x{{.*}} has type double, MPI type is double
+    // RANK1: R[1][Error][0] MPI_Recv: buffer 0x{{.*}} too small. The buffer can only hold 16 elements (17 required)
+    // clang-format on
+    MPI_Recv(f, n + 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+  }
+
   // RANK0: [Trace] Free 0x{{.*}}
   delete[] f;
 
