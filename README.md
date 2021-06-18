@@ -8,7 +8,7 @@ instrumentation, and a corresponding runtime to track memory allocations during 
 
 TypeART instruments heap, stack and global variable allocations with a callback to our runtime. The callback consists of
 (1) the memory address, (2) the type-layout information of the allocation (built-ins, user-defined structs etc.) and (3)
-extent of the value. This allows users of our runtime to query detailed type information behind mapped memory locations.
+number of elements.
 
 ## Why use it?
 
@@ -57,7 +57,7 @@ its [project page](https://itc.rwth-aachen.de/must/).
         * [1.1.1 Building with TypeART](#111-building-with-typeart)
         * [1.1.2 Options for TypeART passes](#112-options-for-typeart-passes)
             * [Example invocations](#example-invocations)
-        * [1.1.3 Serialized type information (types.yaml)](#113-serialized-type-information)
+        * [1.1.3 Serialized type information](#113-serialized-type-information)
         * [1.1.4 Filtering allocations](#114-filtering-allocations)
     * [1.2 Executing an instrumented target code](#12-executing-an-instrumented-target-code)
     * [1.3 Example: MPI Demo](#13-example-mpi-demo)
@@ -119,11 +119,11 @@ The main options are shown below.
 
 | Flag | Default | Description |
 | --- | :---: | --- |
-| `typeart` | - | Invoke typeart pass through LLVM `opt` |
+| `typeart` | - | Invoke TypeART pass through LLVM `opt` |
 | `typeart-outfile` | `types.yaml` | Serialized type layout information of user-defined types |
 | `typeart-no-heap` | `false` | Do **not** instrument heap allocations |
 | `typeart-alloca` | `false` | Instrument stack and global allocations |
-| `typeart-stats` | `false` | Show instrumentation stat counters |
+| `typeart-stats` | `false` | Show instrumentation statistic counters |
 | `call-filter` | `false` | Filter stack and global allocations. See also [Section 1.1.4](#114-filtering-allocations) |
 | `call-filter-str` | `*MPI_*` | Filter string target (glob string) |
 
@@ -144,22 +144,22 @@ The main options are shown below.
 
 ###### Examples
 
-- Invoke TypeART for heap-only instrumentation (with stats):
+- Heap-only instrumentation (with stats):
     ```shell
     opt $(TYPEART_PLUGIN) -typeart -typeart-stats
     ```
-- Invoke TypeART for stack- and global-only instrumentation (*no* stats):
+- Stack- and global-only instrumentation (*no* stats):
     ```shell
     opt $(TYPEART_PLUGIN) -typeart -typeart-no-heap=true -typeart-alloca
     ```
-- Invoke TypeART for stack- and global-only instrumentation (with filtering):
+- Stack- and global-only instrumentation (with filtering):
     ```shell
     // Filter targets MPI by default:
     opt $(TYPEART_PLUGIN) -typeart -typeart-no-heap=true -typeart-alloca -call-filter
     // Filter target non-MPI API:
     opt $(TYPEART_PLUGIN) -typeart -typeart-no-heap=true -typeart-alloca -call-filter -call-filter-str=MY_API*
     ```
-- Invoke TypeART for combined instrumentation (with filtering):
+- Combined instrumentation (with filtering):
     ```shell
     opt $(TYPEART_PLUGIN) -typeart -typeart-alloca -call-filter
     ```
@@ -181,24 +181,24 @@ struct s1_t {
 }
 ```
 
-The TypeART pass will write a `types.yaml` file with the following content:
+The TypeART pass may write a `types.yaml` file with the following content:
 <!--- @formatter:off --->
 ```yaml
 - id: 256            // struct type-id
   name: struct.s1_t
-  extent: 16
+  extent: 16         // byte size
   member_count: 2
-  offsets: [ 0, 8 ]  // byte offsets
-  types: [ 0, 10 ]   // member type-ids (0-char, 10-ptr)
-  sizes: [ 3, 1 ]    // array lengths
+  offsets: [ 0, 8 ]  // byte offsets from struct start
+  types: [ 0, 10 ]   // member type-ids (0->char, 10->pointer)
+  sizes: [ 3, 1 ]    // member (array) length
 ```
 <!--- @formatter:on --->
 
 #### 1.1.4 Filtering allocations
 
-To improve performance, a translation unit-local (TU) data-flow filter for global and stack variables exist,
-see [Section 1.1.2](#112-options-for-typeart-passes). It follows the LLVM IR `use-def` chain. If the allocation provably
-never reaches the target API, it can be filtered. Otherwise, it is instrumented.
+To improve performance, a translation unit-local (TU) data-flow filter for global and stack variables exist. It follows
+the LLVM IR `use-def` chain. If the allocation provably never reaches the target API, it can be filtered. Otherwise, it
+is instrumented.
 
 Consider the following example.
 
