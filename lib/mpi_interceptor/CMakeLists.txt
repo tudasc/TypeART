@@ -39,8 +39,7 @@ if(${MPI_C_FOUND} AND ${PYTHONINTERP_FOUND})
   )
 
   if(ENABLE_TSAN)
-    target_compile_options(interceptor-rt PRIVATE -fsanitize=thread)
-    target_link_options(interceptor-rt PRIVATE -fsanitize=thread)
+    target_tsan_options(typeart-rt)
   endif()
 
   target_link_libraries(interceptor-rt
