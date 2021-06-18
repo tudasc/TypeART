@@ -34,8 +34,7 @@ type-less MPI communication buffer and the declared MPI datatype.
 
 Consider the MPI function `MPI_Send(const void* buffer, int count, MPI_Datatype datatype, ...)`. Without TypeART, MUST
 cannot check 1) if the `buffer` argument is compatible with the declared `MPI_Dataype` and 2) if the `count` argument
-exceeds the `buffer` allocation size. For instance, if the datatype is `MPI_DOUBLE`, we expect the `buffer`
-argument to be a `double`-array with a minimum size specified by `count`:
+exceeds the `buffer` allocation size:
 
 ```c
 // TypeART tracks this allocation (memory address, type and size):
