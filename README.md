@@ -57,17 +57,33 @@ with complex underlying datastructures, see [our demo folder](demo). For more de
 download the current release (1.8 or higher) of MUST (with TypeART) on
 the [MUST homepage](https://itc.rwth-aachen.de/must/).
 
+## Table of Contents
+
+* [1. Using TypeART](#1-using-typeart)
+    * [1.1 Compiling a target code](#11-compiling-a-target-code)
+        * [1.1.0 Caveats](#110-caveats)
+        * [1.1.1 Building with TypeART](#111-building-with-typeart)
+        * [1.1.2 Options for TypeART passes](#112-options-for-typeart-passes)
+            * [Example invocations](#example-invocations)
+        * [1.1.3 Serialized type information (types.yaml)](#113-serialized-type-information)
+        * [1.1.4 Filtering allocations](#114-filtering-allocations)
+    * [1.2 Executing an instrumented target code](#12-executing-an-instrumented-target-code)
+    * [1.3 Example: MPI Demo](#13-example-mpi-demo)
+* [2. Building TypeART](#2-building-typeart)
+    * [2.1 Optional software requirements](#21-optional-software-requirements)
+    * [2.2 Building](#22-building)
+        * [2.2.1 CMake Configuration: Options for users](#221-cmake-configuration-options-for-users)
+* [References](#references)
+
 ## 1. Using TypeART
 
 Making use of TypeART consists of two phases:
 
-1. Compile your code with Clang/LLVM-10 using the TypeART LLVM pass plugins to 1) extract static type information to a
-   `yaml`-file and 2) instrument all relevant allocations. Allocations can be filtered if they are never passed to your
-   target API, e.g., MPI.
+1. Compile your code with Clang/LLVM-10 using the TypeART LLVM pass plugins to 1) serialize static type information to a
+   `yaml`-file and 2) instrument all relevant allocations. See [Section 1.1](#11-compiling-a-target-code).
 2. Execute the target program with a runtime library (a *client* based on the TypeART runtime) to accept the callbacks
-   from the instrumented code and actually do some useful analysis. To that end, the
-   interface [RuntimeInterface.h](lib/runtime/RuntimeInterface.h) can be used as a type-information query interface for
-   clients.
+   from the instrumented code and actually do some useful analysis with our interface.
+   See [Section 1.2](#12-executing-an-instrumented-target-code).
 
 ### 1.1 Compiling a target code
 
@@ -123,14 +139,14 @@ The main options are shown below.
 | `typeart-no-heap` | false | Do **not** instrument heap allocations |
 | `typeart-alloca` | false | Instrument stack and global allocations |
 | `typeart-stats` | false | Show instrumentation stat counters |
-| `call-filter` | false | Filter stack and global allocations |
+| `call-filter` | false | Filter stack and global allocations. See also [Section 1.1.4](#114-filtering-allocations) |
 | `call-filter-str` | `*MPI_*` | Filter string target (glob string) |
 
 ##### Example invocations
 
 ###### Pre-requisites
 
-1. Loading TypeARTS plugins with `opt`:
+1. Loading TypeART plugins with `opt`:
     ```shell
     TYPEART_PLUGIN=-load $(PLUGIN_PATH)/meminstfinderpass.so \
                    -load $(PLUGIN_PATH)/typeartpass.so`
@@ -165,11 +181,10 @@ The main options are shown below.
 
 Also consult the [demo Makefile](demo/Makefile) for an example recipe, and flags for TypeART.
 
-#### 1.1.3 Serialized type information (`types.yaml`) - Type-id
+#### 1.1.3 Serialized type information
 
 Static type information are serialized during instrumentation to a file `types.yaml`. Each user-defined type is
-extracted and an integer `type-id` is attached to it. Built-ins (`float` etc.) have pre-defined `type-ids` and byte
-layouts.
+extracted and an integer `type-id` is attached to it. Built-ins (`float` etc.) have pre-defined ids and byte layouts.
 
 The TypeART instrumentation callbacks use the `type-id`. The runtime library correlates the allocation with the
 respective type (and layout) during execution. Consider the following struct:
@@ -194,17 +209,13 @@ The TypeART pass will write a `types.yaml` file with the following content:
 ```
 <!--- @formatter:on --->
 
-#### 1.1.4 Filtering allocations (stack and global)
+#### 1.1.4 Filtering allocations
 
-To improve performance, a translation unit-local (TU) data-flow filter for global and stack variables exist, see Section
-1.1.2 *Options*. It follows the LLVM IR `use-def` chain. If the allocation provably never reaches the target API, it can
-be filtered. Otherwise, it is instrumented.
+To improve performance, a translation unit-local (TU) data-flow filter for global and stack variables exist,
+see [Section 1.1.2](#112-options-for-typeart-passes). It follows the LLVM IR `use-def` chain. If the allocation provably
+never reaches the target API, it can be filtered. Otherwise, it is instrumented.
 
 Consider the following example.
-
-1. The filter can remove `a`, as the aliasing pointer `x` is never part of an MPI call.
-2. `b` is instrumented as the aliasing pointer `y` is part of an MPI call.
-3. `c` is instrumented as we cannot reason about the body of `foo_bar`.
 
 ```c
 extern foo_bar(float*); // No definition in the TU 
@@ -219,7 +230,23 @@ void foo() {
 }
 ```
 
+1. The filter can remove `a`, as the aliasing pointer `x` is never part of an MPI call.
+2. `b` is instrumented as the aliasing pointer `y` is part of an MPI call.
+3. `c` is instrumented as we cannot reason about the body of `foo_bar`.
+
 ### 1.2 Executing an instrumented target code
+
+To execute the instrumented code, the TypeART runtime library (or a derivative) has to be loaded to accept the
+callbacks. The library also requires access to the `types.yaml` file to correlate the `type-id` with the actual type
+layouts. To specify its path, you can use the environment variable `TA_TYPE_FILE`, e.g.:
+
+```shell
+export TA_TYPE_FILE=/shared/types.yaml
+env LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(TYPEART_LIBPATH) ./binary
+```
+
+An example for pre-loading a derivative in the context of MPI is found in the demo,
+see [Section 1.3](#13-example-mpi-demo).
 
 ### 1.3 Example: MPI Demo
 
