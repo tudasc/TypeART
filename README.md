@@ -3,45 +3,39 @@
 ## What is TypeART?
 
 TypeART \[[TA18](#ref-typeart-2018); [TA20](#ref-typeart-2020)\] is a type and memory allocation tracking sanitizer
-based on the LLVM compiler toolchain. It consists of an LLVM compiler pass plugin for instrumentation and a
-corresponding runtime to track memory allocations during the execution of a target program.
+based on the LLVM compiler toolchain for C/C++ (OpenMP) codes. It consists of an LLVM compiler pass plugin for
+instrumentation, and a corresponding runtime to track memory allocations during the execution of a target program.
 
 TypeART instruments heap, stack and global variable allocations with a callback to our runtime. The callback consists of
 (1) the memory address, (2) the type-layout information of the allocation (built-ins, user-defined structs etc.) and (3)
-extent of the value. This allows users of our runtime to query detailed type information behind arbitrary memory
-locations, as long as they are mapped.
-
-TypeART also works with OpenMP codes and its runtime is thread-safe (since release 1.6).
+extent of the value. This allows users of our runtime to query detailed type information behind mapped memory locations.
 
 ## Why use it?
 
-Employ TypeART whenever you need type information of allocations in your program to verify some property, and generate
-diagnostics if it doesn't hold.
+Employ TypeART whenever you need type-related information of allocations in your program to verify some property, and
+generate diagnostics if it doesn't hold.
 
 For instance, low-level C-language APIs use `void`-pointers as generic types. Often, the user must specify its type and
-length manually. This can be error prone, especially in larger, long-lived project s with changing developers.
-
-With TypeART, it is straightforward to verify that a `void`-pointer argument to an API is, e.g., a type `T` array with
-length `n`. Examples for type unsafe APIs include the Message-Passing Interface (MPI), checkpointing libraries and
-numeric solver libraries.
+length manually. This can be error prone. Examples for type unsafe APIs include the Message-Passing Interface (MPI),
+checkpointing libraries and numeric solver libraries. With TypeART, it is straightforward to verify that a `void`
+-pointer argument to an API is, e.g., a type `T` array with length `n`.
 
 ### Use Case: MUST - A dynamic MPI correctness checker
 
-MUST \[[MU13](#ref-must-2013)\] is a dynamic MPI correctness checker that is able to, e.g., detect deadlocks or a
-mismatch of MPI datatypes of the sending and receiving process, see
-its [project page](https://www.hpc.rwth-aachen.de/must/).
+MUST \[[MU13](#ref-must-2013)\] is a dynamic MPI correctness checker to, e.g., detect deadlocks or a mismatch of MPI
+datatypes of the sending and receiving process, see its [project page](https://www.hpc.rwth-aachen.de/must/).
 
 MUST relies on intercepting MPI calls for its analysis. As a consequence, though, MUST is unaware of the *effective*
 type of the allocated `void*` buffers used for the low-level MPI API. To that end, TypeART was developed to track
 memory (de-)allocation relevant to MPI communication. With TypeART, MUST can check for type compatibility between the
-type-less communication buffer and the declared MPI datatype.
+type-less MPI communication buffer and the declared MPI datatype.
 
 #### Type checking for MPI calls
 
 Consider the MPI function `MPI_Send(const void* buffer, int count, MPI_Datatype datatype, ...)`. Without TypeART, MUST
-cannot check 1) if the `buffer` argument is compatible with the declared `MPI_Dataype` and 2) if `count` does not exceed
-the `buffer` allocation size. For instance, if the datatype is `MPI_DOUBLE`, we expect the `buffer` argument to be
-a `double*`-array with a minimum size specified by `count`:
+cannot check 1) if the `buffer` argument is compatible with the declared `MPI_Dataype` and 2) if the `count` argument
+exceeds the `buffer` allocation size. For instance, if the datatype is `MPI_DOUBLE`, we expect the `buffer`
+argument to be a `double`-array with a minimum size specified by `count`:
 
 ```c
 // TypeART tracks this allocation (memory address, type and size):
@@ -53,15 +47,14 @@ MPI_Send((void*) array, length, MPI_DOUBLE, ...)
 ```
 
 MUST and TypeART also handle MPI [derived datatypes](https://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node77.htm)
-with complex underlying datastructures, see [our demo folder](demo). For more details, see our publications below or
-download the current release (1.8 or higher) of MUST (with TypeART) on
-the [MUST homepage](https://itc.rwth-aachen.de/must/).
+with complex underlying datastructures, see our [MPI Demo](#13-example-mpi-demo). For more details, see
+our [publications](#references), or download the current release (1.8 or higher) of MUST on
+its [project page](https://itc.rwth-aachen.de/must/).
 
 ## Table of Contents
 
 * [1. Using TypeART](#1-using-typeart)
     * [1.1 Compiling a target code](#11-compiling-a-target-code)
-        * [1.1.0 Caveats](#110-caveats)
         * [1.1.1 Building with TypeART](#111-building-with-typeart)
         * [1.1.2 Options for TypeART passes](#112-options-for-typeart-passes)
             * [Example invocations](#example-invocations)
@@ -79,8 +72,8 @@ the [MUST homepage](https://itc.rwth-aachen.de/must/).
 
 Making use of TypeART consists of two phases:
 
-1. Compile your code with Clang/LLVM-10 using the TypeART LLVM pass plugins to 1) serialize static type information to a
-   `yaml`-file and 2) instrument all relevant allocations. See [Section 1.1](#11-compiling-a-target-code).
+1. Compile your code with Clang/LLVM (version 10) using the TypeART LLVM pass plugins to 1) serialize static type
+   information to a file and 2) instrument all relevant allocations. See [Section 1.1](#11-compiling-a-target-code).
 2. Execute the target program with a runtime library (a *client* based on the TypeART runtime) to accept the callbacks
    from the instrumented code and actually do some useful analysis with our interface.
    See [Section 1.2](#12-executing-an-instrumented-target-code).
@@ -90,15 +83,9 @@ Making use of TypeART consists of two phases:
 Our LLVM compiler pass plugins instrument allocations and also serialize the static type layouts of these allocations to
 a yaml file (default name `types.yaml`).
 
-#### 1.1.0 Caveats
-
-Unfortunately, applying TypeART is not yet user-friendly. You must change the build system to accommodate the use of the
-LLVM optimizer tool `opt`. It loads and applies our compiler pass extension. A more convenient way through Clang
-compiler wrappers (like [mpicc](https://www.open-mpi.org/doc/v4.1/man1/mpicc.1.php)) are planned for a future release.
-
 #### 1.1.1 Building with TypeART
 
-A typical compile invocation may first compile code to object files and then link with any libraries, e.g.:
+A typical compile invocation may first compile code to object files and then link with any libraries:
 
 ```shell
 # Compile:
@@ -108,18 +95,17 @@ $> clang++ $(LINK_FLAGS) code.o -o binary
 ```
 
 With TypeART, the recipe needs to be changed, as we rely on the LLVM `opt` (optimizer) tool to load and apply our
-TypeART passes to a target code based on the LLVM intermediate representation. To that end, the following steps are
-currently needed:
+TypeART passes to a target code based on the LLVM intermediate representation (IR):
 
 1. Compile the code down to LLVM IR, and pipe the output to the LLVM `opt` tool. (Keeping your original compile flags)
 2. Apply heap instrumentation with TypeART through `opt`.
 3. Optimize the code with -Ox using `opt`.
 4. Apply stack and global instrumentation with TypeART through `opt`.
 5. Pipe the final output to LLVM `llc` to generate the final object file.
-6. Subsequently, the TypeART runtime library is linked (for the added instrumentation callbacks).
+6. Subsequently, the TypeART runtime library is linked.
 
-Note: We instrument heap allocations before any optimization, as the compiler may throw out related type information of
-these allocations (for optimization reasons).
+*Note*: We instrument heap allocations before any optimization, as the compiler may throw out type information of these
+allocations (for optimization reasons).
 
 ```shell
 # Compile: 1.Code-To-LLVM | 2.TypeART_HEAP | 3.Optimize | 4.TypeART_Stack | 5.Object-file 
@@ -136,10 +122,10 @@ The main options are shown below.
 | --- | :---: | --- |
 | `typeart` | - | Invoke typeart pass through LLVM `opt` |
 | `typeart-outfile` | `types.yaml` | Serialized type layout information of user-defined types |
-| `typeart-no-heap` | false | Do **not** instrument heap allocations |
-| `typeart-alloca` | false | Instrument stack and global allocations |
-| `typeart-stats` | false | Show instrumentation stat counters |
-| `call-filter` | false | Filter stack and global allocations. See also [Section 1.1.4](#114-filtering-allocations) |
+| `typeart-no-heap` | `false` | Do **not** instrument heap allocations |
+| `typeart-alloca` | `false` | Instrument stack and global allocations |
+| `typeart-stats` | `false` | Show instrumentation stat counters |
+| `call-filter` | `false` | Filter stack and global allocations. See also [Section 1.1.4](#114-filtering-allocations) |
 | `call-filter-str` | `*MPI_*` | Filter string target (glob string) |
 
 ##### Example invocations
@@ -252,8 +238,9 @@ see [Section 1.3](#13-example-mpi-demo).
 
 The folder [demo](demo) contains an example of MPI related type errors that can be detected using TypeART. The code is
 compiled with our instrumentation, and executed by preloading the MPI related check library implemented
-in [tool.c](demo/tool.c), which is linked against the TypeART runtime and uses the aforementioned query interface. It
-overloads the required MPI calls and checks that the passed `void*` buffer is correct.
+in [tool.c](demo/tool.c). The tool is linked against the TypeART runtime and uses the
+TypeART [runtime query interface](lib/runtime/RuntimeInterface.h). It overloads the required MPI calls and checks that
+the passed `void*` buffer is correct.
 
 ## 2. Building TypeART
 
@@ -288,10 +275,10 @@ $> cmake --build build --target install --parallel
 <!--- @formatter:off --->
 | Option | Default | Description |
 | --- | :---: | --- |
-| `USE_ABSL` | ON | Enable usage of btree-backed map of the [Abseil project](https://abseil.io/) instead of `std::map` |
-| `USE_BTREE` | OFF | *Deprecated*. Enable usage of a [btree-backed map](https://github.com/ahueck/cpp-btree) (alternative to Abseil) instead of `std::map` |
-| `SOFTCOUNTERS` | OFF | Enable runtime tracking of #tracked addrs. / #distinct checks / etc. |
-| `LOG_LEVEL_RT` | 0 | Granularity of runtime logger. 3 ist most verbose, 0 is least |
+| `USE_ABSL` | `ON` | Enable usage of btree-backed map of the [Abseil project](https://abseil.io/) instead of `std::map` |
+| `USE_BTREE` | `OFF` | *Deprecated*. Enable usage of a [btree-backed map](https://github.com/ahueck/cpp-btree) (alternative to Abseil) instead of `std::map` |
+| `SOFTCOUNTERS` | `OFF` | Enable runtime tracking of #tracked addrs. / #distinct checks / etc. |
+| `LOG_LEVEL_RT` | `0` | Granularity of runtime logger. 3 ist most verbose, 0 is least |
 <!--- @formatter:on --->
 
 ###### Runtime Thread-safety options
@@ -301,8 +288,8 @@ Default mode is to protect the global data structure with a (shared) mutex. Two 
 <!--- @formatter:off --->
 | Option | Default | Description |
 | --- | :---: | --- |
-| `DISABLE_THREAD_SAFETY` | OFF | Disable thread safety of runtime |
-| `ENABLE_SAFEPTR` | OFF | Instead of a mutex, use a special data structure wrapper for concurrency, see [object_threadsafe](https://github.com/AlexeyAB/object_threadsafe) |
+| `DISABLE_THREAD_SAFETY` | `OFF` | Disable thread safety of runtime |
+| `ENABLE_SAFEPTR` | `OFF` | Instead of a mutex, use a special data structure wrapper for concurrency, see [object_threadsafe](https://github.com/AlexeyAB/object_threadsafe) |
 <!--- @formatter:on --->
 
 ##### LLVM Passes
@@ -310,10 +297,10 @@ Default mode is to protect the global data structure with a (shared) mutex. Two 
 <!--- @formatter:off --->
 | Option | Default | Description |
 | --- | :---: | --- |
-| `SHOW_STATS` | ON | Passes show compile-time summary w.r.t. allocations counts |
-| `MPI_INTERCEPT_LIB` | ON | Library to intercept MPI calls by preloading and check whether TypeART tracks the buffer pointer |
-| `MPI_LOGGER` | ON | Enable better logging support in MPI execution context |
-| `LOG_LEVEL` | 0 | Granularity of pass logger. 3 ist most verbose, 0 is least |
+| `SHOW_STATS` | `ON` | Passes show compile-time summary w.r.t. allocations counts |
+| `MPI_INTERCEPT_LIB` | `ON` | Library to intercept MPI calls by preloading and check whether TypeART tracks the buffer pointer |
+| `MPI_LOGGER` | `ON` | Enable better logging support in MPI execution context |
+| `LOG_LEVEL` | `0` | Granularity of pass logger. 3 ist most verbose, 0 is least |
 <!--- @formatter:on --->
 
 ##### Testing
@@ -321,10 +308,10 @@ Default mode is to protect the global data structure with a (shared) mutex. Two 
 <!--- @formatter:off --->
 | Option | Default | Description |
 | --- | :---: | --- |
-| `TEST_CONFIG` | OFF | Set (force) logging levels to appropriate levels for test runner to succeed |
-| `ENABLE_CODE_COVERAGE` | OFF | Enable code coverage statistics using LCOV 1.14 and genhtml (gcovr optional) |
-| `ENABLE_LLVM_CODE_COVERAGE` | OFF | Enable llvm-cov code coverage statistics (llvm-cov and llvm-profdata  required) |
-| `ENABLE_ASAN, TSAN, UBSAN` | OFF | Enable Clang sanitizers (tsan is mutually exlusive w.r.t. ubsan and  asan as they don't play well together) |
+| `TEST_CONFIG` | `OFF` | Set (force) logging levels to appropriate levels for test runner to succeed |
+| `ENABLE_CODE_COVERAGE` | `OFF` | Enable code coverage statistics using LCOV 1.14 and genhtml (gcovr optional) |
+| `ENABLE_LLVM_CODE_COVERAGE` | `OFF` | Enable llvm-cov code coverage statistics (llvm-cov and llvm-profdata  required) |
+| `ENABLE_ASAN, TSAN, UBSAN` | `OFF` | Enable Clang sanitizers (tsan is mutually exlusive w.r.t. ubsan and  asan as they don't play well together) |
 <!--- @formatter:on --->
 
 ## References
