@@ -115,7 +115,7 @@ $> clang++ $(LINK_FLAGS) -L$(TYPEART_LIBPATH) -ltypeart-rt code.o -o binary
 
 The main options are shown below.
 
-| Command | Default | Description |
+| Flag | Default | Description |
 | --- | :---: | --- |
 | `typeart` | - | Invoke typeart pass through LLVM `opt` |
 | `typeart-outfile` | `types.yaml` | Serialized type layout information of user-defined types |
@@ -127,12 +127,20 @@ The main options are shown below.
 
 ##### Example invocations
 
-For the following examples, assume:
+###### Pre-requisites
 
-```
-TYPEART_PLUGIN=-load $(PLUGIN_PATH)/meminstfinderpass.so \ 
-               -load $(PLUGIN_PATH)/typeartpass.so`
-```
+1. Loading TypeARTS plugins with `opt`:
+    ```shell
+    TYPEART_PLUGIN=-load $(PLUGIN_PATH)/meminstfinderpass.so \
+                   -load $(PLUGIN_PATH)/typeartpass.so`
+    ```
+2. Input of `opt` is LLVM IR, e.g.:
+    ```shell
+    # Pipe LLVM IR to console
+    clang++ -g -Xclang -disable-llvm-passes -S -emit-llvm -o - example.cpp
+    ```
+
+###### Examples
 
 - Invoke TypeART for heap-only instrumentation (with stats):
     ```shell
@@ -154,7 +162,7 @@ TYPEART_PLUGIN=-load $(PLUGIN_PATH)/meminstfinderpass.so \
     opt $(TYPEART_PLUGIN) -typeart -typeart-alloca -call-filter
     ```
 
-Also consult the [demo Makefile](demo/Makefile) for an example recipe, and required flags for TypeART.
+Also consult the [demo Makefile](demo/Makefile) for an example recipe, and flags for TypeART.
 
 #### 1.1.3 LLVM compiler pass - Analysis and instrumentation
 
@@ -236,37 +244,47 @@ $> cmake --build build --target install --parallel
 
 ##### Runtime
 
-- `USE_ABSL` (default: **on**) : Enable usage of btree-backed map of the [Abseil project](https://abseil.io/) instead of
-  std::map for the runtime.
-- `USE_BTREE` (default: **off**) : *Deprecated* Enable usage of
-  a [btree-backed map](https://github.com/ahueck/cpp-btree) (alternative to Abseil) instead of std::map for the runtime.
-- `SOFTCOUNTERS` (default: **off**) : Enable runtime tracking of #tracked addrs. / #distinct checks / etc.
+<!--- @formatter:off --->
+| Option | Default | Description |
+| --- | :---: | --- |
+| `USE_ABSL` | ON | Enable usage of btree-backed map of the [Abseil project](https://abseil.io/) instead of `std::map` |
+| `USE_BTREE` | OFF | *Deprecated*. Enable usage of a [btree-backed map](https://github.com/ahueck/cpp-btree) (alternative to Abseil) instead of `std::map` |
+| `SOFTCOUNTERS` | OFF | Enable runtime tracking of #tracked addrs. / #distinct checks / etc. |
+<!--- @formatter:on --->
 
 ###### Thread-safety options
 
 Default mode is to protect the global data structure with a (shared) mutex. Two main options exist:
 
-- `DISABLE_THREAD_SAFETY` (default: **off**) : Disable thread safety of runtime
-- `ENABLE_SAFEPTR` (default: **off**) : Instead of a mutex, use a special data structure wrapper for concurrency,
-  see [object_threadsafe](https://github.com/AlexeyAB/object_threadsafe)
+<!--- @formatter:off --->
+| Option | Default | Description |
+| --- | :---: | --- |
+| `DISABLE_THREAD_SAFETY` | OFF | Disable thread safety of runtime |
+| `ENABLE_SAFEPTR` | OFF | Instead of a mutex, use a special data structure wrapper for concurrency, see [object_threadsafe](https://github.com/AlexeyAB/object_threadsafe) |
+<!--- @formatter:on --->
 
 ##### Logging and Passes
 
-- `SHOW_STATS` (default: **on**) : Passes show compile-time summary w.r.t. allocations counts.
-- `MPI_LOGGER` (default: **on**) : Enable better logging support in MPI execution context
-- `MPI_INTERCEPT_LIB` (default: **on**) : Library can be used by preloading to intercept MPI calls and check whether
-  TypeART tracks the buffer pointer
-- `LOG_LEVEL_` and `LOG_LEVEL_RT` (default **0**) :  Granularity of logger. 3 ist most verbose, 0 is least.
+<!--- @formatter:off --->
+| Option | Default | Description |
+| --- | :---: | --- |
+| `SHOW_STATS` | ON | Passes show compile-time summary w.r.t. allocations counts |
+| `MPI_INTERCEPT_LIB` | ON | Library to intercept MPI calls by preloading and check whether TypeART tracks the buffer pointer |
+| `MPI_LOGGER` | ON | Enable better logging support in MPI execution context |
+| `LOG_LEVEL` | 0 | Granularity of pass logger. 3 ist most verbose, 0 is least |
+| `LOG_LEVEL_RT` | 0 | Granularity of runtime logger. 3 ist most verbose, 0 is least |
+<!--- @formatter:on --->
 
 ##### Testing
 
-- `TEST_CONFIG` (default: **off**) : Set (force) logging levels to appropriate levels for test runner to succeed
-- `ENABLE_CODE_COVERAGE` (default: **off**) : Enable code coverage statistics using LCOV 1.14 and genhtml (gcovr
-  optional)
-- `ENABLE_LLVM_CODE_COVERAGE` (default: **off**) : Enable llvm-cov code coverage statistics (llvm-cov and llvm-profdata
-  required)
-- `ENABLE_ASAN, TSAN, UBSAN` (default: **off**) : Enable Clang sanitizers (tsan is mutually exlusive w.r.t. ubsan and
-  asan as they don't play well together)
+<!--- @formatter:off --->
+| Option | Default | Description |
+| --- | :---: | --- |
+| `TEST_CONFIG` | OFF | Set (force) logging levels to appropriate levels for test runner to succeed |
+| `ENABLE_CODE_COVERAGE` | OFF | Enable code coverage statistics using LCOV 1.14 and genhtml (gcovr optional) |
+| `ENABLE_LLVM_CODE_COVERAGE` | OFF | Enable llvm-cov code coverage statistics (llvm-cov and llvm-profdata  required) |
+| `ENABLE_ASAN, TSAN, UBSAN` | OFF | Enable Clang sanitizers (tsan is mutually exlusive w.r.t. ubsan and  asan as they don't play well together) |
+<!--- @formatter:on --->
 
 ## References
 
