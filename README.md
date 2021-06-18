@@ -33,7 +33,7 @@ type-less MPI communication buffer and the declared MPI datatype.
 #### Type checking for MPI calls
 
 Consider the MPI function `MPI_Send(const void* buffer, int count, MPI_Datatype datatype, ...)`. Without TypeART, MUST
-cannot check 1) if the `buffer` argument is compatible with the declared `MPI_Dataype` and 2) if the `count` argument
+cannot check (1) if the `buffer` argument is compatible with the declared `MPI_Dataype` and (2) if the `count` argument
 exceeds the `buffer` allocation size:
 
 ```c
@@ -71,10 +71,10 @@ its [project page](https://itc.rwth-aachen.de/must/).
 
 Making use of TypeART consists of two phases:
 
-1. Compile your code with Clang/LLVM (version 10) using the TypeART LLVM pass plugins to 1) serialize static type
-   information to a file and 2) instrument all relevant allocations. See [Section 1.1](#11-compiling-a-target-code).
+1. Compile your code with Clang/LLVM (version 10) using the TypeART LLVM pass plugins to (1) serialize static type
+   information to a file and (2) instrument all relevant allocations. See [Section 1.1](#11-compiling-a-target-code).
 2. Execute the target program with a runtime library (a *client* based on the TypeART runtime) to accept the callbacks
-   from the instrumented code and actually do some useful analysis with our interface.
+   to do some useful analysis with our interface based on the static type information.
    See [Section 1.2](#12-executing-an-instrumented-target-code).
 
 ### 1.1 Compiling a target code
@@ -101,7 +101,7 @@ TypeART passes to a target code based on the LLVM intermediate representation (I
 3. Optimize the code with -Ox using `opt`.
 4. Apply stack and global instrumentation with TypeART through `opt`.
 5. Pipe the final output to LLVM `llc` to generate the final object file.
-6. Subsequently, the TypeART runtime library is linked.
+6. Finally, link the TypeART runtime library.
 
 *Note*: We instrument heap allocations before any optimization, as the compiler may throw out type information of these
 allocations (for optimization reasons).
@@ -134,7 +134,7 @@ The main options are shown below.
 1. Loading TypeART plugins with `opt`:
     ```shell
     TYPEART_PLUGIN=-load $(PLUGIN_PATH)/meminstfinderpass.so \
-                   -load $(PLUGIN_PATH)/typeartpass.so`
+                   -load $(PLUGIN_PATH)/typeartpass.so
     ```
 2. Input of `opt` is LLVM IR, e.g.:
     ```shell
@@ -152,11 +152,12 @@ The main options are shown below.
     ```shell
     opt $(TYPEART_PLUGIN) -typeart -typeart-no-heap=true -typeart-alloca
     ```
-- Stack- and global-only instrumentation (with filtering):
+- Stack- and global-only instrumentation (with default filtering for MPI):
     ```shell
-    // Filter targets MPI by default:
     opt $(TYPEART_PLUGIN) -typeart -typeart-no-heap=true -typeart-alloca -call-filter
-    // Filter target non-MPI API:
+    ```
+- Filtering w.r.t. non-standard target API:
+    ```shell
     opt $(TYPEART_PLUGIN) -typeart -typeart-no-heap=true -typeart-alloca -call-filter -call-filter-str=MY_API*
     ```
 - Combined instrumentation (with filtering):
@@ -168,8 +169,9 @@ Also consult the [demo Makefile](demo/Makefile) for an example recipe, and flags
 
 #### 1.1.3 Serialized type information
 
-Static type information are serialized during instrumentation to a file `types.yaml`. Each user-defined type is
-extracted and an integer `type-id` is attached to it. Built-ins (`float` etc.) have pre-defined ids and byte layouts.
+After instrumentation, the file `types.yaml` contains the static type information. Each user-defined type layout is
+extracted and an integer `type-id` is attached to it. Built-in types (e.g., float) have pre-defined ids and byte
+layouts.
 
 The TypeART instrumentation callbacks use the `type-id`. The runtime library correlates the allocation with the
 respective type (and layout) during execution. Consider the following struct:
@@ -230,16 +232,16 @@ export TA_TYPE_FILE=/shared/types.yaml
 env LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(TYPEART_LIBPATH) ./binary
 ```
 
-An example for pre-loading a derivative in the context of MPI is found in the demo,
+An example for pre-loading a TypeART-based library in the context of MPI is found in the demo,
 see [Section 1.3](#13-example-mpi-demo).
 
 ### 1.3 Example: MPI Demo
 
-The folder [demo](demo) contains an example of MPI related type errors that can be detected using TypeART. The code is
-compiled with our instrumentation, and executed by preloading the MPI related check library implemented
-in [tool.c](demo/tool.c). The tool is linked against the TypeART runtime and uses the
-TypeART [runtime query interface](lib/runtime/RuntimeInterface.h). It overloads the required MPI calls and checks that
-the passed `void*` buffer is correct.
+The folder [demo](demo) contains an example of MPI-related type errors that can be detected using TypeART. The code is
+compiled with our instrumentation, and executed by preloading the MPI-related check library implemented
+in [tool.c](demo/tool.c). The check library uses the TypeART [runtime query interface](lib/runtime/RuntimeInterface.h).
+It overloads the required MPI calls and checks that the passed `void*` buffer is correct w.r.t. the MPI derived
+datatype.
 
 ## 2. Building TypeART
 
