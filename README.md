@@ -54,7 +54,7 @@ MPI_Send((void*) array, length, MPI_DOUBLE, ...)
 
 MUST and TypeART also handle MPI [derived datatypes](https://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node77.htm)
 with complex underlying datastructures, see [our demo folder](demo). For more details, see our publications below or
-download the current release of MUST with TypeART (1.8 or higher) on
+download the current release (1.8 or higher) of MUST (with TypeART) on
 the [MUST homepage](https://itc.rwth-aachen.de/must/).
 
 ## 1. Using TypeART
@@ -62,7 +62,8 @@ the [MUST homepage](https://itc.rwth-aachen.de/must/).
 Making use of TypeART consists of two phases:
 
 1. Compile your code with Clang/LLVM-10 using the TypeART LLVM pass plugins to 1) extract static type information to a
-   `yaml`-file and 2) instrument all relevant allocations.
+   `yaml`-file and 2) instrument all relevant allocations. Allocations can be filtered if they are never passed to your
+   target API, e.g., MPI.
 2. Execute the target program with a runtime library (a *client* based on the TypeART runtime) to accept the callbacks
    from the instrumented code and actually do some useful analysis. To that end, the
    interface [RuntimeInterface.h](lib/runtime/RuntimeInterface.h) can be used as a type-information query interface for
@@ -164,46 +165,40 @@ The main options are shown below.
 
 Also consult the [demo Makefile](demo/Makefile) for an example recipe, and flags for TypeART.
 
-#### 1.1.3 LLVM compiler pass - Analysis and instrumentation
+#### 1.1.3 Serialized type information (`types.yaml`) - Type-id
 
-The analysis pass finds all heap, stack and global allocations. An allocation data-flow filter discards all stack and
-global allocations if they are not passed to a target API (default `MPI` calls). Subsequently, type layouts for
-user-defined types (e.g., `struct`) of these allocations are serialized to a file and a so-called `type-id` number is
-created for each such unique type.
+Static type information are serialized during instrumentation to a file `types.yaml`. Each user-defined type is
+extracted and an integer `type-id` is attached to it. Built-ins (`float` etc.) have pre-defined `type-ids` and byte
+layouts.
 
-The instrumentation pass adds the instrumentation callbacks to our runtime, passing 1) the memory pointer, 2) the
-corresponding type-id and 3) the number of allocated elements (extent).
+The TypeART instrumentation callbacks use the `type-id`. The runtime library correlates the allocation with the
+respective type (and layout) during execution. Consider the following struct:
 
-###### Example instrumentation in LLVM intermediate representation (IR)
+```c
+struct s1_t {
+  char a[3];
+  struct s1_t* b;
+}
+```
 
-- C and corresponding LLVM IR code: A simple heap allocation with malloc of a `double`-array. It contains all
-  information needed for TypeART:
+The TypeART pass will write a `types.yaml` file with the following content:
+<!--- @formatter:off --->
+```yaml
+- id: 256            // struct type-id
+  name: struct.s1_t
+  extent: 16
+  member_count: 2
+  offsets: [ 0, 8 ]  // byte offsets
+  types: [ 0, 10 ]   // member type-ids (0-char, 10-ptr)
+  sizes: [ 3, 1 ]    // array lengths
+```
+<!--- @formatter:on --->
 
-    ~~~c
-    double* pointer = (double*) malloc(n * sizeof(double));
-    ~~~
+#### 1.1.4 Filtering allocations (stack and global)
 
-    ~~~llvm
-    ; Assume: %size == n * sizeof(double)
-    %pointer = call i8* @malloc(i64 %size)
-    %pointer_double = bitcast i8* %pointer to double*
-    ~~~
-
-- Corresponding TypeART instrumentation:
-
-    ~~~llvm
-    ; Assume: %size == n * sizeof(double)
-    ; Heap allocation -- %pointer holds the returned pointer value:
-    %pointer = call i8* @malloc(i64 %size)
-    ; TypeART instrumentation -- compute the number of double-elements:
-    %extent = udiv i64 %size, 8
-    ; TypeART runtime callback (pointer, type-id, length) -- 6 is the type-id for double:
-    call void @__typeart_alloc(i8* %pointer, i32 6, i64 %extent)
-    ; Original bitcast:
-    %pointer_double = bitcast i8* %pointer to double*
-    ~~~
-
-###### Type-id (`types.yaml`)
+To improve performance, a translation unit-local data-flow filter for global and stack variables exist, see Section
+1.1.2 *Options*. It follows the LLVM IR `use-def` chain. If the allocation provably never reaches the target API, it can
+be filtered. Otherwise, it is instrumented.
 
 ### 1.2 Executing an instrumented target code
 
