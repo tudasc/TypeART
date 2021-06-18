@@ -3,8 +3,9 @@
 ## What is TypeART?
 
 TypeART \[[TA18](#ref-typeart-2018); [TA20](#ref-typeart-2020)\] is a type and memory allocation tracking sanitizer
-based on the LLVM compiler toolchain for C/C++ (OpenMP) codes. It consists of an LLVM compiler pass plugin for
-instrumentation, and a corresponding runtime to track memory allocations during the execution of a target program.
+based on the [LLVM](https://llvm.org) compiler toolchain for C/C++ (OpenMP) codes. It consists of an LLVM compiler pass
+plugin for instrumentation, and a corresponding runtime to track memory allocations during the execution of a target
+program.
 
 TypeART instruments heap, stack and global variable allocations with a callback to our runtime. The callback consists of
 (1) the memory address, (2) the type-layout information of the allocation (built-ins, user-defined structs etc.) and (3)
@@ -60,11 +61,11 @@ its [project page](https://itc.rwth-aachen.de/must/).
         * [1.1.3 Serialized type information](#113-serialized-type-information)
         * [1.1.4 Filtering allocations](#114-filtering-allocations)
     * [1.2 Executing an instrumented target code](#12-executing-an-instrumented-target-code)
-    * [1.3 Example: MPI Demo](#13-example-mpi-demo)
+    * [1.3 Example: MPI demo](#13-example-mpi-demo)
 * [2. Building TypeART](#2-building-typeart)
     * [2.1 Optional software requirements](#21-optional-software-requirements)
     * [2.2 Building](#22-building)
-        * [2.2.1 CMake Configuration: Options for users](#221-cmake-configuration-options-for-users)
+        * [2.2.1 CMake configuration: Options for users](#221-cmake-configuration-options-for-users)
 * [References](#references)
 
 ## 1. Using TypeART
@@ -235,7 +236,7 @@ env LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(TYPEART_LIBPATH) ./binary
 An example for pre-loading a TypeART-based library in the context of MPI is found in the demo,
 see [Section 1.3](#13-example-mpi-demo).
 
-### 1.3 Example: MPI Demo
+### 1.3 Example: MPI demo
 
 The folder [demo](demo) contains an example of MPI-related type errors that can be detected using TypeART. The code is
 compiled with our instrumentation, and executed by preloading the MPI-related check library implemented
@@ -245,7 +246,7 @@ datatype.
 
 ## 2. Building TypeART
 
-TypeART requires [LLVM](https://llvm.org) version 10 and CMake version >= 3.14.
+TypeART requires LLVM version 10 and CMake version >= 3.14.
 
 ### 2.1 Optional software requirements
 
@@ -254,7 +255,8 @@ TypeART requires [LLVM](https://llvm.org) version 10 and CMake version >= 3.14.
 - OpenMP-enabled Clang compiler: Needed for some tests.
 
 Other smaller, external dependencies are defined within the [externals folder](externals) (depending on configuration
-options), see Section 2.2.1 (Runtime). These are automatically downloaded during configuration time (internet required).
+options), see [Section 2.2.1 (Runtime)](#221-cmake-configuration-options-for-users). They are automatically downloaded
+during configuration time (internet connection required).
 
 ### 2.2 Building
 
@@ -269,7 +271,7 @@ $> cmake -B build
 $> cmake --build build --target install --parallel
 ```
 
-#### 2.2.1 CMake Configuration: Options for users
+#### 2.2.1 CMake configuration: Options for users
 
 ##### Runtime
 
@@ -282,7 +284,7 @@ $> cmake --build build --target install --parallel
 | `LOG_LEVEL_RT` | `0` | Granularity of runtime logger. 3 ist most verbose, 0 is least |
 <!--- @formatter:on --->
 
-###### Runtime Thread-safety options
+###### Runtime thread-safety options
 
 Default mode is to protect the global data structure with a (shared) mutex. Two main options exist:
 
@@ -293,7 +295,7 @@ Default mode is to protect the global data structure with a (shared) mutex. Two 
 | `ENABLE_SAFEPTR` | `OFF` | Instead of a mutex, use a special data structure wrapper for concurrency, see [object_threadsafe](https://github.com/AlexeyAB/object_threadsafe) |
 <!--- @formatter:on --->
 
-##### LLVM Passes
+##### LLVM passes
 
 <!--- @formatter:off --->
 | Option | Default | Description |
