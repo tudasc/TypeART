@@ -196,9 +196,28 @@ The TypeART pass will write a `types.yaml` file with the following content:
 
 #### 1.1.4 Filtering allocations (stack and global)
 
-To improve performance, a translation unit-local data-flow filter for global and stack variables exist, see Section
+To improve performance, a translation unit-local (TU) data-flow filter for global and stack variables exist, see Section
 1.1.2 *Options*. It follows the LLVM IR `use-def` chain. If the allocation provably never reaches the target API, it can
 be filtered. Otherwise, it is instrumented.
+
+Consider the following example.
+
+1. The filter can remove `a`, as the aliasing pointer `x` is never part of an MPI call.
+2. `b` is instrumented as the aliasing pointer `y` is part of an MPI call.
+3. `c` is instrumented as we cannot reason about the body of `foo_bar`.
+
+```c
+extern foo_bar(float*); // No definition in the TU 
+void bar(float* x, float* y) {
+  *x = 2.f; // x is not used after
+  MPI_Send(y, ...);
+}
+void foo() {
+  float a = 1.f, b = 2.f, c = 3.f;
+  bar(&a, &b);
+  foo_bar(&c);
+}
+```
 
 ### 1.2 Executing an instrumented target code
 
@@ -245,9 +264,10 @@ $> cmake --build build --target install --parallel
 | `USE_ABSL` | ON | Enable usage of btree-backed map of the [Abseil project](https://abseil.io/) instead of `std::map` |
 | `USE_BTREE` | OFF | *Deprecated*. Enable usage of a [btree-backed map](https://github.com/ahueck/cpp-btree) (alternative to Abseil) instead of `std::map` |
 | `SOFTCOUNTERS` | OFF | Enable runtime tracking of #tracked addrs. / #distinct checks / etc. |
+| `LOG_LEVEL_RT` | 0 | Granularity of runtime logger. 3 ist most verbose, 0 is least |
 <!--- @formatter:on --->
 
-###### Thread-safety options
+###### Runtime Thread-safety options
 
 Default mode is to protect the global data structure with a (shared) mutex. Two main options exist:
 
@@ -258,7 +278,7 @@ Default mode is to protect the global data structure with a (shared) mutex. Two 
 | `ENABLE_SAFEPTR` | OFF | Instead of a mutex, use a special data structure wrapper for concurrency, see [object_threadsafe](https://github.com/AlexeyAB/object_threadsafe) |
 <!--- @formatter:on --->
 
-##### Logging and Passes
+##### LLVM Passes
 
 <!--- @formatter:off --->
 | Option | Default | Description |
@@ -267,7 +287,6 @@ Default mode is to protect the global data structure with a (shared) mutex. Two 
 | `MPI_INTERCEPT_LIB` | ON | Library to intercept MPI calls by preloading and check whether TypeART tracks the buffer pointer |
 | `MPI_LOGGER` | ON | Enable better logging support in MPI execution context |
 | `LOG_LEVEL` | 0 | Granularity of pass logger. 3 ist most verbose, 0 is least |
-| `LOG_LEVEL_RT` | 0 | Granularity of runtime logger. 3 ist most verbose, 0 is least |
 <!--- @formatter:on --->
 
 ##### Testing
