@@ -19,7 +19,7 @@ Employ TypeART whenever you need type information of allocations in your program
 diagnostics if it doesn't hold.
 
 For instance, low-level C-language APIs use `void`-pointers as generic types. Often, the user must specify its type and
-length manually. This can be error prone, especially in larger, long-lived projects with changing developers.
+length manually. This can be error prone, especially in larger, long-lived project s with changing developers.
 
 With TypeART, it is straightforward to verify that a `void`-pointer argument to an API is, e.g., a type `T` array with
 length `n`. Examples for type unsafe APIs include the Message-Passing Interface (MPI), checkpointing libraries and
@@ -56,35 +56,6 @@ MUST and TypeART also handle MPI [derived datatypes](https://www.mpi-forum.org/d
 with complex underlying datastructures, see [our demo folder](demo). For more details, see our publications below or
 download the current release of MUST with TypeART (1.8 or higher) on
 the [MUST homepage](https://itc.rwth-aachen.de/must/).
-
-### References
-
-<table style="border:0px">
-<tr>
-    <td valign="top"><a name="ref-typeart-2018"></a>[TA18]</td>
-    <td>Hück, Alexander and Lehr, Jan-Patrick and Kreutzer, Sebastian and Protze, Joachim and Terboven, Christian and Bischof, Christian and Müller, Matthias S.
-    <a href=https://doi.org/10.1109/Correctness.2018.00011>
-    Compiler-aided type tracking for correctness checking of MPI applications</a>.
-    In <i>2nd International Workshop on Software Correctness for HPC Applications (Correctness)</i>,
-    pages 51–58. IEEE, 2018.</td>
-</tr>
-<tr>
-    <td valign="top"><a name="ref-typeart-2020"></a>[TA20]</td>
-    <td>Hück, Alexander and Protze, Joachim and Lehr, Jan-Patrick and Terboven, Christian and Bischof, Christian and Müller, Matthias S.
-    <a href=https://doi.org/10.1109/Correctness51934.2020.00010>
-    Towards compiler-aided correctness checking of adjoint MPI applications</a>.
-    In <i>4th International Workshop on Software Correctness for HPC Applications (Correctness)</i>,
-    pages 40–48. IEEE/ACM, 2020.</td>
-</tr>
-<tr>
-    <td valign="top"><a name="ref-must-2013"></a>[MU13]</td>
-    <td>Hilbrich, Tobias and Protze, Joachim and Schulz, Martin and de Supinski, Bronis R. and Müller, Matthias S.
-    <a href=https://doi.org/10.3233/SPR-130368>
-    MPI Runtime Error Detection with MUST: Advances in Deadlock Detection</a>.
-    In <i>Scientific Programming</i>, vol. 21, no. 3-4,
-    pages 109–121, 2013.</td>
-</tr>
-</table>
 
 ## 1. Using TypeART
 
@@ -128,8 +99,10 @@ currently needed:
 3. Optimize the code with -Ox using `opt`.
 4. Apply stack and global instrumentation with TypeART through `opt`.
 5. Pipe the final output to LLVM `llc` to generate the final object file.
+6. Subsequently, the TypeART runtime library is linked (for the added instrumentation callbacks).
 
-Subsequently, the TypeART runtime library is linked (for the added instrumentation callbacks).
+Note: We instrument heap allocations before any optimization, as the compiler may throw out related type information of
+these allocations (for optimization reasons).
 
 ```shell
 # Compile: 1.Code-To-LLVM | 2.TypeART_HEAP | 3.Optimize | 4.TypeART_Stack | 5.Object-file 
@@ -138,9 +111,52 @@ $> clang++ $(COMPILE_FLAGS) $(EMIT_LLVM_IR_FLAGS) code.cpp | opt $(TYPEART_PLUGI
 $> clang++ $(LINK_FLAGS) -L$(TYPEART_LIBPATH) -ltypeart-rt code.o -o binary
 ```
 
-Please consult the [demo Makefile](demo/Makefile) for an example recipe, and required flags for TypeART.
+#### 1.1.2 Options for TypeART passes
 
-##### LLVM compiler pass - Analysis and instrumentation
+The main options are shown below.
+
+| Command | Default | Description |
+| --- | :---: | --- |
+| `typeart` | - | Invoke typeart pass through LLVM `opt` |
+| `typeart-outfile` | `types.yaml` | Serialized type layout information of user-defined types |
+| `typeart-no-heap` | false | Do **not** instrument heap allocations |
+| `typeart-alloca` | false | Instrument stack and global allocations |
+| `typeart-stats` | false | Show instrumentation stat counters |
+| `call-filter` | false | Filter stack and global allocations |
+| `call-filter-str` | `*MPI_*` | Filter string target (glob string) |
+
+##### Example invocations
+
+For the following examples, assume:
+
+```
+TYPEART_PLUGIN=-load $(PLUGIN_PATH)/meminstfinderpass.so \ 
+               -load $(PLUGIN_PATH)/typeartpass.so`
+```
+
+- Invoke TypeART for heap-only instrumentation (with stats):
+    ```shell
+    opt $(TYPEART_PLUGIN) -typeart -typeart-stats
+    ```
+- Invoke TypeART for stack- and global-only instrumentation (*no* stats):
+    ```shell
+    opt $(TYPEART_PLUGIN) -typeart -typeart-no-heap=true -typeart-alloca
+    ```
+- Invoke TypeART for stack- and global-only instrumentation (with filtering):
+    ```shell
+    // Filter targets MPI by default:
+    opt $(TYPEART_PLUGIN) -typeart -typeart-no-heap=true -typeart-alloca -call-filter
+    // Filter target non-MPI API:
+    opt $(TYPEART_PLUGIN) -typeart -typeart-no-heap=true -typeart-alloca -call-filter -call-filter-str=MY_API*
+    ```
+- Invoke TypeART for combined instrumentation (with filtering):
+    ```shell
+    opt $(TYPEART_PLUGIN) -typeart -typeart-alloca -call-filter
+    ```
+
+Also consult the [demo Makefile](demo/Makefile) for an example recipe, and required flags for TypeART.
+
+#### 1.1.3 LLVM compiler pass - Analysis and instrumentation
 
 The analysis pass finds all heap, stack and global allocations. An allocation data-flow filter discards all stack and
 global allocations if they are not passed to a target API (default `MPI` calls). Subsequently, type layouts for
@@ -188,7 +204,7 @@ corresponding type-id and 3) the number of allocated elements (extent).
 The folder [demo](demo) contains an example of MPI related type errors that can be detected using TypeART. The code is
 compiled with our instrumentation, and executed by preloading the MPI related check library implemented
 in [tool.c](demo/tool.c), which is linked against the TypeART runtime and uses the aforementioned query interface. It
-overloads the required MPI calls and checks that the passed `void* buffer` is correct.
+overloads the required MPI calls and checks that the passed `void*` buffer is correct.
 
 ## 2. Building TypeART
 
@@ -196,12 +212,12 @@ TypeART requires [LLVM](https://llvm.org) version 10 and CMake version >= 3.14.
 
 ### 2.1 Optional software requirements
 
-- `MPI` library: Needed for some tests, the [demo](demo), our [MPI interceptor library](lib/mpi_interceptor), and for
+- MPI library: Needed for some tests, the [demo](demo), our [MPI interceptor library](lib/mpi_interceptor), and for
   logging with our TypeART runtime library within an MPI target application.
-- `OpenMP`-enabled Clang compiler: Needed for some tests.
+- OpenMP-enabled Clang compiler: Needed for some tests.
 
 Other smaller, external dependencies are defined within the [externals folder](externals) (depending on configuration
-options), see Section 2.2.1. These are automatically downloaded during configuration time (internet required).
+options), see Section 2.2.1 (Runtime). These are automatically downloaded during configuration time (internet required).
 
 ### 2.2 Building
 
@@ -220,11 +236,11 @@ $> cmake --build build --target install --parallel
 
 ##### Runtime
 
-- `SOFTCOUNTERS` (default: **off**) : Enable runtime tracking of #tracked addrs. / #distinct checks / etc.
 - `USE_ABSL` (default: **on**) : Enable usage of btree-backed map of the [Abseil project](https://abseil.io/) instead of
   std::map for the runtime.
 - `USE_BTREE` (default: **off**) : *Deprecated* Enable usage of
   a [btree-backed map](https://github.com/ahueck/cpp-btree) (alternative to Abseil) instead of std::map for the runtime.
+- `SOFTCOUNTERS` (default: **off**) : Enable runtime tracking of #tracked addrs. / #distinct checks / etc.
 
 ###### Thread-safety options
 
@@ -252,3 +268,31 @@ Default mode is to protect the global data structure with a (shared) mutex. Two 
 - `ENABLE_ASAN, TSAN, UBSAN` (default: **off**) : Enable Clang sanitizers (tsan is mutually exlusive w.r.t. ubsan and
   asan as they don't play well together)
 
+## References
+
+<table style="border:0px">
+<tr>
+    <td valign="top"><a name="ref-typeart-2018"></a>[TA18]</td>
+    <td>Hück, Alexander and Lehr, Jan-Patrick and Kreutzer, Sebastian and Protze, Joachim and Terboven, Christian and Bischof, Christian and Müller, Matthias S.
+    <a href=https://doi.org/10.1109/Correctness.2018.00011>
+    Compiler-aided type tracking for correctness checking of MPI applications</a>.
+    In <i>2nd International Workshop on Software Correctness for HPC Applications (Correctness)</i>,
+    pages 51–58. IEEE, 2018.</td>
+</tr>
+<tr>
+    <td valign="top"><a name="ref-typeart-2020"></a>[TA20]</td>
+    <td>Hück, Alexander and Protze, Joachim and Lehr, Jan-Patrick and Terboven, Christian and Bischof, Christian and Müller, Matthias S.
+    <a href=https://doi.org/10.1109/Correctness51934.2020.00010>
+    Towards compiler-aided correctness checking of adjoint MPI applications</a>.
+    In <i>4th International Workshop on Software Correctness for HPC Applications (Correctness)</i>,
+    pages 40–48. IEEE/ACM, 2020.</td>
+</tr>
+<tr>
+    <td valign="top"><a name="ref-must-2013"></a>[MU13]</td>
+    <td>Hilbrich, Tobias and Protze, Joachim and Schulz, Martin and de Supinski, Bronis R. and Müller, Matthias S.
+    <a href=https://doi.org/10.3233/SPR-130368>
+    MPI Runtime Error Detection with MUST: Advances in Deadlock Detection</a>.
+    In <i>Scientific Programming</i>, vol. 21, no. 3-4,
+    pages 109–121, 2013.</td>
+</tr>
+</table>
