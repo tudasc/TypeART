@@ -206,6 +206,43 @@ int ta_check_builtin_type(const MPICallInfo* call, int mpi_type_id, int* mpi_cou
     ta_print_loc(call->called_from);
     return -1;
   }
+}
+
+const char* ta_mpi_combiner_name(int combiner) {
+  switch (combiner) {
+    case MPI_COMBINER_NAMED:
+      return "predefined type";
+    case MPI_COMBINER_DUP:
+      return "MPI_Type_dup";
+    case MPI_COMBINER_CONTIGUOUS:
+      return "MPI_Type_contiguous";
+    case MPI_COMBINER_VECTOR:
+      return "MPI_Type_vector";
+    case MPI_COMBINER_HVECTOR:
+      return "MPI_Type_hvector";
+    case MPI_COMBINER_INDEXED:
+      return "MPI_Type_indexed";
+    case MPI_COMBINER_HINDEXED:
+      return "MPI_Type_hindexed";
+    case MPI_COMBINER_INDEXED_BLOCK:
+      return "MPI_Type_create_indexed_block";
+    case MPI_COMBINER_STRUCT:
+      return "MPI_Type_struct";
+    case MPI_COMBINER_SUBARRAY:
+      return "MPI_Type_create_subarray";
+    case MPI_COMBINER_DARRAY:
+      return "MPI_Type_create_darray";
+    case MPI_COMBINER_F90_REAL:
+      return "MPI_Type_create_f90_real";
+    case MPI_COMBINER_F90_COMPLEX:
+      return "MPI_Type_create_f90_complex";
+    case MPI_COMBINER_F90_INTEGER:
+      return "MPI_Type_create_f90_integer";
+    case MPI_COMBINER_RESIZED:
+      return "MPI_Type_create_resized";
+    default:
+      return "invalid combiner id";
+  }
   *mpi_count = 1;
 }
 
@@ -250,8 +287,8 @@ int ta_check_type(const MPICallInfo* call, MPI_Datatype type, int* mpi_count) {
       return result;
     }
     default:
-      fprintf(stderr, "R[%d][Error][%d] %s: the MPI type combiner %d is currently not supported", call->rank,
-              call->buffer.is_const, call->function_name, combiner);
+      fprintf(stderr, "R[%d][Error][%d] %s: the MPI type combiner %s is currently not supported", call->rank,
+              call->buffer.is_const, call->function_name, ta_mpi_combiner_name(combiner));
       ta_print_loc(call->called_from);
   }
 }
