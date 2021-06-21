@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.14)
 
 project(typeart
-  VERSION 1.5
+  VERSION 1.6
 )
 
 set(TYPEART_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
@@ -31,6 +31,8 @@ add_format_target(format-sources
   lib/typelib/*.h
   lib/support/*.cpp
   lib/support/*.h
+  demo/*.c
+  demo/*.h
   )
 
 add_subdirectory(externals)

@@ -1,22 +1,36 @@
 #include "TypeARTPass.h"
 
-//#include "RuntimeInterface.h"
 #include "analysis/MemInstFinderPass.h"
 #include "instrumentation/MemOpArgCollector.h"
 #include "instrumentation/MemOpInstrumentation.h"
 #include "instrumentation/TypeARTFunctions.h"
 #include "support/Logger.h"
 #include "support/Table.h"
-#include "typelib/TypeIO.h"
+#include "typelib/TypeDB.h"
 
+#include "llvm/ADT/DenseMap.h"
+#include "llvm/ADT/None.h"
+#include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/Statistic.h"
-#include "llvm/IR/Instructions.h"
+#include "llvm/ADT/StringRef.h"
+#include "llvm/IR/DataLayout.h"
+#include "llvm/IR/Function.h"
 #include "llvm/IR/Module.h"
+#include "llvm/Pass.h"
+#include "llvm/PassAnalysisSupport.h"
+#include "llvm/PassSupport.h"
 #include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Format.h"
-#include "llvm/Transforms/Utils/CtorUtils.h"
+#include "llvm/Support/raw_ostream.h"
 
+#include <cassert>
+#include <cstddef>
 #include <string>
+#include <utility>
+
+namespace llvm {
+class BasicBlock;
+}  // namespace llvm
 
 using namespace llvm;
 
@@ -28,10 +42,8 @@ static llvm::RegisterPass<typeart::pass::TypeArtPass> msp("typeart", "TypeArt ty
 
 static cl::opt<bool> ClTypeArtStats("typeart-stats", cl::desc("Show statistics for TypeArt type pass."), cl::Hidden,
                                     cl::init(false));
-static cl::opt<bool> ClIgnoreHeap("typeart-no-heap", cl::desc("Ignore heap allocation/free instruction."), cl::Hidden,
-                                  cl::init(false));
-static cl::opt<bool> ClTypeArtAlloca("typeart-alloca", cl::desc("Track alloca instructions."), cl::Hidden,
-                                     cl::init(false));
+extern cl::opt<bool> ClIgnoreHeap;
+extern cl::opt<bool> ClTypeArtAlloca;
 
 static cl::opt<std::string> ClTypeFile("typeart-outfile", cl::desc("Location of the generated type file."), cl::Hidden,
                                        cl::init("types.yaml"));
@@ -176,6 +188,13 @@ void TypeArtPass::declareInstrumentationFunctions(Module& m) {
   typeart_alloc_global.f = decl.make_function(IFunc::global, typeart_alloc_global.name, alloc_arg_types);
   typeart_free.f         = decl.make_function(IFunc::free, typeart_free.name, free_arg_types);
   typeart_leave_scope.f  = decl.make_function(IFunc::scope, typeart_leave_scope.name, leavescope_arg_types);
+
+  typeart_alloc_omp.f = decl.make_function(IFunc::heap_omp, typeart_alloc_omp.name, alloc_arg_types, true);
+  typeart_alloc_stacks_omp.f =
+      decl.make_function(IFunc::stack_omp, typeart_alloc_stacks_omp.name, alloc_arg_types, true);
+  typeart_free_omp.f = decl.make_function(IFunc::free_omp, typeart_free_omp.name, free_arg_types, true);
+  typeart_leave_scope_omp.f =
+      decl.make_function(IFunc::scope_omp, typeart_leave_scope_omp.name, leavescope_arg_types, true);
 }
 
 void TypeArtPass::printStats(llvm::raw_ostream& out) {

@@ -3,9 +3,17 @@
 
 #include "typelib/TypeDB.h"
 
-#include <llvm/ADT/StringMap.h>
-#include <llvm/IR/DataLayout.h>
-#include <llvm/IR/Type.h>
+#include "llvm/ADT/StringMap.h"
+
+#include <cstddef>
+#include <string>
+
+namespace llvm {
+class DataLayout;
+class StructType;
+class Type;
+class VectorType;
+}  // namespace llvm
 
 namespace typeart {
 

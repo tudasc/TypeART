@@ -17,6 +17,19 @@ struct DefaultSearch {
 
     std::vector<llvm::Value*> out;
 
+    if (isa<PHINode>(val)) {
+      // FIXME
+      //  this mechanism tries to avoid endless recurison in loops, i.e.,
+      //  do we bounce around multiple phi nodes (visit counter >1), then
+      //  we should likely skip search
+      // see amg with openmp `amg2013/parcsr_ls/par_lr_interp.c`
+      if (const auto node = p.phi_cache.find(val); node != std::end(p.phi_cache)) {
+        if (node->second > 1) {
+          return out;
+        }
+      }
+    }
+
     if (auto store = llvm::dyn_cast<StoreInst>(val)) {
       val = store->getPointerOperand();
       if (llvm::isa<AllocaInst>(val) && !store->getValueOperand()->getType()->isPointerTy()) {

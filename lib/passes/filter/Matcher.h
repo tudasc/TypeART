@@ -5,6 +5,7 @@
 #ifndef TYPEART_MATCHER_H
 #define TYPEART_MATCHER_H
 
+#include "../analysis/MemOpData.h"
 #include "../support/Util.h"
 
 #include "llvm/ADT/StringSet.h"
@@ -54,20 +55,33 @@ class DefaultStringMatcher final : public Matcher {
 };
 
 class FunctionOracleMatcher final : public Matcher {
-  llvm::SmallDenseSet<llvm::StringRef> continue_set{{"sqrt"}, {"cos"}, {"sin"}, {"pow"}, {"fabs"}, {"abs"}, {"log"}};
-  llvm::SmallDenseSet<llvm::StringRef> skip_set{{"printf"},       {"sprintf"}, {"snprintf"}, {"fprintf"}, {"puts"},
-                                                {"__cxa_atexit"}, {"fopen"},   {"fclose"},   {"scanf"},   {"strcmp"}};
+  const MemOps mem_operations{};
+  llvm::SmallDenseSet<llvm::StringRef> continue_set{{"sqrt"}, {"cos"}, {"sin"},    {"pow"},  {"fabs"},
+                                                    {"abs"},  {"log"}, {"fscanf"}, {"cbrt"}, {"gettimeofday"}};
+  llvm::SmallDenseSet<llvm::StringRef> skip_set{{"printf"}, {"sprintf"},      {"snprintf"}, {"fprintf"},
+                                                {"puts"},   {"__cxa_atexit"}, {"fopen"},    {"fclose"},
+                                                {"scanf"},  {"strtol"},       {"srand"}};
 
  public:
   MatchResult match(llvm::CallSite c) const override {
     const auto f = c.getCalledFunction();
     if (f != nullptr) {
       const auto f_name = util::demangle(f->getName());
+      StringRef f_name_ref{f_name};
       if (continue_set.count(f_name) > 0) {
         return MatchResult::ShouldContinue;
       }
       if (skip_set.count(f_name) > 0) {
         return MatchResult::ShouldSkip;
+      }
+      if (f_name_ref.startswith("__typeart_")) {
+        return MatchResult::ShouldSkip;
+      }
+      if (mem_operations.kind(f_name)) {
+        return MatchResult::ShouldSkip;
+      }
+      if (f_name_ref.startswith("__ubsan") || f_name_ref.startswith("__asan") || f_name_ref.startswith("__msan")) {
+        return MatchResult::ShouldContinue;
       }
     }
     return MatchResult::NoMatch;

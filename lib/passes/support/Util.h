@@ -102,6 +102,31 @@ inline std::string try_demangle(const T& site) {
   }
 }
 
+template <typename Predicate>
+inline std::vector<llvm::Instruction*> find_all(llvm::Function* f, Predicate&& p) {
+  std::vector<llvm::Instruction*> v;
+  for (auto& bb : *f) {
+    for (auto& inst : bb) {
+      if (p(inst)) {
+        v.push_back(&inst);
+      }
+    }
+  }
+  return v;
+}
+
+template <typename Predicate>
+inline llvm::Instruction* find_first_of(llvm::Function* f, Predicate&& p) {
+  for (auto& bb : *f) {
+    for (auto& inst : bb) {
+      if (p(inst)) {
+        return &inst;
+      }
+    }
+  }
+  return nullptr;
+}
+
 inline bool regex_matches(const std::string& regex, const std::string& in, bool case_sensitive = false) {
   using namespace llvm;
   Regex r(regex, !case_sensitive ? Regex::IgnoreCase : Regex::NoFlags);

@@ -7,10 +7,11 @@
 
 #include "MemInstFinderPass.h"
 
-#include "MemOpVisitor.h"
+#include "analysis/MemOpData.h"
 #include "filter/CGForwardFilter.h"
 #include "filter/CGInterface.h"
 #include "filter/Filter.h"
+#include "filter/Matcher.h"
 #include "filter/StandardFilter.h"
 #include "filter/StdForwardFilter.h"
 #include "support/Logger.h"
@@ -18,10 +19,28 @@
 #include "support/TypeUtil.h"
 #include "support/Util.h"
 
+#include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/Statistic.h"
+#include "llvm/ADT/StringRef.h"
+#include "llvm/ADT/iterator_range.h"
+#include "llvm/IR/BasicBlock.h"
+#include "llvm/IR/DerivedTypes.h"
+#include "llvm/IR/Function.h"
+#include "llvm/IR/GlobalValue.h"
 #include "llvm/IR/Instructions.h"
+#include "llvm/IR/Module.h"
+#include "llvm/IR/Type.h"
+#include "llvm/Pass.h"
+#include "llvm/PassAnalysisSupport.h"
+#include "llvm/PassSupport.h"
+#include "llvm/Support/Casting.h"
 #include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Format.h"
+#include "llvm/Support/raw_ostream.h"
+
+#include <algorithm>
+#include <cstdlib>
+#include <utility>
 
 using namespace llvm;
 
@@ -66,6 +85,10 @@ static cl::opt<std::string> ClCallFilterCGFile("call-filter-cg-file", cl::desc("
 static cl::opt<bool> ClCallFilterDeep("call-filter-deep",
                                       cl::desc("If the CallFilter matches, we look if the value is passed as a void*."),
                                       cl::Hidden, cl::init(false));
+
+cl::opt<bool> ClIgnoreHeap("typeart-no-heap", cl::desc("Ignore heap allocation/free instruction."), cl::Hidden,
+                           cl::init(false));
+cl::opt<bool> ClTypeArtAlloca("typeart-alloca", cl::desc("Track alloca instructions."), cl::Hidden, cl::init(false));
 
 STATISTIC(NumDetectedHeap, "Number of detected heap allocs");
 STATISTIC(NumFilteredDetectedHeap, "Number of filtered heap allocs");
@@ -147,7 +170,8 @@ CallFilter::~CallFilter() = default;
 
 char MemInstFinderPass::ID = 0;
 
-MemInstFinderPass::MemInstFinderPass() : llvm::ModulePass(ID), mOpsCollector(), filter(ClCallFilterGlob.getValue()) {
+MemInstFinderPass::MemInstFinderPass()
+    : llvm::ModulePass(ID), mOpsCollector(ClTypeArtAlloca, !ClIgnoreHeap), filter(ClCallFilterGlob.getValue()) {
 }
 
 void MemInstFinderPass::getAnalysisUsage(llvm::AnalysisUsage& info) const {

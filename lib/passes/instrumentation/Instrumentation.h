@@ -5,11 +5,15 @@
 #ifndef TYPEART_INSTRUMENTATION_H
 #define TYPEART_INSTRUMENTATION_H
 
-#include "../analysis/MemOpData.h"
+#include "analysis/MemOpData.h"
 
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringMap.h"
+#include "llvm/ADT/iterator.h"
 #include "llvm/Support/Casting.h"
+
+#include <cstddef>
+#include <memory>
 
 namespace llvm {
 class Value;
@@ -44,6 +48,10 @@ struct ArgMap {
     }
     return llvm::None;
   }*/
+
+  auto lookup(Key key) const -> llvm::Value* {
+    return args.lookup(key);
+  }
 
   template <typename T>
   T* get_as(Key key) const {

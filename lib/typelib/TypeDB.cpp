@@ -4,8 +4,10 @@
 
 #include "TypeDB.h"
 
-//#include <form.h> FIXME why needed?
+#include "typelib/TypeInterface.h"
+
 #include <iostream>
+#include <utility>
 
 namespace typeart {
 
@@ -33,7 +35,7 @@ void TypeDB::clear() {
 }
 
 bool TypeDB::isBuiltinType(int id) const {
-  return id < TA_NUM_VALID_IDS;
+  return id >= TA_INT8 && id < TA_NUM_VALID_IDS;
 }
 
 bool TypeDB::isReservedType(int id) const {

@@ -7,6 +7,24 @@
 
 #include "FilterBase.h"
 #include "Matcher.h"
+#include "filter/IRPath.h"
+
+#include "llvm/IR/CallSite.h"
+
+#include <memory>
+
+namespace llvm {
+class Function;
+class Value;
+}  // namespace llvm
+namespace typeart {
+namespace filter {
+namespace omp {
+struct OmpContext;
+}  // namespace omp
+struct DefaultSearch;
+}  // namespace filter
+}  // namespace typeart
 
 namespace typeart::filter {
 
@@ -28,14 +46,14 @@ struct ForwardFilterImpl {
 
   ForwardFilterImpl(std::unique_ptr<Matcher>&& m, std::unique_ptr<Matcher>&& deep);
 
-  FilterAnalysis precheck(Value* in, Function* start);
+  FilterAnalysis precheck(Value* in, Function* start, const FPath&);
 
   FilterAnalysis decl(CallSite current, const Path& p) const;
 
   FilterAnalysis def(CallSite current, const Path& p) const;
 };
 
-using StandardForwardFilter = BaseFilter<ForwardFilterImpl, DefaultSearch>;
+using StandardForwardFilter = BaseFilter<ForwardFilterImpl, DefaultSearch, omp::OmpContext>;
 
 }  // namespace typeart::filter
 

@@ -7,6 +7,26 @@
 
 #include "FilterBase.h"
 #include "Matcher.h"
+#include "filter/CGInterface.h"
+#include "filter/IRPath.h"
+
+#include "llvm/IR/CallSite.h"
+
+#include <memory>
+#include <string>
+
+namespace llvm {
+class Function;
+class Value;
+}  // namespace llvm
+namespace typeart {
+namespace filter {
+namespace omp {
+struct OmpContext;
+}  // namespace omp
+struct DefaultSearch;
+}  // namespace filter
+}  // namespace typeart
 
 namespace typeart::filter {
 
@@ -32,14 +52,14 @@ struct CGFilterImpl {
   CGFilterImpl(const std::string& filter_str, std::unique_ptr<CGInterface>&& cgraph,
                std::unique_ptr<Matcher>&& matcher);
 
-  FilterAnalysis precheck(Value* in, Function* start);
+  FilterAnalysis precheck(Value* in, Function* start, const FPath&);
 
   FilterAnalysis decl(CallSite current, const Path& p);
 
   FilterAnalysis def(CallSite current, const Path& p);
 };
 
-using CGForwardFilter = BaseFilter<CGFilterImpl, DefaultSearch>;
+using CGForwardFilter = BaseFilter<CGFilterImpl, DefaultSearch, omp::OmpContext>;
 
 }  // namespace typeart::filter
 

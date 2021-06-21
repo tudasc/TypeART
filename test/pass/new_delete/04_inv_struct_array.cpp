@@ -1,7 +1,5 @@
 // clang-format off
 // RUN: %cpp-to-llvm %s | %apply-typeart -S 2>&1 | FileCheck %s
-// XFAIL: *
-// Fix: size is calculated based on new call with array cookie; address is array cookie
 // clang-format on
 
 #include <new>

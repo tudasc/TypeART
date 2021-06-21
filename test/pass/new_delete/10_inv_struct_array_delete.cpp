@@ -1,6 +1,5 @@
 // clang-format off
 // RUN: %cpp-to-llvm %s | %apply-typeart -S 2>&1 | FileCheck %s
-// FIXME revisit for array cookie handling
 // clang-format on
 
 #include <new>
@@ -12,9 +11,9 @@ struct S1 {
 
 // CHECK: invoke i8* @_Znam(i64 56)
 // CHECK: call void @__typeart_alloc(i8* [[POINTER:%[0-9]+]], i32 {{2[0-9]+}}, i64 3)
-// CHECK: [[MEMORYBLOB:%[0-9]+]] = getelementptr inbounds i8, i8* %{{[0-9]+}}, i64 -8
+// CHECK: [[MEMORYBLOB:%[0-9]+]] = getelementptr inbounds i8, i8* [[ARRPTR:%[0-9]+]], i64 -8
 // CHECK: call void @_ZdaPv(i8* [[MEMORYBLOB]])
-// CHECK-NEXT: call void @__typeart_free(i8* [[MEMORYBLOB]])
+// CHECK-NEXT: call void @__typeart_free(i8* [[ARRPTR]])
 void foo() {
   S1* b{nullptr};
   try {
@@ -28,9 +27,9 @@ void foo() {
 
 // CHECK: invoke i8* @_Znam(i64 40)
 // CHECK: call void @__typeart_alloc(i8* [[POINTER:%[0-9]+]], i32 {{2[0-9]+}}, i64 2)
-// CHECK: [[MEMORYBLOB:%[0-9]+]] = getelementptr inbounds i8, i8* %{{[0-9]+}}, i64 -8
+// CHECK: [[MEMORYBLOB:%[0-9]+]] = getelementptr inbounds i8, i8* [[ARRPTR:%[0-9]+]], i64 -8
 // CHECK: call void @_ZdaPv(i8* [[MEMORYBLOB]])
-// CHECK-NEXT: call void @__typeart_free(i8* [[MEMORYBLOB]])
+// CHECK-NEXT: call void @__typeart_free(i8* [[ARRPTR]])
 int main() {
   try {
     S1* ss = new S1[2];

@@ -16,6 +16,14 @@
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Format.h"
 
+#include <string>
+
+namespace llvm {
+class Argument;
+class Function;
+class Value;
+}  // namespace llvm
+
 namespace typeart::filter::deprecated {
 
 using namespace llvm;

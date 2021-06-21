@@ -1,7 +1,15 @@
+include(CMakeDependentOption)
+
 find_package(LLVM 10 REQUIRED CONFIG)
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 
 list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
+
+find_package(OpenMP QUIET)
+
+set(THREADS_PREFER_PTHREAD_FLAG 1)
+set(CMAKE_THREAD_PREFER_PTHREAD 1)
+find_package(Threads QUIET)
 
 set(LOG_LEVEL 0 CACHE STRING "Granularity of LLVM pass logger. 3 ist most verbose, 0 is least.")
 set(LOG_LEVEL_RT 0 CACHE STRING "Granularity of runtime logger. 3 ist most verbose, 0 is least.")
@@ -14,6 +22,11 @@ option(ENABLE_CODE_COVERAGE "Enable code coverage statistics" OFF)
 option(ENABLE_LLVM_CODE_COVERAGE "Enable llvm-cov code coverage statistics" OFF)
 option(TEST_CONFIGURE_IDE "Add targets so the IDE (e.g., Clion) can interpret test files better" ON)
 mark_as_advanced(TEST_CONFIGURE_IDE)
+option(ENABLE_TSAN "Build runtime lib and tests with fsanitize=thread" OFF)
+option(ENABLE_SAFEPTR "Use external safe_ptr map wrapper instead of mutex" OFF)
+cmake_dependent_option(DISABLE_THREAD_SAFETY "Explicitly make runtime *not* thread-safe." OFF "NOT ENABLE_SAFEPTR" OFF)
+cmake_dependent_option(ENABLE_ASAN "Build runtime lib and tests with fsanitize=address." OFF "NOT ENABLE_TSAN" OFF)
+cmake_dependent_option(ENABLE_UBSAN "Build runtime lib and tests with fsanitize=undefined." OFF "NOT ENABLE_TSAN" OFF)
 
 include(AddLLVM)
 include(llvm-lit)
@@ -22,6 +35,8 @@ include(clang-format)
 include(llvm-util)
 include(log-util)
 include(coverage)
+include(sanitizer-targets)
+include(target-util)
 
 if (TEST_CONFIG)
   set(LOG_LEVEL 2 CACHE STRING "" FORCE)
@@ -43,42 +58,3 @@ if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   set(CMAKE_INSTALL_PREFIX "${typeart_SOURCE_DIR}/install/typeart" CACHE PATH "Default install path" FORCE)
   message(STATUS "Installing to (default): ${CMAKE_INSTALL_PREFIX}")
 endif ()
-
-function(target_project_compile_options target)
-  cmake_parse_arguments(ARG "" "" "PRIVATE_FLAGS;PUBLIC_FLAGS" ${ARGN})
-
-  target_compile_options(${target} PRIVATE
-    -Wall -Wextra -pedantic
-    -Wunreachable-code -Wwrite-strings
-    -Wpointer-arith -Wcast-align
-    -Wcast-qual -Wno-unused-parameter
-    )
-
-  if (ARG_PRIVATE_FLAGS)
-    target_compile_options(${target} PRIVATE
-      "${ARG_PRIVATE_FLAGS}"
-      )
-  endif ()
-
-  if (ARG_PUBLIC_FLAGS)
-    target_compile_options(${target} PUBLIC
-      "${ARG_PUBLIC_FLAGS}"
-      )
-  endif ()
-endfunction()
-
-function(target_project_compile_definitions target)
-  cmake_parse_arguments(ARG "" "" "PRIVATE_DEFS;PUBLIC_DEFS" ${ARGN})
-
-  if (ARG_PRIVATE_DEFS)
-    target_compile_definitions(${target} PRIVATE
-      "${ARG_PRIVATE_DEFS}"
-      )
-  endif ()
-
-  if (ARG_PUBLIC_DEFS)
-    target_compile_definitions(${target} PUBLIC
-      "${ARG_PUBLIC_DEFS}"
-      )
-  endif ()
-endfunction()

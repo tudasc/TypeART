@@ -9,6 +9,7 @@
 #include "support/Logger.h"
 #include "support/Table.h"
 
+#include <fstream>
 #include <map>
 #include <set>
 #include <sstream>
@@ -16,14 +17,14 @@
 #include <string_view>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 
 namespace typeart::softcounter {
 namespace memory {
 struct MemOverhead {
   static constexpr auto pointerMapSize = sizeof(RuntimeT::PointerMap);  // Map overhead
   static constexpr auto perNodeSizeMap =
-      sizeof(std::remove_pointer<std::map<MemAddr, PointerInfo>::iterator::_Link_type>::type) +
-      sizeof(RuntimeT::MapEntry);                                         // not applicable to btree
+      64U + sizeof(RuntimeT::MapEntry);  // rough estimate, not applicable to btree; 64U is internal node size
   static constexpr auto stackVectorSize  = sizeof(RuntimeT::Stack);       // Stack overhead
   static constexpr auto perNodeSizeStack = sizeof(RuntimeT::StackEntry);  // Stack allocs
   double stack{0};
@@ -61,6 +62,7 @@ void serialise(const Recorder& r, llvm::raw_ostream& buf) {
     t.put(Row::make("Distinct Addresses missed", r.getMissing().size()));
     t.put(Row::make("Total free heap", r.getHeapAllocsFree(), r.getHeapArrayFree()));
     t.put(Row::make("Total free stack", r.getStackAllocsFree(), r.getStackArrayFree()));
+    t.put(Row::make("OMP Stack/Heap/Free", r.getOmpStackCalls(), r.getOmpHeapCalls(), r.getOmpFreeCalls()));
     t.put(Row::make("Null/Zero/NullZero Addr", r.getNullAlloc(), r.getZeroAlloc(), r.getNullAndZeroAlloc()));
     t.put(Row::make("User-def. types", r.getNumUDefTypes()));
     t.put(Row::make("Estimated memory use (KiB)", size_t(std::round(memory_use.map + memory_use.stack))));
@@ -107,6 +109,31 @@ void serialise(const Recorder& r, llvm::raw_ostream& buf) {
     }
 
     type_table_free.print(buf);
+
+    const auto numThreads = r.getNumThreads();
+    std::stringstream ss;
+    ss << "Per-thread counter values (" << numThreads << " threads)";
+    Table thread_table(ss.str());
+    thread_table.table_header = '#';
+
+    auto print_thread_row = [&thread_table](std::string name, const std::vector<Counter>& vals) {
+      Row row(std::move(name));
+      for (const auto& val : vals) {
+        row.put(Cell(val));
+      }
+      thread_table.put(std::move(row));
+    };
+
+    print_thread_row("Thread Heap Allocs", r.getHeapAllocsThreadData());
+    print_thread_row("Thread Heap Arrays", r.getHeapArrayThreadData());
+    print_thread_row("Thread Heap Allocs Free", r.getHeapAllocsFreeThreadData());
+    print_thread_row("Thread Heap Arrays Free", r.getHeapArrayFreeThreadData());
+    print_thread_row("Thread Stack Allocs", r.getStackAllocsThreadData());
+    print_thread_row("Thread Stack Arrays", r.getStackArrayThreadData());
+    print_thread_row("Thread Max. Stack Allocs", r.getMaxStackAllocsThreadData());
+    print_thread_row("Thread Stack Allocs Free", r.getStackAllocsFreeThreadData());
+    print_thread_row("Thread Stack Array Free", r.getStackArrayFreeThreadData());
+    thread_table.print(buf);
   }
 }
 }  // namespace typeart::softcounter

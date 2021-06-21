@@ -1,9 +1,9 @@
 #include <RuntimeInterface.h>
+#include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <mpi.h>
 
-struct test{
+struct test {
   int a;
   double b;
   unsigned int c;
@@ -12,12 +12,11 @@ struct test{
   struct test* f;
 };
 
-
-int main(int argc, char** argv){
+int main(int argc, char** argv) {
   MPI_Init(&argc, &argv);
 
 #ifdef NOSTACK
-  struct test * mystruct=malloc(sizeof(struct test)*5);
+  struct test* mystruct = malloc(sizeof(struct test) * 5);
 #else
   struct test mystruct[5];
 #endif
@@ -25,64 +24,77 @@ int main(int argc, char** argv){
   int type;
   typeart_builtin_type btype;
   size_t count;
-  
+
 #ifdef NOSTACK
-  int* buffer = malloc(sizeof(int)*50);
+  int* buffer = malloc(sizeof(int) * 50);
 #else
   int buffer[50];
 #endif
 
   typeart_status status = typeart_get_type(mystruct, &type, &count);
-  
-  if (status==TA_OK) printf("type (id=%i), count=%lu\n", type, count);
-  else printf("error: %i\n", status);
-  
+
+  if (status == TA_OK)
+    printf("type (id=%i), count=%lu\n", type, count);
+  else
+    printf("error: %i\n", status);
+
   status = typeart_get_builtin_type(&(mystruct[2].e), &btype);
-  
-  if (status==TA_OK) printf("type (kind=%i)\n", btype);
-  else printf("error: %i\n", status);
-  
+
+  if (status == TA_OK)
+    printf("type (kind=%i)\n", btype);
+  else
+    printf("error: %i\n", status);
+
   status = typeart_get_type(&(mystruct[2].e), &type, &count);
-  
-  if (status==TA_OK) printf("type (id=%i), count=%lu\n", type, count);
-  else printf("error: %i\n", status);
-  
+
+  if (status == TA_OK)
+    printf("type (id=%i), count=%lu\n", type, count);
+  else
+    printf("error: %i\n", status);
+
   status = typeart_get_builtin_type(&(mystruct[2].c), &btype);
-  
-  if (status==TA_OK) printf("type (kind=%i)\n", btype);
-  else printf("error: %i\n", status);
-  
+
+  if (status == TA_OK)
+    printf("type (kind=%i)\n", btype);
+  else
+    printf("error: %i\n", status);
+
   status = typeart_get_type(&(mystruct[2].c), &type, &count);
-  
-  if (status==TA_OK) printf("type (id=%i), count=%lu\n", type, count);
-  else printf("error: %i\n", status);
-  
+
+  if (status == TA_OK)
+    printf("type (id=%i), count=%lu\n", type, count);
+  else
+    printf("error: %i\n", status);
+
   const void* base_address;
   size_t offset;
   status = typeart_get_containing_type(&(mystruct[2].c), &type, &count, &base_address, &offset);
-  
-  if (status==TA_OK) printf("containing_type (id=%i), count=%lu, %p, %lu\n", type, count, base_address, offset);
-  else printf("error: %i\n", status);
-  
+
+  if (status == TA_OK)
+    printf("containing_type (id=%i), count=%lu, %p, %lu\n", type, count, base_address, offset);
+  else
+    printf("error: %i\n", status);
+
   printf("buffer\n");
-  
+
   status = typeart_get_containing_type(&(buffer[20]), &type, &count, &base_address, &offset);
-  
-  if (status==TA_OK) printf("containing_type (id=%i), count=%lu, %p, %lu\n", type, count, base_address, offset);
-  else printf("error: %i\n", status);
-  
-  MPI_Sendrecv(mystruct, 1, MPI_INT, 0, 0, buffer+20, 1, MPI_INT,
-                 0,0, MPI_COMM_SELF, MPI_STATUS_IGNORE);
+
+  if (status == TA_OK)
+    printf("containing_type (id=%i), count=%lu, %p, %lu\n", type, count, base_address, offset);
+  else
+    printf("error: %i\n", status);
+
+  MPI_Sendrecv(mystruct, 1, MPI_INT, 0, 0, buffer + 20, 1, MPI_INT, 0, 0, MPI_COMM_SELF, MPI_STATUS_IGNORE);
 
   MPI_Finalize();
 
 #ifdef NOSTACK
-	free(mystruct);
+  free(mystruct);
 #else
 #endif
 
 #ifdef NOSTACK
-	free(buffer);
+  free(buffer);
 #else
 #endif
 }

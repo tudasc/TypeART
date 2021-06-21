@@ -7,15 +7,38 @@
 
 #include "MemOpVisitor.h"
 
+#include "analysis/MemOpData.h"
+#include "support/Error.h"
 #include "support/Logger.h"
 #include "support/TypeUtil.h"
-#include "support/Util.h"
 
-#include <algorithm>
+#include "llvm/ADT/None.h"
+#include "llvm/ADT/Optional.h"
+#include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/SmallPtrSet.h"
+#include "llvm/ADT/StringRef.h"
+#include "llvm/IR/CallSite.h"
+#include "llvm/IR/Constants.h"
+#include "llvm/IR/Function.h"
+#include "llvm/IR/InstrTypes.h"
+#include "llvm/IR/Instructions.h"
+#include "llvm/IR/Module.h"
+#include "llvm/IR/Value.h"
+#include "llvm/Support/Casting.h"
+#include "llvm/Support/raw_ostream.h"
+
+#include <cstddef>
 
 namespace typeart::finder {
 
 using namespace llvm;
+
+MemOpVisitor::MemOpVisitor() : MemOpVisitor(true, true) {
+}
+
+MemOpVisitor::MemOpVisitor(bool collectAllocas, bool collectHeap)
+    : collectAllocas(collectAllocas), collectHeap(collectHeap) {
+}
 
 void MemOpVisitor::visitModuleGlobals(Module& m) {
   for (auto& g : m.globals()) {
@@ -24,6 +47,9 @@ void MemOpVisitor::visitModuleGlobals(Module& m) {
 }
 
 void MemOpVisitor::visitCallBase(llvm::CallBase& cb) {
+  if (!collectHeap) {
+    return;
+  }
   const auto isInSet = [&](const auto& fMap) -> llvm::Optional<MemOpKind> {
     const auto* f = cb.getCalledFunction();
     if (!f) {
@@ -32,25 +58,54 @@ void MemOpVisitor::visitCallBase(llvm::CallBase& cb) {
       return None;
     }
     const auto name = f->getName().str();
-    const auto res  = fMap.find(name);
+
+    const auto res = fMap.find(name);
     if (res != fMap.end()) {
       return {(*res).second};
     }
     return None;
   };
 
-  if (auto val = isInSet(alloc_map)) {
+  if (auto val = isInSet(mem_operations.allocs())) {
     visitMallocLike(cb, val.getValue());
-  } else if (auto val = isInSet(dealloc_map)) {
+  } else if (auto val = isInSet(mem_operations.deallocs())) {
     visitFreeLike(cb, val.getValue());
   }
 }
 
-void MemOpVisitor::visitMallocLike(llvm::CallBase& ci, MemOpKind k) {
-  //  LOG_DEBUG("Found malloc-like: " << ci.getCalledFunction()->getName());
+template <class T>
+llvm::Expected<T*> getSingleUserAs(llvm::Value* value) {
+  auto users           = value->users();
+  const auto num_users = value->getNumUses();
+  RETURN_ERROR_IF(num_users == 0, "Expected a single user on value \"{}\" that has no users!", *value);
 
-  SmallPtrSet<BitCastInst*, 4> bcasts;
+  // Check for calls: In case of ASAN, the array cookie is passed to its API.
+  // TODO: this may need to be extended to include other such calls
+  const auto num_asan_calls = llvm::count_if(users, [](llvm::User* user) {
+    CallSite csite(user);
+    if (!(csite.isCall() || csite.isInvoke()) || csite.getCalledFunction() == nullptr) {
+      return false;
+    }
+    const auto name = csite.getCalledFunction()->getName();
+    return name.startswith("__asan");
+  });
+  RETURN_ERROR_IF(num_asan_calls != (num_users - 1),
+                  "Expected a single user on value \"{}\" but found multiple potential candidates!", *value);
 
+  // This should return the type T we need:
+  auto user = llvm::find_if(users, [](auto user) { return isa<T>(*user); });
+  RETURN_ERROR_IF(user == std::end(users),
+                  "Expected a single user on value \"{}\" but didn't find a user of the desired type!", *value);
+
+  return {dyn_cast<T>(*user)};
+}
+
+using MallocGeps   = SmallPtrSet<GetElementPtrInst*, 2>;
+using MallocBcasts = SmallPtrSet<BitCastInst*, 4>;
+
+std::pair<MallocGeps, MallocBcasts> collectRelevantMallocUsers(llvm::CallBase& ci) {
+  auto geps   = MallocGeps{};
+  auto bcasts = MallocBcasts{};
   for (auto user : ci.users()) {
     // Simple case: Pointer is immediately casted
     if (auto inst = dyn_cast<BitCastInst>(user)) {
@@ -63,77 +118,116 @@ void MemOpVisitor::visitMallocLike(llvm::CallBase& ci, MemOpKind k) {
         if (auto loadInst = dyn_cast<LoadInst>(storeUser)) {
           for (auto loadUser : loadInst->users()) {
             if (auto bcastInst = dyn_cast<BitCastInst>(loadUser)) {
-              LOG_MSG(*bcastInst)
+              // LOG_MSG(*bcastInst)
               bcasts.insert(bcastInst);
             }
           }
         }
       }
     }
-    // FIXME this is a try to fix issue #13 ; may require more sophisticated dataflow tracking
+    // GEP indicates that an array cookie is added to the allocation. (Fixes #13)
     if (auto gep = dyn_cast<GetElementPtrInst>(user)) {
-      // if (gep->getPointerOperand() == ci) {
-      for (auto gep_user : gep->users()) {
-        if (auto bcastInst = dyn_cast<BitCastInst>(gep_user)) {
-          bcasts.insert(bcastInst);
-        }
-      }
-      //}
+      geps.insert(gep);
     }
   }
+  return {geps, bcasts};
+}
 
-  BitCastInst* primary_cast{nullptr};
-  if (!bcasts.empty()) {
-    primary_cast = *bcasts.begin();
-  }
-
+llvm::Expected<ArrayCookieData> handleUnpaddedArrayCookie(const MallocGeps& geps, MallocBcasts& bcasts,
+                                                          BitCastInst*& primary_cast) {
   using namespace util::type;
-  // const auto is_i64 = [](auto* type) { return type->isPointerTy() && type->getPointerElementType()->isIntegerTy(64);
-  // };
+  // We expect only the bitcast to size_t for the array cookie store.
+  RETURN_ERROR_IF(bcasts.size() != 1, "Couldn't identify bitcast instruction of an unpadded array cookie!");
 
-  const bool has_specific = llvm::count_if(bcasts, [&](auto bcast) {
-                              auto dest = bcast->getDestTy();
-                              return !isVoidPtr(dest) && !isi64Ptr(dest);
-                            }) > 0;
+  auto cookie_bcast = *bcasts.begin();
+  RETURN_ERROR_IF(!isi64Ptr(cookie_bcast->getDestTy()), "Found non-i64Ptr bitcast instruction for an array cookie!");
 
-  for (auto bcast : bcasts) {
-    auto dest = bcast->getDestTy();
-    if (!isVoidPtr(dest)) {
-      auto cast = bcast;
-      if (isi64Ptr(dest) && has_specific) {  // LLVM likes to treat mallocs with i64 ptr type, skip if we have sth else
-        continue;
-      }
-      primary_cast = cast;
-    }
+  auto cookie_store = getSingleUserAs<StoreInst>(cookie_bcast);
+  RETURN_ON_ERROR(cookie_store);
+
+  auto array_gep = *geps.begin();
+  RETURN_ERROR_IF(array_gep->getNumIndices() != 1, "Found multidimensional array cookie gep!");
+
+  auto array_bcast = getSingleUserAs<BitCastInst>(array_gep);
+  RETURN_ON_ERROR(array_bcast);
+
+  bcasts.insert(*array_bcast);
+  primary_cast = *array_bcast;
+
+  return {ArrayCookieData{*cookie_store, array_gep}};
+}
+
+llvm::Expected<ArrayCookieData> handlePaddedArrayCookie(const MallocGeps& geps, MallocBcasts& bcasts,
+                                                        BitCastInst*& primary_cast) {
+  using namespace util::type;
+  // We expect bitcasts only after the GEP instructions in this case.
+  RETURN_ERROR_IF(!bcasts.empty(), "Found unrelated bitcast instructions on a padded array cookie!");
+
+  auto gep_it     = geps.begin();
+  auto array_gep  = *gep_it++;
+  auto cookie_gep = *gep_it++;
+
+  auto cookie_bcast = getSingleUserAs<BitCastInst>(cookie_gep);
+  RETURN_ON_ERROR(cookie_bcast);
+  RETURN_ERROR_IF(!isi64Ptr((*cookie_bcast)->getDestTy()), "Found non-i64Ptr bitcast instruction for an array cookie!");
+
+  auto cookie_store = getSingleUserAs<StoreInst>(*cookie_bcast);
+  RETURN_ON_ERROR(cookie_store);
+  RETURN_ERROR_IF(array_gep->getNumIndices() != 1, "Found multidimensional array cookie gep!");
+
+  auto array_bcast = getSingleUserAs<BitCastInst>(array_gep);
+  RETURN_ON_ERROR(array_bcast);
+
+  bcasts.insert(*array_bcast);
+  primary_cast = *array_bcast;
+
+  return {ArrayCookieData{*cookie_store, array_gep}};
+}
+
+llvm::Optional<ArrayCookieData> handleArrayCookie(const MallocGeps& geps, MallocBcasts& bcasts,
+                                                  BitCastInst*& primary_cast) {
+  auto exit_on_error = llvm::ExitOnError{"Array Cookie Detection failed!"};
+  if (geps.size() == 1) {
+    return exit_on_error(handleUnpaddedArrayCookie(geps, bcasts, primary_cast));
+  } else if (geps.size() == 2) {
+    return exit_on_error(handlePaddedArrayCookie(geps, bcasts, primary_cast));
+  } else if (geps.size() > 2) {
+    // Found a case where the address of an allocation is used more than two
+    // times as an argument to a GEP instruction. This is unexpected as at most
+    // two GEPs, for calculating the offsets of an array cookie itself and the
+    // array pointer, are expected.
+    auto err = "Expected at most two GEP instructions!";
+    LOG_FATAL(err);
+    exit_on_error({error::make_string_error(err)});
   }
+  return llvm::None;
+}
 
+void MemOpVisitor::visitMallocLike(llvm::CallBase& ci, MemOpKind k) {
+  auto [geps, bcasts] = collectRelevantMallocUsers(ci);
+  auto primary_cast   = bcasts.empty() ? nullptr : *bcasts.begin();
+  auto array_cookie   = handleArrayCookie(geps, bcasts, primary_cast);
   if (primary_cast == nullptr) {
     LOG_DEBUG("Primay bitcast null: " << ci)
   }
-  /*
-  std::for_each(bcasts.begin(), bcasts.end(), [&](auto bcast) {
-    using namespace util::type;
-    auto dest = bcast->getDestTy();
-    if (!isVoidPtr(dest)) {
-      primary_cast = bcast;
-    }
-  });
-  */
-  //  LOG_DEBUG("  >> number of bitcasts found: " << bcasts.size());
-
-  mallocs.push_back(MallocData{&ci, primary_cast, bcasts, k, isa<InvokeInst>(ci)});
+  mallocs.push_back(MallocData{&ci, array_cookie, primary_cast, bcasts, k, isa<InvokeInst>(ci)});
 }
 
 void MemOpVisitor::visitFreeLike(llvm::CallBase& ci, MemOpKind k) {
   //  LOG_DEBUG(ci.getCalledFunction()->getName());
   MemOpKind kind = k;
+
+  // FIME is that superfluous?
   if (auto f = ci.getCalledFunction()) {
-    if (auto elem = dealloc_map.find(f->getName()); elem != std::end(dealloc_map)) {
-      kind = elem->getValue();
+    auto dkind = mem_operations.deallocKind(f->getName());
+    if (dkind) {
+      kind = dkind.getValue();
     }
   }
 
-  frees.emplace_back(FreeData{&ci, kind, isa<InvokeInst>(ci)});
+  auto gep              = dyn_cast<GetElementPtrInst>(ci.getArgOperand(0));
+  auto array_cookie_gep = gep != nullptr ? llvm::Optional<llvm::GetElementPtrInst*>{gep} : llvm::None;
+  frees.emplace_back(FreeData{&ci, array_cookie_gep, kind, isa<InvokeInst>(ci)});
 }
 
 // void MemOpVisitor::visitIntrinsicInst(llvm::IntrinsicInst& ii) {
@@ -141,6 +235,9 @@ void MemOpVisitor::visitFreeLike(llvm::CallBase& ci, MemOpKind k) {
 //}
 
 void MemOpVisitor::visitAllocaInst(llvm::AllocaInst& ai) {
+  if (!collectAllocas) {
+    return;
+  }
   //  LOG_DEBUG("Found alloca " << ai);
   Value* arraySizeOperand = ai.getArraySize();
   size_t arraySize{0};

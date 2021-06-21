@@ -39,7 +39,7 @@ void printParticles(struct particle* p, int count, int rank) {
 }
 
 int main(int argc, char** argv) {
-  int size = -1;
+  int size    = -1;
   int my_rank = -1, i, j;
 
   int array_of_blocklengths[COUNT] = {1, 3, 3, 1, 1};
@@ -47,7 +47,7 @@ int main(int argc, char** argv) {
 #ifdef USE_STACK
   struct particle localParticles[COUNT], remoteParticles[COUNT];
 #else
-  struct particle* localParticles = malloc(sizeof(struct particle) * COUNT);
+  struct particle* localParticles  = malloc(sizeof(struct particle) * COUNT);
   struct particle* remoteParticles = malloc(sizeof(struct particle) * COUNT);
 #endif
 
@@ -56,7 +56,7 @@ int main(int argc, char** argv) {
   MPI_Aint first_var_address;
   MPI_Aint second_var_address;
 
-  MPI_Datatype array_of_types[COUNT] = {MPI_LB, MPI_DOUBLE, MPI_DOUBLE, MPI_INT, MPI_UB};
+  MPI_Datatype array_of_types[COUNT - 2] = {MPI_DOUBLE, MPI_DOUBLE, MPI_INT};
   MPI_Datatype parttype, fulltype, veltype, postype;
 
   MPI_Status status;
@@ -92,18 +92,17 @@ int main(int argc, char** argv) {
 
   //    MPI_Type_create_struct(COUNT, array_of_blocklengths,
   //                    array_of_displacements, array_of_types, &fulltype);
-  MPI_Type_create_struct(COUNT - 2, array_of_blocklengths + 1, array_of_displacements + 1, array_of_types + 1,
-                         &parttype);
+  MPI_Type_create_struct(COUNT - 2, array_of_blocklengths + 1, array_of_displacements + 1, array_of_types, &parttype);
   MPI_Type_create_resized(parttype, array_of_displacements[0], array_of_displacements[COUNT - 1], &fulltype);
   MPI_Type_commit(&fulltype);
   MPI_Type_free(&parttype);
 
-  MPI_Type_create_struct(1, array_of_blocklengths + 1, array_of_displacements + 1, array_of_types + 1, &parttype);
+  MPI_Type_create_struct(1, array_of_blocklengths + 1, array_of_displacements + 1, array_of_types, &parttype);
   MPI_Type_create_resized(parttype, array_of_displacements[0], array_of_displacements[COUNT - 1], &veltype);
   MPI_Type_commit(&veltype);
   MPI_Type_free(&parttype);
 
-  MPI_Type_create_struct(1, array_of_blocklengths + 2, array_of_displacements + 2, array_of_types + 2, &parttype);
+  MPI_Type_create_struct(1, array_of_blocklengths + 2, array_of_displacements + 2, array_of_types + 1, &parttype);
   MPI_Type_create_resized(parttype, array_of_displacements[0], array_of_displacements[COUNT - 1], &postype);
   MPI_Type_commit(&postype);
   MPI_Type_free(&parttype);

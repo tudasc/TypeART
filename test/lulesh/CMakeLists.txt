@@ -16,6 +16,7 @@ function(add_integration_test name dir exe_dir np args)
     )
     
     set_target_properties(build_${name} PROPERTIES ENVIRONMENT TYPEART_PATH=${CMAKE_BINARY_DIR})
+
     
     add_custom_target(clean_${name}
         COMMAND "make" clean
@@ -47,4 +48,8 @@ function(add_integration_test name dir exe_dir np args)
     set_tests_properties(${name} PROPERTIES ENVIRONMENT LLVM_PROFILE_FILE=${TYPEART_PROFILE_DIR}/code-%p-lulesh.profraw)
 endfunction()
 
-add_integration_test("lulesh2.0" "${WORK_DIR}" "${WORK_DIR}" ${LULESH_NP} "-s 12 -i 200")
+if(ENABLE_TSAN)
+    message(STATUS  "TSAN with lulesh is currently unsupported")
+else()
+    add_integration_test("lulesh2.0" "${WORK_DIR}" "${WORK_DIR}" ${LULESH_NP} "-s 12 -i 200")
+endif()
