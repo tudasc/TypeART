@@ -33,8 +33,14 @@ CMakeLists.txt.user
 # bin folder
 bin/
 
+# install folder
+install/
+
 # Misc folder
 .settings/
+
+# VSCode files
+.vscode/
 
 # Eclipse files
 .cproject
