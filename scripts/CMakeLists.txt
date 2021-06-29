@@ -37,8 +37,8 @@ function(configure_typeart_script input output)
 
   if(ARG_COMPILER)
     set(TYPEART_COMPILER ${ARG_COMPILER})
-    set(TYPEART_OPT opt)
-    set(TYPEART_LLC llc)
+    set(TYPEART_OPT ${LLVM_TOOLS_BINARY_DIR}/opt)
+    set(TYPEART_LLC ${LLVM_TOOLS_BINARY_DIR}/llc)
   endif()
 
   if(ENABLE_TSAN)
@@ -87,15 +87,25 @@ configure_typeart_script(apply.sh.in apply-typeart.sh
 
 configure_typeart_script(typeart-wrapper.in typeart-clang
   INSTALL_MODE ON
-  COMPILER clang)
+  COMPILER ${LLVM_TOOLS_BINARY_DIR}/clang)
 configure_typeart_script(typeart-wrapper.in typeart-clang++
   INSTALL_MODE ON
-  COMPILER clang++)
+  COMPILER ${LLVM_TOOLS_BINARY_DIR}/clang++)
+
+if(${MPI_C_FOUND})
+  configure_typeart_script(typeart-wrapper.in typeart-mpicc
+    INSTALL_MODE ON
+    COMPILER "env OMPI_CC=${LLVM_TOOLS_BINARY_DIR}/clang ${MPI_C_COMPILER}")
+endif()
+
+if(${MPI_CXX_FOUND})
+  configure_typeart_script(typeart-wrapper.in typeart-mpic++
+    INSTALL_MODE ON
+    COMPILER "env OMPI_CXX=${LLVM_TOOLS_BINARY_DIR}/clang++ ${MPI_CXX_COMPILER}")
+endif()
 
 configure_typeart_coverage_script(llvm-gcov.sh.in llvm-gcov.sh)
 
-#configure_file(clang-typeart.in clang-typeart)
-#configure_file(clang-typeart++.in clang-typeart++)
 
 install(
   PROGRAMS
@@ -103,12 +113,7 @@ install(
     ${CMAKE_CURRENT_BINARY_DIR}/apply-typeart.sh
     ${CMAKE_CURRENT_BINARY_DIR}/typeart-clang++
     ${CMAKE_CURRENT_BINARY_DIR}/typeart-clang
+  ${CMAKE_CURRENT_BINARY_DIR}/typeart-mpic++
+  ${CMAKE_CURRENT_BINARY_DIR}/typeart-mpicc
   DESTINATION bin
 )
-
-#install(
-#  PROGRAMS
-#    ${CMAKE_CURRENT_BINARY_DIR}/clang-typeart
-#    ${CMAKE_CURRENT_BINARY_DIR}/clang-typeart++
-#  DESTINATION bin
-#)

@@ -1,9 +1,9 @@
 #!/bin/bash
 
 function global_init() {
-  compiler=@TYPEART_COMPILER@
-  opt_tool=@TYPEART_OPT@
-  llc_tool=@TYPEART_LLC@
+  compiler="@TYPEART_COMPILER@"
+  opt_tool="@TYPEART_OPT@"
+  llc_tool="@TYPEART_LLC@"
 
   typeart_ldflags="-L@CMAKE_INSTALL_PREFIX@/lib/ \
                    -Wl,-rpath,@CMAKE_INSTALL_PREFIX@/lib/ \
