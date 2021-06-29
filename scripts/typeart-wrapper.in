@@ -1,0 +1,148 @@
+#!/bin/bash
+# Created by ahueck 29.06.2021
+
+typeart_ldflags="-L@CMAKE_INSTALL_PREFIX@/lib/ \
+                 -Wl,-rpath,@CMAKE_INSTALL_PREFIX@/lib/ \
+                 -ltypeart-rt"
+
+typeart_plugin="-load @TYPEART_ANALYSIS_PASS_DIR@/@TYPEART_ANALYSIS_PLUGIN@ -load @TYPEART_PASS_DIR@/@TYPEART_PLUGIN@ -typeart"
+typeart_includes="@TYPEART_INCLUDE_DIRS@"
+typeart_stack_mode_args="-typeart-no-heap -typeart-alloca -typeart-stats"
+typeart_heap_mode_args="-typeart-no-heap=false -typeart-stats"
+
+function is_linking() {
+  for arg in "$@" ;
+  do
+    case "$arg" in
+      -c|-S|-E|-M|-MM|-MMD)
+        return 0
+      ;;
+    esac
+  done
+  return 1
+}
+
+function try_extract_source() {
+# $1 == flag (source file); $2 == shift value
+  local extension="${1##*.}"
+  local shift_val=$2
+
+  case "$extension" in
+    cpp|cxx|cc|c)
+      source_file="$1"
+    	found_src_file=1
+      return $shift_val
+      ;;
+    *)
+      return 1
+      ;;
+   esac
+}
+
+function handle_source_flag() {
+  if [ -n "$2" ] ; then
+     try_extract_source "$2" 2
+  else
+     try_extract_source "$1" 1
+  fi
+  return $?
+}
+
+function try_extract_object() {
+# $1 == flag (obj file); $2 == shift value
+  local extension="${1##*.}"
+  local shift_val=$2
+
+  case "$extension" in
+    o)
+      object_file="$1"
+      found_obj_file=1
+      return $shift_val
+      ;;
+    *)
+      return 1
+      ;;
+   esac
+}
+
+function handle_object_flag() {
+  if [ -n "$2" ] ; then
+     try_extract_object "$2" 2
+  else
+     try_extract_object "$1" 1
+  fi
+  return $?
+}
+
+function handle_binary() {
+  if [ -n "$2" ] ; then
+     exe_file="$2"
+  fi
+  return 2
+}
+
+function parse_cmd_line() {
+  found_src_file=0
+  found_obj_file=0
+  while (( "$#" )); do
+    case "$1" in
+      -O?)
+        optimize=$1
+        shift
+        ;;
+      -c|-S|-E|-M|-MM|-MMD)
+        handle_source_flag "$1" "$2"
+        shift $?
+      ;;
+      *.cpp|*.cxx|*.cc|*.c)
+        handle_source_flag "$1"
+        shift $?
+      ;;
+      -o)
+        if [ $linking == 1 ]; then
+          handle_binary "$1" "$2"
+        else 
+          handle_object_flag "$1" "$2"
+        fi
+        shift $?
+      ;;
+      *.o)
+        handle_object_flag "$1"
+        shift $?
+      ;;
+      *) # preserve other arguments
+        ta_more_args="$ta_more_args $1"
+        shift
+        ;;
+    esac
+  done
+  # set other positional arguments in their proper place
+  eval set -- "ta_more_args"
+}
+
+function main_parse() {
+  is_linking "$@"
+  linking=$?
+  parse_cmd_line "$@"
+}
+
+function main_link() {
+  echo "Linking opt:${optimize} src:${source_file} obj:${object_file} exe:${exe_file}" 
+  echo "More link: ${ta_more_args}"
+}
+
+function main_compile() {
+  echo "Compiling opt:${optimize} src:${source_file} obj:${object_file}  exe:${exe_file}"
+  echo "More compile: ${ta_more_args}"
+}
+
+main_parse "$@"
+if [ $linking == 1 ] ; then
+  main_link
+else
+  main_compile
+fi
+
+
+
+
