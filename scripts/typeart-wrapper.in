@@ -1,14 +1,20 @@
 #!/bin/bash
-# Created by ahueck 29.06.2021
 
-typeart_ldflags="-L@CMAKE_INSTALL_PREFIX@/lib/ \
-                 -Wl,-rpath,@CMAKE_INSTALL_PREFIX@/lib/ \
-                 -ltypeart-rt"
+function global_init() {
+  compiler=@TYPEART_COMPILER@
+  opt_tool=@TYPEART_OPT@
+  llc_tool=@TYPEART_LLC@
 
-typeart_plugin="-load @TYPEART_ANALYSIS_PASS_DIR@/@TYPEART_ANALYSIS_PLUGIN@ -load @TYPEART_PASS_DIR@/@TYPEART_PLUGIN@ -typeart"
-typeart_includes="@TYPEART_INCLUDE_DIRS@"
-typeart_stack_mode_args="-typeart-no-heap -typeart-alloca -typeart-stats"
-typeart_heap_mode_args="-typeart-no-heap=false -typeart-stats"
+  typeart_ldflags="-L@CMAKE_INSTALL_PREFIX@/lib/ \
+                   -Wl,-rpath,@CMAKE_INSTALL_PREFIX@/lib/ \
+                   -ltypeart-rt"
+
+  typeart_plugin="-load @TYPEART_ANALYSIS_PASS_DIR@/@TYPEART_ANALYSIS_PLUGIN@ \
+                  -load @TYPEART_PASS_DIR@/@TYPEART_PLUGIN@ -typeart"
+  typeart_includes="@TYPEART_INCLUDE_DIRS@"
+  typeart_stack_mode_args="-typeart-no-heap -typeart-alloca -typeart-stats"
+  typeart_heap_mode_args="-typeart-no-heap=false -typeart-stats"
+}
 
 function is_linking() {
   for arg in "$@" ;
@@ -77,6 +83,7 @@ function handle_object_flag() {
 function handle_binary() {
   if [ -n "$2" ] ; then
      exe_file="$2"
+     found_exe_file=1
   fi
   return 2
 }
@@ -84,6 +91,7 @@ function handle_binary() {
 function parse_cmd_line() {
   found_src_file=0
   found_obj_file=0
+  found_exe_file=0
   while (( "$#" )); do
     case "$1" in
       -O?)
@@ -101,14 +109,20 @@ function parse_cmd_line() {
       -o)
         if [ $linking == 1 ]; then
           handle_binary "$1" "$2"
-        else 
+        else
           handle_object_flag "$1" "$2"
         fi
         shift $?
       ;;
       *.o)
-        handle_object_flag "$1"
-        shift $?
+        if [ $linking == 0 ]; then
+          handle_object_flag "$1"
+          shift $?
+        else
+          # when linking, we don't care about object files
+          ta_more_args="$ta_more_args $1"
+          shift
+        fi
       ;;
       *) # preserve other arguments
         ta_more_args="$ta_more_args $1"
@@ -118,31 +132,36 @@ function parse_cmd_line() {
   done
   # set other positional arguments in their proper place
   eval set -- "ta_more_args"
-}
 
-function main_parse() {
-  is_linking "$@"
-  linking=$?
-  parse_cmd_line "$@"
+  if [ -z ${optimize} ]; then
+    optimize=-O0
+  fi
 }
 
 function main_link() {
-  echo "Linking opt:${optimize} src:${source_file} obj:${object_file} exe:${exe_file}" 
-  echo "More link: ${ta_more_args}"
+  $compiler ${typeart_ldflags} $@
 }
 
 function main_compile() {
-  echo "Compiling opt:${optimize} src:${source_file} obj:${object_file}  exe:${exe_file}"
-  echo "More compile: ${ta_more_args}"
+  $compiler ${ta_more_args} -O1 -Xclang -disable-llvm-passes -S -emit-llvm "${source_file}" -o - |
+  $opt_tool ${typeart_plugin} ${typeart_heap_mode_args} |
+  $opt_tool ${optimize} -S |
+  $opt_tool ${typeart_plugin} ${typeart_stack_mode_args} |
+  $llc_tool -x=ir -filetype=obj -o "${object_file}"
 }
 
-main_parse "$@"
-if [ $linking == 1 ] ; then
-  main_link
-else
-  main_compile
-fi
+function main_in() {
+  global_init
 
+  is_linking "$@"
+  linking=$?
 
+  if [ $linking == 1 ] ; then
+    main_link "$@"
+  else
+    parse_cmd_line "$@"
+    main_compile
+  fi
+}
 
-
+main_in "$@"

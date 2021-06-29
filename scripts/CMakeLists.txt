@@ -10,7 +10,7 @@ macro(make_executable input output)
 endmacro()
 
 function(configure_typeart_script input output)
-  cmake_parse_arguments(ARG "" "" "INSTALL_MODE" ${ARGN})
+  cmake_parse_arguments(ARG "" "" "INSTALL_MODE;COMPILER" ${ARGN})
   set(TYPEART_SAN_FLAGS "")
 
   set(TYPEART_PROJECT_DIR ${PROJECT_SOURCE_DIR})
@@ -33,6 +33,12 @@ function(configure_typeart_script input output)
     set(TYPEART_RT_DIR ${CMAKE_BINARY_DIR}/lib/runtime)
     set(TYPEART_PASS_DIR ${CMAKE_BINARY_DIR}/lib/passes)
     set(TYPEART_ANALYSIS_PASS_DIR ${TYPEART_PASS_DIR}/analysis)
+  endif()
+
+  if(ARG_COMPILER)
+    set(TYPEART_COMPILER ${ARG_COMPILER})
+    set(TYPEART_OPT opt)
+    set(TYPEART_LLC llc)
   endif()
 
   if(ENABLE_TSAN)
@@ -79,6 +85,13 @@ configure_typeart_script(run.sh.in run-typeart.sh
 configure_typeart_script(apply.sh.in apply-typeart.sh
   INSTALL_MODE ON)
 
+configure_typeart_script(typeart-wrapper.in typeart-clang
+  INSTALL_MODE ON
+  COMPILER clang)
+configure_typeart_script(typeart-wrapper.in typeart-clang++
+  INSTALL_MODE ON
+  COMPILER clang++)
+
 configure_typeart_coverage_script(llvm-gcov.sh.in llvm-gcov.sh)
 
 #configure_file(clang-typeart.in clang-typeart)
@@ -88,6 +101,8 @@ install(
   PROGRAMS
     ${CMAKE_CURRENT_BINARY_DIR}/run-typeart.sh
     ${CMAKE_CURRENT_BINARY_DIR}/apply-typeart.sh
+    ${CMAKE_CURRENT_BINARY_DIR}/typeart-clang++
+    ${CMAKE_CURRENT_BINARY_DIR}/typeart-clang
   DESTINATION bin
 )
 
