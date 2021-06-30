@@ -77,35 +77,50 @@ function(configure_typeart_coverage_script input output)
   endif()
 endfunction()
 
+configure_typeart_coverage_script(llvm-gcov.sh.in llvm-gcov.sh)
+
 configure_typeart_script(run.sh.in run.sh)
 configure_typeart_script(apply.sh.in apply.sh)
 
 configure_typeart_script(run.sh.in run-typeart.sh
-  INSTALL_MODE ON)
+  INSTALL_MODE ON
+)
 configure_typeart_script(apply.sh.in apply-typeart.sh
-  INSTALL_MODE ON)
+  INSTALL_MODE ON
+)
 
 configure_typeart_script(typeart-wrapper.in typeart-clang
   INSTALL_MODE ON
-  COMPILER ${LLVM_TOOLS_BINARY_DIR}/clang)
+  COMPILER ${LLVM_TOOLS_BINARY_DIR}/clang
+)
 configure_typeart_script(typeart-wrapper.in typeart-clang++
   INSTALL_MODE ON
-  COMPILER ${LLVM_TOOLS_BINARY_DIR}/clang++)
+  COMPILER ${LLVM_TOOLS_BINARY_DIR}/clang++
+)
 
 if(${MPI_C_FOUND})
   configure_typeart_script(typeart-wrapper.in typeart-mpicc
     INSTALL_MODE ON
-    COMPILER "env OMPI_CC=${LLVM_TOOLS_BINARY_DIR}/clang ${MPI_C_COMPILER}")
+    COMPILER "env OMPI_CC=${LLVM_TOOLS_BINARY_DIR}/clang ${MPI_C_COMPILER}"
+  )
+  install(
+    PROGRAMS
+    ${CMAKE_CURRENT_BINARY_DIR}/typeart-mpicc
+    DESTINATION bin
+  )
 endif()
 
 if(${MPI_CXX_FOUND})
   configure_typeart_script(typeart-wrapper.in typeart-mpic++
     INSTALL_MODE ON
-    COMPILER "env OMPI_CXX=${LLVM_TOOLS_BINARY_DIR}/clang++ ${MPI_CXX_COMPILER}")
+    COMPILER "env OMPI_CXX=${LLVM_TOOLS_BINARY_DIR}/clang++ ${MPI_CXX_COMPILER}"
+  )
+  install(
+    PROGRAMS
+    ${CMAKE_CURRENT_BINARY_DIR}/typeart-mpic++
+    DESTINATION bin
+  )
 endif()
-
-configure_typeart_coverage_script(llvm-gcov.sh.in llvm-gcov.sh)
-
 
 install(
   PROGRAMS
@@ -113,7 +128,5 @@ install(
     ${CMAKE_CURRENT_BINARY_DIR}/apply-typeart.sh
     ${CMAKE_CURRENT_BINARY_DIR}/typeart-clang++
     ${CMAKE_CURRENT_BINARY_DIR}/typeart-clang
-  ${CMAKE_CURRENT_BINARY_DIR}/typeart-mpic++
-  ${CMAKE_CURRENT_BINARY_DIR}/typeart-mpicc
   DESTINATION bin
 )

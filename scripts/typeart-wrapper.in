@@ -28,6 +28,19 @@ function is_linking() {
   return 1
 }
 
+function skip_typeart_compile() {
+  # -E inline header; -M list (all) headers; -MM list file deps
+  for arg in "$@" ;
+  do
+    case "$arg" in
+      -E|-M|-MM)
+        return 1
+      ;;
+    esac
+  done
+  return 0
+}
+
 function try_extract_source() {
 # $1 == flag (source file); $2 == shift value
   local extension="${1##*.}"
@@ -92,22 +105,34 @@ function parse_cmd_line() {
   found_src_file=0
   found_obj_file=0
   found_exe_file=0
+  skip_typeart=0
+  typeart_to_asm=0
   while (( "$#" )); do
     case "$1" in
       -O?)
         optimize=$1
         shift
-        ;;
-      -c|-S|-E|-M|-MM|-MMD)
+      ;;
+      -c|-MMD|-S)
+      # -S compile to asm
+      # -MMD list file dep and compile
+        if [ "$1" == "-S" ] ; then
+          # todo need to find asm name
+          typeart_to_asm=1
+        fi
         handle_source_flag "$1" "$2"
         shift $?
+      ;;
+      *.s)
+        asm_file="$1"
+        shift 1
       ;;
       *.cpp|*.cxx|*.cc|*.c)
         handle_source_flag "$1"
         shift $?
       ;;
       -o)
-        if [ $linking == 1 ]; then
+        if [ "$linking" == 1 ] ; then
           handle_binary "$1" "$2"
         else
           handle_object_flag "$1" "$2"
@@ -115,7 +140,7 @@ function parse_cmd_line() {
         shift $?
       ;;
       *.o)
-        if [ $linking == 0 ]; then
+        if [ "$linking" == 0 ] ; then
           handle_object_flag "$1"
           shift $?
         else
@@ -127,13 +152,13 @@ function parse_cmd_line() {
       *) # preserve other arguments
         ta_more_args="$ta_more_args $1"
         shift
-        ;;
+      ;;
     esac
   done
   # set other positional arguments in their proper place
   eval set -- "ta_more_args"
 
-  if [ -z ${optimize} ]; then
+  if [ -z "${optimize}" ] ; then
     optimize=-O0
   fi
 }
@@ -143,24 +168,37 @@ function main_link() {
 }
 
 function main_compile() {
+  local out_file="${object_file}"
+  local llc_flag_file="-filetype=obj"
+
+  if [ "$typeart_to_asm" == 1 ] ; then
+    local llc_flag_file="-filetype=asm"
+    if [ -z "${asm_file}" ]; then
+      local out_file="${asm_file}"
+    fi
+  fi
+
   $compiler ${ta_more_args} -O1 -Xclang -disable-llvm-passes -S -emit-llvm "${source_file}" -o - |
   $opt_tool ${typeart_plugin} ${typeart_heap_mode_args} |
   $opt_tool ${optimize} -S |
   $opt_tool ${typeart_plugin} ${typeart_stack_mode_args} |
-  $llc_tool -x=ir -filetype=obj -o "${object_file}"
+  $llc_tool -x=ir ${llc_flag_file} -o "${out_file}"
 }
 
 function main_in() {
   global_init
-
   is_linking "$@"
-  linking=$?
-
-  if [ $linking == 1 ] ; then
+  if [ "$?" == 1 ] ; then
     main_link "$@"
   else
-    parse_cmd_line "$@"
-    main_compile
+    skip_typeart_compile "$@"
+    if [ "$?" == 1 ] ; then
+      # normal compile mode
+      $compiler "$@"
+    else
+      parse_cmd_line "$@"
+      main_compile "$@"
+    fi
   fi
 }
 
