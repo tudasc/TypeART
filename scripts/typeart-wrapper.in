@@ -12,8 +12,22 @@ function global_init() {
   typeart_plugin="-load @TYPEART_ANALYSIS_PASS_DIR@/@TYPEART_ANALYSIS_PLUGIN@ \
                   -load @TYPEART_PASS_DIR@/@TYPEART_PLUGIN@ -typeart"
   typeart_includes="@TYPEART_INCLUDE_DIRS@"
-  typeart_stack_mode_args="-typeart-no-heap -typeart-alloca -typeart-stats"
+  typeart_stack_mode_args="-typeart-no-heap -typeart-alloca -typeart-stats @TYPEART_CALLFILTER@"
   typeart_heap_mode_args="-typeart-no-heap=false -typeart-stats"
+}
+
+function is_wrapper_disabled() {
+  if [ -n "${TYPEART_WRAPPER}" ] ; then
+    return 0
+  fi
+
+  case "${TYPEART_WRAPPER}" in
+    off|OFF|0|false|FALSE)
+      return 1
+    ;;
+  esac
+
+  return 0;
 }
 
 function is_linking() {
@@ -193,19 +207,22 @@ function main_compile() {
 }
 
 function main_in() {
+  is_wrapper_disabled
+  typeart_disabled=$?
+  skip_typeart_compile "$@"
+  if [ "$?" == 1 ] || [ "$typeart_disabled" == 1 ] ; then
+    $compiler $@
+    return 0
+  fi
+
+
   global_init
   is_linking "$@"
   if [ "$?" == 1 ] ; then
     main_link "$@"
   else
-    skip_typeart_compile "$@"
-    if [ "$?" == 1 ] ; then
-      # normal compile mode
-      $compiler "$@"
-    else
-      parse_cmd_line "$@"
-      main_compile "$@"
-    fi
+    parse_cmd_line "$@"
+    main_compile "$@"
   fi
 }
 

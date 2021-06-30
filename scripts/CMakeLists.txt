@@ -10,7 +10,7 @@ macro(make_executable input output)
 endmacro()
 
 function(configure_typeart_script input output)
-  cmake_parse_arguments(ARG "" "" "INSTALL_MODE;COMPILER" ${ARGN})
+  cmake_parse_arguments(ARG "" "" "INSTALL_MODE;COMPILER;WITH_FILTER" ${ARGN})
   set(TYPEART_SAN_FLAGS "")
 
   set(TYPEART_PROJECT_DIR ${PROJECT_SOURCE_DIR})
@@ -39,6 +39,10 @@ function(configure_typeart_script input output)
     set(TYPEART_COMPILER ${ARG_COMPILER})
     set(TYPEART_OPT ${LLVM_TOOLS_BINARY_DIR}/opt)
     set(TYPEART_LLC ${LLVM_TOOLS_BINARY_DIR}/llc)
+  endif()
+
+  if(ARG_WITH_FILTER)
+    set(TYPEART_CALLFILTER "-call-filter")
   endif()
 
   if(ENABLE_TSAN)
@@ -101,6 +105,7 @@ configure_typeart_script(typeart-wrapper.in typeart-clang++
 if(${MPI_C_FOUND})
   configure_typeart_script(typeart-wrapper.in typeart-mpicc
     INSTALL_MODE ON
+    WITH_FILTER ON
     COMPILER "env OMPI_CC=${LLVM_TOOLS_BINARY_DIR}/clang ${MPI_C_COMPILER}"
   )
   install(
@@ -113,6 +118,7 @@ endif()
 if(${MPI_CXX_FOUND})
   configure_typeart_script(typeart-wrapper.in typeart-mpic++
     INSTALL_MODE ON
+    WITH_FILTER ON
     COMPILER "env OMPI_CXX=${LLVM_TOOLS_BINARY_DIR}/clang++ ${MPI_CXX_COMPILER}"
   )
   install(
