@@ -14,7 +14,7 @@ int main(int argc, char** argv) {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
   MPI_Datatype mpi_double_vec;
-  MPI_Type_vector(3, 2, 1, MPI_DOUBLE, &mpi_double_vec);
+  MPI_Type_vector(3, 2, 3, MPI_DOUBLE, &mpi_double_vec);
   MPI_Type_commit(&mpi_double_vec);
 
   // RANK0: [Trace] Alloc 0x{{.*}} double 8 8
