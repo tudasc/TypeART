@@ -21,9 +21,8 @@ int main(int argc, char** argv) {
   struct test mystruct[5];
 #endif
 
-  int type;
-  typeart_builtin_type btype;
-  size_t count;
+  int type     = 0;
+  size_t count = 0;
 
 #ifdef NOSTACK
   int* buffer = malloc(sizeof(int) * 50);
@@ -38,10 +37,10 @@ int main(int argc, char** argv) {
   else
     printf("error: %i\n", status);
 
-  status = typeart_get_builtin_type(&(mystruct[2].e), &btype);
+  status = typeart_get_type(&(mystruct[2].e), &type, &count);
 
   if (status == TA_OK)
-    printf("type (kind=%i)\n", btype);
+    printf("(sub) type (id=%i), count=%lu\n", type, count);
   else
     printf("error: %i\n", status);
 
@@ -52,10 +51,10 @@ int main(int argc, char** argv) {
   else
     printf("error: %i\n", status);
 
-  status = typeart_get_builtin_type(&(mystruct[2].c), &btype);
+  status = typeart_get_type(&(mystruct[2].c), &type, &count);
 
   if (status == TA_OK)
-    printf("type (kind=%i)\n", btype);
+    printf("(sub) type (id=%i), count=%lu\n", type, count);
   else
     printf("error: %i\n", status);
 

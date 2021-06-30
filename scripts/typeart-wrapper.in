@@ -164,21 +164,28 @@ function parse_cmd_line() {
 }
 
 function main_link() {
-  $compiler ${typeart_ldflags} $@
+  $compiler ${typeart_includes} ${typeart_ldflags} $@
 }
 
 function main_compile() {
+  if [ -z "${object_file}" ] ; then
+    # if no object file is specified, use filename(source_file).o
+    object_file="${source_file%.*}".o
+  fi
+  if [ "$typeart_to_asm" == 1 ] && [ -z "${asm_file}" ] ; then
+    # if no asm file is specified, use filename(source_file).s
+    local asm_file="${source_file%.*}".s
+  fi
+
   local out_file="${object_file}"
   local llc_flag_file="-filetype=obj"
 
   if [ "$typeart_to_asm" == 1 ] ; then
     local llc_flag_file="-filetype=asm"
-    if [ -z "${asm_file}" ]; then
-      local out_file="${asm_file}"
-    fi
+    local out_file="${asm_file}"
   fi
 
-  $compiler ${ta_more_args} -O1 -Xclang -disable-llvm-passes -S -emit-llvm "${source_file}" -o - |
+  $compiler ${ta_more_args} ${typeart_includes} -O1 -Xclang -disable-llvm-passes -S -emit-llvm "${source_file}" -o - |
   $opt_tool ${typeart_plugin} ${typeart_heap_mode_args} |
   $opt_tool ${optimize} -S |
   $opt_tool ${typeart_plugin} ${typeart_stack_mode_args} |
