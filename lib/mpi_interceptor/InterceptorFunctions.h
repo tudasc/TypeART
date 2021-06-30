@@ -283,7 +283,7 @@ int ta_check_type(const MPICallInfo* call, MPI_Datatype type, int* mpi_count) {
         return -1;
       }
       // count * blocklength + (count - 1) * stride
-      *mpi_count *= array_of_integers[0] * (array_of_integers[1] + array_of_integers[2]) - array_of_integers[2];
+      *mpi_count *= (array_of_integers[0] - 1) * array_of_integers[1] + array_of_integers[2];
       return result;
     }
     default:
