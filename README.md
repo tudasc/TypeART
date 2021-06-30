@@ -48,7 +48,7 @@ MPI_Send((void*) array, length, MPI_DOUBLE, ...)
 
 MUST and TypeART also handle MPI [derived datatypes](https://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node77.htm)
 with complex underlying datastructures, see our [MPI Demo](#13-example-mpi-demo). For more details, see
-our [publications](#references), or download the current release (1.8 or higher) of MUST on
+our [publications](#references), view the [documentation of the MPI Interceptor Library](lib/mpi_interceptor/README.md), or download the current release (1.8 or higher) of MUST on
 its [project page](https://itc.rwth-aachen.de/must/).
 
 ## Table of Contents
