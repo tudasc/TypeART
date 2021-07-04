@@ -1,17 +1,22 @@
 #!/bin/bash
 
 function global_init() {
+  typeart_bin_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  typeart_install_dir="$(dirname "${typeart_bin_dir}")"
+  typeart_lib_dir="${typeart_install_dir}"/lib
+  typeart_include_dir="${typeart_install_dir}"/include
+
   compiler="@TYPEART_COMPILER@"
   opt_tool="@TYPEART_OPT@"
   llc_tool="@TYPEART_LLC@"
 
-  typeart_ldflags="-L@CMAKE_INSTALL_PREFIX@/lib/ \
-                   -Wl,-rpath,@CMAKE_INSTALL_PREFIX@/lib/ \
+  typeart_ldflags="-L"${typeart_lib_dir}"/ \
+                   -Wl,-rpath,"${typeart_lib_dir}"/ \
                    -ltypeart-rt"
 
-  typeart_plugin="-load @TYPEART_ANALYSIS_PASS_DIR@/@TYPEART_ANALYSIS_PLUGIN@ \
-                  -load @TYPEART_PASS_DIR@/@TYPEART_PLUGIN@ -typeart"
-  typeart_includes="@TYPEART_INCLUDE_DIRS@"
+  typeart_plugin="-load "${typeart_lib_dir}"/@TYPEART_ANALYSIS_PLUGIN@ \
+                  -load "${typeart_lib_dir}"/@TYPEART_PLUGIN@ -typeart"
+  typeart_includes="-I${typeart_include_dir}"
   typeart_stack_mode_args="-typeart-no-heap -typeart-alloca -typeart-stats @TYPEART_CALLFILTER@"
   typeart_heap_mode_args="-typeart-no-heap=false -typeart-stats"
 }
@@ -181,6 +186,7 @@ function parse_cmd_line() {
 }
 
 function main_link() {
+  echo $compiler ${typeart_includes} ${typeart_ldflags} $@
   $compiler ${typeart_includes} ${typeart_ldflags} $@
 }
 

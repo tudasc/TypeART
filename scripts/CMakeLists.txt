@@ -81,6 +81,25 @@ function(configure_typeart_coverage_script input output)
   endif()
 endfunction()
 
+function(find_clang_progs target names default)
+  find_program(target_prog
+    NAMES ${names}
+    PATHS ${LLVM_TOOLS_BINARY_DIR}
+    NO_DEFAULT_PATH
+  )
+  if (NOT target_prog)
+    set(${target} ${default} PARENT_SCOPE)
+    message(STATUS "Did not find clang program ${names} in ${LLVM_TOOLS_BINARY_DIR}. Using def. value: ${default}")
+  else()
+    set(${target} ${target_prog} PARENT_SCOPE)
+  endif()
+endfunction()
+
+find_clang_progs(CLANG_EXEC "clang;clang-10" "clang")
+find_clang_progs(CLANGCXX_EXEC "clang++;clang++-10" "clang++")
+find_clang_progs(LLC_EXEC "llc;llc-10" "llc")
+find_clang_progs(OPT_EXEC "opt;opt-10" "opt")
+
 configure_typeart_coverage_script(llvm-gcov.sh.in llvm-gcov.sh)
 
 configure_typeart_script(run.sh.in run.sh)
@@ -95,23 +114,18 @@ configure_typeart_script(apply.sh.in apply-typeart.sh
 
 configure_typeart_script(typeart-wrapper.in typeart-clang
   INSTALL_MODE ON
-  COMPILER ${LLVM_TOOLS_BINARY_DIR}/clang
+  COMPILER ${CLANG_EXEC}
 )
 configure_typeart_script(typeart-wrapper.in typeart-clang++
   INSTALL_MODE ON
-  COMPILER ${LLVM_TOOLS_BINARY_DIR}/clang++
+  COMPILER ${CLANGCXX_EXEC}
 )
 
 if(${MPI_C_FOUND})
   configure_typeart_script(typeart-wrapper.in typeart-mpicc
     INSTALL_MODE ON
     WITH_FILTER ON
-    COMPILER "env OMPI_CC=${LLVM_TOOLS_BINARY_DIR}/clang ${MPI_C_COMPILER}"
-  )
-  install(
-    PROGRAMS
-    ${CMAKE_CURRENT_BINARY_DIR}/typeart-mpicc
-    DESTINATION bin
+    COMPILER "env OMPI_CC=${CLANG_EXEC} ${MPI_C_COMPILER}"
   )
 endif()
 
@@ -119,12 +133,7 @@ if(${MPI_CXX_FOUND})
   configure_typeart_script(typeart-wrapper.in typeart-mpic++
     INSTALL_MODE ON
     WITH_FILTER ON
-    COMPILER "env OMPI_CXX=${LLVM_TOOLS_BINARY_DIR}/clang++ ${MPI_CXX_COMPILER}"
-  )
-  install(
-    PROGRAMS
-    ${CMAKE_CURRENT_BINARY_DIR}/typeart-mpic++
-    DESTINATION bin
+    COMPILER "env OMPI_CXX=${CLANGCXX_EXEC} ${MPI_CXX_COMPILER}"
   )
 endif()
 
@@ -134,5 +143,7 @@ install(
     ${CMAKE_CURRENT_BINARY_DIR}/apply-typeart.sh
     ${CMAKE_CURRENT_BINARY_DIR}/typeart-clang++
     ${CMAKE_CURRENT_BINARY_DIR}/typeart-clang
+    $<$<BOOL:${MPI_C_FOUND}>:${CMAKE_CURRENT_BINARY_DIR}/typeart-mpicc>
+    $<$<BOOL:${MPI_CXX_FOUND}>:${CMAKE_CURRENT_BINARY_DIR}/typeart-mpic++>
   DESTINATION bin
 )
