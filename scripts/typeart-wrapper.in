@@ -186,7 +186,6 @@ function parse_cmd_line() {
 }
 
 function main_link() {
-  echo $compiler ${typeart_includes} ${typeart_ldflags} $@
   $compiler ${typeart_includes} ${typeart_ldflags} $@
 }
 
