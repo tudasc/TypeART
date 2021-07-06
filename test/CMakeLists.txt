@@ -31,9 +31,21 @@ function(configure_typeart_lit_site_cfg input output)
   endif()
 
   if(DISABLE_THREAD_SAFETY)
-    set(TYPEARTPASS_THRAD_UNSAFE True)
+    set(TYPEARTPASS_THREAD_UNSAFE True)
   else()
-    set(TYPEARTPASS_THRAD_UNSAFE False)
+    set(TYPEARTPASS_THREAD_UNSAFE False)
+  endif()
+
+  if(${MPI_C_FOUND})
+    set(TYPEARTPASS_MPI_C True)
+  else()
+    set(TYPEARTPASS_MPI_C False)
+  endif()
+
+  if(${MPI_CXX_FOUND})
+    set(TYPEARTPASS_MPI_CXX True)
+  else()
+    set(TYPEARTPASS_MPI_CXX False)
   endif()
 
 

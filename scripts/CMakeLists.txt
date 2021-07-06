@@ -14,7 +14,6 @@ function(configure_typeart_script input output)
   set(TYPEART_SAN_FLAGS "")
 
   set(TYPEART_PROJECT_DIR ${PROJECT_SOURCE_DIR})
-  set(TYPEART_BINARY_DIR ${CMAKE_BINARY_DIR})
   set(TYPEART_SCRIPT_DIR ${PROJECT_SOURCE_DIR}/scripts)
 
   set(TYPEART_MPI_INTERCEPT_LIB libinterceptor-rt.so)
@@ -27,18 +26,20 @@ function(configure_typeart_script input output)
     set(TYPEART_RT_DIR ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
     set(TYPEART_PASS_DIR ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
     set(TYPEART_ANALYSIS_PASS_DIR ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
+    set(TYPEART_BINARY_DIR -I${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR})
   else()
     set(TYPEART_INCLUDE_DIRS -I${PROJECT_SOURCE_DIR}/lib/typelib)
     set(TYPEART_MPI_INTERCEPT_DIR ${CMAKE_BINARY_DIR}/lib/mpi_interceptor)
     set(TYPEART_RT_DIR ${CMAKE_BINARY_DIR}/lib/runtime)
     set(TYPEART_PASS_DIR ${CMAKE_BINARY_DIR}/lib/passes)
     set(TYPEART_ANALYSIS_PASS_DIR ${TYPEART_PASS_DIR}/analysis)
+    set(TYPEART_BINARY_DIR ${CMAKE_BINARY_DIR})
   endif()
 
   if(ARG_COMPILER)
     set(TYPEART_COMPILER ${ARG_COMPILER})
-    set(TYPEART_OPT ${LLVM_TOOLS_BINARY_DIR}/opt)
-    set(TYPEART_LLC ${LLVM_TOOLS_BINARY_DIR}/llc)
+    set(TYPEART_OPT ${OPT_EXEC})
+    set(TYPEART_LLC ${LLC_EXEC})
   endif()
 
   if(ARG_WITH_FILTER)
@@ -121,9 +122,20 @@ configure_typeart_script(typeart-wrapper.in typeart-clang++
   COMPILER ${CLANGCXX_EXEC}
 )
 
+configure_typeart_script(typeart-wrapper.in typeart-clang-test
+  COMPILER ${CLANG_EXEC}
+)
+configure_typeart_script(typeart-wrapper.in typeart-clang++-test
+  COMPILER ${CLANGCXX_EXEC}
+)
+
 if(${MPI_C_FOUND})
   configure_typeart_script(typeart-wrapper.in typeart-mpicc
     INSTALL_MODE ON
+    WITH_FILTER ON
+    COMPILER "env OMPI_CC=${CLANG_EXEC} ${MPI_C_COMPILER}"
+  )
+  configure_typeart_script(typeart-wrapper.in typeart-mpicc-test
     WITH_FILTER ON
     COMPILER "env OMPI_CC=${CLANG_EXEC} ${MPI_C_COMPILER}"
   )
@@ -131,6 +143,11 @@ endif()
 
 if(${MPI_CXX_FOUND})
   configure_typeart_script(typeart-wrapper.in typeart-mpic++
+    INSTALL_MODE ON
+    WITH_FILTER ON
+    COMPILER "env OMPI_CXX=${CLANGCXX_EXEC} ${MPI_CXX_COMPILER}"
+  )
+  configure_typeart_script(typeart-wrapper.in typeart-mpic++-test
     INSTALL_MODE ON
     WITH_FILTER ON
     COMPILER "env OMPI_CXX=${CLANGCXX_EXEC} ${MPI_CXX_COMPILER}"

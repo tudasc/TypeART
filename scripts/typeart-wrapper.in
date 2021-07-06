@@ -1,22 +1,29 @@
 #!/bin/bash
 
 function global_init() {
-  typeart_bin_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-  typeart_install_dir="$(dirname "${typeart_bin_dir}")"
-  typeart_lib_dir="${typeart_install_dir}"/lib
-  typeart_include_dir="${typeart_install_dir}"/include
+  local typeart_use_rel_path=0
+  if [ "$typeart_use_rel_path" == 0 ] ; then
+      local typeart_bin_dir="@TYPEART_BINARY_DIR@"
+      local typeart_lib_dir="@TYPEART_RT_DIR@"
+      local typeart_include_dir="@TYPEART_INCLUDE_DIRS@"
+  else
+      local typeart_bin_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+      local typeart_install_dir="$(dirname "${typeart_bin_dir}")"
+      local typeart_lib_dir="${typeart_install_dir}"/lib
+      local typeart_include_dir="-I${typeart_install_dir}"/include
+  fi
 
   compiler="@TYPEART_COMPILER@"
   opt_tool="@TYPEART_OPT@"
   llc_tool="@TYPEART_LLC@"
 
+  typeart_includes="${typeart_include_dir}"
   typeart_ldflags="-L"${typeart_lib_dir}"/ \
                    -Wl,-rpath,"${typeart_lib_dir}"/ \
                    -ltypeart-rt"
 
   typeart_plugin="-load "${typeart_lib_dir}"/@TYPEART_ANALYSIS_PLUGIN@ \
                   -load "${typeart_lib_dir}"/@TYPEART_PLUGIN@ -typeart"
-  typeart_includes="-I${typeart_include_dir}"
   typeart_stack_mode_args="-typeart-no-heap -typeart-alloca -typeart-stats @TYPEART_CALLFILTER@"
   typeart_heap_mode_args="-typeart-no-heap=false -typeart-stats"
 }
