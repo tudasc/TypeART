@@ -83,18 +83,22 @@ function(configure_typeart_coverage_script input output)
 endfunction()
 
 function(find_clang_progs target names default)
-  find_program(target_prog
+  unset(target-prog CACHE)
+  find_program(target-prog
     NAMES ${names}
     PATHS ${LLVM_TOOLS_BINARY_DIR}
     NO_DEFAULT_PATH
   )
-  if (NOT target_prog)
+
+  if (NOT target-prog)
     set(${target} ${default} PARENT_SCOPE)
     message(STATUS "Did not find clang program ${names} in ${LLVM_TOOLS_BINARY_DIR}. Using def. value: ${default}")
   else()
-    set(${target} ${target_prog} PARENT_SCOPE)
+    set(${target} ${target-prog} PARENT_SCOPE)
+    message(STATUS "HAVE ${target} ${names} ${target-prog}")
   endif()
 endfunction()
+
 
 find_clang_progs(CLANG_EXEC "clang;clang-10" "clang")
 find_clang_progs(CLANGCXX_EXEC "clang++;clang++-10" "clang++")
