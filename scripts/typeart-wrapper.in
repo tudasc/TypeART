@@ -130,6 +130,13 @@ function parse_cmd_line() {
   found_fpic=0
   skip_typeart=0
   typeart_to_asm=0
+  exe_file=""
+  source_file=""
+  object_file=""
+  asm_file=""
+  ta_more_args=""
+  optimize=""
+
   while (( "$#" )); do
     case "$1" in
       -O?)

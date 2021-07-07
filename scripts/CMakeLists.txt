@@ -95,7 +95,6 @@ function(find_clang_progs target names default)
     message(STATUS "Did not find clang program ${names} in ${LLVM_TOOLS_BINARY_DIR}. Using def. value: ${default}")
   else()
     set(${target} ${target-prog} PARENT_SCOPE)
-    message(STATUS "HAVE ${target} ${names} ${target-prog}")
   endif()
 endfunction()
 
