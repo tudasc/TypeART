@@ -27,6 +27,8 @@ option(ENABLE_SAFEPTR "Use external safe_ptr map wrapper instead of mutex" OFF)
 cmake_dependent_option(DISABLE_THREAD_SAFETY "Explicitly make runtime *not* thread-safe." OFF "NOT ENABLE_SAFEPTR" OFF)
 cmake_dependent_option(ENABLE_ASAN "Build runtime lib and tests with fsanitize=address." OFF "NOT ENABLE_TSAN" OFF)
 cmake_dependent_option(ENABLE_UBSAN "Build runtime lib and tests with fsanitize=undefined." OFF "NOT ENABLE_TSAN" OFF)
+option(INSTALL_UTIL_SCRIPTS "Install single file build and run scripts" OFF)
+mark_as_advanced(INSTALL_UTIL_SCRIPTS)
 
 include(AddLLVM)
 include(llvm-lit)

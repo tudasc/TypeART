@@ -109,10 +109,10 @@ configure_typeart_coverage_script(llvm-gcov.sh.in llvm-gcov.sh)
 configure_typeart_script(run.sh.in run.sh)
 configure_typeart_script(apply.sh.in apply.sh)
 
-configure_typeart_script(run.sh.in run-typeart.sh
+configure_typeart_script(run.sh.in typeart-run.sh
   INSTALL_MODE ON
 )
-configure_typeart_script(apply.sh.in apply-typeart.sh
+configure_typeart_script(apply.sh.in typeart-apply.sh
   INSTALL_MODE ON
 )
 
@@ -158,8 +158,8 @@ endif()
 
 install(
   PROGRAMS
-    ${CMAKE_CURRENT_BINARY_DIR}/run-typeart.sh
-    ${CMAKE_CURRENT_BINARY_DIR}/apply-typeart.sh
+    $<$<BOOL:${INSTALL_UTIL_SCRIPTS}>:${CMAKE_CURRENT_BINARY_DIR}/typeart-run.sh>
+    $<$<BOOL:${INSTALL_UTIL_SCRIPTS}>:${CMAKE_CURRENT_BINARY_DIR}/typeart-apply.sh>
     ${CMAKE_CURRENT_BINARY_DIR}/typeart-clang++
     ${CMAKE_CURRENT_BINARY_DIR}/typeart-clang
     $<$<BOOL:${MPI_C_FOUND}>:${CMAKE_CURRENT_BINARY_DIR}/typeart-mpicc>
