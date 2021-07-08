@@ -151,7 +151,6 @@ if(${MPI_CXX_FOUND})
     COMPILER "env OMPI_CXX=${CLANGCXX_EXEC} ${MPI_CXX_COMPILER}"
   )
   configure_typeart_script(typeart-wrapper.in typeart-mpic++-test
-    INSTALL_MODE ON
     WITH_FILTER ON
     COMPILER "env OMPI_CXX=${CLANGCXX_EXEC} ${MPI_CXX_COMPILER}"
   )

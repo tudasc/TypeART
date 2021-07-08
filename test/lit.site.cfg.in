@@ -19,6 +19,7 @@ config.mpicc="@MPI_C_COMPILER@"
 config.mpicxx="@MPI_CXX_COMPILER@"
 config.mpicc_used=@TYPEARTPASS_MPI_C@
 config.mpicxx_used=@TYPEARTPASS_MPI_CXX@
+config.mpiexec="@MPIEXEC@"
 
 # Let the main config do the real work.
 config.loaded_site_config = True
