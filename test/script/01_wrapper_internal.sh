@@ -101,7 +101,6 @@ parse_cmd_line -DSPEC_MPI -DNDEBUG -g -O2 -c mgfparse.c -o mgfparse.o
 parse_check
 echo "${ta_more_args}"
 
-
 # CHECK: 1 1 0 0 0 0 -O2
 # CHECK-NEXT: amg2013.c amg2013.o ea eb
 # CHECK-NEXT: -I.. -I../utilities -I../struct_mv -I../sstruct_mv -I../IJ_mv -I../seq_mv -I../parcsr_mv -I../parcsr_ls -I../krylov -DHYPRE_USING_OPENMP -DTIMER_USE_MPI -DHYPRE_LONG_LONG -DHYPRE_NO_GLOBAL_PARTITION -g -fopenmp -DHYPRE_TIMING
