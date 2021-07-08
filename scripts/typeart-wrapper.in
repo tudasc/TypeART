@@ -6,6 +6,8 @@ function global_init() {
     local -r typeart_bin_dir="@TYPEART_BINARY_DIR@"
     local -r typeart_lib_dir="@TYPEART_RT_DIR@"
     local -r typeart_include_dir="@TYPEART_INCLUDE_DIRS@"
+    local -r typeart_analysis_pass="@TYPEART_ANALYSIS_PASS_DIR@/@TYPEART_ANALYSIS_PLUGIN@"
+    local -r typeart_pass="@TYPEART_PASS_DIR@/@TYPEART_PLUGIN@"
   else
     # shellcheck disable=SC2155
     local -r typeart_bin_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -13,6 +15,8 @@ function global_init() {
     local -r typeart_install_dir="$(dirname "${typeart_bin_dir}")"
     local -r typeart_lib_dir="${typeart_install_dir}"/lib
     local -r typeart_include_dir="-I${typeart_install_dir}"/include
+    local -r typeart_analysis_pass="${typeart_lib_dir}"
+    local -r typeart_pass="${typeart_lib_dir}"
   fi
 
   readonly compiler="@TYPEART_COMPILER@"
@@ -25,8 +29,8 @@ function global_init() {
                    -ltypeart-rt"
 
   # shellcheck disable=SC2027
-  readonly typeart_plugin="-load "${typeart_lib_dir}"/@TYPEART_ANALYSIS_PLUGIN@ \
-                          -load "${typeart_lib_dir}"/@TYPEART_PLUGIN@ -typeart"
+  readonly typeart_plugin="-load "${typeart_analysis_pass}" \
+                          -load "${typeart_pass}" -typeart"
   readonly typeart_stack_mode_args="-typeart-no-heap -typeart-alloca -typeart-stats @TYPEART_CALLFILTER@"
   readonly typeart_heap_mode_args="-typeart-no-heap=false -typeart-stats"
 }
