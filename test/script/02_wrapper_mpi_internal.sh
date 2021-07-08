@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# shellcheck disable=SC2154
+# shellcheck disable=SC1090
+
 # RUN: chmod +x %s
 # RUN: %s %wrapper-mpicxx | FileCheck %s --check-prefix=wcxx -DFCMPICXX=%mpicxx-compiler
 # RUN: %s %wrapper-mpicc | FileCheck %s --check-prefix=wcc -DFCMPICC=%mpicc-compiler
@@ -16,6 +19,6 @@ source "$1" --version
 # wcc-NEXT: opt{{(-10)?}}
 # wcc-NEXT: llc{{(-10)?}}
 echo "TypeART-Toolchain:"
-echo $compiler
-echo $opt_tool
-echo $llc_tool
+echo "$compiler"
+echo "$opt_tool"
+echo "$llc_tool"

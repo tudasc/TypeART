@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # shellcheck disable=SC2154
+# shellcheck disable=SC1090
 
 # RUN: chmod +x %s
 # RUN: %s %wrapper-cxx | FileCheck %s --check-prefix=wcxx
@@ -21,9 +22,9 @@ source "$1" --version
 # wcc-NEXT: opt{{(-10)?}}
 # wcc-NEXT: llc{{(-10)?}}
 echo "TypeART-Toolchain:"
-echo $compiler
-echo $opt_tool
-echo $llc_tool
+echo "$compiler"
+echo "$opt_tool"
+echo "$llc_tool"
 
 # CHECK: 0
 # wrapper-off: 1
@@ -78,10 +79,40 @@ parse_cmd_line -DUSE_MPI=1 -g -I. -Wall -O3 -c -o lulesh.o lulesh.cc
 parse_check
 echo "${ta_more_args}"
 
-# a linker call
+# a linker call:
 # CHECK: 0 0 0 0 0 0 -O3
 # CHECK-NEXT: es eo ea eb
 # CHECK-NEXT: -DUSE_MPI=1 lulesh.o lulesh-comm.o lulesh-viz.o lulesh-util.o lulesh-init.o -g -lm lulesh2.0
 parse_cmd_line -DUSE_MPI=1 lulesh.o lulesh-comm.o lulesh-viz.o lulesh-util.o lulesh-init.o -g -O3 -lm -o lulesh2.0
+parse_check
+echo "${ta_more_args}"
+
+# CHECK: 1 1 0 0 0 0 -O2
+# CHECK-NEXT: io_nonansi.c io_nonansi.o ea eb
+# CHECK-NEXT: -I. -DFN -DFAST -DCONGRAD_TMP_VECTORS -DDSLASH_TMP_LINKS -g
+parse_cmd_line -c -I. -DFN -DFAST -DCONGRAD_TMP_VECTORS -DDSLASH_TMP_LINKS -g -O2 io_nonansi.c -o io_nonansi.o
+parse_check
+echo "${ta_more_args}"
+
+# CHECK: 1 1 0 0 0 0 -O2
+# CHECK-NEXT: mgfparse.c mgfparse.o ea eb
+# CHECK-NEXT: -DSPEC_MPI -DNDEBUG -g
+parse_cmd_line -DSPEC_MPI -DNDEBUG -g -O2 -c mgfparse.c -o mgfparse.o
+parse_check
+echo "${ta_more_args}"
+
+
+# CHECK: 1 1 0 0 0 0 -O2
+# CHECK-NEXT: amg2013.c amg2013.o ea eb
+# CHECK-NEXT: -I.. -I../utilities -I../struct_mv -I../sstruct_mv -I../IJ_mv -I../seq_mv -I../parcsr_mv -I../parcsr_ls -I../krylov -DHYPRE_USING_OPENMP -DTIMER_USE_MPI -DHYPRE_LONG_LONG -DHYPRE_NO_GLOBAL_PARTITION -g -fopenmp -DHYPRE_TIMING
+parse_cmd_line -o amg2013.o -c -I.. -I../utilities -I../struct_mv -I../sstruct_mv -I../IJ_mv -I../seq_mv -I../parcsr_mv -I../parcsr_ls -I../krylov -DHYPRE_USING_OPENMP -DTIMER_USE_MPI -DHYPRE_LONG_LONG -DHYPRE_NO_GLOBAL_PARTITION -O2 -g -fopenmp -DHYPRE_TIMING amg2013.c
+parse_check
+echo "${ta_more_args}"
+
+# a linker call:
+# CHECK: 0 0 0 0 0 0 -O0
+# CHECK-NEXT: es eo ea eb
+# CHECK-NEXT: -L. -L../parcsr_ls -L../parcsr_mv -L../IJ_mv -L../seq_mv -L../sstruct_mv -L../struct_mv -L../krylov -L../utilities -lparcsr_ls -lparcsr_mv -lseq_mv -lsstruct_mv -lIJ_mv -lHYPRE_struct_mv -lkrylov -lHYPRE_utilities -lm -fopenmp
+parse_cmd_line -o amg2013 amg2013.o -L. -L../parcsr_ls -L../parcsr_mv -L../IJ_mv -L../seq_mv -L../sstruct_mv -L../struct_mv -L../krylov -L../utilities -lparcsr_ls -lparcsr_mv -lseq_mv -lsstruct_mv -lIJ_mv -lHYPRE_struct_mv -lkrylov -lHYPRE_utilities -lm -fopenmp
 parse_check
 echo "${ta_more_args}"
