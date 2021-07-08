@@ -162,7 +162,7 @@ install(
     $<$<BOOL:${INSTALL_UTIL_SCRIPTS}>:${CMAKE_CURRENT_BINARY_DIR}/typeart-apply.sh>
     ${CMAKE_CURRENT_BINARY_DIR}/typeart-clang++
     ${CMAKE_CURRENT_BINARY_DIR}/typeart-clang
-    $<$<BOOL:${MPI_C_FOUND}>:${CMAKE_CURRENT_BINARY_DIR}/typeart-mpicc>
-    $<$<BOOL:${MPI_CXX_FOUND}>:${CMAKE_CURRENT_BINARY_DIR}/typeart-mpic++>
+    $<$<AND:$<BOOL:${MPI_C_FOUND}>,$<BOOL:${ENABLE_MPI_WRAPPER}>>:${CMAKE_CURRENT_BINARY_DIR}/typeart-mpicc>
+    $<$<AND:$<BOOL:${MPI_CXX_FOUND}>,$<BOOL:${ENABLE_MPI_WRAPPER}>>:${CMAKE_CURRENT_BINARY_DIR}/typeart-mpic++>
   DESTINATION bin
 )
