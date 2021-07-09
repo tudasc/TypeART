@@ -59,12 +59,12 @@ void analyseBuffer(const void* buf, int count, MPI_Datatype type) {
       } else {
         const char* recorded_name = typeart_get_type_name(type_id);
 
-        fprintf(stdout, "Error: Incompatible buffer of type %d (%s) - expected %s instead\n", type_id, recorded_name,
-                type_name);
+        fprintf(stdout, "[Demo] Error: Incompatible buffer of type %d (%s) - expected %s instead\n", type_id,
+                recorded_name, type_name);
       }
 
     } else {
-      fprintf(stdout, "Error: ");
+      fprintf(stdout, "[Demo] Error: ");
       if (status == TA_BAD_ALIGNMENT) {
         fprintf(stdout, "Buffer address does not align with the underlying type at %p\n", buf);
       } else if (status == TA_UNKNOWN_ADDRESS) {

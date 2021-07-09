@@ -35,35 +35,35 @@ int main(int argc, char** argv) {
   if (status == TA_OK)
     printf("type (id=%i), count=%lu\n", type, count);
   else
-    printf("error: %i\n", status);
+    printf("[Demo] Toy Error: %i\n", status);
 
   status = typeart_get_type(&(mystruct[2].e), &type, &count);
 
   if (status == TA_OK)
     printf("(sub) type (id=%i), count=%lu\n", type, count);
   else
-    printf("error: %i\n", status);
+    printf("[Demo] Toy Error: %i\n", status);
 
   status = typeart_get_type(&(mystruct[2].e), &type, &count);
 
   if (status == TA_OK)
     printf("type (id=%i), count=%lu\n", type, count);
   else
-    printf("error: %i\n", status);
+    printf("[Demo] Toy Error: %i\n", status);
 
   status = typeart_get_type(&(mystruct[2].c), &type, &count);
 
   if (status == TA_OK)
     printf("(sub) type (id=%i), count=%lu\n", type, count);
   else
-    printf("error: %i\n", status);
+    printf("[Demo] Toy Error: %i\n", status);
 
   status = typeart_get_type(&(mystruct[2].c), &type, &count);
 
   if (status == TA_OK)
     printf("type (id=%i), count=%lu\n", type, count);
   else
-    printf("error: %i\n", status);
+    printf("[Demo] Toy Error: %i\n", status);
 
   const void* base_address;
   size_t offset;
@@ -72,7 +72,7 @@ int main(int argc, char** argv) {
   if (status == TA_OK)
     printf("containing_type (id=%i), count=%lu, %p, %lu\n", type, count, base_address, offset);
   else
-    printf("error: %i\n", status);
+    printf("[Demo] Toy Error: %i\n", status);
 
   printf("buffer\n");
 
@@ -81,7 +81,7 @@ int main(int argc, char** argv) {
   if (status == TA_OK)
     printf("containing_type (id=%i), count=%lu, %p, %lu\n", type, count, base_address, offset);
   else
-    printf("error: %i\n", status);
+    printf("[Demo] Toy Error: %i\n", status);
 
   MPI_Sendrecv(mystruct, 1, MPI_INT, 0, 0, buffer + 20, 1, MPI_INT, 0, 0, MPI_COMM_SELF, MPI_STATUS_IGNORE);
 

@@ -22,5 +22,5 @@ MPICC="$3" make "$4"
 
 clean_up "$1"
 
-# check-working-NOT: Error
-# check-broken: Error
+# check-working-NOT: [Demo] Error
+# check-broken: [Demo] Error
