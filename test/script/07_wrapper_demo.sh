@@ -4,6 +4,8 @@
 # RUN: %s %t %S %wrapper-mpicc run-demo | FileCheck %s --check-prefix check-working
 # RUN: %s %t %S %wrapper-mpicc run-demo_broken | FileCheck %s --check-prefix check-broken
 
+# RUN: %s %t %S %wrapper-mpicc runtoy | FileCheck %s --check-prefix check-toy
+
 # REQUIRES: mpicc
 
 function clean_up() {
@@ -20,7 +22,14 @@ cd "$1" || exit 1
 make clean
 MPICC="$3" make "$4"
 
+# make sure "target" worked:
+if [ $? -gt 0 ]; then
+  clean_up "$1"
+  exit 1
+fi
+
 clean_up "$1"
 
 # check-working-NOT: [Demo] Error
 # check-broken: [Demo] Error
+# check-toy-NOT: [Demo] Toy Error
