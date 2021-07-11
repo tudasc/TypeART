@@ -19,22 +19,22 @@ if(${MPI_C_FOUND} AND ${PYTHONINTERP_FOUND})
     ${LIB_SOURCE}
   )
 
+  add_library(typeart::interceptor-rt ALIAS interceptor-rt)
+
   set_property(TARGET interceptor-rt PROPERTY C_STANDARD 11)
   set_property(TARGET interceptor-rt PROPERTY C_STANDARD_REQUIRED TRUE)
-
 
   target_define_file_basename(interceptor-rt)
   
   target_include_directories(interceptor-rt
     PUBLIC
-      ${PROJECT_SOURCE_DIR}/lib
-      ${CMAKE_CURRENT_SOURCE_DIR}
+      $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   )
   
   target_include_directories(interceptor-rt
     SYSTEM 
     PRIVATE
-      ${MPI_C_INCLUDE_PATH}
       ${LLVM_INCLUDE_DIRS}
   )
 
@@ -43,8 +43,9 @@ if(${MPI_C_FOUND} AND ${PYTHONINTERP_FOUND})
   endif()
 
   target_link_libraries(interceptor-rt
-    typeart-rt
-    ${MPI_C_LIBRARIES}
+    PRIVATE
+      typeart::typeart-rt
+      MPI::MPI_C
   )
 
   install(
