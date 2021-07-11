@@ -14,8 +14,15 @@ config.openmp_c_flags = "@OpenMP_C_FLAGS@"
 config.openmp_cxx_flags = "@OpenMP_CXX_FLAGS@"
 # config.openmp_cxx_inc_dir = "@OpenMP_CXX_INCLUDE_DIRS@"
 config.threads_used=@TYPEARTPASS_THREADS@
-config.thread_unsafe_mode=@TYPEARTPASS_THRAD_UNSAFE@
-
+config.thread_unsafe_mode=@TYPEARTPASS_THREAD_UNSAFE@
+config.mpicc="@MPI_C_COMPILER@"
+config.mpicxx="@MPI_CXX_COMPILER@"
+config.mpicc_used=@TYPEARTPASS_MPI_C@
+config.mpicxx_used=@TYPEARTPASS_MPI_CXX@
+config.mpiexec="@MPIEXEC@"
+config.tsan=@TYPEARTPASS_TSAN@
+config.asan=@TYPEARTPASS_ASAN@
+config.ubsan=@TYPEARTPASS_UBSAN@
 
 # Let the main config do the real work.
 config.loaded_site_config = True

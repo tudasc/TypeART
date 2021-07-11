@@ -27,6 +27,9 @@ option(ENABLE_SAFEPTR "Use external safe_ptr map wrapper instead of mutex" OFF)
 cmake_dependent_option(DISABLE_THREAD_SAFETY "Explicitly make runtime *not* thread-safe." OFF "NOT ENABLE_SAFEPTR" OFF)
 cmake_dependent_option(ENABLE_ASAN "Build runtime lib and tests with fsanitize=address." OFF "NOT ENABLE_TSAN" OFF)
 cmake_dependent_option(ENABLE_UBSAN "Build runtime lib and tests with fsanitize=undefined." OFF "NOT ENABLE_TSAN" OFF)
+option(INSTALL_UTIL_SCRIPTS "Install single file build and run scripts" OFF)
+mark_as_advanced(INSTALL_UTIL_SCRIPTS)
+option(ENABLE_MPI_WRAPPER "Generate mpicc and mpic++ wrapper for TypeART" ON)
 
 include(AddLLVM)
 include(llvm-lit)
@@ -43,7 +46,7 @@ if (TEST_CONFIG)
   set(LOG_LEVEL_RT 3 CACHE STRING "" FORCE)
 endif ()
 
-if (MPI_LOGGER)
+if (MPI_LOGGER OR ENABLE_MPI_WRAPPER OR MPI_INTERCEPT_LIB)
   find_package(MPI REQUIRED)
 endif ()
 
