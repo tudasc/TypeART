@@ -13,8 +13,9 @@ set(FILTER_SOURCES
         FilterUtil.h IRSearch.h)
 
 add_library(memfilter STATIC
-        ${FILTER_SOURCES}
-        )
+  ${FILTER_SOURCES}
+)
+add_library(typeart::filter ALIAS memfilter)
 
 # https://lists.llvm.org/pipermail/llvm-dev/2018-July/124534.html
 #target_link_libraries(memfilter PUBLIC
@@ -22,37 +23,36 @@ add_library(memfilter STATIC
 #  LLVMSupport
 #)
 
-target_project_compile_options(memfilter)
-
-target_define_file_basename(memfilter)
-
-target_project_compile_definitions(memfilter
-        PRIVATE_DEFS
-        LOG_LEVEL=${LOG_LEVEL}
-        )
+target_compile_definitions(memfilter
+  PRIVATE
+  LOG_LEVEL=${LOG_LEVEL}
+)
 
 set_target_properties(memfilter
-        PROPERTIES
-        POSITION_INDEPENDENT_CODE ON
-        )
-
+  PROPERTIES
+    POSITION_INDEPENDENT_CODE ON
+)
 
 target_include_directories(memfilter
   PUBLIC
-  ${PROJECT_SOURCE_DIR}/lib
-  ${PROJECT_SOURCE_DIR}/lib/passes
-  )
+  $<INSTALL_INTERFACE:include>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/passes>
+  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
+)
 
 target_include_directories(memfilter
-        SYSTEM
-        PRIVATE
-        ${LLVM_INCLUDE_DIRS}
-        )
+  SYSTEM
+  PRIVATE
+    ${LLVM_INCLUDE_DIRS}
+)
 
 make_tidy_check(memfilter
-        "${FILTER_SOURCES}"
-        )
+  "${FILTER_SOURCES}"
+)
 
+target_project_compile_options(memfilter)
+target_define_file_basename(memfilter)
 target_project_coverage_options(memfilter)
 
 # For now, non-consumable filter

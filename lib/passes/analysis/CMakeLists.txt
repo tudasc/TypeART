@@ -13,23 +13,18 @@ make_llvm_module(meminstfinderpass
     ${CMAKE_CURRENT_SOURCE_DIR}/..
     ${CMAKE_CURRENT_SOURCE_DIR}/filter
 )
-
 mark_as_advanced(LLVM_MEMINSTFINDERPASS_LINK_INTO_TOOLS)
 
-target_project_compile_options(meminstfinderpass)
-target_project_compile_definitions(meminstfinderpass
-  PRIVATE_DEFS
-    LOG_LEVEL=${LOG_LEVEL}
+add_library(typeart::meminstfinderpass ALIAS meminstfinderpass)
+
+target_compile_definitions(meminstfinderpass
+  PRIVATE
+  LOG_LEVEL=${LOG_LEVEL}
+  $<$<BOOL:${SHOW_STATS}>:LLVM_ENABLE_STATS>
 )
 
+target_project_compile_options(meminstfinderpass)
 target_project_coverage_options(meminstfinderpass)
-
-if(SHOW_STATS)
-  target_project_compile_definitions(meminstfinderpass
-    PRIVATE_DEFS 
-      LLVM_ENABLE_STATS
-  )
-endif()
 
 install(
   TARGETS meminstfinderpass
