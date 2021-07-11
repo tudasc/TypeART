@@ -6,8 +6,8 @@ function global_init() {
     local -r typeart_bin_dir="@TYPEART_BINARY_DIR@"
     local -r typeart_lib_dir="@TYPEART_RT_DIR@"
     local -r typeart_include_dir="@TYPEART_INCLUDE_DIRS@"
-    local -r typeart_analysis_pass="@TYPEART_ANALYSIS_PASS_DIR@/@TYPEART_ANALYSIS_PLUGIN@"
-    local -r typeart_pass="@TYPEART_PASS_DIR@/@TYPEART_PLUGIN@"
+    local -r typeart_analysis_pass="@TYPEART_ANALYSIS_PASS_DIR@/$<TARGET_FILE_NAME:typeart::meminstfinderpass>"
+    local -r typeart_pass="@TYPEART_PASS_DIR@/$<TARGET_FILE_NAME:typeart::pass>"
   else
     # shellcheck disable=SC2155
     local -r typeart_bin_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

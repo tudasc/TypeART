@@ -36,3 +36,19 @@ function(target_project_compile_definitions target)
       )
   endif ()
 endfunction()
+
+
+function (target_generate_file input output)
+  file(READ ${input} contents)
+  string(CONFIGURE "${contents}" contents @ONLY)
+  file(GENERATE
+    OUTPUT
+      ${output}
+    CONTENT
+      "${contents}"
+    FILE_PERMISSIONS
+    OWNER_READ OWNER_WRITE OWNER_EXECUTE
+    GROUP_READ GROUP_EXECUTE
+    WORLD_READ WORLD_EXECUTE
+  )
+endfunction()

@@ -1,14 +1,3 @@
-macro(make_executable input output)
-  # Executable permission: In CMAKE 3.19 we can simply use file(CHMOD) instead of file(copy) workaround
-  configure_file(${input} ${CMAKE_CURRENT_BINARY_DIR}/tmp/${output} @ONLY)
-  file(
-    COPY ${CMAKE_CURRENT_BINARY_DIR}/tmp/${output}
-    DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
-    FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-  )
-  file(REMOVE_RECURSE ${CMAKE_CURRENT_BINARY_DIR}/tmp)
-endmacro()
-
 function(configure_typeart_script input output)
   cmake_parse_arguments(ARG "" "" "INSTALL_MODE;COMPILER;WITH_FILTER" ${ARGN})
   set(TYPEART_SAN_FLAGS "")
@@ -62,12 +51,7 @@ function(configure_typeart_script input output)
 
   list(JOIN TYPEART_SAN_FLAGS " " TYPEART_SAN_FLAGS)
 
-  if(ARG_INSTALL_MODE)
-    configure_file(${input} ${output} @ONLY)
-  else()
-    # To get execute permission: create run.sh in the binary dir, and copy it to scripts folder with permission
-    make_executable(${input} ${output})
-  endif()
+  target_generate_file(${input} ${output})
 endfunction()
 
 function(configure_typeart_coverage_script input output)
