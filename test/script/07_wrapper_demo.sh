@@ -7,6 +7,7 @@
 # RUN: %s %t %S %wrapper-mpicc runtoy | FileCheck %s --check-prefix check-toy
 
 # REQUIRES: mpicc
+# UNSUPPORTED: sanitizer
 
 function clean_up() {
   if [ -d "$1" ]; then

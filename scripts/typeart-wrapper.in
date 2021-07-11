@@ -27,6 +27,7 @@ function global_init() {
   readonly typeart_ldflags="-L${typeart_lib_dir}/ \
                    -Wl,-rpath,${typeart_lib_dir}/ \
                    -ltypeart-rt"
+  readonly typeart_san_flags="@TYPEART_SAN_FLAGS@"
 
   # shellcheck disable=SC2027
   readonly typeart_plugin="-load "${typeart_analysis_pass}" \
@@ -207,7 +208,7 @@ function parse_cmd_line() {
 
 function main_link() {
   # shellcheck disable=SC2086 disable=SC2068
-  $compiler ${typeart_includes} ${typeart_ldflags} $@
+  $compiler ${typeart_includes} ${typeart_ldflags} ${typeart_san_flags} $@
 }
 
 function main_compile() {
@@ -234,7 +235,8 @@ function main_compile() {
   fi
 
   # shellcheck disable=SC2086
-  $compiler ${ta_more_args} ${typeart_includes} -O1 -Xclang -disable-llvm-passes -S -emit-llvm "${source_file}" -o - |
+  $compiler ${ta_more_args} ${typeart_includes} ${typeart_san_flags} \
+    -O1 -Xclang -disable-llvm-passes -S -emit-llvm "${source_file}" -o - |
     $opt_tool ${typeart_plugin} ${typeart_heap_mode_args} |
     $opt_tool ${optimize} -S |
     $opt_tool ${typeart_plugin} ${typeart_stack_mode_args} |

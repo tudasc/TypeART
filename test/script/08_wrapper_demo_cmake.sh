@@ -5,6 +5,7 @@
 # RUN: %s %t %S %wrapper-mpicc run-demo_broken | FileCheck %s --check-prefix check-broken
 
 # REQUIRES: mpicc
+# UNSUPPORTED: sanitizer
 
 function clean_up() {
   if [ -d "$1" ]; then

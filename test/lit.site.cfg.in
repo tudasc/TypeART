@@ -20,6 +20,9 @@ config.mpicxx="@MPI_CXX_COMPILER@"
 config.mpicc_used=@TYPEARTPASS_MPI_C@
 config.mpicxx_used=@TYPEARTPASS_MPI_CXX@
 config.mpiexec="@MPIEXEC@"
+config.tsan=@TYPEARTPASS_TSAN@
+config.asan=@TYPEARTPASS_ASAN@
+config.ubsan=@TYPEARTPASS_UBSAN@
 
 # Let the main config do the real work.
 config.loaded_site_config = True
