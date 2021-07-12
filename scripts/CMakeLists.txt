@@ -111,19 +111,19 @@ configure_typeart_script(run.sh.in apply.sh
   APPLY_MODE ON
 )
 
-configure_typeart_script(run.sh.in typeart-run.sh
+configure_typeart_script(run.sh.in typeart-run${CMAKE_DEBUG_POSTFIX}.sh
   INSTALL_MODE ON
 )
-configure_typeart_script(run.sh.in typeart-apply.sh
+configure_typeart_script(run.sh.in typeart-apply${CMAKE_DEBUG_POSTFIX}.sh
   INSTALL_MODE ON
   APPLY_MODE ON
 )
 
-configure_typeart_script(typeart-wrapper.in typeart-clang
+configure_typeart_script(typeart-wrapper.in typeart-clang${CMAKE_DEBUG_POSTFIX}
   INSTALL_MODE ON
   COMPILER ${CLANG_EXEC}
 )
-configure_typeart_script(typeart-wrapper.in typeart-clang++
+configure_typeart_script(typeart-wrapper.in typeart-clang++${CMAKE_DEBUG_POSTFIX}
   INSTALL_MODE ON
   COMPILER ${CLANGCXX_EXEC}
 )
@@ -136,7 +136,7 @@ configure_typeart_script(typeart-wrapper.in typeart-clang++-test
 )
 
 if(${MPI_C_FOUND})
-  configure_typeart_script(typeart-wrapper.in typeart-mpicc
+  configure_typeart_script(typeart-wrapper.in typeart-mpicc${CMAKE_DEBUG_POSTFIX}
     INSTALL_MODE ON
     WITH_FILTER ON
     COMPILER "env OMPI_CC=${CLANG_EXEC} ${MPI_C_COMPILER}"
@@ -148,7 +148,7 @@ if(${MPI_C_FOUND})
 endif()
 
 if(${MPI_CXX_FOUND})
-  configure_typeart_script(typeart-wrapper.in typeart-mpic++
+  configure_typeart_script(typeart-wrapper.in typeart-mpic++${CMAKE_DEBUG_POSTFIX}
     INSTALL_MODE ON
     WITH_FILTER ON
     COMPILER "env OMPI_CXX=${CLANGCXX_EXEC} ${MPI_CXX_COMPILER}"
@@ -161,11 +161,11 @@ endif()
 
 install(
   PROGRAMS
-    $<$<BOOL:${INSTALL_UTIL_SCRIPTS}>:${CMAKE_CURRENT_BINARY_DIR}/typeart-run.sh>
-    $<$<BOOL:${INSTALL_UTIL_SCRIPTS}>:${CMAKE_CURRENT_BINARY_DIR}/typeart-apply.sh>
-    ${CMAKE_CURRENT_BINARY_DIR}/typeart-clang++
-    ${CMAKE_CURRENT_BINARY_DIR}/typeart-clang
-    $<$<AND:$<BOOL:${MPI_C_FOUND}>,$<BOOL:${ENABLE_MPI_WRAPPER}>>:${CMAKE_CURRENT_BINARY_DIR}/typeart-mpicc>
-    $<$<AND:$<BOOL:${MPI_CXX_FOUND}>,$<BOOL:${ENABLE_MPI_WRAPPER}>>:${CMAKE_CURRENT_BINARY_DIR}/typeart-mpic++>
+    $<$<BOOL:${INSTALL_UTIL_SCRIPTS}>:${CMAKE_CURRENT_BINARY_DIR}/typeart-run${CMAKE_DEBUG_POSTFIX}.sh>
+    $<$<BOOL:${INSTALL_UTIL_SCRIPTS}>:${CMAKE_CURRENT_BINARY_DIR}/typeart-apply${CMAKE_DEBUG_POSTFIX}.sh>
+    ${CMAKE_CURRENT_BINARY_DIR}/typeart-clang++${CMAKE_DEBUG_POSTFIX}
+    ${CMAKE_CURRENT_BINARY_DIR}/typeart-clang${CMAKE_DEBUG_POSTFIX}
+    $<$<AND:$<BOOL:${MPI_C_FOUND}>,$<BOOL:${ENABLE_MPI_WRAPPER}>>:${CMAKE_CURRENT_BINARY_DIR}/typeart-mpicc${CMAKE_DEBUG_POSTFIX}>
+    $<$<AND:$<BOOL:${MPI_CXX_FOUND}>,$<BOOL:${ENABLE_MPI_WRAPPER}>>:${CMAKE_CURRENT_BINARY_DIR}/typeart-mpic++${CMAKE_DEBUG_POSTFIX}>
   DESTINATION bin
 )
