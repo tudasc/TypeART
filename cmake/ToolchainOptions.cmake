@@ -56,7 +56,7 @@ if (NOT CMAKE_BUILD_TYPE)
   message(STATUS "Building as debug (default)")
 endif ()
 
-if(NOT CMAKE_DEBUG_POSTFIX)
+if(NOT CMAKE_DEBUG_POSTFIX AND CMAKE_BUILD_TYPE STREQUAL "Debug" )
   set(CMAKE_DEBUG_POSTFIX "-d")
 endif()
 
