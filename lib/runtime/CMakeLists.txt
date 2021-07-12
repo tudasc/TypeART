@@ -1,6 +1,3 @@
-set(PROJECT_NAME typeart-rt)
-set(TARGETS_EXPORT_NAME ${PROJECT_NAME}-targets)
-
 set(RUNTIME_LIB_SOURCES
   AccessCounter.h
   CallbackInterface.h
@@ -82,29 +79,11 @@ make_tidy_check(typeart-rt
 install(
   TARGETS typeart-rt
   EXPORT ${TARGETS_EXPORT_NAME}
-  LIBRARY DESTINATION lib
-  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 
 install(
   FILES RuntimeInterface.h
-  DESTINATION include
-)
-
-install(
-  EXPORT ${TARGETS_EXPORT_NAME}
-  NAMESPACE typeart::
-  DESTINATION lib/cmake
-)
-
-#set(DEPENDENCY libaTargets.cmake
-configure_package_config_file(
-  ${PROJECT_SOURCE_DIR}/cmake/Config.cmake.in
-  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
-  INSTALL_DESTINATION lib/cmake
-)
-
-install(FILES
-  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
-  DESTINATION lib/cmake
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )

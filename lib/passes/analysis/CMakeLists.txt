@@ -29,6 +29,6 @@ target_project_coverage_options(meminstfinderpass)
 install(
   TARGETS meminstfinderpass
   EXPORT ${TARGETS_EXPORT_NAME}
-  LIBRARY DESTINATION lib
-  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )

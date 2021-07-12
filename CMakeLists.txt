@@ -18,7 +18,6 @@ list(APPEND CMAKE_MODULE_PATH
     ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules)
 
 include(ToolchainOptions)
-include(CMakePackageConfigHelpers)
 
 add_format_target(format-sources
   "Formats project source files"
@@ -38,5 +37,36 @@ add_format_target(format-sources
 add_subdirectory(externals)
 add_subdirectory(lib)
 add_subdirectory(scripts)
+
+install(
+  EXPORT ${TARGETS_EXPORT_NAME}
+  NAMESPACE typeart::
+  DESTINATION ${TYPEART_INSTALL_CONFIGDIR}
+)
+write_basic_package_version_file(
+  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+  VERSION ${PROJECT_VERSION}
+  COMPATIBILITY SameMinorVersion
+)
+
+configure_package_config_file(
+  ${PROJECT_SOURCE_DIR}/cmake/Config.cmake.in
+  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
+  INSTALL_DESTINATION ${TYPEART_INSTALL_CONFIGDIR}
+)
+
+install(FILES
+  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
+  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+  DESTINATION ${TYPEART_INSTALL_CONFIGDIR}
+)
+
+export(EXPORT ${TARGETS_EXPORT_NAME}
+  FILE ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Targets.cmake
+  NAMESPACE typeart::
+)
+
+export(PACKAGE ${PROJECT_NAME})
+
 enable_testing()
 add_subdirectory(test)

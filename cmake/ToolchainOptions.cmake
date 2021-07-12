@@ -1,4 +1,6 @@
 include(CMakeDependentOption)
+include(CMakePackageConfigHelpers)
+include(GNUInstallDirs)
 
 find_package(LLVM 10 REQUIRED CONFIG)
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
@@ -66,3 +68,7 @@ if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   set(CMAKE_INSTALL_PREFIX "${typeart_SOURCE_DIR}/install/typeart" CACHE PATH "Default install path" FORCE)
   message(STATUS "Installing to (default): ${CMAKE_INSTALL_PREFIX}")
 endif ()
+
+
+set(TARGETS_EXPORT_NAME ${PROJECT_NAME}Targets)
+set(TYPEART_INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
