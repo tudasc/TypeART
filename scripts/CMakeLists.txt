@@ -27,9 +27,9 @@ function(configure_typeart_script input output)
 
   if(ARG_COMPILER)
     set(TYPEART_COMPILER ${ARG_COMPILER})
-    set(TYPEART_OPT ${OPT_EXEC})
-    set(TYPEART_LLC ${LLC_EXEC})
   endif()
+  set(TYPEART_OPT ${OPT_EXEC})
+  set(TYPEART_LLC ${LLC_EXEC})
 
   if(ARG_APPLY_MODE)
     set(TYPEART_RUN_SCRIPT 0)
@@ -75,8 +75,6 @@ function(configure_typeart_coverage_script input output)
         GROUP_READ
         WORLD_READ
     )
-    #set(LLVM_COV_COMMAND ${LLVMCOV_COMMAND})
-    #target_generate_file(${input} ${output})
   else()
     message(WARNING "Need llvm-cov for coverage script")
   endif()
@@ -106,15 +104,15 @@ find_clang_progs(OPT_EXEC "opt;opt-10" "opt")
 
 configure_typeart_coverage_script(llvm-gcov.sh.in llvm-gcov.sh)
 
-configure_typeart_script(run.sh.in run.sh)
-configure_typeart_script(run.sh.in apply.sh
+configure_typeart_script(typeart-tmpl.sh.in run.sh)
+configure_typeart_script(typeart-tmpl.sh.in apply.sh
   APPLY_MODE ON
 )
 
-configure_typeart_script(run.sh.in typeart-run${CMAKE_DEBUG_POSTFIX}.sh
+configure_typeart_script(typeart-tmpl.sh.in typeart-run${CMAKE_DEBUG_POSTFIX}.sh
   INSTALL_MODE ON
 )
-configure_typeart_script(run.sh.in typeart-apply${CMAKE_DEBUG_POSTFIX}.sh
+configure_typeart_script(typeart-tmpl.sh.in typeart-apply${CMAKE_DEBUG_POSTFIX}.sh
   INSTALL_MODE ON
   APPLY_MODE ON
 )
