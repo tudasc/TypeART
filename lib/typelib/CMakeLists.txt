@@ -1,8 +1,5 @@
-set(PROJECT_NAME typeart_typelib)
-set(TARGETS_EXPORT_NAME ${PROJECT_NAME}-targets)
-
 set(TYPE_LIB_SOURCES
-  TypeDB.cpp 
+  TypeDB.cpp
   TypeIO.cpp
 )
 
@@ -50,28 +47,11 @@ make_tidy_check(typelib
 install(
   TARGETS typelib
   EXPORT ${TARGETS_EXPORT_NAME}
-  LIBRARY DESTINATION lib
-  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 
 install(
   FILES TypeInterface.h TypeIO.h TypeDB.h
-  DESTINATION include
-)
-
-install(
-  EXPORT ${TARGETS_EXPORT_NAME}
-  NAMESPACE typeart::
-  DESTINATION lib/cmake
-)
-
-configure_package_config_file(
-  ${PROJECT_SOURCE_DIR}/cmake/Config.cmake.in
-  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
-  INSTALL_DESTINATION lib/cmake
-)
-
-install(FILES
-  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
-  DESTINATION lib/cmake
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )

@@ -51,8 +51,8 @@ if(${MPI_C_FOUND} AND ${PYTHONINTERP_FOUND})
   install(
     TARGETS interceptor-rt
     EXPORT ${TARGETS_EXPORT_NAME}
-    LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib/static
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
   )
 else()
   message(STATUS "Cannot build mpi interceptor-rt lib. MPI found: " ${MPI_C_FOUND} " and python found: " ${PYTHONINTERP_FOUND})

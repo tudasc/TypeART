@@ -1,6 +1,3 @@
-set(PROJECT_NAME typeart_llvm)
-set(TARGETS_EXPORT_NAME ${PROJECT_NAME}-targets)
-
 add_subdirectory(filter)
 add_subdirectory(analysis)
 
@@ -42,24 +39,6 @@ target_project_coverage_options(typeartpass)
 install(
   TARGETS typeartpass
   EXPORT ${TARGETS_EXPORT_NAME}
-  LIBRARY DESTINATION lib
-  ARCHIVE DESTINATION lib
-)
-
-# also handles subdir meminstfinder
-install(
-  EXPORT ${TARGETS_EXPORT_NAME}
-  NAMESPACE typeart::
-  DESTINATION lib/cmake
-)
-
-configure_package_config_file(
-  ${PROJECT_SOURCE_DIR}/cmake/Config.cmake.in
-  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
-  INSTALL_DESTINATION lib/cmake
-)
-
-install(FILES
-  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
-  DESTINATION lib/cmake
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
