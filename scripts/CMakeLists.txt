@@ -65,8 +65,18 @@ function(configure_typeart_coverage_script input output)
     NAMES llvm-cov-10 llvm-cov
   )
   if(LLVMCOV_COMMAND)
-    set(LLVM_COV_COMMAND ${LLVMCOV_COMMAND})
-    target_generate_file(${input} ${output})
+    file(GENERATE
+      OUTPUT
+        ${output}
+      CONTENT
+        "#!/usr/bin/env bash\n\n${LLVMCOV_COMMAND} gcov \"$@\"\n"
+      FILE_PERMISSIONS
+        OWNER_READ OWNER_WRITE OWNER_EXECUTE
+        GROUP_READ
+        WORLD_READ
+    )
+    #set(LLVM_COV_COMMAND ${LLVMCOV_COMMAND})
+    #target_generate_file(${input} ${output})
   else()
     message(WARNING "Need llvm-cov for coverage script")
   endif()
