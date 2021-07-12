@@ -56,12 +56,25 @@ function parse_cmd_line() {
 }
 
 function global_init() {
-  local -r typeart_bin_dir="@TYPEART_BINARY_DIR@"
-  local -r typeart_lib_dir="@TYPEART_RT_DIR@"
-  local -r typeart_include_dir="@TYPEART_INCLUDE_DIRS@"
-  local -r typeart_analysis_pass="@TYPEART_ANALYSIS_PASS_DIR@/$<TARGET_FILE_NAME:typeart::meminstfinderpass>"
-  local -r typeart_pass="@TYPEART_PASS_DIR@/$<TARGET_FILE_NAME:typeart::pass>"
-  readonly typeart_interceptor="@TYPEART_MPI_INTERCEPT_DIR@/$<TARGET_FILE_NAME:typeart::interceptor-rt>"
+  local -r typeart_use_rel_path=@TYPEART_RELOCATABLE@
+  if [ "$typeart_use_rel_path" == 0 ]; then
+    local -r typeart_bin_dir="@TYPEART_BINARY_DIR@"
+    local -r typeart_lib_dir="@TYPEART_RT_DIR@"
+    local -r typeart_include_dir="@TYPEART_INCLUDE_DIRS@"
+    local -r typeart_analysis_pass="@TYPEART_ANALYSIS_PASS_DIR@/$<TARGET_FILE_NAME:typeart::meminstfinderpass>"
+    local -r typeart_pass="@TYPEART_PASS_DIR@/$<TARGET_FILE_NAME:typeart::pass>"
+    readonly typeart_interceptor="@TYPEART_MPI_INTERCEPT_DIR@/$<TARGET_FILE_NAME:typeart::interceptor-rt>"
+  else
+    # shellcheck disable=SC2155
+    local -r typeart_bin_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    # shellcheck disable=SC2155
+    local -r typeart_install_dir="$(dirname "${typeart_bin_dir}")"
+    local -r typeart_lib_dir="${typeart_install_dir}/@CMAKE_INSTALL_LIBDIR@"
+    local -r typeart_include_dir="-I${typeart_install_dir}/@CMAKE_INSTALL_INCLUDEDIR@"
+    local -r typeart_analysis_pass="${ypeart_lib_dir}/$<TARGET_FILE_NAME:typeart::meminstfinderpass>"
+    local -r typeart_pass="${ypeart_lib_dir}/$<TARGET_FILE_NAME:typeart::pass>"
+    readonly typeart_interceptor="${ypeart_lib_dir}/$<TARGET_FILE_NAME:typeart::interceptor-rt>"
+  fi
 
   readonly opt_tool="@TYPEART_OPT@"
   readonly llc_tool="@TYPEART_LLC@"
