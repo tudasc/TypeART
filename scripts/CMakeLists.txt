@@ -1,5 +1,5 @@
 function(configure_typeart_script input output)
-  cmake_parse_arguments(ARG "" "" "INSTALL_MODE;COMPILER;WITH_FILTER" ${ARGN})
+  cmake_parse_arguments(ARG "" "" "INSTALL_MODE;COMPILER;WITH_FILTER;APPLY_MODE" ${ARGN})
   set(TYPEART_SAN_FLAGS "")
 
   set(TYPEART_PROJECT_DIR ${PROJECT_SOURCE_DIR})
@@ -31,6 +31,12 @@ function(configure_typeart_script input output)
     set(TYPEART_LLC ${LLC_EXEC})
   endif()
 
+  if(ARG_APPLY_MODE)
+    set(TYPEART_RUN_SCRIPT 0)
+  else()
+    set(TYPEART_RUN_SCRIPT 1)
+  endif()
+
   if(ARG_WITH_FILTER)
     set(TYPEART_CALLFILTER "-call-filter")
   endif()
@@ -60,7 +66,7 @@ function(configure_typeart_coverage_script input output)
   )
   if(LLVMCOV_COMMAND)
     set(LLVM_COV_COMMAND ${LLVMCOV_COMMAND})
-    make_executable(${input} ${output})
+    target_generate_file(${input} ${output})
   else()
     message(WARNING "Need llvm-cov for coverage script")
   endif()
@@ -91,13 +97,16 @@ find_clang_progs(OPT_EXEC "opt;opt-10" "opt")
 configure_typeart_coverage_script(llvm-gcov.sh.in llvm-gcov.sh)
 
 configure_typeart_script(run.sh.in run.sh)
-configure_typeart_script(apply.sh.in apply.sh)
+configure_typeart_script(run.sh.in apply.sh
+  APPLY_MODE ON
+)
 
 configure_typeart_script(run.sh.in typeart-run.sh
   INSTALL_MODE ON
 )
-configure_typeart_script(apply.sh.in typeart-apply.sh
+configure_typeart_script(run.sh.in typeart-apply.sh
   INSTALL_MODE ON
+  APPLY_MODE ON
 )
 
 configure_typeart_script(typeart-wrapper.in typeart-clang

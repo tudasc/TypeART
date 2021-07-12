@@ -15,8 +15,8 @@ function global_init() {
     local -r typeart_install_dir="$(dirname "${typeart_bin_dir}")"
     local -r typeart_lib_dir="${typeart_install_dir}"/lib
     local -r typeart_include_dir="-I${typeart_install_dir}"/include
-    local -r typeart_analysis_pass="${typeart_lib_dir}"
-    local -r typeart_pass="${typeart_lib_dir}"
+    local -r typeart_analysis_pass="${ypeart_lib_dir}/$<TARGET_FILE_NAME:typeart::meminstfinderpass>"
+    local -r typeart_pass="${ypeart_lib_dir}/$<TARGET_FILE_NAME:typeart::pass>"
   fi
 
   readonly compiler="@TYPEART_COMPILER@"
@@ -26,7 +26,7 @@ function global_init() {
   readonly typeart_includes="${typeart_include_dir}"
   readonly typeart_ldflags="-L${typeart_lib_dir}/ \
                    -Wl,-rpath,${typeart_lib_dir}/ \
-                   -ltypeart-rt"
+                   -l$<TARGET_FILE_BASE_NAME:typeart::typeart-rt>"
   readonly typeart_san_flags="@TYPEART_SAN_FLAGS@"
 
   # shellcheck disable=SC2027

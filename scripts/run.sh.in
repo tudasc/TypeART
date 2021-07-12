@@ -12,37 +12,37 @@ sanitizer_flags=""
 skip_typeart=0
 
 shift # skip over $1
-while (( "$#" )); do
+while (("$#")); do
   case "$1" in
-    -o|--optimization)
-      if [ -n "$2" ] && [ "${2:0:2}" == "-O" ]; then
-        optimize=$2
-        shift 2
-      else
-        echo "Error: Optimization argument for $1 is erroneous: $2" >&2
-        exit 1
-      fi
-      ;;
-    --omp)
-      with_omp=1
-      shift
-      ;;
-    --thread)
-      with_thread=1
-      shift
-      ;;
-    --mpi_intercept)
-      with_intercept=1
-      shift
-      ;;
-    --manual)
-      skip_typeart=1
-      shift
-      ;;
-    *) # preserve other arguments
-      ta_more_args="$ta_more_args $1"
-      shift
-      ;;
+  -o | --optimization)
+    if [ -n "$2" ] && [ "${2:0:2}" == "-O" ]; then
+      optimize=$2
+      shift 2
+    else
+      echo "Error: Optimization argument for $1 is erroneous: $2" >&2
+      exit 1
+    fi
+    ;;
+  --omp)
+    with_omp=1
+    shift
+    ;;
+  --thread)
+    with_thread=1
+    shift
+    ;;
+  --mpi_intercept)
+    with_intercept=1
+    shift
+    ;;
+  --manual)
+    skip_typeart=1
+    shift
+    ;;
+  *) # preserve other arguments
+    ta_more_args="$ta_more_args $1"
+    shift
+    ;;
   esac
 done
 
@@ -77,7 +77,7 @@ function make_no_optim() {
     $compiler $typeart_includes $omp_flags $sanitizer_flags -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $typeart_plugin $typeart_combined_mode_args $ta_more_args | llc -x=ir -filetype=obj -o "$tmpfile".o
   else
     # First create types.yaml:
-    $compiler $typeart_includes $omp_flags $sanitizer_flags -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $typeart_plugin $typeart_combined_mode_args $ta_more_args > /dev/null
+    $compiler $typeart_includes $omp_flags $sanitizer_flags -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $typeart_plugin $typeart_combined_mode_args $ta_more_args >/dev/null
     $compiler $typeart_includes $omp_flags $sanitizer_flags -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | llc -x=ir -filetype=obj -o "$tmpfile".o
   fi
 }
@@ -85,11 +85,11 @@ function make_no_optim() {
 function make_with_optim() {
   # Order: heap, optimize, alloca with additional args.
   if [ $skip_typeart == 0 ]; then
-    $compiler $typeart_includes $omp_flags $sanitizer_flags -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $typeart_plugin $typeart_heap_mode_args $ta_more_args  | opt $optimize -S | opt $typeart_plugin $typeart_stack_mode_args $ta_more_args | llc -x=ir -filetype=obj -o "$tmpfile".o
+    $compiler $typeart_includes $omp_flags $sanitizer_flags -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $typeart_plugin $typeart_heap_mode_args $ta_more_args | opt $optimize -S | opt $typeart_plugin $typeart_stack_mode_args $ta_more_args | llc -x=ir -filetype=obj -o "$tmpfile".o
   else
     # First create types.yaml:
-    $compiler $typeart_includes $omp_flags $sanitizer_flags -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $typeart_plugin $typeart_heap_mode_args $ta_more_args  | opt $optimize -S | opt $typeart_plugin $typeart_stack_mode_args $ta_more_args > /dev/null
-    $compiler $typeart_includes $omp_flags $sanitizer_flags -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $optimize  | llc -x=ir -filetype=obj -o "$tmpfile".o
+    $compiler $typeart_includes $omp_flags $sanitizer_flags -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $typeart_plugin $typeart_heap_mode_args $ta_more_args | opt $optimize -S | opt $typeart_plugin $typeart_stack_mode_args $ta_more_args >/dev/null
+    $compiler $typeart_includes $omp_flags $sanitizer_flags -O1 -Xclang -disable-llvm-passes -S -emit-llvm "$target" -o - | opt $optimize | llc -x=ir -filetype=obj -o "$tmpfile".o
   fi
 }
 
@@ -101,6 +101,7 @@ function compile() {
   local -r typeart_stack_mode_args="-typeart-no-heap -typeart-alloca -typeart-stats"
   local -r typeart_heap_mode_args="-typeart-no-heap=false -typeart-stats"
   local -r typeart_combined_mode_args="-typeart-no-heap=false -typeart-alloca -typeart-stats"
+  local -r typeart_ldflags="-L@TYPEART_RT_DIR@ -l$<TARGET_FILE_BASE_NAME:typeart::typeart-rt>"
 
   if [ "$optimize" == " " ]; then
     make_no_optim
@@ -108,19 +109,23 @@ function compile() {
     make_with_optim
   fi
 
-  $compiler "$tmpfile".o $omp_flags $threads_flags $sanitizer_flags -L@TYPEART_RT_DIR@ -ltypeart-rt -o "$tmpfile".exe
+  if [ @TYPEART_RUN_SCRIPT@ == 1 ]; then
+    $compiler "$tmpfile".o $omp_flags $threads_flags $sanitizer_flags $typeart_ldflags -o "$tmpfile".exe
+  fi
 }
 
 compile
 
-if [ $with_omp == 1 ]; then
-  export TSAN_OPTIONS='ignore_noninstrumented_modules=1'
-fi
+if [ @TYPEART_RUN_SCRIPT@ == 1 ]; then
+  if [ $with_omp == 1 ]; then
+    export TSAN_OPTIONS='ignore_noninstrumented_modules=1'
+  fi
 
-if [ $with_intercept == 1 ]; then
-  echo -e Executing with runtime and interceptor lib
-  LD_LIBRARY_PATH="$LD_LIBRARY_PATH:@TYPEART_RT_DIR@" LD_PRELOAD=@TYPEART_MPI_INTERCEPT_DIR@/@TYPEART_MPI_INTERCEPT_LIB@ ./"$tmpfile".exe
-else
-  echo -e Executing with runtime lib
-  LD_LIBRARY_PATH="$LD_LIBRARY_PATH:@TYPEART_RT_DIR@" ./"$tmpfile".exe
+  if [ $with_intercept == 1 ]; then
+    echo -e Executing with runtime and interceptor lib
+    LD_LIBRARY_PATH="$LD_LIBRARY_PATH:@TYPEART_RT_DIR@" LD_PRELOAD=@TYPEART_MPI_INTERCEPT_DIR@/@TYPEART_MPI_INTERCEPT_LIB@ ./"$tmpfile".exe
+  else
+    echo -e Executing with runtime lib
+    LD_LIBRARY_PATH="$LD_LIBRARY_PATH:@TYPEART_RT_DIR@" ./"$tmpfile".exe
+  fi
 fi

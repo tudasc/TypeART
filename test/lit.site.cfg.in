@@ -2,10 +2,12 @@
 
 import sys
 
-config.typeartpass_obj_root = "@TYPEARTPASS_BINARY_DIR@"
-config.typeartpass_lib_dir = "@TYPEARTPASS_LIBRARY_DIR@"
-config.typeartpass_rt_dir = "@TYPEARTPASS_RT_DIR@"
-config.typeartpass_script_dir = "@TYPEARTPASS_SCRIPT_DIR@"
+config.typeart_obj_root = "@TYPEARTPASS_BINARY_DIR@"
+config.typeart_lib_dir = "@TYPEARTPASS_LIBRARY_DIR@"
+config.typeart_rt_dir = "@TYPEARTPASS_RT_DIR@"
+config.typeart_script_dir = "@TYPEARTPASS_SCRIPT_DIR@"
+config.typeart_pass = "$<TARGET_FILE_NAME:typeart::pass>"
+config.typeart_analysis_pass = "$<TARGET_FILE_NAME:typeart::meminstfinderpass>"
 config.profile_file = "@TYPEARTPASS_PROFILE_FILE@"
 config.softcounter_used = @TYPEARTPASS_SOFTCOUNTER@
 config.openmp_used = @TYPEARTPASS_OPENMP@
