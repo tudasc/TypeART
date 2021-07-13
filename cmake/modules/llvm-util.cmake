@@ -28,7 +28,7 @@ function(make_llvm_module name sources)
   
   target_include_directories(${name}
     SYSTEM 
-    PUBLIC 
+    PRIVATE
     ${LLVM_INCLUDE_DIRS}
   )
   
