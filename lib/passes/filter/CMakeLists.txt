@@ -58,7 +58,7 @@ target_project_coverage_options(memfilter)
 # For now, non-consumable filter
 #install(
 #  FILES Filter.h StandardFilter.h CGFilter.h
-#  DESTINATION include
+#  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}
 #)
 
 #install(
