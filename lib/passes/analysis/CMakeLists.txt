@@ -7,7 +7,7 @@ set(MEM_PASS_SOURCES
 make_llvm_module(meminstfinderpass
   "${MEM_PASS_SOURCES}"
   LINK_LIBS
-    memfilter
+    typeart::filter
   INCLUDE_DIRS
     ${PROJECT_SOURCE_DIR}/lib
     ${CMAKE_CURRENT_SOURCE_DIR}/..

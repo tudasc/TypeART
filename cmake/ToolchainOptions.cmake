@@ -32,6 +32,8 @@ cmake_dependent_option(ENABLE_UBSAN "Build runtime lib and tests with fsanitize=
 option(INSTALL_UTIL_SCRIPTS "Install single file build and run scripts" OFF)
 mark_as_advanced(INSTALL_UTIL_SCRIPTS)
 option(ENABLE_MPI_WRAPPER "Generate mpicc and mpic++ wrapper for TypeART" ON)
+option(USE_ABSL "Enable usage of abseil's btree-backed map instead of std::map for the runtime." ON )
+CMAKE_DEPENDENT_OPTION(USE_BTREE "Enable usage of btree-backed map instead of std::map for the runtime." ON "NOT USE_ABSL" OFF)
 
 include(AddLLVM)
 include(llvm-lit)
