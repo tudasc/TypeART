@@ -30,7 +30,7 @@ target_link_libraries(typeart-rt
 
 target_include_directories(typeart-rt
   PUBLIC
-  $<INSTALL_INTERFACE:include>
+  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
   $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/runtime>
   $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/typelib>
   PRIVATE
