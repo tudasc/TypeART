@@ -15,7 +15,7 @@ set(FILTER_SOURCES
 add_library(memfilter STATIC
   ${FILTER_SOURCES}
 )
-add_library(typeart::filter ALIAS memfilter)
+add_library(typeart::memfilter ALIAS memfilter)
 
 # https://lists.llvm.org/pipermail/llvm-dev/2018-July/124534.html
 #target_link_libraries(memfilter PUBLIC
@@ -35,7 +35,7 @@ set_target_properties(memfilter
 
 target_include_directories(memfilter
   PUBLIC
-  $<INSTALL_INTERFACE:include>
+  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/passes>
   $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>

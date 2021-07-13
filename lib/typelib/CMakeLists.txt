@@ -22,7 +22,7 @@ target_include_directories(typelib
 target_include_directories(typelib
   PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-  $<INSTALL_INTERFACE:include>
+  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
   PRIVATE
   $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
 )
