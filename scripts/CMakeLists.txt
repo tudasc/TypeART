@@ -83,7 +83,6 @@ function(configure_typeart_coverage_script input output)
 endfunction()
 
 function(find_clang_progs target names default)
-  unset(target-prog CACHE)
   find_program(target-prog
     NAMES ${names}
     PATHS ${LLVM_TOOLS_BINARY_DIR}
@@ -96,6 +95,7 @@ function(find_clang_progs target names default)
   else()
     set(${target} ${target-prog} PARENT_SCOPE)
   endif()
+  unset(target-prog CACHE)
 endfunction()
 
 

@@ -1,6 +1,7 @@
 FetchContent_Declare(
   cpp-abseil
   GIT_REPOSITORY https://github.com/abseil/abseil-cpp.git
+  GIT_SHALLOW 1
 )
 
 FetchContent_MakeAvailable(cpp-abseil)
@@ -12,6 +13,7 @@ mark_as_advanced(
   ABSL_RUN_TESTS
   ABSL_USE_EXTERNAL_GOOGLETEST
   ABSL_USE_GOOGLETEST_HEAD
+  BUILD_TESTING
 )
 
 mark_as_advanced(

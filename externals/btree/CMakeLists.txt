@@ -1,6 +1,7 @@
 FetchContent_Declare(
   cpp-btree
   GIT_REPOSITORY https://github.com/ahueck/cpp-btree.git
+  GIT_SHALLOW 1
 )
 
 FetchContent_GetProperties(cpp-btree)

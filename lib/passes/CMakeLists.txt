@@ -15,9 +15,9 @@ set(PASS_SOURCES
 make_llvm_module(typeartpass
   "${PASS_SOURCES}"
   LINK_LIBS
-    typelib
+    typeart::typelib
   DEPENDS
-    meminstfinderpass
+    typeart::meminstfinderpass
   INCLUDE_DIRS
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${PROJECT_SOURCE_DIR}/lib/

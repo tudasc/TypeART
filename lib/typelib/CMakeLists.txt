@@ -9,11 +9,6 @@ add_library(typelib STATIC
 
 add_library(typeart::typelib ALIAS typelib)
 
-#target_link_libraries(musttypelib
-#  LLVMCore
-#  LLVMSupport
-#)
-
 set_target_properties(typelib
   PROPERTIES POSITION_INDEPENDENT_CODE ON
 )
