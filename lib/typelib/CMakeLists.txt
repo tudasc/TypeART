@@ -3,23 +3,23 @@ set(TYPE_LIB_SOURCES
   TypeIO.cpp
 )
 
-add_library(typelib STATIC
+add_library(Types STATIC
   ${TYPE_LIB_SOURCES}
 )
+set_property(TARGET Types PROPERTY OUTPUT_NAME "${PROJECT_NAME}Types")
+add_library(typeart::Types ALIAS Types)
 
-add_library(typeart::typelib ALIAS typelib)
-
-set_target_properties(typelib
+set_target_properties(Types
   PROPERTIES POSITION_INDEPENDENT_CODE ON
 )
 
-target_include_directories(typelib
+target_include_directories(Types
   SYSTEM 
   PRIVATE 
     ${LLVM_INCLUDE_DIRS}
 )
 
-target_include_directories(typelib
+target_include_directories(Types
   PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
@@ -27,20 +27,20 @@ target_include_directories(typelib
   $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
 )
 
-target_compile_definitions(memfilter
+target_compile_definitions(Types
   PRIVATE
     LOG_LEVEL=${LOG_LEVEL}
 )
 
-target_project_compile_options(typelib)
-target_project_coverage_options(typelib)
+target_project_compile_options(Types)
+target_project_coverage_options(Types)
 
-make_tidy_check(typelib
+make_tidy_check(Types
   "${TYPE_LIB_SOURCES}"
 )
 
 install(
-  TARGETS typelib
+  TARGETS Types
   EXPORT ${TARGETS_EXPORT_NAME}
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}

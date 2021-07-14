@@ -48,7 +48,7 @@ configure_typeart_lit_site_cfg(
     ${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg
 )
 
-set(TYPEARTPASS_TEST_DEPENDS typeart::pass typeart::typeart-rt)
+set(TYPEARTPASS_TEST_DEPENDS typeart::LLVMTransformPass typeart::Runtime)
 
 add_lit_testsuite(lit-pass-test
     "Running the TYPEART support pass tests"
