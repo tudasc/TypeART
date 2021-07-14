@@ -15,8 +15,8 @@ function global_init() {
     local -r typeart_install_dir="$(dirname "${typeart_bin_dir}")"
     local -r typeart_lib_dir="${typeart_install_dir}/@CMAKE_INSTALL_LIBDIR@"
     local -r typeart_include_dir="-I${typeart_install_dir}/@CMAKE_INSTALL_INCLUDEDIR@"
-    local -r typeart_analysis_pass="${ypeart_lib_dir}/$<TARGET_FILE_NAME:typeart::meminstfinderpass>"
-    local -r typeart_pass="${ypeart_lib_dir}/$<TARGET_FILE_NAME:typeart::pass>"
+    local -r typeart_analysis_pass="${typeart_lib_dir}/$<TARGET_FILE_NAME:typeart::meminstfinderpass>"
+    local -r typeart_pass="${typeart_lib_dir}/$<TARGET_FILE_NAME:typeart::pass>"
   fi
 
   readonly compiler="@TYPEART_COMPILER@"
