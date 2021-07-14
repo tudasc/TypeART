@@ -12,14 +12,15 @@ set(RUNTIME_LIB_SOURCES
   $<$<BOOL:${MPI_LOGGER}>:../support/MPILogger.cpp>
 )
 
-add_library(typeart-rt SHARED
+add_library(Runtime SHARED
   ${RUNTIME_LIB_SOURCES}
 )
-add_library(typeart::typeart-rt ALIAS typeart-rt)
+set_property(TARGET Runtime PROPERTY OUTPUT_NAME "${PROJECT_NAME}Runtime")
+add_library(typeart::Runtime ALIAS Runtime)
 
-target_link_libraries(typeart-rt
+target_link_libraries(Runtime
   PRIVATE
-    typeart::typelib
+    typeart::Types
     LLVMCore
     LLVMSupport
     $<$<BOOL:${MPI_LOGGER}>:MPI::MPI_CXX>
@@ -28,7 +29,7 @@ target_link_libraries(typeart-rt
     $<$<BOOL:${ENABLE_SAFEPTR}>:sf::pointer>
 )
 
-target_include_directories(typeart-rt
+target_include_directories(Runtime
   PUBLIC
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
   $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/runtime>
@@ -38,14 +39,14 @@ target_include_directories(typeart-rt
   $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
   )
 
-target_include_directories(typeart-rt
+target_include_directories(Runtime
   SYSTEM
   PRIVATE
   ${LLVM_INCLUDE_DIRS}
   )
 
 
-target_compile_definitions(typeart-rt
+target_compile_definitions(Runtime
   PRIVATE
     LOG_LEVEL=${LOG_LEVEL_RT}
     $<$<BOOL:${MPI_LOGGER}>:MPI_LOGGER=1>
@@ -56,28 +57,28 @@ target_compile_definitions(typeart-rt
     $<$<BOOL:${DISABLE_THREAD_SAFETY}>:DISABLE_THREAD_SAFETY>
 )
 
-target_project_compile_definitions(typeart-rt)
-target_define_file_basename(typeart-rt)
-target_project_coverage_options(typeart-rt)
+target_project_compile_definitions(Runtime)
+target_define_file_basename(Runtime)
+target_project_coverage_options(Runtime)
 
 if(ENABLE_TSAN)
-  target_tsan_options(typeart-rt)
+  target_tsan_options(Runtime)
 endif()
 
 if(ENABLE_ASAN)
-  target_asan_options(typeart-rt)
+  target_asan_options(Runtime)
 endif()
 
 if(ENABLE_UBSAN)
-  target_ubsan_options(typeart-rt)
+  target_ubsan_options(Runtime)
 endif()
 
-make_tidy_check(typeart-rt
+make_tidy_check(Runtime
   "${RUNTIME_LIB_SOURCES}"
 )
 
 install(
-  TARGETS typeart-rt
+  TARGETS Runtime
   EXPORT ${TARGETS_EXPORT_NAME}
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}

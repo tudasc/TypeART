@@ -77,7 +77,7 @@ jobs:
 
       - name: Setup tests
         working-directory: test-bench
-        run: cmake -B build -DLOG_PATH=${GITHUB_WORKSPACE}/test-bench/artifact
+        run: cmake -B build -DLOG_PATH=${GITHUB_WORKSPACE}/test-bench/artifact -DUSE_WRAPPER=ON
 
       - name: Run lulesh
         working-directory: test-bench/build
@@ -169,7 +169,7 @@ jobs:
 
       - name: Setup AD tests
         working-directory: ad-test-bench
-        run: cmake -B build -DLOG_PATH=${GITHUB_WORKSPACE}/ad-test-bench/artifact
+        run: cmake -B build -DLOG_PATH=${GITHUB_WORKSPACE}/ad-test-bench/artifact -DUSE_WRAPPER=ON
 
       - name: Run AD lulesh
         working-directory: ad-test-bench/build
@@ -256,7 +256,7 @@ jobs:
 
       - name: Setup tests
         working-directory: omp-test-bench
-        run: cmake -B build -DLOG_PATH=${GITHUB_WORKSPACE}/omp-test-bench/artifact
+        run: cmake -B build -DLOG_PATH=${GITHUB_WORKSPACE}/omp-test-bench/artifact -DUSE_WRAPPER=ON
 
       - name: Run lulesh
         working-directory: omp-test-bench/build
