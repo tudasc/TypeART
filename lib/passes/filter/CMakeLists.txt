@@ -12,29 +12,29 @@ set(FILTER_SOURCES
         FilterUtil.cpp
         FilterUtil.h IRSearch.h)
 
-add_library(LLVMMemOpFilter STATIC
+add_library(MemOpFilter STATIC
   ${FILTER_SOURCES}
 )
-set_property(TARGET LLVMMemOpFilter PROPERTY OUTPUT_NAME "${PROJECT_NAME}LLVMMemOpFilter")
-add_library(typeart::LLVMMemOpFilter ALIAS LLVMMemOpFilter)
+set_property(TARGET MemOpFilter PROPERTY OUTPUT_NAME "${PROJECT_NAME}MemOpFilter")
+add_library(typeart::MemOpFilter ALIAS MemOpFilter)
 
 # https://lists.llvm.org/pipermail/llvm-dev/2018-July/124534.html
-#target_link_libraries(LLVMMemOpFilter PUBLIC
+#target_link_libraries(MemOpFilter PUBLIC
 #  LLVMCore
 #  LLVMSupport
 #)
 
-target_compile_definitions(LLVMMemOpFilter
+target_compile_definitions(MemOpFilter
   PRIVATE
   LOG_LEVEL=${LOG_LEVEL}
 )
 
-set_target_properties(LLVMMemOpFilter
+set_target_properties(MemOpFilter
   PROPERTIES
     POSITION_INDEPENDENT_CODE ON
 )
 
-target_include_directories(LLVMMemOpFilter
+target_include_directories(MemOpFilter
   PUBLIC
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
@@ -42,19 +42,19 @@ target_include_directories(LLVMMemOpFilter
   $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
 )
 
-target_include_directories(LLVMMemOpFilter
+target_include_directories(MemOpFilter
   SYSTEM
   PRIVATE
     ${LLVM_INCLUDE_DIRS}
 )
 
-make_tidy_check(LLVMMemOpFilter
+make_tidy_check(MemOpFilter
   "${FILTER_SOURCES}"
 )
 
-target_project_compile_options(LLVMMemOpFilter)
-target_define_file_basename(LLVMMemOpFilter)
-target_project_coverage_options(LLVMMemOpFilter)
+target_project_compile_options(MemOpFilter)
+target_define_file_basename(MemOpFilter)
+target_project_coverage_options(MemOpFilter)
 
 # For now, non-consumable filter
 #install(
@@ -63,7 +63,7 @@ target_project_coverage_options(LLVMMemOpFilter)
 #)
 
 #install(
-#        TARGETS LLVMMemOpFilter
+#        TARGETS MemOpFilter
 #        EXPORT ${TARGETS_EXPORT_NAME}
 #        LIBRARY DESTINATION lib
 #        ARCHIVE DESTINATION lib
