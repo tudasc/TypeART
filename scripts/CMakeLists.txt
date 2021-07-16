@@ -65,6 +65,7 @@ endfunction()
 function(configure_typeart_coverage_script input output)
   find_program(LLVMCOV_COMMAND
     NAMES llvm-cov-10 llvm-cov
+    HINTS ${LLVM_TOOLS_BINARY_DIR}
   )
   if(LLVMCOV_COMMAND)
     file(GENERATE
@@ -85,7 +86,7 @@ endfunction()
 function(find_clang_progs target names default)
   find_program(target-prog
     NAMES ${names}
-    PATHS ${LLVM_TOOLS_BINARY_DIR}
+    HINTS ${LLVM_TOOLS_BINARY_DIR}
     NO_DEFAULT_PATH
   )
 
