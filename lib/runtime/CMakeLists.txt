@@ -77,6 +77,14 @@ make_tidy_check(Runtime
   "${RUNTIME_LIB_SOURCES}"
 )
 
+set(CONFIG_NAME ${PROJECT_NAME}Runtime)
+set(TARGETS_EXPORT_NAME ${CONFIG_NAME}Targets)
+
+install(
+   FILES RuntimeInterface.h
+   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}
+)
+
 install(
   TARGETS Runtime
   EXPORT ${TARGETS_EXPORT_NAME}
@@ -85,6 +93,23 @@ install(
 )
 
 install(
-  FILES RuntimeInterface.h
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}
+  EXPORT ${TARGETS_EXPORT_NAME}
+  NAMESPACE typeart::
+  DESTINATION ${TYPEART_INSTALL_CONFIGDIR}
 )
+
+export(EXPORT ${TARGETS_EXPORT_NAME}
+  FILE ${CMAKE_BINARY_DIR}/${TARGETS_EXPORT_NAME}.cmake
+  NAMESPACE typeart::
+  )
+
+#configure_package_config_file(
+#  ${PROJECT_SOURCE_DIR}/cmake/Config.cmake.in
+#  ${CMAKE_CURRENT_BINARY_DIR}/${CONFIG_NAME}Config.cmake
+#  INSTALL_DESTINATION ${TYPEART_INSTALL_CONFIGDIR}
+#)
+#
+#install(FILES
+#  ${CMAKE_CURRENT_BINARY_DIR}/${CONFIG_NAME}Config.cmake
+#  DESTINATION ${TYPEART_INSTALL_CONFIGDIR}
+#  )

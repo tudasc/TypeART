@@ -30,6 +30,7 @@ if(${MPI_C_FOUND} AND ${PYTHONINTERP_FOUND})
     PUBLIC
       $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+      $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
   )
 
   target_include_directories(MPITool
@@ -48,12 +49,37 @@ if(${MPI_C_FOUND} AND ${PYTHONINTERP_FOUND})
       MPI::MPI_C
   )
 
+  set(CONFIG_NAME ${PROJECT_NAME}MPITool)
+  set(TARGETS_EXPORT_NAME ${CONFIG_NAME}Targets)
+
   install(
     TARGETS MPITool
     EXPORT ${TARGETS_EXPORT_NAME}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
   )
+
+  install(
+    EXPORT ${TARGETS_EXPORT_NAME}
+    NAMESPACE typeart::
+    DESTINATION ${TYPEART_INSTALL_CONFIGDIR}
+  )
+
+  export(EXPORT ${TARGETS_EXPORT_NAME}
+    FILE ${CMAKE_BINARY_DIR}/${TARGETS_EXPORT_NAME}.cmake
+    NAMESPACE typeart::
+  )
+
+#  configure_package_config_file(
+#    ${PROJECT_SOURCE_DIR}/cmake/Config.cmake.in
+#    ${CMAKE_CURRENT_BINARY_DIR}/${CONFIG_NAME}Config.cmake
+#    INSTALL_DESTINATION ${TYPEART_INSTALL_CONFIGDIR}
+#  )
+#
+#  install(FILES
+#    ${CMAKE_CURRENT_BINARY_DIR}/${CONFIG_NAME}Config.cmake
+#    DESTINATION ${TYPEART_INSTALL_CONFIGDIR}
+#    )
 else()
   message(STATUS "Cannot build mpi MPITool lib. MPI found: " ${MPI_C_FOUND} " and python found: " ${PYTHONINTERP_FOUND})
 endif()

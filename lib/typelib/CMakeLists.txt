@@ -39,6 +39,13 @@ make_tidy_check(Types
   "${TYPE_LIB_SOURCES}"
 )
 
+set(CONFIG_NAME ${PROJECT_NAME}Types)
+set(TARGETS_EXPORT_NAME ${CONFIG_NAME}Targets)
+
+install(FILES TypeInterface.h TypeIO.h TypeDB.h
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}
+  )
+
 install(
   TARGETS Types
   EXPORT ${TARGETS_EXPORT_NAME}
@@ -47,6 +54,23 @@ install(
 )
 
 install(
-  FILES TypeInterface.h TypeIO.h TypeDB.h
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}
+  EXPORT ${TARGETS_EXPORT_NAME}
+  NAMESPACE typeart::
+  DESTINATION ${TYPEART_INSTALL_CONFIGDIR}
 )
+
+export(EXPORT ${TARGETS_EXPORT_NAME}
+  FILE ${CMAKE_BINARY_DIR}/${TARGETS_EXPORT_NAME}.cmake
+  NAMESPACE typeart::
+  )
+
+#configure_package_config_file(
+#  ${PROJECT_SOURCE_DIR}/cmake/Config.cmake.in
+#  ${CMAKE_CURRENT_BINARY_DIR}/${CONFIG_NAME}Config.cmake
+#  INSTALL_DESTINATION ${TYPEART_INSTALL_CONFIGDIR}
+#)
+#
+#install(FILES
+#  ${CMAKE_CURRENT_BINARY_DIR}/${CONFIG_NAME}Config.cmake
+#  DESTINATION ${TYPEART_INSTALL_CONFIGDIR}
+#  )

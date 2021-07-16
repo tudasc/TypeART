@@ -37,9 +37,34 @@ target_compile_definitions(TransformPass
 target_project_compile_options(TransformPass)
 target_project_coverage_options(TransformPass)
 
+set(CONFIG_NAME ${PROJECT_NAME}TransformPass)
+set(TARGETS_EXPORT_NAME ${CONFIG_NAME}Targets)
+
 install(
   TARGETS TransformPass
   EXPORT ${TARGETS_EXPORT_NAME}
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
+
+install(
+  EXPORT ${TARGETS_EXPORT_NAME}
+  NAMESPACE typeart::
+  DESTINATION ${TYPEART_INSTALL_CONFIGDIR}
+)
+
+export(EXPORT ${TARGETS_EXPORT_NAME}
+  FILE ${CMAKE_BINARY_DIR}/${TARGETS_EXPORT_NAME}.cmake
+  NAMESPACE typeart::
+  )
+
+#configure_package_config_file(
+#  ${PROJECT_SOURCE_DIR}/cmake/Config.cmake.in
+#  ${CMAKE_CURRENT_BINARY_DIR}/${CONFIG_NAME}Config.cmake
+#  INSTALL_DESTINATION ${TYPEART_INSTALL_CONFIGDIR}
+#)
+#
+#install(FILES
+#  ${CMAKE_CURRENT_BINARY_DIR}/${CONFIG_NAME}Config.cmake
+#  DESTINATION ${TYPEART_INSTALL_CONFIGDIR}
+#  )

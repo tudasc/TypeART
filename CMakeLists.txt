@@ -38,21 +38,32 @@ add_subdirectory(externals)
 add_subdirectory(lib)
 add_subdirectory(scripts)
 
-install(
-  EXPORT ${TARGETS_EXPORT_NAME}
-  NAMESPACE typeart::
-  DESTINATION ${TYPEART_INSTALL_CONFIGDIR}
-)
+#install(
+#  EXPORT ${TARGETS_EXPORT_NAME}
+#  NAMESPACE typeart::
+#  DESTINATION ${TYPEART_INSTALL_CONFIGDIR}
+#)
+
 write_basic_package_version_file(
   ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
   VERSION ${PROJECT_VERSION}
   COMPATIBILITY SameMinorVersion
 )
 
+set(INCLUDE_INSTALL_DIR ${CMAKE_INSTALL_INCLUDEDIR})
+set(LIBRARY_INSTALL_DIR ${CMAKE_INSTALL_LIBDIR})
+set(BINARY_INSTALL_DIR ${CMAKE_INSTALL_BINDIR})
+set(CMAKE_INSTALL_DIR ${TYPEART_INSTALL_CONFIGDIR})
+
 configure_package_config_file(
   ${PROJECT_SOURCE_DIR}/cmake/Config.cmake.in
   ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
   INSTALL_DESTINATION ${TYPEART_INSTALL_CONFIGDIR}
+  PATH_VARS
+    INCLUDE_INSTALL_DIR
+    LIBRARY_INSTALL_DIR
+    BINARY_INSTALL_DIR
+    CMAKE_INSTALL_DIR
 )
 
 install(FILES
@@ -61,12 +72,8 @@ install(FILES
   DESTINATION ${TYPEART_INSTALL_CONFIGDIR}
 )
 
-export(EXPORT ${TARGETS_EXPORT_NAME}
-  FILE ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Targets.cmake
-  NAMESPACE typeart::
-)
 
-export(PACKAGE ${PROJECT_NAME})
+#export(PACKAGE ${PROJECT_NAME})
 
 enable_testing()
 add_subdirectory(test)
