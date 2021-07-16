@@ -63,7 +63,7 @@ function global_init() {
     local -r typeart_include_dir="@TYPEART_INCLUDE_DIRS@"
     local -r typeart_analysis_pass="@TYPEART_ANALYSIS_PASS_DIR@/$<TARGET_FILE_NAME:typeart::MemOpFinderPass>"
     local -r typeart_pass="@TYPEART_PASS_DIR@/$<TARGET_FILE_NAME:typeart::TransformPass>"
-    readonly typeart_interceptor="@TYPEART_MPI_INTERCEPT_DIR@/$<TARGET_FILE_NAME:typeart::PMPIToolRuntime>"
+    readonly typeart_interceptor="@TYPEART_MPI_INTERCEPT_DIR@/$<TARGET_FILE_NAME:typeart::MPITool>"
   else
     # shellcheck disable=SC2155
     local -r typeart_bin_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -73,7 +73,7 @@ function global_init() {
     local -r typeart_include_dir="-I${typeart_install_dir}/@CMAKE_INSTALL_INCLUDEDIR@"
     local -r typeart_analysis_pass="${typeart_lib_dir}/$<TARGET_FILE_NAME:typeart::MemOpFinderPass>"
     local -r typeart_pass="${typeart_lib_dir}/$<TARGET_FILE_NAME:typeart::TransformPass>"
-    readonly typeart_interceptor="${typeart_lib_dir}/$<TARGET_FILE_NAME:typeart::PMPIToolRuntime>"
+    readonly typeart_interceptor="${typeart_lib_dir}/$<TARGET_FILE_NAME:typeart::MPITool>"
   fi
 
   readonly opt_tool="@TYPEART_OPT@"

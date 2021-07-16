@@ -15,46 +15,46 @@ if(${MPI_C_FOUND} AND ${PYTHONINTERP_FOUND})
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
   )
 
-  add_library(PMPIToolRuntime SHARED
+  add_library(MPITool SHARED
     ${LIB_SOURCE}
   )
-  set_property(TARGET PMPIToolRuntime PROPERTY OUTPUT_NAME "${PROJECT_NAME}PMPIToolRuntime")
-  add_library(typeart::PMPIToolRuntime ALIAS PMPIToolRuntime)
+  set_property(TARGET MPITool PROPERTY OUTPUT_NAME "${PROJECT_NAME}MPITool")
+  add_library(typeart::MPITool ALIAS MPITool)
 
 
-  set_property(TARGET PMPIToolRuntime PROPERTY C_STANDARD 11)
-  set_property(TARGET PMPIToolRuntime PROPERTY C_STANDARD_REQUIRED TRUE)
+  set_property(TARGET MPITool PROPERTY C_STANDARD 11)
+  set_property(TARGET MPITool PROPERTY C_STANDARD_REQUIRED TRUE)
 
-  target_define_file_basename(PMPIToolRuntime)
+  target_define_file_basename(MPITool)
 
-  target_include_directories(PMPIToolRuntime
+  target_include_directories(MPITool
     PUBLIC
       $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   )
 
-  target_include_directories(PMPIToolRuntime
+  target_include_directories(MPITool
     SYSTEM
     PRIVATE
       ${LLVM_INCLUDE_DIRS}
   )
 
   if(ENABLE_TSAN)
-    target_tsan_options(PMPIToolRuntime)
+    target_tsan_options(MPITool)
   endif()
 
-  target_link_libraries(PMPIToolRuntime
+  target_link_libraries(MPITool
     PRIVATE
       typeart::Runtime
       MPI::MPI_C
   )
 
   install(
-    TARGETS PMPIToolRuntime
+    TARGETS MPITool
     EXPORT ${TARGETS_EXPORT_NAME}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
   )
 else()
-  message(STATUS "Cannot build mpi PMPIToolRuntime lib. MPI found: " ${MPI_C_FOUND} " and python found: " ${PYTHONINTERP_FOUND})
+  message(STATUS "Cannot build mpi MPITool lib. MPI found: " ${MPI_C_FOUND} " and python found: " ${PYTHONINTERP_FOUND})
 endif()
