@@ -6,12 +6,11 @@ if(${MPI_C_FOUND} AND ${PYTHONINTERP_FOUND})
     ${CMAKE_CURRENT_BINARY_DIR}/mpi_interceptor_rt.c
   )
   
-  set(LIB_TMPL
-    mpi_interceptor_tmpl.impl
-  )
-
-  execute_process(
-    COMMAND ${PYTHON_EXECUTABLE} wrap.py ${LIB_TMPL} -o ${LIB_SOURCE}
+  add_custom_command(
+    OUTPUT ${LIB_SOURCE}
+    COMMAND ${PYTHON_EXECUTABLE} wrap.py mpi_interceptor_tmpl.impl
+              -o ${LIB_SOURCE}
+    MAIN_DEPENDENCY mpi_interceptor_tmpl.impl
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
   )
 
