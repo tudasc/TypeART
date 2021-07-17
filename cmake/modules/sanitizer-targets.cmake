@@ -38,7 +38,7 @@ function(target_asan_options target)
   target_sanitizer_options(${target}
     SAN_FLAGS
       ${asan_f}
-    )
+  )
 endfunction()
 
 function(target_ubsan_options target)

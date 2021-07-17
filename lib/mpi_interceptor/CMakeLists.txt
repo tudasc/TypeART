@@ -1,85 +1,71 @@
-find_package(MPI QUIET)
-find_package(PythonInterp QUIET)
+set(LIB_SOURCE ${CMAKE_CURRENT_BINARY_DIR}/mpi_interceptor_rt.c)
 
-if(${MPI_C_FOUND} AND ${PYTHONINTERP_FOUND})
-  set(LIB_SOURCE
-    ${CMAKE_CURRENT_BINARY_DIR}/mpi_interceptor_rt.c
-  )
-  
-  add_custom_command(
-    OUTPUT ${LIB_SOURCE}
-    COMMAND ${PYTHON_EXECUTABLE} wrap.py mpi_interceptor_tmpl.impl
-              -o ${LIB_SOURCE}
-    MAIN_DEPENDENCY mpi_interceptor_tmpl.impl
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-  )
+add_custom_command(
+  OUTPUT ${LIB_SOURCE}
+  COMMAND ${PYTHON_EXECUTABLE} wrap.py mpi_interceptor_tmpl.impl -o
+          ${LIB_SOURCE}
+  MAIN_DEPENDENCY mpi_interceptor_tmpl.impl
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+)
 
-  add_library(MPITool SHARED
-    ${LIB_SOURCE}
-  )
-  set_property(TARGET MPITool PROPERTY OUTPUT_NAME "${PROJECT_NAME}MPITool")
-  add_library(typeart::MPITool ALIAS MPITool)
+add_library(MPITool SHARED ${LIB_SOURCE})
+set_property(TARGET MPITool PROPERTY OUTPUT_NAME "${PROJECT_NAME}MPITool")
+add_library(typeart::MPITool ALIAS MPITool)
 
+set_property(TARGET MPITool PROPERTY C_STANDARD 11)
+set_property(TARGET MPITool PROPERTY C_STANDARD_REQUIRED TRUE)
 
-  set_property(TARGET MPITool PROPERTY C_STANDARD 11)
-  set_property(TARGET MPITool PROPERTY C_STANDARD_REQUIRED TRUE)
+target_define_file_basename(MPITool)
 
-  target_define_file_basename(MPITool)
+target_include_directories(MPITool
+  PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
+         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
 
-  target_include_directories(MPITool
-    PUBLIC
-      $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
-      $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-      $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-  )
+target_include_directories(MPITool 
+  SYSTEM 
+  PRIVATE ${LLVM_INCLUDE_DIRS}
+)
 
-  target_include_directories(MPITool
-    SYSTEM
-    PRIVATE
-      ${LLVM_INCLUDE_DIRS}
-  )
-
-  if(ENABLE_TSAN)
-    target_tsan_options(MPITool)
-  endif()
-
-  target_link_libraries(MPITool
-    PRIVATE
-      typeart::Runtime
-      MPI::MPI_C
-  )
-
-  set(CONFIG_NAME ${PROJECT_NAME}MPITool)
-  set(TARGETS_EXPORT_NAME ${CONFIG_NAME}Targets)
-
-  install(
-    TARGETS MPITool
-    EXPORT ${TARGETS_EXPORT_NAME}
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  )
-
-  install(
-    EXPORT ${TARGETS_EXPORT_NAME}
-    NAMESPACE typeart::
-    DESTINATION ${TYPEART_INSTALL_CONFIGDIR}
-  )
-
-  export(EXPORT ${TARGETS_EXPORT_NAME}
-    FILE ${CMAKE_BINARY_DIR}/${TARGETS_EXPORT_NAME}.cmake
-    NAMESPACE typeart::
-  )
-
-#  configure_package_config_file(
-#    ${PROJECT_SOURCE_DIR}/cmake/Config.cmake.in
-#    ${CMAKE_CURRENT_BINARY_DIR}/${CONFIG_NAME}Config.cmake
-#    INSTALL_DESTINATION ${TYPEART_INSTALL_CONFIGDIR}
-#  )
-#
-#  install(FILES
-#    ${CMAKE_CURRENT_BINARY_DIR}/${CONFIG_NAME}Config.cmake
-#    DESTINATION ${TYPEART_INSTALL_CONFIGDIR}
-#    )
-else()
-  message(STATUS "Cannot build mpi MPITool lib. MPI found: " ${MPI_C_FOUND} " and python found: " ${PYTHONINTERP_FOUND})
+if(ENABLE_TSAN)
+  target_tsan_options(MPITool)
 endif()
+
+target_link_libraries(MPITool 
+  PRIVATE typeart::Runtime 
+          MPI::MPI_C
+)
+
+set(CONFIG_NAME ${PROJECT_NAME}MPITool)
+set(TARGETS_EXPORT_NAME ${CONFIG_NAME}Targets)
+
+install(
+  TARGETS MPITool
+  EXPORT ${TARGETS_EXPORT_NAME}
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
+
+install(
+  EXPORT ${TARGETS_EXPORT_NAME}
+  NAMESPACE typeart::
+  DESTINATION ${TYPEART_INSTALL_CONFIGDIR}
+)
+
+export(
+  EXPORT ${TARGETS_EXPORT_NAME}
+  FILE ${CMAKE_BINARY_DIR}/${TARGETS_EXPORT_NAME}.cmake
+  NAMESPACE typeart::
+)
+
+#configure_package_config_file(
+#  ${PROJECT_SOURCE_DIR}/cmake/Config.cmake.in
+#  ${CMAKE_CURRENT_BINARY_DIR}/${CONFIG_NAME}Config.cmake
+#  INSTALL_DESTINATION ${TYPEART_INSTALL_CONFIGDIR}
+#)
+#
+#install(FILES
+#  ${CMAKE_CURRENT_BINARY_DIR}/${CONFIG_NAME}Config.cmake
+#  DESTINATION ${TYPEART_INSTALL_CONFIGDIR}
+#)

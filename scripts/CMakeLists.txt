@@ -1,5 +1,7 @@
 function(configure_typeart_script input output)
-  cmake_parse_arguments(ARG "" "" "INSTALL_MODE;COMPILER;WITH_FILTER;APPLY_MODE" ${ARGN})
+  cmake_parse_arguments(
+    ARG "" "" "INSTALL_MODE;COMPILER;WITH_FILTER;APPLY_MODE" ${ARGN}
+  )
   set(TYPEART_SAN_FLAGS "")
 
   set(TYPEART_PROJECT_DIR ${PROJECT_SOURCE_DIR})
@@ -10,15 +12,23 @@ function(configure_typeart_script input output)
   set(TYPEART_PLUGIN typeartpass.so)
 
   if(ARG_INSTALL_MODE)
-    set(TYPEART_INCLUDE_DIRS -I${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR})
-    set(TYPEART_MPI_INTERCEPT_DIR ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
+    set(TYPEART_INCLUDE_DIRS
+        -I${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}
+    )
+    set(TYPEART_MPI_INTERCEPT_DIR
+        ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}
+    )
     set(TYPEART_RT_DIR ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
     set(TYPEART_PASS_DIR ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
-    set(TYPEART_ANALYSIS_PASS_DIR ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
+    set(TYPEART_ANALYSIS_PASS_DIR
+        ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}
+    )
     set(TYPEART_BINARY_DIR -I${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR})
     set(TYPEART_RELOCATABLE 1)
   else()
-    set(TYPEART_INCLUDE_DIRS "-I${PROJECT_SOURCE_DIR}/lib/typelib -I${PROJECT_SOURCE_DIR}/lib/runtime")
+    set(TYPEART_INCLUDE_DIRS
+        "-I${PROJECT_SOURCE_DIR}/lib/typelib -I${PROJECT_SOURCE_DIR}/lib/runtime"
+    )
     set(TYPEART_MPI_INTERCEPT_DIR ${CMAKE_BINARY_DIR}/lib/mpi_interceptor)
     set(TYPEART_RT_DIR ${CMAKE_BINARY_DIR}/lib/runtime)
     set(TYPEART_PASS_DIR ${CMAKE_BINARY_DIR}/lib/passes)
@@ -63,16 +73,16 @@ function(configure_typeart_script input output)
 endfunction()
 
 function(configure_typeart_coverage_script input output)
-  find_program(LLVMCOV_COMMAND
+  find_program(
+    LLVMCOV_COMMAND
     NAMES llvm-cov-10 llvm-cov
     HINTS ${LLVM_TOOLS_BINARY_DIR}
   )
   if(LLVMCOV_COMMAND)
-    file(GENERATE
-      OUTPUT
-        ${output}
-      CONTENT
-        "#!/usr/bin/env bash\n\n${LLVMCOV_COMMAND} gcov \"$@\"\n"
+    file(
+      GENERATE
+      OUTPUT ${output}
+      CONTENT "#!/usr/bin/env bash\n\n${LLVMCOV_COMMAND} gcov \"$@\"\n"
       FILE_PERMISSIONS
         OWNER_READ OWNER_WRITE OWNER_EXECUTE
         GROUP_READ
@@ -84,21 +94,30 @@ function(configure_typeart_coverage_script input output)
 endfunction()
 
 function(find_clang_progs target names default)
-  find_program(target-prog
+  find_program(
+    target-prog
     NAMES ${names}
     HINTS ${LLVM_TOOLS_BINARY_DIR}
     NO_DEFAULT_PATH
   )
 
-  if (NOT target-prog)
-    set(${target} ${default} PARENT_SCOPE)
-    message(STATUS "Did not find clang program ${names} in ${LLVM_TOOLS_BINARY_DIR}. Using def. value: ${default}")
+  if(NOT target-prog)
+    set(${target}
+        ${default}
+        PARENT_SCOPE
+    )
+    message(
+      STATUS
+        "Did not find clang program ${names} in ${LLVM_TOOLS_BINARY_DIR}. Using def. value: ${default}"
+    )
   else()
-    set(${target} ${target-prog} PARENT_SCOPE)
+    set(${target}
+        ${target-prog}
+        PARENT_SCOPE
+    )
   endif()
   unset(target-prog CACHE)
 endfunction()
-
 
 find_clang_progs(CLANG_EXEC "clang;clang-10" "clang")
 find_clang_progs(CLANGCXX_EXEC "clang++;clang++-10" "clang++")
@@ -112,49 +131,59 @@ configure_typeart_script(typeart-tmpl.sh.in apply.sh
   APPLY_MODE ON
 )
 
-configure_typeart_script(typeart-tmpl.sh.in typeart-run${CMAKE_DEBUG_POSTFIX}.sh
+configure_typeart_script(
+  typeart-tmpl.sh.in typeart-run${CMAKE_DEBUG_POSTFIX}.sh
   INSTALL_MODE ON
 )
-configure_typeart_script(typeart-tmpl.sh.in typeart-apply${CMAKE_DEBUG_POSTFIX}.sh
+configure_typeart_script(
+  typeart-tmpl.sh.in typeart-apply${CMAKE_DEBUG_POSTFIX}.sh
   INSTALL_MODE ON
   APPLY_MODE ON
 )
 
-configure_typeart_script(typeart-wrapper.in typeart-clang${CMAKE_DEBUG_POSTFIX}
+configure_typeart_script(
+  typeart-wrapper.in typeart-clang${CMAKE_DEBUG_POSTFIX}
   INSTALL_MODE ON
   COMPILER ${CLANG_EXEC}
 )
-configure_typeart_script(typeart-wrapper.in typeart-clang++${CMAKE_DEBUG_POSTFIX}
+configure_typeart_script(
+  typeart-wrapper.in typeart-clang++${CMAKE_DEBUG_POSTFIX}
   INSTALL_MODE ON
   COMPILER ${CLANGCXX_EXEC}
 )
 
-configure_typeart_script(typeart-wrapper.in typeart-clang-test
+configure_typeart_script(
+  typeart-wrapper.in typeart-clang-test
   COMPILER ${CLANG_EXEC}
 )
-configure_typeart_script(typeart-wrapper.in typeart-clang++-test
+configure_typeart_script(
+  typeart-wrapper.in typeart-clang++-test
   COMPILER ${CLANGCXX_EXEC}
 )
 
 if(${MPI_C_FOUND})
-  configure_typeart_script(typeart-wrapper.in typeart-mpicc${CMAKE_DEBUG_POSTFIX}
+  configure_typeart_script(
+    typeart-wrapper.in typeart-mpicc${CMAKE_DEBUG_POSTFIX}
     INSTALL_MODE ON
     WITH_FILTER ON
     COMPILER "env OMPI_CC=${CLANG_EXEC} ${MPI_C_COMPILER}"
   )
-  configure_typeart_script(typeart-wrapper.in typeart-mpicc-test
+  configure_typeart_script(
+    typeart-wrapper.in typeart-mpicc-test
     WITH_FILTER ON
     COMPILER "env OMPI_CC=${CLANG_EXEC} ${MPI_C_COMPILER}"
   )
 endif()
 
 if(${MPI_CXX_FOUND})
-  configure_typeart_script(typeart-wrapper.in typeart-mpic++${CMAKE_DEBUG_POSTFIX}
+  configure_typeart_script(
+    typeart-wrapper.in typeart-mpic++${CMAKE_DEBUG_POSTFIX}
     INSTALL_MODE ON
     WITH_FILTER ON
     COMPILER "env OMPI_CXX=${CLANGCXX_EXEC} ${MPI_CXX_COMPILER}"
   )
-  configure_typeart_script(typeart-wrapper.in typeart-mpic++-test
+  configure_typeart_script(
+    typeart-wrapper.in typeart-mpic++-test
     WITH_FILTER ON
     COMPILER "env OMPI_CXX=${CLANGCXX_EXEC} ${MPI_CXX_COMPILER}"
   )

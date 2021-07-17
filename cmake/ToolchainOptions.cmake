@@ -26,14 +26,22 @@ option(TEST_CONFIGURE_IDE "Add targets so the IDE (e.g., Clion) can interpret te
 mark_as_advanced(TEST_CONFIGURE_IDE)
 option(ENABLE_TSAN "Build runtime lib and tests with fsanitize=thread" OFF)
 option(ENABLE_SAFEPTR "Use external safe_ptr map wrapper instead of mutex" OFF)
-cmake_dependent_option(DISABLE_THREAD_SAFETY "Explicitly make runtime *not* thread-safe." OFF "NOT ENABLE_SAFEPTR" OFF)
-cmake_dependent_option(ENABLE_ASAN "Build runtime lib and tests with fsanitize=address." OFF "NOT ENABLE_TSAN" OFF)
-cmake_dependent_option(ENABLE_UBSAN "Build runtime lib and tests with fsanitize=undefined." OFF "NOT ENABLE_TSAN" OFF)
+cmake_dependent_option(DISABLE_THREAD_SAFETY "Explicitly make runtime *not* thread-safe." OFF 
+  "NOT ENABLE_SAFEPTR" OFF
+)
+cmake_dependent_option(ENABLE_ASAN "Build runtime lib and tests with fsanitize=address." OFF
+  "NOT ENABLE_TSAN" OFF
+)
+cmake_dependent_option(ENABLE_UBSAN "Build runtime lib and tests with fsanitize=undefined." OFF
+  "NOT ENABLE_TSAN" OFF
+)
 option(INSTALL_UTIL_SCRIPTS "Install single file build and run scripts" OFF)
 mark_as_advanced(INSTALL_UTIL_SCRIPTS)
 option(ENABLE_MPI_WRAPPER "Generate mpicc and mpic++ wrapper for TypeART" ON)
-option(USE_ABSL "Enable usage of abseil's btree-backed map instead of std::map for the runtime." ON )
-CMAKE_DEPENDENT_OPTION(USE_BTREE "Enable usage of btree-backed map instead of std::map for the runtime." ON "NOT USE_ABSL" OFF)
+option(USE_ABSL "Enable usage of abseil's btree-backed map instead of std::map for the runtime." ON)
+cmake_dependent_option(USE_BTREE "Enable usage of btree-backed map instead of std::map for the runtime." ON
+  "NOT USE_ABSL" OFF
+)
 
 include(AddLLVM)
 include(llvm-lit)
@@ -45,32 +53,40 @@ include(coverage)
 include(sanitizer-targets)
 include(target-util)
 
-if (TEST_CONFIG)
+if(TEST_CONFIG)
   set(LOG_LEVEL 2 CACHE STRING "" FORCE)
   set(LOG_LEVEL_RT 3 CACHE STRING "" FORCE)
-endif ()
+endif()
 
-if (MPI_LOGGER OR ENABLE_MPI_WRAPPER OR MPI_INTERCEPT_LIB)
+if(MPI_LOGGER
+   OR ENABLE_MPI_WRAPPER
+   OR MPI_INTERCEPT_LIB
+)
   find_package(MPI REQUIRED)
-endif ()
+endif()
 
-if (NOT CMAKE_BUILD_TYPE)
+if(MPI_INTERCEPT_LIB)
+  find_package(PythonInterp REQUIRED)
+endif()
+
+if(NOT CMAKE_BUILD_TYPE)
   # set default build type
   set(CMAKE_BUILD_TYPE Debug CACHE STRING "" FORCE)
   message(STATUS "Building as debug (default)")
-endif ()
+endif()
 
-if(NOT CMAKE_DEBUG_POSTFIX AND CMAKE_BUILD_TYPE STREQUAL "Debug" )
+if(NOT CMAKE_DEBUG_POSTFIX AND CMAKE_BUILD_TYPE STREQUAL "Debug")
   set(CMAKE_DEBUG_POSTFIX "-d")
 endif()
 
-
-if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   # set default install path
-  set(CMAKE_INSTALL_PREFIX "${typeart_SOURCE_DIR}/install/typeart" CACHE PATH "Default install path" FORCE)
+  set(CMAKE_INSTALL_PREFIX
+      "${typeart_SOURCE_DIR}/install/typeart"
+      CACHE PATH "Default install path" FORCE
+  )
   message(STATUS "Installing to (default): ${CMAKE_INSTALL_PREFIX}")
-endif ()
-
+endif()
 
 set(TARGETS_EXPORT_NAME ${PROJECT_NAME}Targets)
 set(TYPEART_INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})

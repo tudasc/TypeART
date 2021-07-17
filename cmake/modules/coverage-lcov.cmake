@@ -32,7 +32,6 @@ add_custom_target(
   DEPENDS lcov-make
 )
 
-
 function(make_lcov_target target)
 #  add_custom_target(
 #    lcov-clean-${target}
