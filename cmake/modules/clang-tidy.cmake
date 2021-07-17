@@ -1,9 +1,9 @@
 function(add_tidy_target target comment)
-  macro(filter_dir _name_)
-    foreach(SOURCE_FILE ${ARG_SOURCES})
-      string(FIND ${SOURCE_FILE} ${_name_} EXCLUDE_FOUND)
+  macro(filter_dir dir_name_)
+    foreach(source_file ${ARG_SOURCES})
+      string(FIND ${source_file} ${dir_name_} EXCLUDE_FOUND)
       if(NOT ${EXCLUDE_FOUND} EQUAL -1)
-        list(REMOVE_ITEM ARG_SOURCES ${SOURCE_FILE})
+        list(REMOVE_ITEM ARG_SOURCES ${source_file})
       endif()
     endforeach()
   endmacro()
@@ -55,6 +55,7 @@ function(make_tidy_check name sources)
   add_tidy_fix_target(tidy-fix-on-${name}
     "Clang-tidy run with fixes on ${name} translation units"
     SOURCES ${sources}
-    OTHER --header-filter=${CMAKE_CURRENT_SOURCE_DIR} -checks=-*,modernize-*,llvm-namespace-comment,google-explicit-constructor,-modernize-use-trailing-return-type,-modernize-use-using
+    OTHER --header-filter=${CMAKE_CURRENT_SOURCE_DIR}
+          -checks=-*,modernize-*,llvm-namespace-comment,google-explicit-constructor,-modernize-use-trailing-return-type,-modernize-use-using
   )
 endfunction()

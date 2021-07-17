@@ -26,7 +26,7 @@ option(TEST_CONFIGURE_IDE "Add targets so the IDE (e.g., Clion) can interpret te
 mark_as_advanced(TEST_CONFIGURE_IDE)
 option(ENABLE_TSAN "Build runtime lib and tests with fsanitize=thread" OFF)
 option(ENABLE_SAFEPTR "Use external safe_ptr map wrapper instead of mutex" OFF)
-cmake_dependent_option(DISABLE_THREAD_SAFETY "Explicitly make runtime *not* thread-safe." OFF 
+cmake_dependent_option(DISABLE_THREAD_SAFETY "Explicitly make runtime *not* thread-safe." OFF
   "NOT ENABLE_SAFEPTR" OFF
 )
 cmake_dependent_option(ENABLE_ASAN "Build runtime lib and tests with fsanitize=address." OFF

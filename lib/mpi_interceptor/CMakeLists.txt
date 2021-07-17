@@ -6,6 +6,7 @@ add_custom_command(
           ${LIB_SOURCE}
   MAIN_DEPENDENCY mpi_interceptor_tmpl.impl
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  COMMENT "Generate PMPI wrapper"
 )
 
 add_library(MPITool SHARED ${LIB_SOURCE})
@@ -23,8 +24,8 @@ target_include_directories(MPITool
          $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-target_include_directories(MPITool 
-  SYSTEM 
+target_include_directories(MPITool
+  SYSTEM
   PRIVATE ${LLVM_INCLUDE_DIRS}
 )
 
@@ -32,8 +33,8 @@ if(ENABLE_TSAN)
   target_tsan_options(MPITool)
 endif()
 
-target_link_libraries(MPITool 
-  PRIVATE typeart::Runtime 
+target_link_libraries(MPITool
+  PRIVATE typeart::Runtime
           MPI::MPI_C
 )
 

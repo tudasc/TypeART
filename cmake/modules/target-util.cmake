@@ -37,7 +37,6 @@ function(target_project_compile_definitions target)
   endif ()
 endfunction()
 
-
 function (target_generate_file input output)
   file(READ ${input} contents)
   string(CONFIGURE "${contents}" contents @ONLY)

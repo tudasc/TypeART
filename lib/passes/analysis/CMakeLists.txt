@@ -1,4 +1,4 @@
-set(MEM_PASS_SOURCES 
+set(MEM_PASS_SOURCES
   MemInstFinderPass.cpp
   MemOpVisitor.cpp
   ../support/TypeUtil.cpp

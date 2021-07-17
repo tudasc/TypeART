@@ -7,11 +7,11 @@ if(LLVM_EXTERNAL_LIT)
     lit_file_name
     ALLOW_EXTERNAL
   )
-  set(path_to_lit ${lit_file_name})
+  set(PATH_TO_LIT ${lit_file_name})
   if(lit_base_dir)
-    set(path_to_lit ${lit_base_dir}/${path_to_lit})
+    set(PATH_TO_LIT ${lit_base_dir}/${PATH_TO_LIT})
   endif()
-  set(LIT_COMMAND_I "${PYTHON_EXECUTABLE};${path_to_lit}")
+  set(LIT_COMMAND_I "${PYTHON_EXECUTABLE};${PATH_TO_LIT}")
 endif()
 
 if(NOT LIT_COMMAND_I)
