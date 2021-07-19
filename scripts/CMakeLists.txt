@@ -37,6 +37,14 @@ function(configure_typeart_script input output)
     set(TYPEART_RELOCATABLE 0)
   endif()
 
+  # TODO use generator in the scripts, even if target does not exist. How?
+  set(TYPEART_MPI_TOOL "typeartMPITool.so")
+  if(TARGET typeart::MPITool)
+    set(TYPEART_HAS_MPI_TOOL 1)
+  else()
+    set(TYPEART_HAS_MPI_TOOL 0)
+  endif()
+
   if(ARG_COMPILER)
     set(TYPEART_COMPILER ${ARG_COMPILER})
   endif()

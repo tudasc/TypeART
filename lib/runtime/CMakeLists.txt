@@ -25,6 +25,7 @@ target_link_libraries(
           $<$<BOOL:${USE_BTREE}>:google::btree>
           $<$<BOOL:${USE_ABSL}>:absl::btree>
           $<$<BOOL:${ENABLE_SAFEPTR}>:sf::pointer>
+          $<$<NOT:$<BOOL:${DISABLE_THREAD_SAFETY}>>:Threads::Threads>
 )
 
 target_include_directories(

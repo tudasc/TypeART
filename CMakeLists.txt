@@ -68,3 +68,9 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
 
 enable_testing()
 add_subdirectory(test)
+
+feature_summary(WHAT ENABLED_FEATURES PACKAGES_FOUND PACKAGES_NOT_FOUND
+  DESCRIPTION "TypeART ${PROJECT_VERSION} package and feature info:"
+  INCLUDE_QUIET_PACKAGES
+  QUIET_ON_EMPTY
+)
