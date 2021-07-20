@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(typeart VERSION 1.6)
+project(typeart
+  VERSION 1.6
+  HOMEPAGE_URL https://github.com/tudasc/TypeART
+  DESCRIPTION "LLVM-based type and memory allocation tracking sanitizer"
+)
 
 set(TYPEART_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
 
