@@ -11,6 +11,7 @@ function(add_format_target target comment)
   cmake_parse_arguments(ARG "" "" "TARGETS;EXCLUDES;OTHER" ${ARGN})
 
   file(GLOB_RECURSE
+    CONFIGURE_DEPENDS
     ALL_CXX_FILES
     ${ARG_TARGETS}
   )
@@ -20,7 +21,7 @@ function(add_format_target target comment)
   endforeach()
 
   find_program(FORMAT_COMMAND
-               NAMES clang-format clang-format-10 clang-format-9 clang-format-7 clang-format-5 clang-format-4)
+               NAMES clang-format clang-format-12 clang-format-11 clang-format-10)
   if(FORMAT_COMMAND)
     add_custom_target(${target}
       COMMAND ${FORMAT_COMMAND} -i -style=file ${ARG_OTHER} ${ARG_UNPARSED_ARGUMENTS}

@@ -6,6 +6,13 @@ project(typeart
   DESCRIPTION "LLVM-based type and memory allocation tracking sanitizer"
 )
 
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+  # CMake 3.21 offers PROJECT_IS_TOP_LEVEL
+  set(TYPEART_IS_TOP_LEVEL true)
+else()
+  set(TYPEART_IS_TOP_LEVEL false)
+endif()
+
 set(TYPEART_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -70,8 +77,10 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
 
 # export(PACKAGE ${PROJECT_NAME})
 
-enable_testing()
-add_subdirectory(test)
+if(TYPEART_IS_TOP_LEVEL)
+  enable_testing()
+  add_subdirectory(test)
+endif()
 
 feature_summary(WHAT ENABLED_FEATURES PACKAGES_FOUND PACKAGES_NOT_FOUND
   DESCRIPTION "TypeART ${PROJECT_VERSION} package and feature info:"

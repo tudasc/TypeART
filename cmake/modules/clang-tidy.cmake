@@ -15,7 +15,7 @@ function(add_tidy_target target comment)
   endforeach()
 
   find_program(TIDY_COMMAND
-    NAMES clang-tidy clang-tidy-10 clang-tidy-9 clang-tidy-7 clang-tidy-5 clang-tidy-4
+    NAMES clang-tidy clang-tidy-12 clang-tidy-11 clang-tidy-10
     HINTS ${LLVM_TOOLS_BINARY_DIR}
   )
   if(TIDY_COMMAND)
