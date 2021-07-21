@@ -16,7 +16,7 @@ endif()
 
 if(NOT LIT_COMMAND_I)
   find_program(LLVM_LIT_PATH
-    NAME llvm-lit lit.py
+    NAME llvm-lit lit lit.py
     HINTS ${LLVM_TOOLS_BINARY_DIR}
     PATHS ${LLVM_ROOT_DIR}/bin /usr/bin /usr/local/bin /opt/local/bin /usr/lib
   )

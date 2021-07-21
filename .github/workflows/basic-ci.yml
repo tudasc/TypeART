@@ -86,7 +86,7 @@ jobs:
           sudo ln -f -s /usr/bin/clang-tidy-10 /usr/bin/clang-tidy
 
       - name: Configure TypeART
-        run: cmake -B build --preset ${{ matrix.preset.name }}
+        run: cmake -B build --preset ${{ matrix.preset.name }} -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT}
 
       - name: Build TypeART
         run: cmake --build build --parallel 2
