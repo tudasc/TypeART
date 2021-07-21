@@ -35,7 +35,7 @@ option(MPI_INTERCEPT_LIB "Build MPI interceptor library for prototyping and test
 add_feature_info(MPI_INTERCEPT_LIB MPI_INTERCEPT_LIB "Build TypeART's MPI tool, which intercepts MPI calls and applies buffer checks.")
 
 option(SOFTCOUNTERS "Enable software tracking of #tracked addrs. / #distinct checks / etc." OFF)
-add_feature_info(SOFTCOUNTERS SOFTCOUNTERS "Runtime collects various counters of memory ops/check operations.")
+add_feature_info(SOFTCOUNTER SOFTCOUNTERS "Runtime collects various counters of memory ops/check operations.")
 
 option(TEST_CONFIG "Set logging levels to appropriate levels for test runner to succeed" OFF)
 add_feature_info(TEST_CONFIG TEST_CONFIG "Test config to support lit test suite with appropriate diagnostic logging levels.")

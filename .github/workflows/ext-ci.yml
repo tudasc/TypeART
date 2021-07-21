@@ -17,22 +17,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        config:
-          - {
-            name: "Thread-safe-safeptr",
-            thread-safety: true,
-            safe-ptr: true,
-          }
-          - {
-            name: "Thread-safe",
-            thread-safety: true,
-            safe-ptr: false,
-          }
-          - {
-            name: "Thread-unsafe",
-            thread-safety: false,
-            safe-ptr: false,
-          }
+        preset:
+          - name: [ release-counter, release-safeptr-counter, release-unsafe-counter ]
+
     steps:
       - uses: actions/checkout@v2
 
@@ -62,13 +49,7 @@ jobs:
 
       - name: Configure TypeART
         run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Release \
-            -DMPI_INTERCEPT_LIB=ON \
-            -DSHOW_STATS=ON \
-            -DSOFTCOUNTERS=ON \
-            -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT} \
-            -DENABLE_SAFEPTR=${{ matrix.config.safe-ptr }} \
-            -DDISABLE_THREAD_SAFETY=${{ matrix.config.thread-safety }}
+          cmake -B build --preset ${{ matrix.preset.name }}
 
       - name: Build & install TypeART
         run: |
@@ -113,17 +94,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        config:
-          - {
-            name: "Thread-safe",
-            thread-safety: true,
-            safe-ptr: false,
-          }
-          - {
-            name: "Thread-unsafe",
-            thread-safety: false,
-            safe-ptr: false,
-          }
+        preset:
+          - name: [ release-counter, release-unsafe-counter ]
+
     steps:
       - uses: actions/checkout@v2
 
@@ -154,13 +127,7 @@ jobs:
 
       - name: Configure TypeART
         run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Release \
-            -DMPI_INTERCEPT_LIB=ON \
-            -DSHOW_STATS=ON \
-            -DSOFTCOUNTERS=ON \
-            -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT} \
-            -DENABLE_SAFEPTR=${{ matrix.config.safe-ptr }} \
-            -DDISABLE_THREAD_SAFETY=${{ matrix.config.thread-safety }}
+          cmake -B build --preset ${{ matrix.preset.name }}
 
       - name: Build & install TypeART
         run: |
@@ -197,17 +164,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        config:
-          - {
-            name: "Thread-safe-safeptr",
-            thread-safety: true,
-            safe-ptr: true,
-          }
-          - {
-            name: "Thread-safe",
-            thread-safety: true,
-            safe-ptr: false,
-          }
+        preset:
+          - name: [ release-counter, release-safeptr-counter ]
+
     steps:
       - uses: actions/checkout@v2
 
@@ -241,13 +200,7 @@ jobs:
 
       - name: Configure TypeART
         run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Release \
-            -DMPI_INTERCEPT_LIB=ON \
-            -DSHOW_STATS=ON \
-            -DSOFTCOUNTERS=ON \
-            -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT} \
-            -DENABLE_SAFEPTR=${{ matrix.config.safe-ptr }} \
-            -DDISABLE_THREAD_SAFETY=${{ matrix.config.thread-safety }}
+          cmake -B build --preset ${{ matrix.preset.name }}
 
       - name: Build & install TypeART
         run: |

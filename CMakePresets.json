@@ -89,7 +89,7 @@
         "release"
       ],
       "cacheVariables": {
-        "SOFTCOUNTER": "ON"
+        "SOFTCOUNTERS": "ON"
       }
     },
     {
@@ -97,8 +97,8 @@
       "displayName": "Release config (w/ safeptr)",
       "description": "Release build options with safeptr for Clang",
       "inherits": [
-        "release",
-        "safe-ptr"
+        "safe-ptr",
+        "release"
       ]
     },
     {
@@ -106,8 +106,8 @@
       "displayName": "Release config (w/ safeptr, runtime counters)",
       "description": "Release build options with safeptr and softcounter for Clang",
       "inherits": [
-        "release-counter",
-        "safe-ptr"
+        "safe-ptr",
+        "release-counter"
       ]
     },
     {
@@ -115,8 +115,8 @@
       "displayName": "Release config w/o thread-safety",
       "description": "Release build options without thread-safety for Clang",
       "inherits": [
-        "release",
-        "thread-unsafe"
+        "thread-unsafe",
+        "release"
       ]
     },
     {
@@ -124,8 +124,8 @@
       "displayName": "Release config w/o thread-safety (w/ runtime counters)",
       "description": "Release build options without thread-safety and with softcounter for Clang",
       "inherits": [
-        "release-counter",
-        "thread-unsafe"
+        "thread-unsafe",
+        "release-counter"
       ]
     },
     {
@@ -145,50 +145,53 @@
       "name": "ci-thread-safe",
       "displayName": "CI build: Thread-safe (mutex), tsan",
       "inherits": [
-        "ci-base",
-        "tsan"
+        "tsan",
+        "ci-base"
       ]
     },
     {
       "name": "ci-thread-safe-safeptr",
       "displayName": "CI build: Safe-ptr, tsan",
       "inherits": [
-        "ci-base",
         "tsan",
-        "safe-ptr"
+        "safe-ptr",
+        "ci-base"
       ]
     },
     {
       "name": "ci-thread-unsafe",
       "displayName": "CI build: Serial-only, asan, ubsan",
       "inherits": [
-        "ci-base",
+        "thread-unsafe",
         "san",
-        "thread-unsafe"
+        "ci-base"
       ]
     },
     {
       "name": "ci-cov-thread-safe",
       "displayName": "CI build: Thread-safe w/ coverage (lcov)",
       "inherits": [
-        "ci-thread-safe",
-        "coverage"
+        "coverage",
+        "san",
+        "ci-thread-safe"
       ]
     },
     {
       "name": "ci-cov-thread-safe-safeptr",
       "displayName": "CI build: Safe-ptr w/ coverage (lcov)",
       "inherits": [
-        "ci-thread-safe-safeptr",
-        "coverage"
+        "coverage",
+        "san",
+        "ci-thread-safe-safeptr"
       ]
     },
     {
       "name": "ci-cov-thread-unsafe",
       "displayName": "CI build: Serial-only w/ coverage (lcov)",
       "inherits": [
-        "ci-thread-unsafe",
-        "coverage"
+        "coverage",
+        "san",
+        "ci-thread-unsafe"
       ]
     },
     {
