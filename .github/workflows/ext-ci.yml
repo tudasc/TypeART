@@ -18,7 +18,9 @@ jobs:
       fail-fast: false
       matrix:
         preset:
-          - name: [ release-counter, release-safeptr-counter, release-unsafe-counter ]
+          - name: release-counter
+          - name: release-safeptr-counter
+          - name: release-unsafe-counter
 
     steps:
       - uses: actions/checkout@v2
@@ -48,8 +50,7 @@ jobs:
           sudo ln -f -s /usr/bin/clang-tidy-10 /usr/bin/clang-tidy
 
       - name: Configure TypeART
-        run: |
-          cmake -B build --preset ${{ matrix.preset.name }}
+        run: cmake -B build --preset ${{ matrix.preset.name }} -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT}
 
       - name: Build & install TypeART
         run: |
@@ -126,8 +127,7 @@ jobs:
           sudo ln -f -s /usr/bin/clang-tidy-10 /usr/bin/clang-tidy
 
       - name: Configure TypeART
-        run: |
-          cmake -B build --preset ${{ matrix.preset.name }}
+        run: cmake -B build --preset ${{ matrix.preset.name }} -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT}
 
       - name: Build & install TypeART
         run: |
@@ -199,8 +199,7 @@ jobs:
           sudo ln -f -s /usr/bin/clang-tidy-10 /usr/bin/clang-tidy
 
       - name: Configure TypeART
-        run: |
-          cmake -B build --preset ${{ matrix.preset.name }}
+        run: cmake -B build --preset ${{ matrix.preset.name }} -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT}
 
       - name: Build & install TypeART
         run: |
