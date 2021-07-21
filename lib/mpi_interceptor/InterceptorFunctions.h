@@ -168,6 +168,9 @@ int ta_mpi_type_to_type_id(MPI_Datatype mpi_type) {
   return TA_UNKNOWN_TYPE;
 }
 
+int ta_type_width(int type_id) {
+}
+
 int ta_create_call_info(const char* function_name, const void* called_from, const void* buffer, int is_const, int count,
                         MPI_Datatype type, MPICallInfo* call_info) {
   int rank = 0;
@@ -195,7 +198,7 @@ void ta_log_buffer_too_small(const MPICallInfo* call, int actual_count, int requ
   ta_print_loc(call->called_from);
 }
 
-int ta_check_builtin_type(const MPICallInfo* call, int mpi_type_id, int* mpi_count) {
+int ta_check_builtin_type(const MPICallInfo* call, int mpi_type_id) {
   const char* mpi_type_name = typeart_get_type_name(mpi_type_id);
   fprintf(stderr, "R[%d][Info][%d] %s: buffer %p has type %s, MPI type is %s\n", call->rank, call->buffer.is_const,
           call->function_name, call->buffer.ptr, call->buffer.type_name, mpi_type_name);
@@ -243,7 +246,6 @@ const char* ta_mpi_combiner_name(int combiner) {
     default:
       return "invalid combiner id";
   }
-  *mpi_count = 1;
 }
 
 int ta_check_type(const MPICallInfo* call, MPI_Datatype type, int* mpi_count) {
@@ -265,7 +267,8 @@ int ta_check_type(const MPICallInfo* call, MPI_Datatype type, int* mpi_count) {
         ta_print_loc(call->called_from);
         return -1;
       }
-      return ta_check_builtin_type(call, mpi_type_id, mpi_count);
+      *mpi_count = 1;
+      return ta_check_builtin_type(call, mpi_type_id);
     }
     case MPI_COMBINER_DUP:
       return ta_check_type(call, array_of_datatypes[0], mpi_count);
@@ -283,7 +286,27 @@ int ta_check_type(const MPICallInfo* call, MPI_Datatype type, int* mpi_count) {
         return -1;
       }
       // (count - 1) * stride + blocklength
-      *mpi_count *= (array_of_integers[0] - 1) * array_of_integers[1] + array_of_integers[2];
+      *mpi_count *= (array_of_integers[0] - 1) * array_of_integers[2] + array_of_integers[1];
+      return result;
+    }
+    case MPI_COMBINER_INDEXED_BLOCK: {
+      int result           = ta_check_type(call, array_of_datatypes[0], mpi_count);
+      int max_displacement = 0;
+      for (size_t i = 2; i < num_integers; ++i) {
+        if (array_of_integers[i] > max_displacement) {
+          max_displacement = array_of_integers[i];
+        }
+        if (array_of_integers[i] < 0) {
+          fprintf(stderr,
+                  "R[%d][Error][%d] %s: negative displacements for MPI_Type_create_indexed_block are currently not "
+                  "supported\n",
+                  call->rank, call->buffer.is_const, call->function_name);
+          ta_print_loc(call->called_from);
+          return -1;
+        }
+      }
+      // max(array_of_displacements) + blocklength
+      *mpi_count *= max_displacement + array_of_integers[1];
       return result;
     }
     default:
@@ -313,6 +336,7 @@ int ta_check_buffer(const MPICallInfo* call, int const_adr) {
     ta_log_buffer_too_small(call, (int)call->buffer.count, (int)call->count * mpi_type_count);
     return -1;
   }
+  return 0;
 }
 
 void ta_print_loc(const void* call_adr) {

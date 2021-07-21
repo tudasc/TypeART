@@ -35,6 +35,7 @@ types based on existing MPI types. A list of all type combiners can be found
 
 - [MPI_Type_hvector](https://www.open-mpi.org/doc/v4.1/man3/MPI_Type_hvector.3.php)
 - [MPI_Type_hindexed](https://www.open-mpi.org/doc/v4.1/man3/MPI_Type_hindexed.3.php)
+- [MPI_Type_create_hindexed_block](https://www.open-mpi.org/doc/v4.1/man3/MPI_Type_create_indexed_block.3.php)
 
 ### [MPI_Type_dup](https://www.open-mpi.org/doc/v4.1/man3/MPI_Type_dup.3.php)
 
@@ -51,3 +52,10 @@ Matches any buffer that is an array and can hold at least `(count - 1) * stride 
 elements of a datatype that matches `oldtype`.
 
 Note: negative strides are currently unsupported.
+
+### [MPI_Type_create_indexed_block](https://www.open-mpi.org/doc/v4.1/man3/MPI_Type_create_indexed_block.3.php)
+
+Matches any buffer that is an array and can hold at least `max(array_of_displacements) + blocklength`
+elements of a datatype that matches `oldtype`.
+
+Note: negative displacements are currently unsupported.
