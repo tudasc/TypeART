@@ -86,7 +86,7 @@ jobs:
           sudo ln -f -s /usr/bin/clang-tidy-10 /usr/bin/clang-tidy
 
       - name: Configure TypeART
-        run: cmake -B build --preset ${{ matrix.preset.name }} -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT}
+        run: cmake -B build --preset ${{ matrix.preset.name }}
 
       - name: Build TypeART
         run: cmake --build build --parallel 2
@@ -96,7 +96,7 @@ jobs:
         run: cmake --build build --target lcov-clean
 
       - name: Test TypeART lit-suite
-        if: matrix.skip_test == false
+        if: matrix.preset.skip_test == false
         run: cmake --build build --target lit-pass-test
 
       - name: Build coverage report
