@@ -96,7 +96,8 @@ jobs:
       fail-fast: false
       matrix:
         preset:
-          - name: [ release-counter, release-unsafe-counter ]
+          - name: release-counter
+          - name: release-unsafe-counter
 
     steps:
       - uses: actions/checkout@v2
@@ -165,7 +166,8 @@ jobs:
       fail-fast: false
       matrix:
         preset:
-          - name: [ release-counter, release-safeptr-counter ]
+          - name: release-counter
+          - name: release-safeptr-counter
 
     steps:
       - uses: actions/checkout@v2
