@@ -39,53 +39,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        config:
-          - {
-            name: Thread-safe-safeptr,
-            build_type: Debug,
-            safe_ptr: true,
-            tsan: true,
-          }
-          - {
-            name: Thread-safe,
-            build_type: Debug,
-            safe_ptr: false,
-            tsan: true,
-          }
-          - {
-            name: Thread-unsafe,
-            build_type: Debug,
-            thread_unsafe: true,
-            tsan: false,
-          }
-          - {
-            name: Coverage-thread-safe-safeptr,
-            build_type: Debug,
-            safe_ptr: true,
-            coverage: true,
-            tsan: false,
-          }
-          - {
-            name: Coverage-thread-safe,
-            build_type: Debug,
-            safe_ptr: false,
-            coverage: true,
-            tsan: false,
-          }
-          - {
-            name: Coverage-thread-unsafe,
-            build_type: Debug,
-            thread_unsafe: true,
-            coverage: true,
-            tsan: false,
-          }
-          - {
-            name: Thread-safe-libc++,
-            build_type: Debug,
-            cxxflags: -stdlib=libc++,
-            skip_test: true,
-            tsan: true,
-          }
+        preset:
+          - name: ci-thread-safe-safeptr
+          - name: ci-thread-safe
+          - name: ci-thread-unsafe
+          - name: ci-cov-thread-safe-safeptr
+            coverage: true
+          - name: ci-cov-thread-safe
+            coverage: true
+          - name: ci-cov-thread-unsafe
+            coverage: true
+          - name: ci-libcxx
+            libcxx: true
+            skip_test: true
 
     steps:
       - uses: actions/checkout@v2
@@ -100,14 +66,14 @@ jobs:
         run: sudo apt-get install clang-10 clang-tidy-10
 
       - name: Install libc++
-        if: contains(matrix.config.cxxflags, '-stdlib=libc++')
+        if: matrix.libcxx
         run: sudo apt-get install --no-install-recommends libc++-10-dev libc++abi-10-dev
 
       - name: Install OpenMPI
         run: sudo apt-get install libopenmpi-dev openmpi-bin
 
       - name: Install lcov
-        if: matrix.config.coverage
+        if: matrix.preset.coverage
         run: sudo apt-get install lcov
 
       - name: Setup env
@@ -120,54 +86,43 @@ jobs:
           sudo ln -f -s /usr/bin/clang-tidy-10 /usr/bin/clang-tidy
 
       - name: Configure TypeART
-        run: |
-          cmake -B build \
-            -DTEST_CONFIG=ON -DSOFTCOUNTERS=ON \
-            -DENABLE_CODE_COVERAGE=${{ matrix.config.coverage }} \
-            -DENABLE_TSAN=${{ matrix.config.tsan }} \
-            -DENABLE_ASAN=${{ matrix.config.tsan == false }} \
-            -DENABLE_UBSAN=${{ matrix.config.tsan == false }} \
-            -DENABLE_SAFEPTR=${{ matrix.config.safe_ptr }} \
-            -DDISABLE_THREAD_SAFETY=${{ matrix.config.thread_unsafe }} \
-            -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT} \
-            -DCMAKE_CXX_FLAGS="${{ matrix.config.cxxflags }}" \
-            -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }}
+        run: cmake -B build --preset ${{ matrix.preset.name }} -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT}
 
       - name: Build TypeART
         run: cmake --build build --parallel 2
 
       - name: Prepare TypeART coverage
-        if: matrix.config.coverage
+        if: matrix.preset.coverage
         run: cmake --build build --target lcov-clean
 
       - name: Test TypeART lit-suite
-        if: matrix.config.skip_test == false
+        if: matrix.preset.skip_test == false
         run: cmake --build build --target lit-pass-test
 
       - name: Build coverage report
-        if: matrix.config.coverage
+        if: matrix.preset.coverage
         run: cmake --build build --target lcov-html
 
       - name: Prepare coverage artifact
-        if: matrix.config.coverage
+        if: matrix.preset.coverage
         run: |
-          mkdir -p artifact/${{ matrix.config.name }}
-          mv build/profiles/ artifact/${{ matrix.config.name }}
+          mkdir -p artifact/${{ matrix.preset.name }}
+          mv build/profiles/ artifact/${{ matrix.preset.name }}
 
       - name: Upload test coverage artifact
-        if: matrix.config.coverage
+        if: matrix.preset.coverage
         uses: actions/upload-artifact@v2
         with:
           name: typeart-ci-coverage
           path: artifact
 
       - name: Coveralls (parallel)
-        if: matrix.config.coverage
+        if: matrix.preset.coverage
         uses: coverallsapp/github-action@master
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path-to-lcov: build/typeart.coverage
-          flag-name: ${{ matrix.config.name }}
+          flag-name: ${{ matrix.preset.name }}
           parallel: true
 
   finish-coverage:

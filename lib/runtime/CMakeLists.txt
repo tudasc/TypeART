@@ -1,161 +1,106 @@
-set(PROJECT_NAME typeart-rt)
-set(TARGETS_EXPORT_NAME ${PROJECT_NAME}-targets)
-
 set(RUNTIME_LIB_SOURCES
-  AccessCounter.h
-  CallbackInterface.h
-  RuntimeData.h
-  RuntimeInterface.h
-  TypeResolution.cpp
-  AllocationTracking.cpp
-  AllocationTracking.h
-  TypeResolution.h
-  Runtime.cpp
-  Runtime.h
+    AccessCounter.h
+    CallbackInterface.h
+    RuntimeData.h
+    RuntimeInterface.h
+    TypeResolution.cpp
+    AllocationTracking.cpp
+    AllocationTracking.h
+    TypeResolution.h
+    Runtime.cpp
+    Runtime.h
+    $<$<BOOL:${MPI_LOGGER}>:../support/MPILogger.cpp>
 )
 
-if(MPI_LOGGER)
-  list(APPEND RUNTIME_LIB_SOURCES ../support/MPILogger.cpp)
-endif()
+add_library(Runtime SHARED ${RUNTIME_LIB_SOURCES})
+set_property(TARGET Runtime PROPERTY OUTPUT_NAME "${PROJECT_NAME}Runtime")
+add_library(typeart::Runtime ALIAS Runtime)
 
-add_library(typeart-rt SHARED
-  ${RUNTIME_LIB_SOURCES}
+target_link_libraries(
+  Runtime
+  PRIVATE typeart::Types
+          LLVMCore
+          LLVMSupport
+          $<$<BOOL:${MPI_LOGGER}>:MPI::MPI_CXX>
+          $<$<BOOL:${USE_BTREE}>:google::btree>
+          $<$<BOOL:${USE_ABSL}>:absl::btree>
+          $<$<BOOL:${ENABLE_SAFEPTR}>:sf::pointer>
+          $<$<NOT:$<BOOL:${DISABLE_THREAD_SAFETY}>>:Threads::Threads>
 )
 
-set(RUNTIME_LIB_DEPS typelib)
-if(MPI_LOGGER)
-  list(APPEND RUNTIME_LIB_DEPS ${MPI_LIBRARIES})
-  target_project_compile_definitions(typeart-rt
-    PRIVATE_DEFS MPI_LOGGER=1
-  )
-  
-  target_include_directories(typeart-rt
-    SYSTEM 
-    PRIVATE
-      ${MPI_C_INCLUDE_PATH}
-  )
-endif()
+target_include_directories(
+  Runtime
+  PUBLIC $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/runtime>
+         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/typelib>
+  PRIVATE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/passes/support>
+          $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
+)
 
-if(SOFTCOUNTERS)
-	target_project_compile_definitions(typeart-rt
-		PRIVATE_DEFS ENABLE_SOFTCOUNTER=1
-	)
-endif()
+target_include_directories(Runtime SYSTEM PRIVATE ${LLVM_INCLUDE_DIRS})
+
+target_compile_definitions(
+  Runtime
+  PRIVATE LOG_LEVEL=${LOG_LEVEL_RT}
+          $<$<BOOL:${MPI_LOGGER}>:MPI_LOGGER=1>
+          $<$<BOOL:${SOFTCOUNTERS}>:ENABLE_SOFTCOUNTER=1>
+          $<$<BOOL:${USE_BTREE}>:USE_BTREE>
+          $<$<BOOL:${USE_ABSL}>:USE_ABSL>
+          $<$<BOOL:${ENABLE_SAFEPTR}>:USE_SAFEPTR>
+          $<$<BOOL:${DISABLE_THREAD_SAFETY}>:DISABLE_THREAD_SAFETY>
+)
+
+target_project_compile_definitions(Runtime)
+target_define_file_basename(Runtime)
+target_project_coverage_options(Runtime)
 
 if(ENABLE_TSAN)
-    target_tsan_options(typeart-rt)
+  target_tsan_options(Runtime)
 endif()
 
 if(ENABLE_ASAN)
-  target_asan_options(typeart-rt)
+  target_asan_options(Runtime)
 endif()
 
 if(ENABLE_UBSAN)
-  target_ubsan_options(typeart-rt)
+  target_ubsan_options(Runtime)
 endif()
 
-if(USE_BTREE)
-  target_link_libraries(typeart-rt PRIVATE
-    google::btree
-  )
-  target_project_compile_definitions(typeart-rt
-    PRIVATE_DEFS USE_BTREE
-  )
-elseif(USE_ABSL)
-  target_link_libraries(typeart-rt PRIVATE
-    absl::btree
-  )
+make_tidy_check(Runtime "${RUNTIME_LIB_SOURCES}")
 
-  target_project_compile_definitions(typeart-rt
-     PRIVATE_DEFS USE_ABSL
-  )
-endif()
+set(CONFIG_NAME ${PROJECT_NAME}Runtime)
+set(TARGETS_EXPORT_NAME ${CONFIG_NAME}Targets)
 
-if(ENABLE_SAFEPTR)
-  target_link_libraries(typeart-rt PRIVATE
-    sf::pointer
-  )
-  target_project_compile_definitions(typeart-rt
-    PRIVATE_DEFS USE_SAFEPTR
-  )
-endif ()
-
-if(DISABLE_THREAD_SAFETY)
-  target_project_compile_definitions(typeart-rt
-    PRIVATE_DEFS DISABLE_THREAD_SAFETY
-  )
-endif()
-
-target_link_libraries(typeart-rt PUBLIC
-  ${RUNTIME_LIB_DEPS}
-)
-
-target_include_directories(typeart-rt 
-  PUBLIC
-    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/runtime>
-    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/typelib>
-    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
-    $<INSTALL_INTERFACE:include>
-)
-
-target_include_directories(typeart-rt
-    PRIVATE
-    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/passes/support>
-    )
-
-target_include_directories(typeart-rt
-  SYSTEM 
-  PRIVATE
-    ${LLVM_INCLUDE_DIRS}
-)
-
-target_project_compile_definitions(typeart-rt
-  PRIVATE_DEFS
-    LOG_LEVEL=${LOG_LEVEL_RT}
-)
-
-target_project_compile_definitions(typeart-rt)
-target_define_file_basename(typeart-rt)
-
-target_project_coverage_options(typeart-rt)
-
-target_link_libraries(typeart-rt PUBLIC
-  LLVMCore
-  LLVMSupport
-)
-
-make_tidy_check(typeart-rt
-  "${RUNTIME_LIB_SOURCES}"
+install(FILES RuntimeInterface.h
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}
 )
 
 install(
-  TARGETS typeart-rt
-  EXPORT ${TARGETS_EXPORT_NAME}
-  LIBRARY DESTINATION lib
-  ARCHIVE DESTINATION lib/static
-#  INCLUDES DESTINATION
-#    include # --> superfluous since $<INSTALL_INTERFACE:include> is used
-)
-
-install(
-  FILES RuntimeInterface.h
-  DESTINATION include
+  TARGETS
+  Runtime EXPORT ${TARGETS_EXPORT_NAME}
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 
 install(
   EXPORT ${TARGETS_EXPORT_NAME}
   NAMESPACE typeart::
-  DESTINATION lib/cmake
+  DESTINATION ${TYPEART_INSTALL_CONFIGDIR}
 )
 
-#set(DEPENDENCY libaTargets.cmake
-configure_package_config_file(
-  ${PROJECT_SOURCE_DIR}/cmake/Config.cmake.in
-  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
-  INSTALL_DESTINATION lib/cmake
+export(
+  EXPORT ${TARGETS_EXPORT_NAME}
+  FILE ${CMAKE_BINARY_DIR}/${TARGETS_EXPORT_NAME}.cmake
+  NAMESPACE typeart::
 )
 
-install(FILES
-  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
-  DESTINATION lib/cmake
-)
+#configure_package_config_file(
+#  ${PROJECT_SOURCE_DIR}/cmake/Config.cmake.in
+#  ${CMAKE_CURRENT_BINARY_DIR}/${CONFIG_NAME}Config.cmake
+#  INSTALL_DESTINATION ${TYPEART_INSTALL_CONFIGDIR}
+#)
+#
+#install(FILES
+#  ${CMAKE_CURRENT_BINARY_DIR}/${CONFIG_NAME}Config.cmake
+#  DESTINATION ${TYPEART_INSTALL_CONFIGDIR}
+#)

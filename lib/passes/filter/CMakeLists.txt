@@ -1,69 +1,57 @@
 set(FILTER_SOURCES
-        StandardFilter.cpp
-        StandardFilter.h
-        CGInterface.cpp
-        CGInterface.h
-        Filter.h
-        FilterBase.h
-        CGForwardFilter.h
-        CGForwardFilter.cpp
-        StdForwardFilter.h
-        StdForwardFilter.cpp
-        FilterUtil.cpp
-        FilterUtil.h IRSearch.h)
+  StandardFilter.cpp
+  StandardFilter.h
+  CGInterface.cpp
+  CGInterface.h
+  Filter.h
+  FilterBase.h
+  CGForwardFilter.h
+  CGForwardFilter.cpp
+  StdForwardFilter.h
+  StdForwardFilter.cpp
+  FilterUtil.cpp
+  FilterUtil.h
+  IRSearch.h
+)
 
-add_library(memfilter STATIC
-        ${FILTER_SOURCES}
-        )
+add_library(MemOpFilter STATIC ${FILTER_SOURCES})
+set_property(
+  TARGET MemOpFilter PROPERTY OUTPUT_NAME "${PROJECT_NAME}MemOpFilter"
+)
+add_library(typeart::MemOpFilter ALIAS MemOpFilter)
 
 # https://lists.llvm.org/pipermail/llvm-dev/2018-July/124534.html
-#target_link_libraries(memfilter PUBLIC
-#  LLVMCore
-#  LLVMSupport
-#)
+# target_link_libraries(MemOpFilter PUBLIC LLVMCore LLVMSupport )
 
-target_project_compile_options(memfilter)
+target_compile_definitions(MemOpFilter PRIVATE LOG_LEVEL=${LOG_LEVEL})
 
-target_define_file_basename(memfilter)
+set_target_properties(MemOpFilter PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-target_project_compile_definitions(memfilter
-        PRIVATE_DEFS
-        LOG_LEVEL=${LOG_LEVEL}
-        )
+target_include_directories(
+  MemOpFilter
+  PUBLIC $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/passes>
+         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
+)
 
-set_target_properties(memfilter
-        PROPERTIES
-        POSITION_INDEPENDENT_CODE ON
-        )
+target_include_directories(MemOpFilter SYSTEM PRIVATE ${LLVM_INCLUDE_DIRS})
 
+make_tidy_check(MemOpFilter "${FILTER_SOURCES}")
 
-target_include_directories(memfilter
-  PUBLIC
-  ${PROJECT_SOURCE_DIR}/lib
-  ${PROJECT_SOURCE_DIR}/lib/passes
-  )
+target_project_compile_options(MemOpFilter)
+target_define_file_basename(MemOpFilter)
+target_project_coverage_options(MemOpFilter)
 
-target_include_directories(memfilter
-        SYSTEM
-        PRIVATE
-        ${LLVM_INCLUDE_DIRS}
-        )
-
-make_tidy_check(memfilter
-        "${FILTER_SOURCES}"
-        )
-
-target_project_coverage_options(memfilter)
-
-# For now, non-consumable filter
+# For now, non-consumable filter:
 #install(
 #  FILES Filter.h StandardFilter.h CGFilter.h
-#  DESTINATION include
+#  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}
 #)
-
+#
 #install(
-#        TARGETS memfilter
-#        EXPORT ${TARGETS_EXPORT_NAME}
-#        LIBRARY DESTINATION lib
-#        ARCHIVE DESTINATION lib
+#  TARGETS MemOpFilter
+#  EXPORT ${TARGETS_EXPORT_NAME}
+#  LIBRARY DESTINATION lib
+#  ARCHIVE DESTINATION lib
 #)

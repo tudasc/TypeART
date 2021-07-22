@@ -22,7 +22,8 @@ endif()
 
 add_custom_target(
   lcov-make
-  COMMAND ${LCOV_COMMAND} ${GCOV_TOOL} ${GCOV_WORKAROUND} --no-external -c -d ${CMAKE_BINARY_DIR} -b ${CMAKE_SOURCE_DIR} -o typeart.coverage
+  COMMAND ${LCOV_COMMAND} ${GCOV_TOOL} ${GCOV_WORKAROUND}
+          --no-external -c -d ${CMAKE_BINARY_DIR} -b ${CMAKE_SOURCE_DIR} -o typeart.coverage
   COMMAND ${LCOV_COMMAND} --remove typeart.coverage '${CMAKE_BINARY_DIR}/*' -o typeart.coverage
 )
 
@@ -31,7 +32,6 @@ add_custom_target(
   COMMAND ${GENHTML_COMMAND} -o ${TYPEART_PROFILE_DIR} typeart.coverage
   DEPENDS lcov-make
 )
-
 
 function(make_lcov_target target)
 #  add_custom_target(
@@ -44,8 +44,11 @@ function(make_lcov_target target)
 
   add_custom_target(
     lcov-make-${target}
-    COMMAND ${LCOV_COMMAND} ${GCOV_TOOL} ${GCOV_WORKAROUND} --no-external -c -d ${CMAKE_BINARY_DIR} -b ${LCOV_TARGET_SOURCE_DIR} -o counter-${target}.pro
-    COMMAND ${LCOV_COMMAND} --remove counter-${target}.pro '${CMAKE_BINARY_DIR}/*' -o counter-${target}.pro
+    COMMAND ${LCOV_COMMAND} ${GCOV_TOOL} ${GCOV_WORKAROUND}
+            --no-external -c -d ${CMAKE_BINARY_DIR}
+            -b ${LCOV_TARGET_SOURCE_DIR} -o counter-${target}.pro
+    COMMAND ${LCOV_COMMAND} --remove counter-${target}.pro '${CMAKE_BINARY_DIR}/*'
+            -o counter-${target}.pro
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   )
 

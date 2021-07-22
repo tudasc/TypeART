@@ -17,22 +17,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        config:
-          - {
-            name: "Thread-safe-safeptr",
-            thread-safety: true,
-            safe-ptr: true,
-          }
-          - {
-            name: "Thread-safe",
-            thread-safety: true,
-            safe-ptr: false,
-          }
-          - {
-            name: "Thread-unsafe",
-            thread-safety: false,
-            safe-ptr: false,
-          }
+        preset:
+          - name: release-counter
+          - name: release-safeptr-counter
+          - name: release-unsafe-counter
+
     steps:
       - uses: actions/checkout@v2
 
@@ -61,14 +50,7 @@ jobs:
           sudo ln -f -s /usr/bin/clang-tidy-10 /usr/bin/clang-tidy
 
       - name: Configure TypeART
-        run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Release \
-            -DMPI_INTERCEPT_LIB=ON \
-            -DSHOW_STATS=ON \
-            -DSOFTCOUNTERS=ON \
-            -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT} \
-            -DENABLE_SAFEPTR=${{ matrix.config.safe-ptr }} \
-            -DDISABLE_THREAD_SAFETY=${{ matrix.config.thread-safety }}
+        run: cmake -B build --preset ${{ matrix.preset.name }} -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT}
 
       - name: Build & install TypeART
         run: |
@@ -77,7 +59,7 @@ jobs:
 
       - name: Setup tests
         working-directory: test-bench
-        run: cmake -B build -DLOG_PATH=${GITHUB_WORKSPACE}/test-bench/artifact
+        run: cmake -B build -DLOG_PATH=${GITHUB_WORKSPACE}/test-bench/artifact -DUSE_WRAPPER=ON
 
       - name: Run lulesh
         working-directory: test-bench/build
@@ -113,17 +95,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        config:
-          - {
-            name: "Thread-safe",
-            thread-safety: true,
-            safe-ptr: false,
-          }
-          - {
-            name: "Thread-unsafe",
-            thread-safety: false,
-            safe-ptr: false,
-          }
+        preset:
+          - name: release-counter
+          - name: release-unsafe-counter
+
     steps:
       - uses: actions/checkout@v2
 
@@ -153,14 +128,7 @@ jobs:
           sudo ln -f -s /usr/bin/clang-tidy-10 /usr/bin/clang-tidy
 
       - name: Configure TypeART
-        run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Release \
-            -DMPI_INTERCEPT_LIB=ON \
-            -DSHOW_STATS=ON \
-            -DSOFTCOUNTERS=ON \
-            -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT} \
-            -DENABLE_SAFEPTR=${{ matrix.config.safe-ptr }} \
-            -DDISABLE_THREAD_SAFETY=${{ matrix.config.thread-safety }}
+        run: cmake -B build --preset ${{ matrix.preset.name }} -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT}
 
       - name: Build & install TypeART
         run: |
@@ -169,7 +137,7 @@ jobs:
 
       - name: Setup AD tests
         working-directory: ad-test-bench
-        run: cmake -B build -DLOG_PATH=${GITHUB_WORKSPACE}/ad-test-bench/artifact
+        run: cmake -B build -DLOG_PATH=${GITHUB_WORKSPACE}/ad-test-bench/artifact -DUSE_WRAPPER=ON
 
       - name: Run AD lulesh
         working-directory: ad-test-bench/build
@@ -197,17 +165,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        config:
-          - {
-            name: "Thread-safe-safeptr",
-            thread-safety: true,
-            safe-ptr: true,
-          }
-          - {
-            name: "Thread-safe",
-            thread-safety: true,
-            safe-ptr: false,
-          }
+        preset:
+          - name: release-counter
+          - name: release-safeptr-counter
+
     steps:
       - uses: actions/checkout@v2
 
@@ -240,14 +201,7 @@ jobs:
           sudo ln -f -s /usr/bin/clang-tidy-10 /usr/bin/clang-tidy
 
       - name: Configure TypeART
-        run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Release \
-            -DMPI_INTERCEPT_LIB=ON \
-            -DSHOW_STATS=ON \
-            -DSOFTCOUNTERS=ON \
-            -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT} \
-            -DENABLE_SAFEPTR=${{ matrix.config.safe-ptr }} \
-            -DDISABLE_THREAD_SAFETY=${{ matrix.config.thread-safety }}
+        run: cmake -B build --preset ${{ matrix.preset.name }} -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT}
 
       - name: Build & install TypeART
         run: |
@@ -256,7 +210,7 @@ jobs:
 
       - name: Setup tests
         working-directory: omp-test-bench
-        run: cmake -B build -DLOG_PATH=${GITHUB_WORKSPACE}/omp-test-bench/artifact
+        run: cmake -B build -DLOG_PATH=${GITHUB_WORKSPACE}/omp-test-bench/artifact -DUSE_WRAPPER=ON
 
       - name: Run lulesh
         working-directory: omp-test-bench/build
