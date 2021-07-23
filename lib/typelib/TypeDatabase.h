@@ -1,11 +1,10 @@
 #ifndef TYPEART_TYPEDATABASE_H
 #define TYPEART_TYPEDATABASE_H
 
-#include "TypeInterface.h"
-
 #include <memory>
 #include <string>
 #include <system_error>
+#include <utility>
 #include <vector>
 
 namespace typeart {
@@ -25,6 +24,8 @@ struct StructTypeInfo final {
 
 class TypeDatabase {
  public:
+  virtual void registerStruct(const StructTypeInfo& structInfo) = 0;
+
   [[nodiscard]] virtual bool isValid(int id) const = 0;
 
   [[nodiscard]] virtual bool isReservedType(int id) const = 0;
@@ -48,7 +49,7 @@ class TypeDatabase {
   virtual ~TypeDatabase() = default;
 };
 
-std::unique_ptr<TypeDatabase> make_database(const std::string& file, std::error_code&);
+std::pair<std::unique_ptr<TypeDatabase>, std::error_code> make_database(const std::string& file);
 
 }  // namespace typeart
 

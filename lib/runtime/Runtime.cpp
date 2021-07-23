@@ -61,17 +61,22 @@ RuntimeSystem::RuntimeSystem() : rtScopeInit(), typeResolution(typeDB, recorder)
   std::error_code error;
   // Try to load types from specified file first.
   // Then look at default location.
-  const char* typeFile = std::getenv("TA_TYPE_FILE");
-  if (typeFile != nullptr) {
-    if (!loadTypes(typeFile, error)) {
-      LOG_FATAL("Failed to load recorded types from " << typeFile << ". Reason: " << error.message());
+  const char* type_file = std::getenv("TYPEART_TYPE_FILE");
+  if (type_file == nullptr) {
+    // FIXME Deprecated name
+    type_file = std::getenv("TA_TYPE_FILE");
+  }
+  if (type_file != nullptr) {
+    if (!loadTypes(type_file, error)) {
+      LOG_FATAL("Failed to load recorded types from TYPEART_TYPE_FILE=" << type_file
+                                                                        << ". Reason: " << error.message());
       std::exit(EXIT_FAILURE);  // TODO: Error handling
     }
   } else {
     if (!loadTypes(defaultTypeFileName, error)) {
       LOG_FATAL("No type file with default name \"" << defaultTypeFileName
                                                     << "\" in current directory. To specify a different file, edit the "
-                                                       "TA_TYPE_FILE environment variable. Reason: "
+                                                       "TYPEART_TYPE_FILE environment variable. Reason: "
                                                     << error.message());
       std::exit(EXIT_FAILURE);  // TODO: Error handling
     }

@@ -19,7 +19,7 @@ class TypeDB final : public TypeDatabase {
  public:
   void clear();
 
-  void registerStruct(const StructTypeInfo& structInfo);
+  void registerStruct(const StructTypeInfo& structInfo) override;
 
   bool isValid(int id) const override;
 

@@ -17,6 +17,7 @@ function(configure_typeart_lit_site_cfg input output)
   set(TYPEARTPASS_BINARY_DIR ${CMAKE_BINARY_DIR})
   set(TYPEARTPASS_SCRIPT_DIR ${CMAKE_BINARY_DIR}/scripts)
   set(TYPEARTPASS_LIBRARY_DIR ${CMAKE_BINARY_DIR}/lib/passes)
+  set(TYPEARTPASS_BASE_LIBRARY_DIR ${CMAKE_BINARY_DIR}/lib)
   set(TYPEARTPASS_RT_DIR ${CMAKE_BINARY_DIR}/lib/runtime)
   set(TYPEARTPASS_PROFILE_FILE ${TYPEART_PROFILE_DIR}/lit-code-%p.profraw)
 

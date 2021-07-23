@@ -2,12 +2,14 @@
 
 import sys
 
+config.typeart_base_lib_dir = "@TYPEARTPASS_BASE_LIBRARY_DIR@"
 config.typeart_obj_root = "@TYPEARTPASS_BINARY_DIR@"
 config.typeart_lib_dir = "@TYPEARTPASS_LIBRARY_DIR@"
 config.typeart_rt_dir = "@TYPEARTPASS_RT_DIR@"
 config.typeart_script_dir = "@TYPEARTPASS_SCRIPT_DIR@"
 config.typeart_pass = "$<TARGET_FILE_NAME:typeart::TransformPass>"
 config.typeart_analysis_pass = "$<TARGET_FILE_NAME:typeart::MemOpFinderPass>"
+config.typeart_types = "$<TARGET_FILE_NAME:typeart::Types>"
 config.profile_file = "@TYPEARTPASS_PROFILE_FILE@"
 config.softcounter_used = @TYPEARTPASS_SOFTCOUNTER@
 config.openmp_used = @TYPEARTPASS_OPENMP@
