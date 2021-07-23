@@ -1,5 +1,5 @@
-#ifndef LLVM_MUST_SUPPORT_RUNTIMEINTERFACE_H
-#define LLVM_MUST_SUPPORT_RUNTIMEINTERFACE_H
+#ifndef TYPEART_RUNTIMEINTERFACE_H
+#define TYPEART_RUNTIMEINTERFACE_H
 
 #include "TypeInterface.h"
 
@@ -134,4 +134,4 @@ void typeart_get_return_address(const void* addr, const void** retAddr);
 }
 #endif
 
-#endif  // LLVM_MUST_SUPPORT_RUNTIMEINTERFACE_H
+#endif  // TYPEART_RUNTIMEINTERFACE_H

@@ -10,8 +10,6 @@
 
 namespace typeart {
 
-using BuiltinType = typeart_builtin_type;
-
 enum class StructTypeFlag : int { USER_DEFINED = 1, LLVM_VECTOR = 2 };
 
 struct StructTypeInfo final {

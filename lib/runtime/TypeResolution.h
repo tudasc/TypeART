@@ -9,11 +9,15 @@
 #include "RuntimeData.h"
 #include "RuntimeInterface.h"
 #include "TypeDB.h"
+#include "TypeInterface.h"
 
 #include <cstddef>
 #include <string>
 
 namespace typeart {
+
+using BuiltinType = typeart_builtin_type;
+
 struct PointerInfo;
 
 class TypeResolution {
