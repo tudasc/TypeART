@@ -56,6 +56,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: Update apt
+        run: sudo apt-get update
+
       - name: Install LLVM
         run: sudo apt-get install libllvm10 llvm-10 llvm-10-dev
 
@@ -66,7 +69,7 @@ jobs:
         run: sudo apt-get install clang-10 clang-tidy-10
 
       - name: Install libc++
-        if: matrix.libcxx
+        if: matrix.preset.libcxx
         run: sudo apt-get install --no-install-recommends libc++-10-dev libc++abi-10-dev
 
       - name: Install OpenMPI

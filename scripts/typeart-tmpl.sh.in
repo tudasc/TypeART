@@ -85,7 +85,6 @@ function global_init() {
   readonly typeart_ldflags="-L${typeart_lib_dir}/ \
                    -Wl,-rpath,${typeart_lib_dir}/ \
                    -l$<TARGET_FILE_BASE_NAME:typeart::Runtime>"
-  readonly typeart_san_flags="@TYPEART_SAN_FLAGS@"
 
   # shellcheck disable=SC2027
   readonly typeart_plugin="-load "${typeart_analysis_pass}" \

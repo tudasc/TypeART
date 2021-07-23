@@ -32,6 +32,9 @@ jobs:
           ssh-key: ${{ secrets.AUTH_SSH_CI_EXT }}
           path: test-bench
 
+      - name: Update apt
+        run: sudo apt-get update
+
       - name: Install LLVM
         run: sudo apt-get install libllvm10 llvm-10 llvm-10-dev
 
@@ -110,6 +113,9 @@ jobs:
           ref: feat/ci
           path: ad-test-bench
 
+      - name: Update apt
+        run: sudo apt-get update
+
       - name: Install LLVM
         run: sudo apt-get install libllvm10 llvm-10 llvm-10-dev
 
@@ -179,6 +185,9 @@ jobs:
           ssh-key: ${{ secrets.AUTH_SSH_CI_EXT }}
           ref: ci/omp
           path: omp-test-bench
+
+      - name: Update apt
+        run: sudo apt-get update
 
       - name: Install LLVM
         run: sudo apt-get install libllvm10 llvm-10 llvm-10-dev
