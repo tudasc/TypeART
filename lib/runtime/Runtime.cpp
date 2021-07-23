@@ -64,14 +64,14 @@ RuntimeSystem::RuntimeSystem() : rtScopeInit(), typeResolution(typeDB, recorder)
   const char* typeFile = std::getenv("TA_TYPE_FILE");
   if (typeFile != nullptr) {
     if (!loadTypes(typeFile, error)) {
-      LOG_FATAL("Failed to load recorded types from " << typeFile << ". Error code: " << error.message());
+      LOG_FATAL("Failed to load recorded types from " << typeFile << ". Reason: " << error.message());
       std::exit(EXIT_FAILURE);  // TODO: Error handling
     }
   } else {
     if (!loadTypes(defaultTypeFileName, error)) {
       LOG_FATAL("No type file with default name \"" << defaultTypeFileName
                                                     << "\" in current directory. To specify a different file, edit the "
-                                                       "TA_TYPE_FILE environment variable. Error code: "
+                                                       "TA_TYPE_FILE environment variable. Reason: "
                                                     << error.message());
       std::exit(EXIT_FAILURE);  // TODO: Error handling
     }
