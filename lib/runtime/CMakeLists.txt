@@ -18,7 +18,7 @@ add_library(typeart::Runtime ALIAS Runtime)
 
 target_link_libraries(
   Runtime
-  PRIVATE typeart::Types
+  PRIVATE typeart::TypesStatic
           LLVMCore
           LLVMSupport
           $<$<BOOL:${MPI_LOGGER}>:MPI::MPI_CXX>

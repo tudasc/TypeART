@@ -14,7 +14,7 @@ set(PASS_SOURCES
 
 make_llvm_module(
   TransformPass "${PASS_SOURCES}"
-  LINK_LIBS typeart::Types
+  LINK_LIBS typeart::TypesStatic
   DEPENDS typeart::MemOpFinderPass
   INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}
                ${PROJECT_SOURCE_DIR}/lib/
