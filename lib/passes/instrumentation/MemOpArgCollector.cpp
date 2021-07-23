@@ -4,12 +4,12 @@
 
 #include "MemOpArgCollector.h"
 
-#include "../TypeManager.h"
 #include "Instrumentation.h"
 #include "InstrumentationHelper.h"
 #include "support/Logger.h"
 #include "support/TypeUtil.h"
 #include "support/Util.h"
+#include "typegen/TypeManager.h"
 #include "typelib/TypeInterface.h"
 
 #include "llvm/IR/Constants.h"

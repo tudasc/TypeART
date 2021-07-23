@@ -73,10 +73,12 @@ bool TypeArtPass::doInitialization(Module& m) {
   instrumentation_helper.setModule(m);
 
   LOG_DEBUG("Propagating type infos.");
-  if (typeManager.load()) {
+  const auto [loaded, error] = typeManager.load();
+  if (loaded) {
     LOG_DEBUG("Existing type configuration successfully loaded from " << ClTypeFile.getValue());
   } else {
-    LOG_DEBUG("No valid existing type configuration found: " << ClTypeFile.getValue());
+    LOG_DEBUG("No valid existing type configuration found: " << ClTypeFile.getValue()
+                                                             << ". Reason: " << error.message());
   }
 
   auto arg_collector  = std::make_unique<MemOpArgCollector>(typeManager, instrumentation_helper);
@@ -158,10 +160,11 @@ bool TypeArtPass::doFinalization(Module&) {
    */
   LOG_DEBUG("Writing type file to " << ClTypeFile.getValue());
 
-  if (typeManager.store()) {
+  const auto [stored, error] = typeManager.store();
+  if (stored) {
     LOG_DEBUG("Success!");
   } else {
-    LOG_FATAL("Failed writing type config to " << ClTypeFile.getValue());
+    LOG_FATAL("Failed writing type config to " << ClTypeFile.getValue() << ". Reason: " << error.message());
   }
   if (ClTypeArtStats && AreStatisticsEnabled()) {
     auto& out = llvm::errs();

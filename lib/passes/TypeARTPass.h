@@ -1,10 +1,10 @@
 #ifndef _LIB_MUSTSUPPORTPASS_H
 #define _LIB_MUSTSUPPORTPASS_H
 
-#include "TypeManager.h"
 #include "instrumentation/Instrumentation.h"
 #include "instrumentation/InstrumentationHelper.h"
 #include "instrumentation/TypeARTFunctions.h"
+#include "typegen/TypeManager.h"
 
 #include "llvm/Pass.h"
 

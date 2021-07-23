@@ -32,7 +32,7 @@ using namespace llvm;
 TypeManager::TypeManager(std::string file) : file(std::move(file)), structCount(0) {
 }
 
-bool TypeManager::load() {
+std::pair<bool, std::error_code> TypeManager::load() {
   TypeIO cio(&typeDB);
   std::error_code error;
   if (cio.load(file, error)) {
@@ -41,15 +41,16 @@ bool TypeManager::load() {
       structMap.insert({structInfo.name, structInfo.id});
     }
     structCount = structMap.size();
-    return true;
+    return {true, error};
   }
-  return false;
+  return {false, error};
 }
 
-bool TypeManager::store() {
+std::pair<bool, std::error_code> TypeManager::store() {
   std::error_code error;
   TypeIO cio(&typeDB);
-  return cio.store(file, error);
+  const bool ret = cio.store(file, error);
+  return {ret, error};
 }
 
 int TypeManager::getOrRegisterType(llvm::Type* type, const llvm::DataLayout& dl) {
@@ -226,6 +227,9 @@ int TypeManager::reserveNextId() {
   int id = TA_NUM_RESERVED_IDS + structCount;
   structCount++;
   return id;
+}
+int TypeManager::getTypeID(llvm::Type* type, const DataLayout& dl) const {
+  return 0;
 }
 
 }  // namespace typeart

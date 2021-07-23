@@ -1,3 +1,4 @@
+add_subdirectory(typegen)
 add_subdirectory(filter)
 add_subdirectory(analysis)
 
@@ -6,7 +7,6 @@ set(PASS_SOURCES
   support/TypeUtil.cpp
   instrumentation/InstrumentationHelper.cpp
   instrumentation/TypeARTFunctions.cpp
-  TypeManager.cpp
   instrumentation/MemOpArgCollector.cpp
   instrumentation/MemOpInstrumentation.cpp
   instrumentation/Instrumentation.cpp
@@ -15,10 +15,12 @@ set(PASS_SOURCES
 make_llvm_module(
   TransformPass "${PASS_SOURCES}"
   LINK_LIBS typeart::TypesStatic
+            typeart::TypeGenStatic
   DEPENDS typeart::MemOpFinderPass
   INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}
                ${PROJECT_SOURCE_DIR}/lib/
                ${PROJECT_SOURCE_DIR}/lib/passes/
+               ${CMAKE_CURRENT_SOURCE_DIR}/typegen
 )
 mark_as_advanced(LLVM_TRANSFORMPASS_LINK_INTO_TOOLS)
 
