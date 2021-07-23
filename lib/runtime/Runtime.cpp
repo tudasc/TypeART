@@ -53,24 +53,26 @@ static constexpr const char* defaultTypeFileName = "types.yaml";
 RuntimeSystem::RuntimeSystem() : rtScopeInit(), typeResolution(typeDB, recorder), allocTracker(typeDB, recorder) {
   debug::printTraceStart();
 
-  auto loadTypes = [this](const std::string& file) -> bool {
-    TypeIO cio(typeDB);
-    return cio.load(file);
+  auto loadTypes = [this](const std::string& file, std::error_code& ec) -> bool {
+    TypeIO cio(&typeDB);
+    return cio.load(file, ec);
   };
 
+  std::error_code error;
   // Try to load types from specified file first.
   // Then look at default location.
   const char* typeFile = std::getenv("TA_TYPE_FILE");
   if (typeFile != nullptr) {
-    if (!loadTypes(typeFile)) {
-      LOG_FATAL("Failed to load recorded types from " << typeFile);
+    if (!loadTypes(typeFile, error)) {
+      LOG_FATAL("Failed to load recorded types from " << typeFile << ". Error code: " << error.message());
       std::exit(EXIT_FAILURE);  // TODO: Error handling
     }
   } else {
-    if (!loadTypes(defaultTypeFileName)) {
-      LOG_FATAL("No type file with default name \""
-                << defaultTypeFileName
-                << "\" in current directory. To specify a different file, edit the TA_TYPE_FILE environment variable.");
+    if (!loadTypes(defaultTypeFileName, error)) {
+      LOG_FATAL("No type file with default name \"" << defaultTypeFileName
+                                                    << "\" in current directory. To specify a different file, edit the "
+                                                       "TA_TYPE_FILE environment variable. Error code: "
+                                                    << error.message());
       std::exit(EXIT_FAILURE);  // TODO: Error handling
     }
   }

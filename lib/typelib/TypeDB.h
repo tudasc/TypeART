@@ -5,7 +5,7 @@
 #ifndef LLVM_MUST_SUPPORT_TYPECONFIG_H
 #define LLVM_MUST_SUPPORT_TYPECONFIG_H
 
-#include "TypeInterface.h"
+#include "TypeDatabase.h"
 
 #include <array>
 #include <cstddef>
@@ -15,46 +15,31 @@
 
 namespace typeart {
 
-using BuiltinType = typeart_builtin_type;
-
-struct StructTypeInfo {
-  int id;
-  std::string name;
-  size_t extent;
-  size_t numMembers;
-  std::vector<size_t> offsets;
-  std::vector<int> memberTypes;
-  std::vector<size_t> arraySizes;
-  int flags;
-};
-
-class TypeDB {
+class TypeDB final : public TypeDatabase {
  public:
-  TypeDB();
-
   void clear();
 
   void registerStruct(const StructTypeInfo& structInfo);
 
-  bool isValid(int id) const;
+  bool isValid(int id) const override;
 
-  bool isReservedType(int id) const;
+  bool isReservedType(int id) const override;
 
-  bool isBuiltinType(int id) const;
+  bool isBuiltinType(int id) const override;
 
-  bool isStructType(int id) const;
+  bool isStructType(int id) const override;
 
-  bool isUserDefinedType(int id) const;
+  bool isUserDefinedType(int id) const override;
 
-  bool isVectorType(int id) const;
+  bool isVectorType(int id) const override;
 
-  const std::string& getTypeName(int id) const;
+  const std::string& getTypeName(int id) const override;
 
-  const StructTypeInfo* getStructInfo(int id) const;
+  const StructTypeInfo* getStructInfo(int id) const override;
 
-  size_t getTypeSize(int id) const;
+  size_t getTypeSize(int id) const override;
 
-  const std::vector<StructTypeInfo>& getStructList() const;
+  const std::vector<StructTypeInfo>& getStructList() const override;
 
   static const std::array<std::string, 11> BuiltinNames;
   static const std::array<size_t, 11> BuiltinSizes;

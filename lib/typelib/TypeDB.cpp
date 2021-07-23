@@ -4,6 +4,8 @@
 
 #include "TypeDB.h"
 
+#include "TypeIO.h"
+#include "support/Logger.h"
 #include "typelib/TypeInterface.h"
 
 #include <iostream>
@@ -11,10 +13,20 @@
 
 namespace typeart {
 
+std::unique_ptr<TypeDatabase> make_database(const std::string& file, std::error_code& err) {
+  auto db = std::make_unique<TypeDB>();
+  TypeIO io(db.get());
+  const bool loaded = io.load(file, err);
+  if (!loaded) {
+    LOG_DEBUG("Database file not found")
+  }
+  return std::move(db);
+}
+
 const std::array<std::string, 11> TypeDB::BuiltinNames = {
     "int8", "int16", "int32", "int64", "half", "float", "double", "float128", "x86_float80", "ppc_float128", "pointer"};
 
-// TODO: Builtin ID changes lead to wrong type sizes/names
+// TODO: Builtin ID changes lead tsto wrong type sizes/names
 const std::array<size_t, 11> TypeDB::BuiltinSizes = {1,  2,
                                                      4,  8,
                                                      2,  4,
@@ -25,8 +37,6 @@ const std::array<size_t, 11> TypeDB::BuiltinSizes = {1,  2,
 // TypeInfo TypeDB::InvalidType = TypeInfo{BUILTIN, TA_UNKNOWN_TYPE};
 
 const std::string TypeDB::UnknownStructName{"UnknownStruct"};
-
-TypeDB::TypeDB() = default;
 
 void TypeDB::clear() {
   structInfoList.clear();
@@ -48,12 +58,14 @@ bool TypeDB::isStructType(int id) const {
 
 bool TypeDB::isUserDefinedType(int id) const {
   auto structInfo = getStructInfo(id);
-  return (structInfo != nullptr) && (structInfo->flags & static_cast<int>(TA_USER_DEF));
+  return (structInfo != nullptr) &&
+         ((static_cast<int>(structInfo->flag) & static_cast<int>(StructTypeFlag::USER_DEFINED)) != 0);
 }
 
 bool TypeDB::isVectorType(int id) const {
   auto structInfo = getStructInfo(id);
-  return (structInfo != nullptr) && (structInfo->flags & static_cast<int>(TA_VEC));
+  return (structInfo != nullptr) &&
+         ((static_cast<int>(structInfo->flag) & static_cast<int>(StructTypeFlag::LLVM_VECTOR)) != 0);
 }
 
 bool TypeDB::isValid(int id) const {
@@ -65,11 +77,11 @@ bool TypeDB::isValid(int id) const {
 
 void TypeDB::registerStruct(const StructTypeInfo& structType) {
   if (isValid(structType.id)) {
-    std::cerr << "Invalid type ID for struct " << structType.name << std::endl;
+    LOG_ERROR("Invalid type ID for struct " << structType.name);
     if (isReservedType(structType.id)) {
-      std::cerr << "Type ID is reserved for builtin types" << std::endl;
+      LOG_ERROR("Type ID is reserved for builtin types");
     } else {
-      std::cerr << "Conflicting struct is " << getStructInfo(structType.id)->name << std::endl;
+      LOG_ERROR("Conflicting struct is " << getStructInfo(structType.id)->name);
     }
     // TODO: Error handling
     return;
