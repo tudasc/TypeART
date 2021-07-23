@@ -21,6 +21,8 @@ class TypeDB final : public TypeDatabase {
 
   void registerStruct(const StructTypeInfo& structInfo) override;
 
+  bool isUnknown(int id) const override;
+
   bool isValid(int id) const override;
 
   bool isReservedType(int id) const override;

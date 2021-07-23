@@ -132,4 +132,8 @@ const std::vector<StructTypeInfo>& TypeDB::getStructList() const {
   return structInfoList;
 }
 
+bool TypeDB::isUnknown(int id) const {
+  return id == TA_UNKNOWN_TYPE;
+}
+
 }  // namespace typeart
