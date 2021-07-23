@@ -25,7 +25,7 @@ make_tidy_check(Types "${TYPE_LIB_SOURCES}")
 set(CONFIG_NAME ${PROJECT_NAME}Types)
 set(TARGETS_EXPORT_NAME ${CONFIG_NAME}Targets)
 
-install(FILES TypeInterface.h TypeIO.h TypeDB.h
+install(FILES TypeInterface.h TypeDatabase.h
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}
 )
 

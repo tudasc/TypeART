@@ -90,11 +90,11 @@ TypeResolution::TypeArtStatus TypeResolution::getSubTypeInfo(const void* baseAdd
   typeart_struct_layout structLayout;
   structLayout.id           = containerInfo.id;
   structLayout.name         = containerInfo.name.c_str();
-  structLayout.len          = containerInfo.numMembers;
+  structLayout.len          = containerInfo.num_members;
   structLayout.extent       = containerInfo.extent;
   structLayout.offsets      = &containerInfo.offsets[0];
-  structLayout.member_types = &containerInfo.memberTypes[0];
-  structLayout.count        = &containerInfo.arraySizes[0];
+  structLayout.member_types = &containerInfo.member_types[0];
+  structLayout.count        = &containerInfo.array_sizes[0];
   return getSubTypeInfo(baseAddr, offset, structLayout, subType, subTypeBaseAddr, subTypeOffset, subTypeCount);
 }
 
@@ -307,11 +307,11 @@ typeart_status typeart_resolve_type(int id, typeart_struct_layout* struct_layout
   if (status == TA_OK) {
     struct_layout->id           = structInfo->id;
     struct_layout->name         = structInfo->name.c_str();
-    struct_layout->len          = structInfo->numMembers;
+    struct_layout->len          = structInfo->num_members;
     struct_layout->extent       = structInfo->extent;
     struct_layout->offsets      = &structInfo->offsets[0];
-    struct_layout->member_types = &structInfo->memberTypes[0];
-    struct_layout->count        = &structInfo->arraySizes[0];
+    struct_layout->member_types = &structInfo->member_types[0];
+    struct_layout->count        = &structInfo->array_sizes[0];
   }
   return status;
 }

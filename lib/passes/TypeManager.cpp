@@ -33,10 +33,11 @@ TypeManager::TypeManager(std::string file) : file(std::move(file)), structCount(
 }
 
 bool TypeManager::load() {
-  TypeIO cio(typeDB);
-  if (cio.load(file)) {
+  TypeIO cio(&typeDB);
+  std::error_code error;
+  if (cio.load(file, error)) {
     structMap.clear();
-    for (auto& structInfo : typeDB.getStructList()) {
+    for (const auto& structInfo : typeDB.getStructList()) {
       structMap.insert({structInfo.name, structInfo.id});
     }
     structCount = structMap.size();
@@ -46,8 +47,9 @@ bool TypeManager::load() {
 }
 
 bool TypeManager::store() {
-  TypeIO cio(typeDB);
-  return cio.store(file);
+  std::error_code error;
+  TypeIO cio(&typeDB);
+  return cio.store(file, error);
 }
 
 int TypeManager::getOrRegisterType(llvm::Type* type, const llvm::DataLayout& dl) {
@@ -139,7 +141,8 @@ int TypeManager::getOrRegisterVector(llvm::VectorType* type, const llvm::DataLay
     offsets.push_back(usableBytes);
   }
 
-  StructTypeInfo vecTypeInfo{id, name, vectorBytes, memberTypeIDs.size(), offsets, memberTypeIDs, arraySizes, TA_VEC};
+  StructTypeInfo vecTypeInfo{id,      name,          vectorBytes, memberTypeIDs.size(),
+                             offsets, memberTypeIDs, arraySizes,  StructTypeFlag::LLVM_VECTOR};
   typeDB.registerStruct(vecTypeInfo);
   structMap.insert({name, id});
   return id;
@@ -212,7 +215,7 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
 
   size_t numBytes = layout->getSizeInBytes();
 
-  StructTypeInfo structInfo{id, name, numBytes, n, offsets, memberTypeIDs, arraySizes, TA_USER_DEF};
+  StructTypeInfo structInfo{id, name, numBytes, n, offsets, memberTypeIDs, arraySizes, StructTypeFlag::USER_DEFINED};
   typeDB.registerStruct(structInfo);
 
   structMap.insert({name, id});
