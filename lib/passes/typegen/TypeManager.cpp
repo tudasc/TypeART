@@ -1,7 +1,3 @@
-//
-// Created by sebastian on 27.04.18.
-//
-
 #include "TypeManager.h"
 
 #include "StructTypeHandler.h"
@@ -14,7 +10,6 @@
 
 #include "llvm/ADT/None.h"
 #include "llvm/ADT/StringRef.h"
-#include "llvm/ADT/iterator.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Type.h"
@@ -23,11 +18,14 @@
 #include "llvm/Support/raw_ostream.h"
 
 #include <cassert>
-#include <cstdint>
 #include <utility>
 #include <vector>
 
 namespace typeart {
+
+std::unique_ptr<TypeGenerator> make_typegen(const std::string& file) {
+  return std::make_unique<TypeManager>(file);
+}
 
 using namespace llvm;
 

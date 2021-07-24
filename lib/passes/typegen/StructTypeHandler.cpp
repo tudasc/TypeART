@@ -1,29 +1,15 @@
-//
-// Created by ahueck on 24.07.21.
-//
-
 #include "StructTypeHandler.h"
 
-#include "TypeGenerator.h"
 #include "support/Logger.h"
-#include "support/TypeUtil.h"
 #include "support/Util.h"
 #include "typelib/TypeDatabase.h"
 #include "typelib/TypeInterface.h"
 
 #include "llvm/ADT/StringRef.h"
-#include "llvm/ADT/iterator.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/DerivedTypes.h"
-#include "llvm/IR/Type.h"
-#include "llvm/Support/Casting.h"
 #include "llvm/Support/TypeSize.h"
 #include "llvm/Support/raw_ostream.h"
-
-#include <cassert>
-#include <cstdint>
-#include <utility>
-#include <vector>
 
 namespace typeart {
 

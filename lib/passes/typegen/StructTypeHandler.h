@@ -1,7 +1,3 @@
-//
-// Created by ahueck on 24.07.21.
-//
-
 #ifndef TYPEART_STRUCTTYPEHANDLER_H
 #define TYPEART_STRUCTTYPEHANDLER_H
 
@@ -12,7 +8,7 @@
 
 namespace llvm {
 class StructType;
-}
+}  // namespace llvm
 
 namespace typeart {
 

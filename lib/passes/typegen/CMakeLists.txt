@@ -6,6 +6,7 @@ set(TYPEGEN_SOURCES
   VectorTypeHandler.h
   StructTypeHandler.cpp
   StructTypeHandler.h
+  ../support/TypeUtil.cpp
 )
 
 add_library(TypeGenObj OBJECT ${TYPEGEN_SOURCES})
@@ -29,6 +30,7 @@ target_project_compile_options(TypeGenObj)
 target_define_file_basename(TypeGenObj)
 target_project_coverage_options(TypeGenObj)
 
+# Need to link LLVMCore to work for consumer
 add_library(TypeGenStatic STATIC $<TARGET_OBJECTS:TypeGenObj>)
 add_library(typeart::TypeGenStatic ALIAS TypeGenStatic)
 set_property(

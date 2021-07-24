@@ -10,7 +10,7 @@ macro (check_components comps_list)
   set(@PROJECT_NAME@_FOUND true)
 
   foreach(component ${comps_list})
-    if(NOT TARGET @PROJECT_NAME@::${component})
+    if(NOT TARGET @PROJECT_NAME@::${component} AND NOT TARGET typeart::${component}Static)
       set(@PROJECT_NAME@_${component}_FOUND false)
       if(@PROJECT_NAME@_FIND_REQUIRED_${component})
         message(WARNING "Could not find component ${component}")
