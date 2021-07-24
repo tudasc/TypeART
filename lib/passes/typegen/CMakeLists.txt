@@ -2,6 +2,10 @@ set(TYPEGEN_SOURCES
   TypeManager.cpp
   TypeManager.h
   TypeGenerator.h
+  VectorTypeHandler.cpp
+  VectorTypeHandler.h
+  StructTypeHandler.cpp
+  StructTypeHandler.h
 )
 
 add_library(TypeGenObj OBJECT ${TYPEGEN_SOURCES})

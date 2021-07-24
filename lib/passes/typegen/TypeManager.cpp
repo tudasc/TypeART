@@ -4,6 +4,8 @@
 
 #include "TypeManager.h"
 
+#include "StructTypeHandler.h"
+#include "VectorTypeHandler.h"
 #include "support/Logger.h"
 #include "support/TypeUtil.h"
 #include "support/Util.h"
@@ -29,84 +31,87 @@ namespace typeart {
 
 using namespace llvm;
 
-struct StructHandler {
-  const llvm::StringMap<int>* m_struct_map;
-  const TypeDB* m_type_db;
-
-  [[nodiscard]] static std::string getName(const StructType* type) {
-    if (type->isLiteral()) {
-      return "LiteralS" + std::to_string(reinterpret_cast<long int>(type));
-    }
-    return type->getStructName();
-  }
-
-  [[nodiscard]] llvm::Optional<int> getIDFor(const llvm::StructType* type) const {
-    const auto name = StructHandler::getName(type);
-    if (auto it = m_struct_map->find(name); it != m_struct_map->end()) {
-      const auto type_id = it->second;
-      if (!m_type_db->isUserDefinedType(type_id)) {
-        LOG_ERROR("Expected user defined struct type " << name << " for type id: " << type_id);
-        return TA_UNKNOWN_TYPE;
+llvm::Optional<typeart_builtin_type> get_builtin_typeid(llvm::Type* type) {
+  auto& c = type->getContext();
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wswitch"
+  switch (type->getTypeID()) {
+    case llvm::Type::IntegerTyID: {
+      if (type == Type::getInt8Ty(c)) {
+        return TA_INT8;
+      } else if (type == Type::getInt16Ty(c)) {
+        return TA_INT16;
+      } else if (type == Type::getInt32Ty(c)) {
+        return TA_INT32;
+      } else if (type == Type::getInt64Ty(c)) {
+        return TA_INT64;
       }
-      return type_id;
-    }
-    return None;
-  }
-};
-
-struct VectorHandler {
-  // To avoid problems with padding bytes due to alignment, vector types are represented as structs rather than static
-  // arrays. They are given special names and are marked with a TA_VEC flag to avoid confusion.
-
-  const llvm::StringMap<int>* m_struct_map;
-  const TypeDB* m_type_db;
-
-  [[nodisard]] llvm::Optional<int> getElementID(llvm::VectorType* type, const DataLayout& dl, const TypeManager& m) {
-    auto elementType = type->getVectorElementType();
-
-    // Should never happen, as vectors are first class types.
-    assert(!elementType->isAggregateType() && "Unexpected vector type encountered: vector of aggregate type.");
-
-    int elementId = m.getTypeID(elementType, dl);
-    if (elementId == TA_UNKNOWN_TYPE) {
-      LOG_ERROR("Encountered vector of unknown type" << util::dump(*type));
       return TA_UNKNOWN_TYPE;
     }
+    case llvm::Type::FloatTyID:
+      return TA_FLOAT;
+    case llvm::Type::DoubleTyID:
+      return TA_DOUBLE;
+    case llvm::Type::FP128TyID:
+      return TA_FP128;
+    case llvm::Type::X86_FP80TyID:
+      return TA_X86_FP80;
+    case llvm::Type::PPC_FP128TyID:
+      return TA_PPC_FP128;
+    case llvm::Type::PointerTyID:
+      return TA_PTR;
+  }
+#pragma clang diagnostic pop
+  return None;
+}
 
-    return None;
+int TypeManager::getOrRegisterVector(llvm::VectorType* type, const llvm::DataLayout& dl) {
+  namespace tu = typeart::util;
+
+  VectorTypeHandler handler{&structMap, &typeDB, type, dl, *this};
+  const auto type_id = handler.getIDFor();
+  if (type_id) {
+    return type_id.getValue();
   }
 
-  [[nodiscard]] llvm::Optional<std::string> getName(llvm::VectorType* type, const DataLayout& dl,
-                                                    const TypeManager& m) {
-    const auto elementId = getElementID(type, dl, m);
-    if (!elementId || elementId.getValue() == TA_UNKNOWN_TYPE) {
-      return None;
-    }
+  // Type is not registered - reserve new ID and create struct info object:
 
-    size_t vectorSize = type->getVectorNumElements();
-    auto elementName  = m_type_db->getTypeName(elementId.getValue());
-    auto name         = "vec" + std::to_string(vectorSize) + ":" + elementName;
-
-    return name;
+  auto element_data = handler.getElementData();
+  if (!element_data) {
+    return TA_UNKNOWN_TYPE;
   }
 
-  [[nodiscard]] llvm::Optional<int> getIDFor(llvm::VectorType* type, const DataLayout& dl, const TypeManager& m) {
-    const auto name = getName(type, dl, m);
-    if (!name) {
-      return TA_UNKNOWN_TYPE;
-    }
-
-    if (auto it = m_struct_map->find(name.getValue()); it != m_struct_map->end()) {
-      if (!m_type_db->isVectorType(it->second)) {
-        LOG_ERROR("Expected vector type: " << name.getValue());
-        return TA_UNKNOWN_TYPE;
-      }
-      return it->second;
-    }
-
-    return None;
+  auto vector_data = handler.getVectorData();
+  if (!vector_data) {
+    return TA_UNKNOWN_TYPE;
   }
-};
+
+  const int id = reserveNextId();
+
+  const auto [element_id, element_type, element_name] = element_data.getValue();
+  const auto [vector_name, vector_bytes, vector_size] = vector_data.getValue();
+
+  std::vector<int> memberTypeIDs{element_id};
+  std::vector<size_t> arraySizes{vector_size};
+  std::vector<size_t> offsets{0};
+
+  size_t elementSize = tu::type::getTypeSizeInBytes(element_type, dl);
+  size_t usableBytes = vector_size * elementSize;
+
+  // Add padding bytes explicitly
+  if (vector_bytes > usableBytes) {
+    size_t padding = vector_bytes - usableBytes;
+    memberTypeIDs.push_back(TA_INT8);
+    arraySizes.push_back(padding);
+    offsets.push_back(usableBytes);
+  }
+
+  StructTypeInfo vecTypeInfo{id,      vector_name,   vector_bytes, memberTypeIDs.size(),
+                             offsets, memberTypeIDs, arraySizes,   StructTypeFlag::LLVM_VECTOR};
+  typeDB.registerStruct(vecTypeInfo);
+  structMap.insert({vector_name, id});
+  return id;
+}
 
 TypeManager::TypeManager(std::string file) : file(std::move(file)), structCount(0) {
 }
@@ -132,38 +137,6 @@ std::pair<bool, std::error_code> TypeManager::store() {
   return {ret, error};
 }
 
-llvm::Optional<typeart_builtin_type> get_builtin_typeid(llvm::Type* type) {
-  auto& c = type->getContext();
-  switch (type->getTypeID()) {
-    case llvm::Type::IntegerTyID: {
-      if (type == Type::getInt8Ty(c)) {
-        return TA_INT8;
-      } else if (type == Type::getInt16Ty(c)) {
-        return TA_INT16;
-      } else if (type == Type::getInt32Ty(c)) {
-        return TA_INT32;
-      } else if (type == Type::getInt64Ty(c)) {
-        return TA_INT64;
-      } else {
-        return TA_UNKNOWN_TYPE;
-      }
-    }
-    case llvm::Type::FloatTyID:
-      return TA_FLOAT;
-    case llvm::Type::DoubleTyID:
-      return TA_DOUBLE;
-    case llvm::Type::FP128TyID:
-      return TA_FP128;
-    case llvm::Type::X86_FP80TyID:
-      return TA_X86_FP80;
-    case llvm::Type::PPC_FP128TyID:
-      return TA_PPC_FP128;
-    case llvm::Type::PointerTyID:
-      return TA_PTR;
-  }
-  return None;
-}
-
 int TypeManager::getTypeID(llvm::Type* type, const DataLayout& dl) const {
   auto builtin_id = get_builtin_typeid(type);
   if (builtin_id) {
@@ -172,15 +145,15 @@ int TypeManager::getTypeID(llvm::Type* type, const DataLayout& dl) const {
 
   switch (type->getTypeID()) {
     case llvm::Type::VectorTyID: {
-      VectorHandler handle{&structMap, &typeDB};
-      const auto type_id = handle.getIDFor(dyn_cast<VectorType>(type), dl, this);
+      VectorTypeHandler handle{&structMap, &typeDB, dyn_cast<VectorType>(type), dl, *this};
+      const auto type_id = handle.getIDFor();
       if (type_id) {
         return type_id.getValue();
       }
     }
     case llvm::Type::StructTyID: {
-      StructHandler handle{&structMap, &typeDB};
-      const auto type_id = handle.getIDFor(dyn_cast<StructType>(type));
+      StructTypeHandler handle{&structMap, &typeDB, dyn_cast<StructType>(type)};
+      const auto type_id = handle.getIDFor();
       if (type_id) {
         return type_id.getValue();
       }
@@ -209,82 +182,19 @@ int TypeManager::getOrRegisterType(llvm::Type* type, const llvm::DataLayout& dl)
   return TA_UNKNOWN_TYPE;
 }
 
-int TypeManager::getOrRegisterVector(llvm::VectorType* type, const llvm::DataLayout& dl) {
-  namespace tu = typeart::util;
-
-  //  size_t vectorBytes = dl.getTypeAllocSize(type);
-  //  size_t vectorSize  = type->getVectorNumElements();
-  //
-  //  auto elementType = type->getVectorElementType();
-  //
-  //  // Should never happen, as vectors are first class types.
-  //  assert(!elementType->isAggregateType() && "Unexpected vector type encountered: vector of aggregate type.");
-  //
-  //  int elementId = getOrRegisterType(elementType, dl);
-  //  if (elementId == TA_UNKNOWN_TYPE) {
-  //    LOG_ERROR("Encountered vector of unknown type" << util::dump(*type));
-  //    return elementId;
-  //  }
-  //  auto elementName = typeDB.getTypeName(elementId);
-  //  auto name        = "vec" + std::to_string(vectorSize) + ":" + elementName;
-  //
-  //  // To avoid problems with padding bytes due to alignment, vector types are represented as structs rather than
-  //  static
-  //  // arrays. They are given special names and are marked with a TA_VEC flag to avoid confusion.
-  //
-  //  // Look up name
-  //  if (auto it = structMap.find(name); it != structMap.end()) {
-  //    if (!typeDB.isVectorType(it->second)) {
-  //      LOG_ERROR("Expected vector type: " << name);
-  //      return TA_UNKNOWN_TYPE;
-  //    }
-  //    return it->second;
-  //  }
-
-  VectorHandler handler{&structMap, &typeDB};
-  const auto type_id = handler.getIDFor(type, dl, *this);
-  if (type_id) {
-    return type_id.getValue();
-  }
-
-  // Type is not registered - reserve new ID and create struct info object
-
-  int id = reserveNextId();
-
-  std::vector<int> memberTypeIDs{elementId};
-  std::vector<size_t> arraySizes{vectorSize};
-  std::vector<size_t> offsets{0};
-
-  size_t elementSize = tu::type::getTypeSizeInBytes(elementType, dl);
-  size_t usableBytes = vectorSize * elementSize;
-
-  // Add padding bytes explicitly
-  if (vectorBytes > usableBytes) {
-    size_t padding = vectorBytes - usableBytes;
-    memberTypeIDs.push_back(TA_INT8);
-    arraySizes.push_back(padding);
-    offsets.push_back(usableBytes);
-  }
-
-  StructTypeInfo vecTypeInfo{id,      name,          vectorBytes, memberTypeIDs.size(),
-                             offsets, memberTypeIDs, arraySizes,  StructTypeFlag::LLVM_VECTOR};
-  typeDB.registerStruct(vecTypeInfo);
-  structMap.insert({name, id});
-  return id;
-}
-
 int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLayout& dl) {
   namespace tu = typeart::util;
 
-  StructHandler handle{&structMap, &typeDB};
-  const auto type_id = handle.getIDFor(type);
+  StructTypeHandler handle{&structMap, &typeDB, type};
+  const auto type_id = handle.getIDFor();
   if (type_id) {
     return type_id.getValue();
   }
 
-  const auto name = StructHandler::getName(type);
-  // Get next ID and register struct
-  int id = reserveNextId();
+  const auto name = handle.getName();
+
+  // Get next ID and register struct:
+  const int id = reserveNextId();
 
   size_t n = type->getStructNumElements();
 
@@ -306,7 +216,7 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
     }
 
     if (memberType->isStructTy()) {
-      if (StructHandler::getName(llvm::dyn_cast<StructType>(memberType)) == name) {
+      if (StructTypeHandler::getName(llvm::dyn_cast<StructType>(memberType)) == name) {
         memberID = id;
       } else {
         memberID = getOrRegisterType(memberType, dl);

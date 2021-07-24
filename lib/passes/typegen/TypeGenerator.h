@@ -13,11 +13,17 @@ class DataLayout;
 
 namespace typeart {
 class TypeGenerator {
+ public:
   [[nodiscard]] virtual int getOrRegisterType(llvm::Type* type, const llvm::DataLayout& layout) = 0;
-  [[nodiscard]] virtual int getTypeID(llvm::Type* type, const llvm::DataLayout& layout) const   = 0;
-  [[nodiscard]] virtual std::pair<bool, std::error_code> load()                                 = 0;
+
+  [[nodiscard]] virtual int getTypeID(llvm::Type* type, const llvm::DataLayout& layout) const = 0;
+
+  [[nodiscard]] virtual std::pair<bool, std::error_code> load() = 0;
+
   // FIXME make that const (needs TypeIO refactor):
   [[nodiscard]] virtual std::pair<bool, std::error_code> store() = 0;
+
+  virtual ~TypeGenerator() = default;
 };
 
 // This doesn't immediately load the file, call load/store after
