@@ -35,13 +35,10 @@ std::string StructTypeHandler::getName(llvm::StructType* type) {
 }
 
 std::string StructTypeHandler::getName() {
-  if (type->isLiteral()) {
-    return "LiteralS" + std::to_string(reinterpret_cast<long int>(type));
-  }
-  return type->getStructName();
+  return getName(type);
 }
 
-llvm::Optional<int> StructTypeHandler::getIDFor() const {
+llvm::Optional<int> StructTypeHandler::getID() const {
   const auto name = StructTypeHandler::getName(type);
   if (auto it = m_struct_map->find(name); it != m_struct_map->end()) {
     const auto type_id = it->second;

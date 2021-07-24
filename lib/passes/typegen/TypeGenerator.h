@@ -12,6 +12,7 @@ class DataLayout;
 }  // namespace llvm
 
 namespace typeart {
+
 class TypeGenerator {
  public:
   [[nodiscard]] virtual int getOrRegisterType(llvm::Type* type, const llvm::DataLayout& layout) = 0;
@@ -20,8 +21,7 @@ class TypeGenerator {
 
   [[nodiscard]] virtual std::pair<bool, std::error_code> load() = 0;
 
-  // FIXME make that const (needs TypeIO refactor):
-  [[nodiscard]] virtual std::pair<bool, std::error_code> store() = 0;
+  [[nodiscard]] virtual std::pair<bool, std::error_code> store() const = 0;
 
   virtual ~TypeGenerator() = default;
 };

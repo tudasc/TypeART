@@ -27,7 +27,7 @@ class TypeManager final : public TypeGenerator {
  public:
   explicit TypeManager(std::string file);
   [[nodiscard]] std::pair<bool, std::error_code> load() override;
-  [[nodiscard]] std::pair<bool, std::error_code> store() override;
+  [[nodiscard]] std::pair<bool, std::error_code> store() const override;
   [[nodiscard]] int getOrRegisterType(llvm::Type* type, const llvm::DataLayout& dl) override;
   [[nodiscard]] int getTypeID(llvm::Type* type, const llvm::DataLayout& dl) const override;
 

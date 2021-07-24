@@ -54,8 +54,9 @@ RuntimeSystem::RuntimeSystem() : rtScopeInit(), typeResolution(typeDB, recorder)
   debug::printTraceStart();
 
   auto loadTypes = [this](const std::string& file, std::error_code& ec) -> bool {
-    TypeIO cio(&typeDB);
-    return cio.load(file, ec);
+    auto loaded = io::load(&typeDB, file);
+    ec          = loaded.getError();
+    return !static_cast<bool>(ec);
   };
 
   std::error_code error;

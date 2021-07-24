@@ -14,14 +14,12 @@
 namespace typeart {
 
 std::pair<std::unique_ptr<TypeDatabase>, std::error_code> make_database(const std::string& file) {
-  auto db = std::make_unique<TypeDB>();
-  TypeIO io(db.get());
-  std::error_code err;
-  const bool loaded = io.load(file, err);
+  auto db     = std::make_unique<TypeDB>();
+  auto loaded = io::load(db.get(), file);
   if (!loaded) {
     LOG_DEBUG("Database file not found: " << file)
   }
-  return {std::move(db), err};
+  return {std::move(db), loaded.getError()};
 }
 
 const std::array<std::string, 11> TypeDB::BuiltinNames = {

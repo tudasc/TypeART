@@ -61,7 +61,7 @@ llvm::Optional<VectorTypeHandler::ElementData> VectorTypeHandler::getElementData
   }
 
   auto element_name = m_type_db->getTypeName(element_id.getValue());
-  auto element_type = getElementType(type);
+  auto element_type = VectorTypeHandler::getElementType(type);
   return ElementData{element_id.getValue(), element_type, element_name};
 }
 
@@ -84,7 +84,7 @@ std::string VectorTypeHandler::getName(const ElementData& data) const {
   return name;
 }
 
-llvm::Optional<int> VectorTypeHandler::getIDFor() const {
+llvm::Optional<int> VectorTypeHandler::getID() const {
   auto element_data = getElementData();
 
   if (!element_data) {

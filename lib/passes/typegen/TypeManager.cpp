@@ -69,7 +69,7 @@ int TypeManager::getOrRegisterVector(llvm::VectorType* type, const llvm::DataLay
   namespace tu = typeart::util;
 
   VectorTypeHandler handler{&structMap, &typeDB, type, dl, *this};
-  const auto type_id = handler.getIDFor();
+  const auto type_id = handler.getID();
   if (type_id) {
     return type_id.getValue();
   }
@@ -117,24 +117,25 @@ TypeManager::TypeManager(std::string file) : file(std::move(file)), structCount(
 }
 
 std::pair<bool, std::error_code> TypeManager::load() {
-  TypeIO cio(&typeDB);
-  std::error_code error;
-  if (cio.load(file, error)) {
-    structMap.clear();
-    for (const auto& structInfo : typeDB.getStructList()) {
-      structMap.insert({structInfo.name, structInfo.id});
-    }
-    structCount = structMap.size();
-    return {true, error};
+  //  TypeIO cio(&typeDB);
+  // std::error_code error;
+  auto loaded        = io::load(&typeDB, file);
+  std::error_code ec = loaded.getError();
+  if (ec) {
+    return {false, ec};
   }
-  return {false, error};
+  structMap.clear();
+  for (const auto& structInfo : typeDB.getStructList()) {
+    structMap.insert({structInfo.name, structInfo.id});
+  }
+  structCount = structMap.size();
+  return {true, ec};
 }
 
-std::pair<bool, std::error_code> TypeManager::store() {
-  std::error_code error;
-  TypeIO cio(&typeDB);
-  const bool ret = cio.store(file, error);
-  return {ret, error};
+std::pair<bool, std::error_code> TypeManager::store() const {
+  auto stored        = io::store(&typeDB, file);
+  std::error_code ec = stored.getError();
+  return {!static_cast<bool>(ec), ec};
 }
 
 int TypeManager::getTypeID(llvm::Type* type, const DataLayout& dl) const {
@@ -146,14 +147,14 @@ int TypeManager::getTypeID(llvm::Type* type, const DataLayout& dl) const {
   switch (type->getTypeID()) {
     case llvm::Type::VectorTyID: {
       VectorTypeHandler handle{&structMap, &typeDB, dyn_cast<VectorType>(type), dl, *this};
-      const auto type_id = handle.getIDFor();
+      const auto type_id = handle.getID();
       if (type_id) {
         return type_id.getValue();
       }
     }
     case llvm::Type::StructTyID: {
       StructTypeHandler handle{&structMap, &typeDB, dyn_cast<StructType>(type)};
-      const auto type_id = handle.getIDFor();
+      const auto type_id = handle.getID();
       if (type_id) {
         return type_id.getValue();
       }
@@ -186,7 +187,7 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
   namespace tu = typeart::util;
 
   StructTypeHandler handle{&structMap, &typeDB, type};
-  const auto type_id = handle.getIDFor();
+  const auto type_id = handle.getID();
   if (type_id) {
     return type_id.getValue();
   }
@@ -248,7 +249,7 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
 }
 
 int TypeManager::reserveNextId() {
-  int id = TA_NUM_RESERVED_IDS + structCount;
+  int id = static_cast<int>(TA_NUM_RESERVED_IDS) + structCount;
   structCount++;
   return id;
 }

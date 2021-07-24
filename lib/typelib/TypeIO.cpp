@@ -61,19 +61,16 @@ struct llvm::yaml::MappingTraits<typeart::StructTypeInfo> {
 
 LLVM_YAML_IS_SEQUENCE_VECTOR(typeart::StructTypeInfo)
 
-namespace typeart {
-TypeIO::TypeIO(TypeDB* typeDB) : typeDB(typeDB) {
-}
+namespace typeart::io {
 
-bool TypeIO::load(const std::string& file, std::error_code& ec) {
+llvm::ErrorOr<bool> load(TypeDB* typeDB, const std::string& file) {
   using namespace llvm;
   ErrorOr<std::unique_ptr<MemoryBuffer>> memBuffer = MemoryBuffer::getFile(file);
 
   if (std::error_code error = memBuffer.getError(); error) {
     // TODO meaningful error handling/message
     LOG_WARNING("Warning while loading type file to " << file << ". Reason: " << error.message());
-    ec = error;
-    return false;
+    return error;
   }
 
   typeDB->clear();
@@ -89,16 +86,15 @@ bool TypeIO::load(const std::string& file, std::error_code& ec) {
   return !in.error();
 }
 
-bool TypeIO::store(const std::string& file, std::error_code& ec) const {
+llvm::ErrorOr<bool> store(const TypeDB* typeDB, const std::string& file) {
   using namespace llvm;
 
   std::error_code error;
-  raw_fd_ostream oss(StringRef(file), ec, sys::fs::OpenFlags::F_Text);
+  raw_fd_ostream oss(StringRef(file), error, sys::fs::OpenFlags::F_Text);
 
   if (oss.has_error()) {
-    LOG_WARNING("Warning while storing type file to " << file << ". Reason: " << ec.message());
-    ec = error;
-    return false;
+    LOG_WARNING("Warning while storing type file to " << file << ". Reason: " << error.message());
+    return error;
   }
 
   auto types = typeDB->getStructList();
@@ -113,4 +109,4 @@ bool TypeIO::store(const std::string& file, std::error_code& ec) const {
   return true;
 }
 
-}  // namespace typeart
+}  // namespace typeart::io

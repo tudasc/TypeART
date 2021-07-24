@@ -27,7 +27,7 @@ struct StructTypeHandler {
 
   [[nodiscard]] std::string getName();
 
-  [[nodiscard]] llvm::Optional<int> getIDFor() const;
+  [[nodiscard]] llvm::Optional<int> getID() const;
 };
 
 }  // namespace typeart

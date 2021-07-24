@@ -54,7 +54,7 @@ struct VectorTypeHandler {
 
   [[nodiscard]] std::string getName(const ElementData& data) const;
 
-  [[nodiscard]] llvm::Optional<int> getIDFor() const;
+  [[nodiscard]] llvm::Optional<int> getID() const;
 };
 
 }  // namespace typeart
