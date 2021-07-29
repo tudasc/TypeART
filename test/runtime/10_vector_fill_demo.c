@@ -23,8 +23,8 @@ void free_vector(vector v) {
 }
 
 int fill_vector(void* values, int count, vector* v) {
-  typeart_builtin_type type;
-  typeart_status result = typeart_get_builtin_type(values, &type);
+  int type;
+  typeart_status result = typeart_get_type_id(values, &type);
   if (result == TA_OK && type == TA_DOUBLE) {
     memcpy(v->vals, values, count);
     v->size = count;

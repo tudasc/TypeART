@@ -25,13 +25,13 @@ namespace debug {
 std::string toString(const void* memAddr, int typeId, size_t count, size_t typeSize, const void* calledFrom) {
   std::string buf;
   llvm::raw_string_ostream s(buf);
-  const auto name = typeart::RuntimeSystem::get().typeResolution.getTypeName(typeId);
+  const auto name = typeart::RuntimeSystem::get().typeResolution.db().getTypeName(typeId);
   s << memAddr << " " << typeId << " " << name << " " << typeSize << " " << count << " (" << calledFrom << ")";
   return s.str();
 }
 
 std::string toString(const void* memAddr, int typeId, size_t count, const void* calledFrom) {
-  const auto typeSize = typeart::RuntimeSystem::get().typeResolution.getTypeSize(typeId);
+  const auto typeSize = typeart::RuntimeSystem::get().typeResolution.db().getTypeSize(typeId);
   return toString(memAddr, typeId, count, typeSize, calledFrom);
 }
 

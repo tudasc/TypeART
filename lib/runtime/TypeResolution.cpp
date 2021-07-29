@@ -7,6 +7,7 @@
 #include "AllocationTracking.h"
 #include "Runtime.h"
 #include "RuntimeData.h"
+#include "RuntimeInterface.h"
 #include "support/Logger.h"
 
 #include "llvm/ADT/Optional.h"
@@ -179,7 +180,7 @@ TypeResolution::TypeArtStatus TypeResolution::getContainingTypeInfo(const void* 
                                                                     const PointerInfo& ptrInfo, size_t* count,
                                                                     size_t* offset) const {
   const auto& basePtrInfo = ptrInfo;
-  size_t typeSize         = getTypeSize(basePtrInfo.typeId);
+  size_t typeSize         = typeDB.getTypeSize(basePtrInfo.typeId);
 
   // Check for exact match -> no further checks and offsets calculations needed
   if (basePtr == addr) {
@@ -240,18 +241,20 @@ TypeResolution::TypeArtStatus TypeResolution::getStructInfo(int id, const Struct
   return TA_INVALID_ID;
 }
 
-const std::string& TypeResolution::getTypeName(int id) const {
-  return typeDB.getTypeName(id);
+const TypeDB& TypeResolution::db() const {
+  return typeDB;
 }
 
-size_t TypeResolution::getTypeSize(int id) const {
-  return typeDB.getTypeSize(id);
+namespace detail {
+inline typeart_status query_type(const void* addr, int* type, size_t* count) {
+  auto alloc = typeart::RuntimeSystem::get().allocTracker.findBaseAlloc(addr);
+  typeart::RuntimeSystem::get().recorder.incUsedInRequest(addr);
+  if (alloc) {
+    return typeart::RuntimeSystem::get().typeResolution.getTypeInfo(addr, alloc->first, alloc->second, type, count);
+  }
+  return TA_UNKNOWN_ADDRESS;
 }
-
-bool TypeResolution::isValidType(int id) const {
-  return typeDB.isValid(id);
-}
-
+}  // namespace detail
 }  // namespace typeart
 
 /**
@@ -270,12 +273,19 @@ typeart_status typeart_get_builtin_type(const void* addr, typeart::BuiltinType* 
 
 typeart_status typeart_get_type(const void* addr, int* type, size_t* count) {
   typeart::RTGuard guard;
-  auto alloc = typeart::RuntimeSystem::get().allocTracker.findBaseAlloc(addr);
-  typeart::RuntimeSystem::get().recorder.incUsedInRequest(addr);
-  if (alloc) {
-    return typeart::RuntimeSystem::get().typeResolution.getTypeInfo(addr, alloc->first, alloc->second, type, count);
-  }
-  return TA_UNKNOWN_ADDRESS;
+  return typeart::detail::query_type(addr, type, count);
+}
+
+typeart_status typeart_get_type_length(const void* addr, size_t* count) {
+  typeart::RTGuard guard;
+  int type{0};
+  return typeart::detail::query_type(addr, &type, count);
+}
+
+typeart_status typeart_get_type_id(const void* addr, int* type_id) {
+  typeart::RTGuard guard;
+  size_t count{0};
+  return typeart::detail::query_type(addr, type_id, &count);
 }
 
 typeart_status typeart_get_containing_type(const void* addr, int* type, size_t* count, const void** base_address,
@@ -316,18 +326,53 @@ typeart_status typeart_resolve_type(int id, typeart_struct_layout* struct_layout
   return status;
 }
 
-const char* typeart_get_type_name(int id) {
-  typeart::RTGuard guard;
-  return typeart::RuntimeSystem::get().typeResolution.getTypeName(id).c_str();
-}
-
-void typeart_get_return_address(const void* addr, const void** retAddr) {
+void typeart_get_return_address(const void* addr, const void** return_addr) {
   typeart::RTGuard guard;
   auto alloc = typeart::RuntimeSystem::get().allocTracker.findBaseAlloc(addr);
 
   if (alloc) {
-    *retAddr = alloc.getValue().second.debug;
+    *return_addr = alloc.getValue().second.debug;
   } else {
-    *retAddr = nullptr;
+    *return_addr = nullptr;
   }
+}
+
+const char* typeart_get_type_name(int id) {
+  typeart::RTGuard guard;
+  return typeart::RuntimeSystem::get().typeResolution.db().getTypeName(id).c_str();
+}
+
+bool typeart_is_vector_type(int id) {
+  typeart::RTGuard guard;
+  return typeart::RuntimeSystem::get().typeResolution.db().isVectorType(id);
+}
+
+bool typeart_is_valid_type(int id) {
+  typeart::RTGuard guard;
+  return typeart::RuntimeSystem::get().typeResolution.db().isValid(id);
+}
+
+bool typeart_is_reserved_type(int id) {
+  typeart::RTGuard guard;
+  return typeart::RuntimeSystem::get().typeResolution.db().isReservedType(id);
+}
+
+bool typeart_is_builtin_type(int id) {
+  typeart::RTGuard guard;
+  return typeart::RuntimeSystem::get().typeResolution.db().isBuiltinType(id);
+}
+
+bool typeart_is_struct_type(int id) {
+  typeart::RTGuard guard;
+  return typeart::RuntimeSystem::get().typeResolution.db().isStructType(id);
+}
+
+bool typeart_is_userdefined_type(int id) {
+  typeart::RTGuard guard;
+  return typeart::RuntimeSystem::get().typeResolution.db().isUserDefinedType(id);
+}
+
+size_t typeart_get_type_size(int id) {
+  typeart::RTGuard guard;
+  return typeart::RuntimeSystem::get().typeResolution.db().getTypeSize(id);
 }
