@@ -48,7 +48,7 @@ void analyseBuffer(const void* buf, int count, MPI_Datatype type) {
       // If the address corresponds to a struct, fetch the type of the first member
       while (type_id >= TA_NUM_RESERVED_IDS) {
         typeart_struct_layout struct_layout;
-        typeart_resolve_type(type_id, &struct_layout);
+        typeart_resolve_type_id(type_id, &struct_layout);
         type_id = struct_layout.member_types[0];
       }
 

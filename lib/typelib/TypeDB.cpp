@@ -35,7 +35,7 @@ const std::array<size_t, 11> TypeDB::BuiltinSizes = {1,  2,
 
 // TypeInfo TypeDB::InvalidType = TypeInfo{BUILTIN, TA_UNKNOWN_TYPE};
 
-const std::string TypeDB::UnknownStructName{"UnknownStruct"};
+const std::string TypeDB::UnknownStructName{"typeart_unknown_struct"};
 
 void TypeDB::clear() {
   structInfoList.clear();
@@ -56,13 +56,13 @@ bool TypeDB::isStructType(int id) const {
 }
 
 bool TypeDB::isUserDefinedType(int id) const {
-  auto structInfo = getStructInfo(id);
+  const auto* structInfo = getStructInfo(id);
   return (structInfo != nullptr) &&
          ((static_cast<int>(structInfo->flag) & static_cast<int>(StructTypeFlag::USER_DEFINED)) != 0);
 }
 
 bool TypeDB::isVectorType(int id) const {
-  auto structInfo = getStructInfo(id);
+  const auto* structInfo = getStructInfo(id);
   return (structInfo != nullptr) &&
          ((static_cast<int>(structInfo->flag) & static_cast<int>(StructTypeFlag::LLVM_VECTOR)) != 0);
 }

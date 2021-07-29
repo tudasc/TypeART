@@ -254,6 +254,21 @@ inline typeart_status query_type(const void* addr, int* type, size_t* count) {
   }
   return TA_UNKNOWN_ADDRESS;
 }
+
+inline typeart_status query_struct_layout(int id, typeart_struct_layout* struct_layout) {
+  const typeart::StructTypeInfo* struct_info;
+  typeart_status status = typeart::RuntimeSystem::get().typeResolution.getStructInfo(id, &struct_info);
+  if (status == TA_OK) {
+    struct_layout->id           = struct_info->id;
+    struct_layout->name         = struct_info->name.c_str();
+    struct_layout->len          = struct_info->num_members;
+    struct_layout->extent       = struct_info->extent;
+    struct_layout->offsets      = &struct_info->offsets[0];
+    struct_layout->member_types = &struct_info->member_types[0];
+    struct_layout->count        = &struct_info->array_sizes[0];
+  }
+  return status;
+}
 }  // namespace detail
 }  // namespace typeart
 
@@ -310,31 +325,32 @@ typeart_status typeart_get_subtype(const void* base_addr, size_t offset, typeart
                                                                      subtype_base_addr, subtype_offset, subtype_count);
 }
 
-typeart_status typeart_resolve_type(int id, typeart_struct_layout* struct_layout) {
+typeart_status typeart_resolve_type_addr(const void* addr, typeart_struct_layout* struct_layout) {
   typeart::RTGuard guard;
-  const typeart::StructTypeInfo* structInfo;
-  typeart_status status = typeart::RuntimeSystem::get().typeResolution.getStructInfo(id, &structInfo);
-  if (status == TA_OK) {
-    struct_layout->id           = structInfo->id;
-    struct_layout->name         = structInfo->name.c_str();
-    struct_layout->len          = structInfo->num_members;
-    struct_layout->extent       = structInfo->extent;
-    struct_layout->offsets      = &structInfo->offsets[0];
-    struct_layout->member_types = &structInfo->member_types[0];
-    struct_layout->count        = &structInfo->array_sizes[0];
+  int type_id{0};
+  size_t size{0};
+  auto status = typeart::detail::query_type(addr, &type_id, &size);
+  if (status != TA_OK) {
+    return status;
   }
-  return status;
+  return typeart::detail::query_struct_layout(type_id, struct_layout);
 }
 
-void typeart_get_return_address(const void* addr, const void** return_addr) {
+typeart_status typeart_resolve_type_id(int id, typeart_struct_layout* struct_layout) {
+  typeart::RTGuard guard;
+  return typeart::detail::query_struct_layout(id, struct_layout);
+}
+
+typeart_status typeart_get_return_address(const void* addr, const void** return_addr) {
   typeart::RTGuard guard;
   auto alloc = typeart::RuntimeSystem::get().allocTracker.findBaseAlloc(addr);
 
   if (alloc) {
     *return_addr = alloc.getValue().second.debug;
-  } else {
-    *return_addr = nullptr;
+    return TA_OK;
   }
+  *return_addr = nullptr;
+  return TA_UNKNOWN_ADDRESS;
 }
 
 const char* typeart_get_type_name(int id) {

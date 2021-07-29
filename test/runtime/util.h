@@ -20,7 +20,7 @@ void check(void* addr, int id, int expected_count, int resolveStructs) {
       // If the address corresponds to a struct, fetch the type of the first member
       while (id_result >= TA_NUM_RESERVED_IDS) {
         typeart_struct_layout struct_layout;
-        typeart_resolve_type(id_result, &struct_layout);
+        typeart_resolve_type_id(id_result, &struct_layout);
         id_result   = struct_layout.member_types[0];
         count_check = struct_layout.count[0];
       }
@@ -58,7 +58,7 @@ void check_struct(void* addr, const char* name, int expected_count) {
   if (status == TA_OK) {
     if (id >= TA_NUM_RESERVED_IDS) {
       typeart_struct_layout struct_layout;
-      typeart_resolve_type(id, &struct_layout);
+      typeart_resolve_type_id(id, &struct_layout);
       if (strcmp(typeart_get_type_name(id), struct_layout.name) != 0) {
         fprintf(stderr, "Error: Name mismatch\n");
       } else if (expected_count != count_check) {

@@ -6,7 +6,6 @@
 #ifdef __cplusplus
 #include <cstddef>
 #else
-#include <stdbool.h>
 #include <stddef.h>
 #endif
 
@@ -100,8 +99,28 @@ typeart_status typeart_get_subtype(const void* base_addr, size_t offset, typeart
  *
  * \param[in] addr The address.
  * \param[out] retAddr The approximate address where the allocation occurred, or nullptr.
+ *
+ * \return One of the following status codes:
+ *  - TA_OK: Success.
+ *  - TA_UNKNOWN_ADDRESS: The given address is either not allocated, or was not recorded by the runtime.
  */
-void typeart_get_return_address(const void* addr, const void** return_addr);
+typeart_status typeart_get_return_address(const void* addr, const void** return_addr);
+
+/**
+ * Given an address, this function provides information about the corresponding struct type.
+ * This is more expensive than the below version, since the pointer addr must be resolved.
+ *
+ * \param[in] id The pointer address
+ * \param[out] struct_layout Data layout of the struct.
+ *
+ * \return One of the following status codes:
+ *  - TA_OK: Success.
+ *  - TA_WRONG_KIND: ID does not correspond to a struct type.
+ *  - TA_UNKNOWN_ADDRESS: The given address is either not allocated, or was not correctly recorded by the runtime.
+ *  - TA_BAD_ALIGNMENT: The given address does not line up with the start of the atomic type at that location.
+ *  - TA_INVALID_ID: Encountered unregistered ID during lookup.
+ */
+typeart_status typeart_resolve_type_addr(const void* addr, typeart_struct_layout* struct_layout);
 
 /**
  * Given a type ID, this function provides information about the corresponding struct type.
@@ -110,83 +129,11 @@ void typeart_get_return_address(const void* addr, const void** return_addr);
  * \param[out] struct_layout Data layout of the struct.
  *
  * \return One of the following status codes:
- *  - TA_OK: Sucess.
+ *  - TA_OK: Success.
  *  - TA_WRONG_KIND: ID does not correspond to a struct type.
  *  - TA_INVALID_ID: ID is not valid.
  */
-typeart_status typeart_resolve_type(int id, typeart_struct_layout* struct_layout);
-
-/**
- * Returns the name of the type corresponding to the given type ID.
- * This can be used for debugging and error messages.
- *
- * \param[in] id The type ID.
- * \return The name of the type.
- */
-const char* typeart_get_type_name(int id);
-
-/**
- * Returns true if this is a valid type according to
- * e.g., a built-in type or a user-defined type,
- * see also TypeInterface.h
- *
- * \param[in] id The type ID.
- * \return true, false
- */
-bool typeart_is_valid_type(int id);
-
-/**
- * Returns true if the type ID is in the pre-determined reserved range,
- * see TypeInterface.h
- *
- * \param[in] id The type ID.
- * \return true, false
- */
-bool typeart_is_reserved_type(int id);
-
-/**
- * Returns true if the type ID is a built-in type,
- * see TypeInterface.h
- *
- * \param[in] id The type ID.
- * \return true, false
- */
-bool typeart_is_builtin_type(int id);
-
-/**
- * Returns true if the type ID is a structure type.
- * Note: This can be a user-defined struct or class, or a
- * LLVM vector type. Use the below queries for specifics.
- *
- * \param[in] id The type ID.
- * \return true, false
- */
-bool typeart_is_struct_type(int id);
-
-/**
- * Returns true if the type ID is a user-defined structure type
- * (struct, class etc.)
- *
- * \param[in] id The type ID.
- * \return true, false
- */
-bool typeart_is_userdefined_type(int id);
-
-/**
- * Returns true if the type ID is a LLVM SIMD vector type
- *
- * \param[in] id The type ID.
- * \return true, false
- */
-bool typeart_is_vector_type(int id);
-
-/**
- * Returns the byte size of the type behind the ID.
- *
- * \param[in] id The type ID.
- * \return size in bytes of the type
- */
-size_t typeart_get_type_size(int id);
+typeart_status typeart_resolve_type_id(int id, typeart_struct_layout* struct_layout);
 
 #ifdef __cplusplus
 }

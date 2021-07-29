@@ -1,5 +1,12 @@
-#ifndef LLVM_MUST_SUPPORT_TYPEINTERFACE_H
-#define LLVM_MUST_SUPPORT_TYPEINTERFACE_H
+#ifndef TYPEART_TYPEINTERFACE_H
+#define TYPEART_TYPEINTERFACE_H
+
+#ifdef __cplusplus
+#include <cstddef>
+#else
+#include <stdbool.h>
+#include <stddef.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -32,8 +39,80 @@ typedef enum typeart_builtin_type_t {  // NOLINT
   TA_NUM_RESERVED_IDS = TA_UNKNOWN_TYPE + 1
 } typeart_builtin_type;
 
+/**
+ * Returns the name of the type corresponding to the given type ID.
+ * This can be used for debugging and error messages.
+ *
+ * \param[in] id The type ID.
+ * \return The name of the type, or "typeart_unknown_struct" if the ID is unknown.
+ */
+const char* typeart_get_type_name(int id);
+
+/**
+ * Returns true if this is a valid type according to
+ * e.g., a built-in type or a user-defined type,
+ * see also TypeInterface.h
+ *
+ * \param[in] id The type ID.
+ * \return true, false
+ */
+bool typeart_is_valid_type(int id);
+
+/**
+ * Returns true if the type ID is in the pre-determined reserved range,
+ * see TypeInterface.h
+ *
+ * \param[in] id The type ID.
+ * \return true, false
+ */
+bool typeart_is_reserved_type(int id);
+
+/**
+ * Returns true if the type ID is a built-in type,
+ * see TypeInterface.h
+ *
+ * \param[in] id The type ID.
+ * \return true, false
+ */
+bool typeart_is_builtin_type(int id);
+
+/**
+ * Returns true if the type ID is a structure type.
+ * Note: This can be a user-defined struct or class, or a
+ * LLVM vector type. Use the below queries for specifics.
+ *
+ * \param[in] id The type ID.
+ * \return true, false
+ */
+bool typeart_is_struct_type(int id);
+
+/**
+ * Returns true if the type ID is a user-defined structure type
+ * (struct, class etc.)
+ *
+ * \param[in] id The type ID.
+ * \return true, false
+ */
+bool typeart_is_userdefined_type(int id);
+
+/**
+ * Returns true if the type ID is a LLVM SIMD vector type
+ *
+ * \param[in] id The type ID.
+ * \return true, false
+ */
+bool typeart_is_vector_type(int id);
+
+/**
+ * Returns the byte size of the type behind the ID.
+ *
+ * \param[in] id The type ID.
+ * \return size in bytes of the type
+ */
+size_t typeart_get_type_size(int id);
+
 #ifdef __cplusplus
 }
 #endif
 
-#endif  // LLVM_MUST_SUPPORT_TYPEINTERFACE_H
+#endif  // TYPEART_TYPEINTERFACE_H
