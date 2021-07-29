@@ -135,6 +135,22 @@ typeart_status typeart_resolve_type_addr(const void* addr, typeart_struct_layout
  */
 typeart_status typeart_resolve_type_id(int id, typeart_struct_layout* struct_layout);
 
+/**
+ * Version string "major.minor(.patch)" of TypeART.
+ *
+ * \return version string
+ */
+const char* typeart_get_project_version();
+
+/**
+ * Git revision string of TypeART branch.
+ * Returns "N/A" if revision couldn't be generated.
+ * Char "+" is appended, if uncommitted changes were detected.
+ *
+ * \return revision string
+ */
+const char* typeart_get_git_revision();
+
 #ifdef __cplusplus
 }
 #endif

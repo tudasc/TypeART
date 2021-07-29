@@ -1,0 +1,18 @@
+#include "RuntimeInterface.h"
+
+namespace typeart {
+
+struct ProjectMetaData final {
+  static constexpr char version[]{"@PROJECT_VERSION@"};
+  static constexpr char git_revision[]{"@TYPEART_GIT_REV@"};
+};
+
+}  // namespace typeart
+
+const char* typeart_get_project_version() {
+  return typeart::ProjectMetaData::version;
+}
+
+const char* typeart_get_git_revision() {
+  return typeart::ProjectMetaData::git_revision;
+}

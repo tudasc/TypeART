@@ -1,3 +1,17 @@
+set(TYPEART_META_SOURCE ${CMAKE_CURRENT_BINARY_DIR}/Version.cpp)
+
+add_custom_command(
+  OUTPUT ${TYPEART_META_SOURCE}
+  COMMAND ${CMAKE_COMMAND}
+          -DROOT_DIR=${PROJECT_SOURCE_DIR}
+          -DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}
+          -DPROJECT_VERSION=${PROJECT_VERSION}
+          -P ${PROJECT_SOURCE_DIR}/cmake/modules/version-helper.cmake
+  MAIN_DEPENDENCY Version.cpp.in
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  COMMENT "Generates TypeART meta data API, e.g., for git revision."
+)
+
 set(RUNTIME_LIB_SOURCES
     AccessCounter.h
     CallbackInterface.h
@@ -9,6 +23,7 @@ set(RUNTIME_LIB_SOURCES
     TypeResolution.h
     Runtime.cpp
     Runtime.h
+    ${TYPEART_META_SOURCE}
     $<$<BOOL:${MPI_LOGGER}>:../support/MPILogger.cpp>
 )
 
