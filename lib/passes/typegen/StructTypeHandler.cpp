@@ -20,7 +20,7 @@ std::string StructTypeHandler::getName(llvm::StructType* type) {
   return type->getStructName();
 }
 
-std::string StructTypeHandler::getName() {
+std::string StructTypeHandler::getName() const {
   return getName(type);
 }
 

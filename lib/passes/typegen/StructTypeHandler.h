@@ -21,7 +21,7 @@ struct StructTypeHandler {
 
   [[nodiscard]] static std::string getName(llvm::StructType* type);
 
-  [[nodiscard]] std::string getName();
+  [[nodiscard]] std::string getName() const;
 
   [[nodiscard]] llvm::Optional<int> getID() const;
 };
