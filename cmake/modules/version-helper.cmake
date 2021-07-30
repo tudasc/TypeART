@@ -6,7 +6,7 @@ if(EXISTS ${ROOT_DIR}/.git AND GIT_FOUND)
     COMMAND ${GIT_EXECUTABLE} rev-parse -q HEAD
     WORKING_DIRECTORY ${ROOT_DIR}
   )
-  string(REGEX MATCH "[a-f0-9]+" TYPEART_GIT_REV "${TYPEART_GIT_REV}")
+  string(SUBSTRING "${TYPEART_GIT_REV}" 0 10 TYPEART_GIT_REV)
 
   execute_process(
     COMMAND ${GIT_EXECUTABLE} diff --quiet --exit-code

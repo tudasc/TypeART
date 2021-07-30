@@ -8,6 +8,7 @@ add_custom_command(
           -DPROJECT_VERSION=${PROJECT_VERSION}
           -P ${PROJECT_SOURCE_DIR}/cmake/modules/version-helper.cmake
   MAIN_DEPENDENCY Version.cpp.in
+  DEPENDS ${PROJECT_SOURCE_DIR}/cmake/modules/version-helper.cmake
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
   COMMENT "Generates TypeART meta data API, e.g., for git revision."
 )
