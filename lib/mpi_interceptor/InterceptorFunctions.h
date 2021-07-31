@@ -19,9 +19,9 @@
 #include <sys/resource.h>
 #include <sys/time.h>
 
-int ta_create_call_info(const char* name, const void* called_from, const void* buffer, int is_const, int count,
-                        MPI_Datatype type, MPICallInfo* call_info);
 int ta_check_buffer(const MPICallInfo* mpi_call, int const_adr);
+
+static _Atomic size_t trace_id;
 
 typedef struct CallCounter {
   _Atomic size_t send;
@@ -43,7 +43,7 @@ static MPICounter mcounter = {0, 0, 0};
 void ta_check_send(const char* name, const void* called_from, const void* sendbuf, int count, MPI_Datatype dtype) {
   ++counter.send;
   MPICallInfo call_info;
-  if (ta_create_call_info(name, called_from, sendbuf, 1, count, dtype, &call_info) != 0) {
+  if (ta_create_call_info(trace_id++, name, called_from, sendbuf, 1, count, dtype, &call_info) != 0) {
     ++mcounter.error;
     return;
   }
@@ -53,7 +53,7 @@ void ta_check_send(const char* name, const void* called_from, const void* sendbu
 void ta_check_recv(const char* name, const void* called_from, void* recvbuf, int count, MPI_Datatype dtype) {
   ++counter.recv;
   MPICallInfo call_info;
-  if (ta_create_call_info(name, called_from, recvbuf, 0, count, dtype, &call_info) != 0) {
+  if (ta_create_call_info(trace_id++, name, called_from, recvbuf, 0, count, dtype, &call_info) != 0) {
     ++mcounter.error;
     return;
   }
@@ -74,6 +74,10 @@ void ta_unsupported_mpi_call(const char* name, const void* called_from) {
 }
 
 int ta_check_buffer(const MPICallInfo* call, int const_adr) {
+  fprintf(stderr,
+          "[Info, r%d, id%ld] checking %s-buffer of MPI call %s on rank %d in function %s[%p] with trace id %ld\n",
+          call->rank, call->trace_id, call->is_send ? "send" : "recv", call->function_name, call->rank,
+          call->caller.name, call->caller.addr, call->trace_id);
   if (call->count <= 0) {
     ++mcounter.null_count;
     return 1;

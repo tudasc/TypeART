@@ -7,12 +7,15 @@
 #include <mpi.h>
 #include <stdio.h>
 
-int ta_check_builtin_type(const MPICallInfo* call, const MPIBufferInfo* buffer, int mpi_type_id) {
-  const char* mpi_type_name = typeart_get_type_name(mpi_type_id);
-  PRINT_INFOV(call, "buffer %p has type %s, MPI type is %s\n", buffer->ptr, buffer->type_name, mpi_type_name);
+int ta_check_builtin_type(const MPICallInfo* call, const MPIBufferInfo* buffer, const MPITypeInfo* type) {
+  const int mpi_type_id = ta_mpi_type_to_type_id(type->mpi_type);
+  if (mpi_type_id == -1) {
+    PRINT_ERROR(call, "couldn't convert builtin type\n");
+    return -1;
+  }
   if (buffer->type_id != mpi_type_id && !(buffer->type_id == TA_PPC_FP128 && mpi_type_id == TA_FP128)) {
-    PRINT_ERRORV(call, "buffer %p has type %s while the MPI type is %s\n", buffer->ptr, buffer->type_name,
-                 mpi_type_name);
+    PRINT_ERRORV(call, "buffer %p has type \"%s\" while the MPI type is \"%s\"\n", buffer->ptr, buffer->type_name,
+                 type->name);
     return -1;
   }
   return 0;
@@ -30,13 +33,8 @@ int ta_check_type(const MPICallInfo* call, const MPIBufferInfo* buffer, const MP
   }
   switch (combiner) {
     case MPI_COMBINER_NAMED: {
-      const int mpi_type_id = ta_mpi_type_to_type_id(type->mpi_type);
-      if (mpi_type_id == -1) {
-        PRINT_ERROR(call, "couldn't convert builtin type\n");
-        return -1;
-      }
       *mpi_count = 1;
-      return ta_check_builtin_type(call, buffer, mpi_type_id);
+      return ta_check_builtin_type(call, buffer, type);
     }
     case MPI_COMBINER_DUP: {
       MPITypeInfo type_info;
@@ -92,8 +90,8 @@ int ta_check_type_and_count(const MPICallInfo* call) {
     return -1;
   }
   if (call->count * mpi_type_count > call->buffer.count) {
-    PRINT_ERRORV(call, "buffer %p too small. The buffer can only hold %d elements (%d required)\n", call->buffer.ptr,
-                 (int)call->buffer.count, (int)call->count * mpi_type_count);
+    PRINT_ERRORV(call, "buffer %p too small (%d elements, %d required)\n", call->buffer.ptr, (int)call->buffer.count,
+                 (int)call->count * mpi_type_count);
     return -1;
   }
 }

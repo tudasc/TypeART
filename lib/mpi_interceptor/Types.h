@@ -25,6 +25,7 @@ typedef struct {
 } CallerInfo;
 
 typedef struct {
+  size_t trace_id;
   const char* function_name;
   CallerInfo caller;
   int is_send;
@@ -34,17 +35,12 @@ typedef struct {
   MPITypeInfo type;
 } MPICallInfo;
 
-#define PRINT_INFOV(call, fmt, ...)                                                                \
-  fprintf(stderr, "R[%d][Info][%d] %s called in function %s[%p]: " fmt, call->rank, call->is_send, \
-          call->function_name, call->caller.name, call->caller.addr, __VA_ARGS__);
+#define PRINT_INFOV(call, fmt, ...) fprintf(stderr, "[Info, r%d, id%ld] " fmt, call->rank, call->trace_id, __VA_ARGS__);
 
-#define PRINT_ERRORV(call, fmt, ...)                                                                \
-  fprintf(stderr, "R[%d][Error][%d] %s called in function %s[%p]: " fmt, call->rank, call->is_send, \
-          call->function_name, call->caller.name, call->caller.addr, __VA_ARGS__);
+#define PRINT_ERRORV(call, fmt, ...) \
+  fprintf(stderr, "[Error, r%d, id%ld] " fmt, call->rank, call->trace_id, __VA_ARGS__);
 
-#define PRINT_ERROR(call, fmt)                                                                      \
-  fprintf(stderr, "R[%d][Error][%d] %s called in function %s[%p]: " fmt, call->rank, call->is_send, \
-          call->function_name, call->caller.name, call->caller.addr);
+#define PRINT_ERROR(call, fmt) fprintf(stderr, "[Error, r%d, id%ld] " fmt, call->rank, call->trace_id);
 
 int ta_create_caller_info(const void* caller_addr, CallerInfo* caller_info) {
   char* name;
@@ -81,14 +77,15 @@ int ta_create_type_info(const MPICallInfo* call, MPI_Datatype type, MPITypeInfo*
   return 0;
 }
 
-int ta_create_call_info(const char* function_name, const void* called_from, const void* buffer, int is_const, int count,
-                        MPI_Datatype type, MPICallInfo* call_info) {
+int ta_create_call_info(size_t trace_id, const char* function_name, const void* called_from, const void* buffer,
+                        int is_const, int count, MPI_Datatype type, MPICallInfo* call_info) {
   int rank = 0;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  MPICallInfo result = {function_name, (CallerInfo){}, is_const, rank, (MPIBufferInfo){}, count, (MPITypeInfo){}};
+  MPICallInfo result = {trace_id, function_name,     (CallerInfo){}, is_const,
+                        rank,     (MPIBufferInfo){}, count,          (MPITypeInfo){}};
   if (ta_create_caller_info(called_from, &result.caller) != 0) {
-    fprintf(stderr, "R[%d][Info][%d] %s: couldn't resolve the symbol name for address %p", result.rank, result.is_send,
-            result.function_name, called_from);
+    fprintf(stderr, "[Info, r%d, id%ld] couldn't resolve the symbol name for address %p", result.rank, result.trace_id,
+            called_from);
   }
   if (ta_create_buffer_info(&result, buffer, &result.buffer) != 0) {
     return -1;
