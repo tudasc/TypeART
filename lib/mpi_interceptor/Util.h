@@ -122,21 +122,29 @@ const char* ta_mpi_combiner_name(int combiner) {
   }
 }
 
-void ta_print_loc(const void* call_adr) {
+int ta_get_symbol_name(const void* call_adr, char** buffer) {
   const char* exe = getenv("TA_EXE_TARGET");
   if (exe == NULL || exe[0] == '\0') {
-    return;
+    return -1;
   }
 
   char cmd_buf[512] = {0};
   snprintf(cmd_buf, sizeof(cmd_buf), "addr2line -e %s -f %p", exe, call_adr);
 
-  FILE* fp = popen(cmd_buf, "r");
+  FILE* fp   = popen(cmd_buf, "r");
+  int result = -1;
   if (fp) {
-    char read_buf[512] = {0};
-    while (fgets(read_buf, sizeof(read_buf), fp)) {
-      printf("    %s", read_buf);
+    size_t len = 0;
+    if (getline(buffer, &len, fp)) {
+      for (size_t i = 0; i < len; ++i) {
+        if ((*buffer)[i] == '\n') {
+          (*buffer)[i] = '\0';
+          break;
+        }
+      }
+      result = 0;
     }
   }
   pclose(fp);
+  return result;
 }

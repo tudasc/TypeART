@@ -70,7 +70,6 @@ void ta_check_send_and_recv(const char* name, const void* called_from, const voi
 void ta_unsupported_mpi_call(const char* name, const void* called_from) {
   ++counter.unsupported;
   fprintf(stderr, "[Error] The MPI function %s is currently not checked by TypeArt", name);
-  ta_print_loc(called_from);
   // exit(0);
 }
 
@@ -81,12 +80,10 @@ int ta_check_buffer(const MPICallInfo* call, int const_adr) {
   }
   if (call->buffer.ptr == NULL) {
     ++mcounter.null_buff;
-    fprintf(stderr, "R[%d][Error][%d] %s: buffer %p is NULL\n", call->rank, const_adr, call->function_name,
-            call->buffer.ptr);
-    ta_print_loc(call->called_from);
+    PRINT_ERRORV(call, "buffer %p is NULL\n", call->buffer.ptr);
     return -1;
   }
-  return ta_check_type_and_count(call, call->type);
+  return ta_check_type_and_count(call);
 }
 
 void ta_exit() {

@@ -131,7 +131,7 @@ if [ $with_intercept == 1 ]; then
     mpirun_args="--output-filename $mpi_output_filename"
   fi
   echo -e Executing with runtime and interceptor lib
-  LD_LIBRARY_PATH="$LD_LIBRARY_PATH:@TYPEART_RT_DIR@" LD_PRELOAD=@TYPEART_MPI_INTERCEPT_DIR@/@TYPEART_MPI_INTERCEPT_LIB@ mpirun -n 2 $mpirun_args "$tmpfile".exe
+  LD_LIBRARY_PATH="$LD_LIBRARY_PATH:@TYPEART_RT_DIR@" LD_PRELOAD=@TYPEART_MPI_INTERCEPT_DIR@/@TYPEART_MPI_INTERCEPT_LIB@ TA_EXE_TARGET="./$tmpfile.exe" mpirun -n 2 $mpirun_args "$tmpfile".exe
 else
   echo -e Executing with runtime lib
   LD_LIBRARY_PATH="$LD_LIBRARY_PATH:@TYPEART_RT_DIR@" ./"$tmpfile".exe
