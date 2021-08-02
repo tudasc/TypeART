@@ -74,10 +74,9 @@ void ta_unsupported_mpi_call(const char* name, const void* called_from) {
 }
 
 int ta_check_buffer(const MPICallInfo* call, int const_adr) {
-  fprintf(stderr,
-          "[Info, r%d, id%ld] checking %s-buffer of MPI call %s on rank %d in function %s[%p] with trace id %ld\n",
-          call->rank, call->trace_id, call->is_send ? "send" : "recv", call->function_name, call->rank,
-          call->caller.name, call->caller.addr, call->trace_id);
+  PRINT_INFOV(call, "%s at %p in function %s: checking %s-buffer %p of type \"%s\" against MPI type \"%s\"\n",
+              call->function_name, call->caller.addr, call->caller.name, call->is_send ? "send" : "recv",
+              call->buffer.ptr, call->buffer.type_name, call->type.name);
   if (call->count <= 0) {
     ++mcounter.null_count;
     return 1;
@@ -96,9 +95,9 @@ void ta_exit() {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   struct rusage end;
   getrusage(RUSAGE_SELF, &end);
-  fprintf(stderr, "CCounter (%i) { Send: %zu Recv: %zu Send_Recv: %zu Unsupported: %zu MAX RSS[KBytes]: %ld }\n", rank,
-          counter.send, counter.recv, counter.send_recv, counter.unsupported, end.ru_maxrss);
-  fprintf(stderr, "MCounter (%i) { Error: %zu Null_Buf: %zu Null_Count: %zu }\n", rank, mcounter.error,
+  fprintf(stderr, "R[%i][Info] CCounter { Send: %zu Recv: %zu Send_Recv: %zu Unsupported: %zu MAX RSS[KBytes]: %ld }\n",
+          rank, counter.send, counter.recv, counter.send_recv, counter.unsupported, end.ru_maxrss);
+  fprintf(stderr, "R[%i][Info] MCounter { Error: %zu Null_Buf: %zu Null_Count: %zu }\n", rank, mcounter.error,
           mcounter.null_buff, mcounter.null_count);
 }
 

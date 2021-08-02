@@ -14,8 +14,8 @@ int ta_check_builtin_type(const MPICallInfo* call, const MPIBufferInfo* buffer, 
     return -1;
   }
   if (buffer->type_id != mpi_type_id && !(buffer->type_id == TA_PPC_FP128 && mpi_type_id == TA_FP128)) {
-    PRINT_ERRORV(call, "buffer %p has type \"%s\" while the MPI type is \"%s\"\n", buffer->ptr, buffer->type_name,
-                 type->name);
+    PRINT_ERRORV(call, "expected a type matching MPI type \"%s\", but found type \"%s\"\n", type->name,
+                 buffer->type_name);
     return -1;
   }
   return 0;
@@ -90,7 +90,7 @@ int ta_check_type_and_count(const MPICallInfo* call) {
     return -1;
   }
   if (call->count * mpi_type_count > call->buffer.count) {
-    PRINT_ERRORV(call, "buffer %p too small (%d elements, %d required)\n", call->buffer.ptr, (int)call->buffer.count,
+    PRINT_ERRORV(call, "buffer too small (%d elements, %d required)\n", (int)call->buffer.count,
                  (int)call->count * mpi_type_count);
     return -1;
   }

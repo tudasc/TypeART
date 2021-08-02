@@ -35,12 +35,12 @@ typedef struct {
   MPITypeInfo type;
 } MPICallInfo;
 
-#define PRINT_INFOV(call, fmt, ...) fprintf(stderr, "[Info, r%d, id%ld] " fmt, call->rank, call->trace_id, __VA_ARGS__);
+#define PRINT_INFOV(call, fmt, ...) fprintf(stderr, "R[%d][Info]ID[%ld] " fmt, call->rank, call->trace_id, __VA_ARGS__);
 
 #define PRINT_ERRORV(call, fmt, ...) \
-  fprintf(stderr, "[Error, r%d, id%ld] " fmt, call->rank, call->trace_id, __VA_ARGS__);
+  fprintf(stderr, "R[%d][Error]ID[%ld] " fmt, call->rank, call->trace_id, __VA_ARGS__);
 
-#define PRINT_ERROR(call, fmt) fprintf(stderr, "[Error, r%d, id%ld] " fmt, call->rank, call->trace_id);
+#define PRINT_ERROR(call, fmt) fprintf(stderr, "R[%d][Error]ID[%ld] " fmt, call->rank, call->trace_id);
 
 int ta_create_caller_info(const void* caller_addr, CallerInfo* caller_info) {
   char* name;
