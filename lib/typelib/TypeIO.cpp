@@ -22,7 +22,7 @@
 using namespace llvm::yaml;
 
 template <>
-struct ScalarTraits<typeart::StructTypeFlag> {
+struct llvm::yaml::ScalarTraits<typeart::StructTypeFlag> {
   static void output(const typeart::StructTypeFlag& value, void*, llvm::raw_ostream& out) {
     out << static_cast<int>(value);
   }
