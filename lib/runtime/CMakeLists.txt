@@ -28,12 +28,12 @@ set(RUNTIME_LIB_SOURCES
     $<$<BOOL:${MPI_LOGGER}>:../support/MPILogger.cpp>
 )
 
-add_library(Runtime SHARED ${RUNTIME_LIB_SOURCES})
-set_property(TARGET Runtime PROPERTY OUTPUT_NAME "${PROJECT_NAME}Runtime")
-add_library(typeart::Runtime ALIAS Runtime)
+add_library(typeart_Runtime SHARED ${RUNTIME_LIB_SOURCES})
+set_property(TARGET typeart_Runtime PROPERTY OUTPUT_NAME "${PROJECT_NAME}Runtime")
+add_library(typeart::Runtime ALIAS typeart_Runtime)
 
 target_link_libraries(
-  Runtime
+  typeart_Runtime
   PRIVATE typeart::TypesStatic
           LLVMCore
           LLVMSupport
@@ -45,7 +45,7 @@ target_link_libraries(
 )
 
 target_include_directories(
-  Runtime
+  typeart_Runtime
   PUBLIC $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
          $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/runtime>
          $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/typelib>
@@ -53,10 +53,10 @@ target_include_directories(
           $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
 )
 
-target_include_directories(Runtime SYSTEM PRIVATE ${LLVM_INCLUDE_DIRS})
+target_include_directories(typeart_Runtime SYSTEM PRIVATE ${LLVM_INCLUDE_DIRS})
 
 target_compile_definitions(
-  Runtime
+  typeart_Runtime
   PRIVATE LOG_LEVEL=${LOG_LEVEL_RT}
           $<$<BOOL:${MPI_LOGGER}>:MPI_LOGGER=1>
           $<$<BOOL:${SOFTCOUNTERS}>:ENABLE_SOFTCOUNTER=1>
@@ -66,23 +66,23 @@ target_compile_definitions(
           $<$<BOOL:${DISABLE_THREAD_SAFETY}>:DISABLE_THREAD_SAFETY>
 )
 
-target_project_compile_definitions(Runtime)
-target_define_file_basename(Runtime)
-target_project_coverage_options(Runtime)
+target_project_compile_definitions(typeart_Runtime)
+target_define_file_basename(typeart_Runtime)
+target_project_coverage_options(typeart_Runtime)
 
 if(ENABLE_TSAN)
-  target_tsan_options(Runtime)
+  target_tsan_options(typeart_Runtime)
 endif()
 
 if(ENABLE_ASAN)
-  target_asan_options(Runtime)
+  target_asan_options(typeart_Runtime)
 endif()
 
 if(ENABLE_UBSAN)
-  target_ubsan_options(Runtime)
+  target_ubsan_options(typeart_Runtime)
 endif()
 
-make_tidy_check(Runtime "${RUNTIME_LIB_SOURCES}")
+make_tidy_check(typeart_Runtime "${RUNTIME_LIB_SOURCES}")
 
 set(CONFIG_NAME ${PROJECT_NAME}Runtime)
 set(TARGETS_EXPORT_NAME ${CONFIG_NAME}Targets)
@@ -92,8 +92,8 @@ install(FILES RuntimeInterface.h
 )
 
 install(
-  TARGETS
-  Runtime EXPORT ${TARGETS_EXPORT_NAME}
+  TARGETS typeart_Runtime
+  EXPORT ${TARGETS_EXPORT_NAME}
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
