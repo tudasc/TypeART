@@ -35,33 +35,33 @@ llvm::Optional<typeart_builtin_type> get_builtin_typeid(llvm::Type* type) {
   switch (type->getTypeID()) {
     case llvm::Type::IntegerTyID: {
       if (type == Type::getInt8Ty(c)) {
-        return TA_INT8;
+        return TYPEART_INT8;
       }
       if (type == Type::getInt16Ty(c)) {
-        return TA_INT16;
+        return TYPEART_INT16;
       }
       if (type == Type::getInt32Ty(c)) {
-        return TA_INT32;
+        return TYPEART_INT32;
       }
       if (type == Type::getInt64Ty(c)) {
-        return TA_INT64;
+        return TYPEART_INT64;
       }
-      return TA_UNKNOWN_TYPE;
+      return TYPEART_UNKNOWN_TYPE;
     }
     case llvm::Type::HalfTyID:
-      return TA_HALF;
+      return TYPEART_HALF;
     case llvm::Type::FloatTyID:
-      return TA_FLOAT;
+      return TYPEART_FLOAT;
     case llvm::Type::DoubleTyID:
-      return TA_DOUBLE;
+      return TYPEART_DOUBLE;
     case llvm::Type::FP128TyID:
-      return TA_FP128;
+      return TYPEART_FP128;
     case llvm::Type::X86_FP80TyID:
-      return TA_X86_FP80;
+      return TYPEART_X86_FP80;
     case llvm::Type::PPC_FP128TyID:
-      return TA_PPC_FP128;
+      return TYPEART_PPC_FP128;
     case llvm::Type::PointerTyID:
-      return TA_PTR;
+      return TYPEART_POINTER;
     default:
       return None;
   }
@@ -80,12 +80,12 @@ int TypeManager::getOrRegisterVector(llvm::VectorType* type, const llvm::DataLay
 
   auto element_data = handler.getElementData();
   if (!element_data) {
-    return TA_UNKNOWN_TYPE;
+    return TYPEART_UNKNOWN_TYPE;
   }
 
   auto vector_data = handler.getVectorData();
   if (!vector_data) {
-    return TA_UNKNOWN_TYPE;
+    return TYPEART_UNKNOWN_TYPE;
   }
 
   const int id = reserveNextId();
@@ -103,7 +103,7 @@ int TypeManager::getOrRegisterVector(llvm::VectorType* type, const llvm::DataLay
   // Add padding bytes explicitly
   if (vector_bytes > usableBytes) {
     size_t padding = vector_bytes - usableBytes;
-    memberTypeIDs.push_back(TA_INT8);
+    memberTypeIDs.push_back(TYPEART_INT8);
     arraySizes.push_back(padding);
     offsets.push_back(usableBytes);
   }
@@ -128,7 +128,7 @@ std::pair<bool, std::error_code> TypeManager::load() {
   }
   structMap.clear();
   for (const auto& structInfo : typeDB.getStructList()) {
-    structMap.insert({structInfo.name, structInfo.id});
+    structMap.insert({structInfo.name, structInfo.type_id});
   }
   structCount = structMap.size();
   return {true, ec};
@@ -167,7 +167,7 @@ int TypeManager::getTypeID(llvm::Type* type, const DataLayout& dl) const {
       break;
   }
 
-  return TA_UNKNOWN_TYPE;
+  return TYPEART_UNKNOWN_TYPE;
 }
 
 int TypeManager::getOrRegisterType(llvm::Type* type, const llvm::DataLayout& dl) {
@@ -184,7 +184,7 @@ int TypeManager::getOrRegisterType(llvm::Type* type, const llvm::DataLayout& dl)
     default:
       break;
   }
-  return TA_UNKNOWN_TYPE;
+  return TYPEART_UNKNOWN_TYPE;
 }
 
 int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLayout& dl) {
@@ -211,7 +211,7 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
 
   for (unsigned i = 0; i < n; ++i) {
     llvm::Type* memberType = type->getStructElementType(i);
-    int memberID           = TA_UNKNOWN_TYPE;
+    int memberID           = TYPEART_UNKNOWN_TYPE;
     size_t arraySize       = 1;
 
     if (memberType->isArrayTy()) {
@@ -253,7 +253,7 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
 }
 
 int TypeManager::reserveNextId() {
-  int id = static_cast<int>(TA_NUM_RESERVED_IDS) + structCount;
+  int id = static_cast<int>(TYPEART_NUM_RESERVED_IDS) + structCount;
   structCount++;
   return id;
 }

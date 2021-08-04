@@ -16,7 +16,7 @@ int main(int argc, char** argv) {
   size_t count_check    = 0;
   typeart_status status = typeart_get_type((const void*)addr, &id_result, &count_check);
 
-  if (status != TA_OK) {
+  if (status != TYPEART_OK) {
     fprintf(stderr, "[Error]: Status not OK: %i\n", status);
   } else {
     if (extent != count_check) {

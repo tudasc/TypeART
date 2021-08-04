@@ -254,10 +254,10 @@ void foo() {
 
 To execute the instrumented code, the TypeART runtime library (or a derivative) has to be loaded to accept the
 callbacks. The library also requires access to the `types.yaml` file to correlate the `type-id` with the actual type
-layouts. To specify its path, you can use the environment variable `TA_TYPE_FILE`, e.g.:
+layouts. To specify its path, you can use the environment variable `TYPEART_TYPE_FILE`, e.g.:
 
 ```shell
-$> export TA_TYPE_FILE=/shared/types.yaml
+$> export TYPEART_TYPE_FILE=/shared/types.yaml
 # If the TypeART runtime is not resolved, LD_LIBRARY_PATH is set:
 $> env LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(TYPEART_LIBPATH) ./binary
 ```

@@ -19,7 +19,7 @@ class TypeDB final : public TypeDatabase {
  public:
   void clear();
 
-  void registerStruct(const StructTypeInfo& structInfo) override;
+  void registerStruct(const StructTypeInfo& struct_type) override;
 
   bool isUnknown(int id) const override;
 
@@ -48,8 +48,8 @@ class TypeDB final : public TypeDatabase {
   static const std::string UnknownStructName;
 
  private:
-  std::vector<StructTypeInfo> structInfoList;
-  std::unordered_map<int, int> id2Idx;
+  std::vector<StructTypeInfo> struct_info_vec;
+  std::unordered_map<int, int> typeid_to_list_index;
 };
 
 }  // namespace typeart

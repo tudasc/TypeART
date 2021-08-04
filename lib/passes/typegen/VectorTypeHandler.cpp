@@ -46,7 +46,7 @@ llvm::Optional<VectorTypeHandler::VectorData> VectorTypeHandler::getVectorData()
 
 llvm::Optional<VectorTypeHandler::ElementData> VectorTypeHandler::getElementData() const {
   const auto element_id = getElementID();
-  if (!element_id || element_id.getValue() == TA_UNKNOWN_TYPE) {
+  if (!element_id || element_id.getValue() == TYPEART_UNKNOWN_TYPE) {
     LOG_WARNING("Unknown vector element id.")
     return None;
   }
@@ -60,9 +60,9 @@ llvm::Optional<int> VectorTypeHandler::getElementID() const {
   auto element_type     = getElementType(type);
   const auto element_id = m.getTypeID(element_type, dl);
 
-  if (element_id == TA_UNKNOWN_TYPE) {
+  if (element_id == TYPEART_UNKNOWN_TYPE) {
     LOG_ERROR("Encountered vector of unknown type" << util::dump(*type));
-    return TA_UNKNOWN_TYPE;
+    return TYPEART_UNKNOWN_TYPE;
   }
 
   return element_id;
@@ -80,7 +80,7 @@ llvm::Optional<int> VectorTypeHandler::getID() const {
 
   if (!element_data) {
     LOG_ERROR("Cannot determine element data for " << util::dump(*type))
-    return TA_UNKNOWN_TYPE;
+    return TYPEART_UNKNOWN_TYPE;
   }
 
   const auto name = getName(element_data.getValue());
@@ -88,7 +88,7 @@ llvm::Optional<int> VectorTypeHandler::getID() const {
   if (auto it = m_struct_map->find(name); it != m_struct_map->end()) {
     if (!m_type_db->isVectorType(it->second)) {
       LOG_ERROR("Expected vector type for name:" << name << " Vector: " << util::dump(*type))
-      return TA_UNKNOWN_TYPE;
+      return TYPEART_UNKNOWN_TYPE;
     }
     return it->second;
   }

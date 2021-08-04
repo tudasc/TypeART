@@ -8,17 +8,17 @@
 #include <string.h>
 
 int get_struct_id(int index) {
-  return TA_NUM_RESERVED_IDS + index;
+  return TYPEART_NUM_RESERVED_IDS + index;
 }
 
 void check(void* addr, int id, int expected_count, int resolveStructs) {
   int id_result;
   size_t count_check;
   typeart_status status = typeart_get_type(addr, &id_result, &count_check);
-  if (status == TA_OK) {
+  if (status == TYPEART_OK) {
     if (resolveStructs) {
       // If the address corresponds to a struct, fetch the type of the first member
-      while (id_result >= TA_NUM_RESERVED_IDS) {
+      while (id_result >= TYPEART_NUM_RESERVED_IDS) {
         typeart_struct_layout struct_layout;
         typeart_resolve_type_id(id_result, &struct_layout);
         id_result   = struct_layout.member_types[0];
@@ -38,10 +38,10 @@ void check(void* addr, int id, int expected_count, int resolveStructs) {
 
   } else {
     switch (status) {
-      case TA_UNKNOWN_ADDRESS:
+      case TYPEART_UNKNOWN_ADDRESS:
         fprintf(stderr, "Error: Unknown address\n");
         break;
-      case TA_BAD_ALIGNMENT:
+      case TYPEART_BAD_ALIGNMENT:
         fprintf(stderr, "Error: Bad alignment\n");
         break;
       default:
@@ -55,8 +55,8 @@ void check_struct(void* addr, const char* name, int expected_count) {
   int id;
   size_t count_check;
   typeart_status status = typeart_get_type(addr, &id, &count_check);
-  if (status == TA_OK) {
-    if (id >= TA_NUM_RESERVED_IDS) {
+  if (status == TYPEART_OK) {
+    if (id >= TYPEART_NUM_RESERVED_IDS) {
       typeart_struct_layout struct_layout;
       typeart_resolve_type_id(id, &struct_layout);
       if (strcmp(typeart_get_type_name(id), struct_layout.name) != 0) {
@@ -71,10 +71,10 @@ void check_struct(void* addr, const char* name, int expected_count) {
     }
   } else {
     switch (status) {
-      case TA_UNKNOWN_ADDRESS:
+      case TYPEART_UNKNOWN_ADDRESS:
         fprintf(stderr, "Error: Unknown address\n");
         break;
-      case TA_BAD_ALIGNMENT:
+      case TYPEART_BAD_ALIGNMENT:
         fprintf(stderr, "Error: Bad alignment\n");
         break;
       default:

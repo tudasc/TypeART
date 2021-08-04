@@ -1,4 +1,4 @@
-// RUN: TA_TYPE_FILE=%p%{pathsep}%t %run %s 2>&1 | FileCheck %s --check-prefix=CHECK-FAIL-FILE
+// RUN: TYPEART_TYPE_FILE=%p%{pathsep}%t %run %s 2>&1 | FileCheck %s --check-prefix=CHECK-FAIL-FILE
 // XFAIL: *
 
 #include <stdio.h>

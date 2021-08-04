@@ -30,7 +30,7 @@ llvm::Optional<int> StructTypeHandler::getID() const {
     const auto type_id = it->second;
     if (!m_type_db->isUserDefinedType(type_id)) {
       LOG_ERROR("Expected user defined struct type " << name << " for type id: " << type_id);
-      return TA_UNKNOWN_TYPE;
+      return TYPEART_UNKNOWN_TYPE;
     }
     return type_id;
   }

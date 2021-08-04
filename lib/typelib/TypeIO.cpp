@@ -48,7 +48,7 @@ struct llvm::yaml::ScalarTraits<typeart::StructTypeFlag> {
 template <>
 struct llvm::yaml::MappingTraits<typeart::StructTypeInfo> {
   static void mapping(IO& io, typeart::StructTypeInfo& info) {
-    io.mapRequired("id", info.id);
+    io.mapRequired("id", info.type_id);
     io.mapRequired("name", info.name);
     io.mapRequired("extent", info.extent);
     io.mapRequired("member_count", info.num_members);

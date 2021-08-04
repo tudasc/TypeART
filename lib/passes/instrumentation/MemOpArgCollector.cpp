@@ -50,7 +50,7 @@ HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
     auto mallocArg = malloc_call->getOperand(0);
     int typeId     = type_m->getOrRegisterType(malloc_call->getType()->getPointerElementType(),
                                            dl);  // retrieveTypeID(tu::getVoidType(c));
-    if (typeId == TA_UNKNOWN_TYPE) {
+    if (typeId == TYPEART_UNKNOWN_TYPE) {
       LOG_ERROR("Unknown heap type. Not instrumenting. " << util::dump(*malloc_call));
       // TODO notify caller that we skipped: via lambda callback function
       continue;
@@ -72,7 +72,7 @@ HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
       }
 
       typeId = type_m->getOrRegisterType(dstPtrType, dl);
-      if (typeId == TA_UNKNOWN_TYPE) {
+      if (typeId == TYPEART_UNKNOWN_TYPE) {
         LOG_ERROR("Target type of casted allocation is unknown. Not instrumenting. " << util::dump(*malloc_call));
         LOG_ERROR("Cast: " << util::dump(*primaryBitcast));
         LOG_ERROR("Target type: " << util::dump(*dstPtrType));
@@ -190,7 +190,7 @@ StackArgList MemOpArgCollector::collectStack(const AllocaDataList& allocs) {
     // unsigned typeSize = tu::getTypeSizeInBytes(elementType, dl);
     int typeId = type_m->getOrRegisterType(elementType, dl);
 
-    if (typeId == TA_UNKNOWN_TYPE) {
+    if (typeId == TYPEART_UNKNOWN_TYPE) {
       LOG_ERROR("Unknown stack type. Not instrumenting. " << util::dump(*elementType));
       continue;
     }
@@ -225,7 +225,7 @@ GlobalArgList MemOpArgCollector::collectGlobal(const GlobalDataList& globals) {
 
     int typeId = type_m->getOrRegisterType(type, dl);
 
-    if (typeId == TA_UNKNOWN_TYPE) {
+    if (typeId == TYPEART_UNKNOWN_TYPE) {
       LOG_ERROR("Unknown global type. Not instrumenting. " << util::dump(*type));
       continue;
     }

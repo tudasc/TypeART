@@ -66,6 +66,9 @@ RuntimeSystem::RuntimeSystem() : rtScopeInit(), typeResolution(typeDB, recorder)
   if (type_file == nullptr) {
     // FIXME Deprecated name
     type_file = std::getenv("TA_TYPE_FILE");
+    if (type_file != nullptr) {
+      LOG_WARNING("Use of deprecated env var TA_TYPE_FILE.");
+    }
   }
   if (type_file != nullptr) {
     if (!loadTypes(type_file, error)) {
