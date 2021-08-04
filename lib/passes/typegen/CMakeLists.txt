@@ -36,6 +36,9 @@ add_library(typeart::TypeGenStatic ALIAS TypeGenStatic)
 set_property(
   TARGET TypeGenStatic PROPERTY OUTPUT_NAME "${PROJECT_NAME}TypeGen"
 )
+
+target_link_libraries(TypeGenStatic typeart::TypesStatic)
+
 target_include_directories(
   TypeGenStatic
   PUBLIC $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
