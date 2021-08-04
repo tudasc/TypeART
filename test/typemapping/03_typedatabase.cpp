@@ -6,6 +6,7 @@
 // RUN: %run %s --manual | FileCheck %s --check-prefix=RUNTIME-LINK
 
 // UNSUPPORTED: sanitizer
+// UNSUPPORTED: coverage
 
 // clang-format on
 
