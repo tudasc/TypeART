@@ -31,21 +31,25 @@ using namespace llvm;
 
 llvm::Optional<typeart_builtin_type> get_builtin_typeid(llvm::Type* type) {
   auto& c = type->getContext();
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wswitch"
+
   switch (type->getTypeID()) {
     case llvm::Type::IntegerTyID: {
       if (type == Type::getInt8Ty(c)) {
         return TA_INT8;
-      } else if (type == Type::getInt16Ty(c)) {
+      }
+      if (type == Type::getInt16Ty(c)) {
         return TA_INT16;
-      } else if (type == Type::getInt32Ty(c)) {
+      }
+      if (type == Type::getInt32Ty(c)) {
         return TA_INT32;
-      } else if (type == Type::getInt64Ty(c)) {
+      }
+      if (type == Type::getInt64Ty(c)) {
         return TA_INT64;
       }
       return TA_UNKNOWN_TYPE;
     }
+    case llvm::Type::HalfTyID:
+      return TA_HALF;
     case llvm::Type::FloatTyID:
       return TA_FLOAT;
     case llvm::Type::DoubleTyID:
@@ -58,9 +62,9 @@ llvm::Optional<typeart_builtin_type> get_builtin_typeid(llvm::Type* type) {
       return TA_PPC_FP128;
     case llvm::Type::PointerTyID:
       return TA_PTR;
+    default:
+      return None;
   }
-#pragma clang diagnostic pop
-  return None;
 }
 
 int TypeManager::getOrRegisterVector(llvm::VectorType* type, const llvm::DataLayout& dl) {
@@ -149,6 +153,7 @@ int TypeManager::getTypeID(llvm::Type* type, const DataLayout& dl) const {
       if (type_id) {
         return type_id.getValue();
       }
+      break;
     }
     case llvm::Type::StructTyID: {
       StructTypeHandler handle{&structMap, &typeDB, dyn_cast<StructType>(type)};
@@ -156,6 +161,7 @@ int TypeManager::getTypeID(llvm::Type* type, const DataLayout& dl) const {
       if (type_id) {
         return type_id.getValue();
       }
+      break;
     }
     default:
       break;
