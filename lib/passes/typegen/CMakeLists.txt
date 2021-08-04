@@ -9,45 +9,49 @@ set(TYPEGEN_SOURCES
   ../support/TypeUtil.cpp
 )
 
-add_library(TypeGenObj OBJECT ${TYPEGEN_SOURCES})
+add_library(${TYPEART_PREFIX}_TypeGenObj OBJECT ${TYPEGEN_SOURCES})
 
-target_compile_definitions(TypeGenObj PRIVATE LOG_LEVEL=${LOG_LEVEL})
+target_compile_definitions(${TYPEART_PREFIX}_TypeGenObj PRIVATE LOG_LEVEL=${LOG_LEVEL})
 
-set_target_properties(TypeGenObj PROPERTIES POSITION_INDEPENDENT_CODE ON)
+set_target_properties(${TYPEART_PREFIX}_TypeGenObj PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 target_include_directories(
-  TypeGenObj
+  ${TYPEART_PREFIX}_TypeGenObj
   PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
          $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
          $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/passes>
 )
 
-target_include_directories(TypeGenObj SYSTEM PRIVATE ${LLVM_INCLUDE_DIRS})
+target_include_directories(${TYPEART_PREFIX}_TypeGenObj SYSTEM PRIVATE ${LLVM_INCLUDE_DIRS})
 
-make_tidy_check(TypeGenObj "${TypeGen_SOURCES}")
+make_tidy_check(${TYPEART_PREFIX}_TypeGenObj "${TypeGen_SOURCES}")
 
-target_project_compile_options(TypeGenObj)
-target_define_file_basename(TypeGenObj)
-target_project_coverage_options(TypeGenObj)
+target_project_compile_options(${TYPEART_PREFIX}_TypeGenObj)
+target_define_file_basename(${TYPEART_PREFIX}_TypeGenObj)
+target_project_coverage_options(${TYPEART_PREFIX}_TypeGenObj)
 
 # Need to link LLVMCore to work for consumer
-add_library(TypeGenStatic STATIC $<TARGET_OBJECTS:TypeGenObj>)
-add_library(typeart::TypeGenStatic ALIAS TypeGenStatic)
-set_property(
-  TARGET TypeGenStatic PROPERTY OUTPUT_NAME "${PROJECT_NAME}TypeGen"
+add_library(${TYPEART_PREFIX}_TypeGenStatic STATIC $<TARGET_OBJECTS:${TYPEART_PREFIX}_TypeGenObj>)
+add_library(typeart::TypeGenStatic ALIAS ${TYPEART_PREFIX}_TypeGenStatic)
+
+set_target_properties(
+  ${TYPEART_PREFIX}_TypeGenStatic
+  PROPERTIES
+  OUTPUT_NAME "${TYPEART_PREFIX}TypeGen"
+  EXPORT_NAME "TypeGenStatic"
 )
 
-target_link_libraries(TypeGenStatic typeart::TypesStatic)
+target_link_libraries(${TYPEART_PREFIX}_TypeGenStatic typeart::TypesStatic)
 
 target_include_directories(
-  TypeGenStatic
+  ${TYPEART_PREFIX}_TypeGenStatic
   PUBLIC $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
   $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/passes>
 )
 
-set(CONFIG_NAME ${PROJECT_NAME}TypeGen)
+set(CONFIG_NAME ${TYPEART_PREFIX}TypeGen)
 set(TARGETS_EXPORT_NAME ${CONFIG_NAME}Targets)
 
 install(FILES TypeGenerator.h
@@ -55,7 +59,7 @@ install(FILES TypeGenerator.h
   )
 
 install(
-  TARGETS TypeGenStatic
+  TARGETS ${TYPEART_PREFIX}_TypeGenStatic
   EXPORT ${TARGETS_EXPORT_NAME}
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}

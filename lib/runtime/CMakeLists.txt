@@ -10,7 +10,7 @@ add_custom_command(
   MAIN_DEPENDENCY Version.cpp.in
   DEPENDS ${PROJECT_SOURCE_DIR}/cmake/modules/version-helper.cmake
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-  COMMENT "Generates TypeART meta data API, e.g., for git revision."
+  COMMENT "Generates TypeART meta data API."
 )
 
 set(RUNTIME_LIB_SOURCES
@@ -28,12 +28,17 @@ set(RUNTIME_LIB_SOURCES
     $<$<BOOL:${MPI_LOGGER}>:../support/MPILogger.cpp>
 )
 
-add_library(typeart_Runtime SHARED ${RUNTIME_LIB_SOURCES})
-set_property(TARGET typeart_Runtime PROPERTY OUTPUT_NAME "${PROJECT_NAME}Runtime")
-add_library(typeart::Runtime ALIAS typeart_Runtime)
+add_library(${TYPEART_PREFIX}_Runtime SHARED ${RUNTIME_LIB_SOURCES})
+set_target_properties(
+  ${TYPEART_PREFIX}_Runtime
+  PROPERTIES
+  OUTPUT_NAME "${PROJECT_NAME}Runtime"
+  EXPORT_NAME "Runtime"
+)
+add_library(typeart::Runtime ALIAS ${TYPEART_PREFIX}_Runtime)
 
 target_link_libraries(
-  typeart_Runtime
+  ${TYPEART_PREFIX}_Runtime
   PRIVATE typeart::TypesStatic
           LLVMCore
           LLVMSupport
@@ -45,7 +50,7 @@ target_link_libraries(
 )
 
 target_include_directories(
-  typeart_Runtime
+  ${TYPEART_PREFIX}_Runtime
   PUBLIC $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
          $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/runtime>
          $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/typelib>
@@ -53,10 +58,10 @@ target_include_directories(
           $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
 )
 
-target_include_directories(typeart_Runtime SYSTEM PRIVATE ${LLVM_INCLUDE_DIRS})
+target_include_directories(${TYPEART_PREFIX}_Runtime SYSTEM PRIVATE ${LLVM_INCLUDE_DIRS})
 
 target_compile_definitions(
-  typeart_Runtime
+  ${TYPEART_PREFIX}_Runtime
   PRIVATE LOG_LEVEL=${LOG_LEVEL_RT}
           $<$<BOOL:${MPI_LOGGER}>:MPI_LOGGER=1>
           $<$<BOOL:${SOFTCOUNTERS}>:ENABLE_SOFTCOUNTER=1>
@@ -66,23 +71,23 @@ target_compile_definitions(
           $<$<BOOL:${DISABLE_THREAD_SAFETY}>:DISABLE_THREAD_SAFETY>
 )
 
-target_project_compile_definitions(typeart_Runtime)
-target_define_file_basename(typeart_Runtime)
-target_project_coverage_options(typeart_Runtime)
+target_project_compile_definitions(${TYPEART_PREFIX}_Runtime)
+target_define_file_basename(${TYPEART_PREFIX}_Runtime)
+target_project_coverage_options(${TYPEART_PREFIX}_Runtime)
 
 if(ENABLE_TSAN)
-  target_tsan_options(typeart_Runtime)
+  target_tsan_options(${TYPEART_PREFIX}_Runtime)
 endif()
 
 if(ENABLE_ASAN)
-  target_asan_options(typeart_Runtime)
+  target_asan_options(${TYPEART_PREFIX}_Runtime)
 endif()
 
 if(ENABLE_UBSAN)
-  target_ubsan_options(typeart_Runtime)
+  target_ubsan_options(${TYPEART_PREFIX}_Runtime)
 endif()
 
-make_tidy_check(typeart_Runtime "${RUNTIME_LIB_SOURCES}")
+make_tidy_check(${TYPEART_PREFIX}_Runtime "${RUNTIME_LIB_SOURCES}")
 
 set(CONFIG_NAME ${PROJECT_NAME}Runtime)
 set(TARGETS_EXPORT_NAME ${CONFIG_NAME}Targets)
@@ -92,7 +97,7 @@ install(FILES RuntimeInterface.h
 )
 
 install(
-  TARGETS typeart_Runtime
+  TARGETS ${TYPEART_PREFIX}_Runtime
   EXPORT ${TARGETS_EXPORT_NAME}
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}

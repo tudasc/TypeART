@@ -1,41 +1,51 @@
 set(TYPE_LIB_SOURCES TypeDB.cpp TypeIO.cpp)
 
-add_library(TypesObj OBJECT ${TYPE_LIB_SOURCES})
+add_library(${TYPEART_PREFIX}_TypesObj OBJECT ${TYPE_LIB_SOURCES})
 
-set_target_properties(TypesObj PROPERTIES POSITION_INDEPENDENT_CODE ON)
+set_target_properties(${TYPEART_PREFIX}_TypesObj PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-target_include_directories(TypesObj SYSTEM PRIVATE ${LLVM_INCLUDE_DIRS})
+target_include_directories(${TYPEART_PREFIX}_TypesObj SYSTEM PRIVATE ${LLVM_INCLUDE_DIRS})
 
 target_include_directories(
-  TypesObj
+  ${TYPEART_PREFIX}_TypesObj
   PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   PRIVATE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
 )
 
-target_compile_definitions(TypesObj PRIVATE LOG_LEVEL=${LOG_LEVEL})
+target_compile_definitions(${TYPEART_PREFIX}_TypesObj PRIVATE LOG_LEVEL=${LOG_LEVEL})
 
-target_project_compile_options(TypesObj)
-target_project_coverage_options(TypesObj)
+target_project_compile_options(${TYPEART_PREFIX}_TypesObj)
+target_project_coverage_options(${TYPEART_PREFIX}_TypesObj)
 
-make_tidy_check(TypesObj "${TYPE_LIB_SOURCES}")
+make_tidy_check(${TYPEART_PREFIX}_TypesObj "${TYPE_LIB_SOURCES}")
 
-add_library(Types SHARED $<TARGET_OBJECTS:TypesObj>)
-add_library(typeart::Types ALIAS Types)
-set_property(TARGET Types PROPERTY OUTPUT_NAME "${PROJECT_NAME}Types")
+add_library(${TYPEART_PREFIX}_Types SHARED $<TARGET_OBJECTS:${TYPEART_PREFIX}_TypesObj>)
+add_library(typeart::Types ALIAS ${TYPEART_PREFIX}_Types)
+set_target_properties(
+  ${TYPEART_PREFIX}_Types
+  PROPERTIES
+  OUTPUT_NAME "${TYPEART_PREFIX}Types"
+  EXPORT_NAME "Types"
+)
 target_include_directories(
-  Types
+  ${TYPEART_PREFIX}_Types
   PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
   PRIVATE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
 )
 
-target_link_libraries(Types PRIVATE LLVMCore LLVMSupport)
+target_link_libraries(${TYPEART_PREFIX}_Types PRIVATE LLVMCore LLVMSupport)
 
-add_library(TypesStatic STATIC $<TARGET_OBJECTS:TypesObj>)
-add_library(typeart::TypesStatic ALIAS TypesStatic)
-set_property(TARGET TypesStatic PROPERTY OUTPUT_NAME "${PROJECT_NAME}Types")
+add_library(${TYPEART_PREFIX}_TypesStatic STATIC $<TARGET_OBJECTS:${TYPEART_PREFIX}_TypesObj>)
+add_library(typeart::TypesStatic ALIAS ${TYPEART_PREFIX}_TypesStatic)
+set_target_properties(
+  ${TYPEART_PREFIX}_TypesStatic
+  PROPERTIES
+  OUTPUT_NAME "${TYPEART_PREFIX}TypesStatic"
+  EXPORT_NAME "TypesStatic"
+)
 target_include_directories(
-  TypesStatic
+  ${TYPEART_PREFIX}_TypesStatic
   PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
   PRIVATE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
@@ -49,7 +59,7 @@ install(FILES TypeInterface.h TypeDatabase.h
 )
 
 install(
-  TARGETS Types TypesStatic
+  TARGETS ${TYPEART_PREFIX}_Types ${TYPEART_PREFIX}_TypesStatic
   EXPORT ${TARGETS_EXPORT_NAME}
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}

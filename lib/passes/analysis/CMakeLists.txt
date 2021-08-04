@@ -5,32 +5,35 @@ set(MEM_PASS_SOURCES
 )
 
 make_llvm_module(
-  MemOpFinderPass "${MEM_PASS_SOURCES}"
+  ${TYPEART_PREFIX}_MemOpFinderPass "${MEM_PASS_SOURCES}"
   LINK_LIBS typeart::MemOpFilter
   INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/lib
                ${CMAKE_CURRENT_SOURCE_DIR}/..
                ${CMAKE_CURRENT_SOURCE_DIR}/filter
 )
-mark_as_advanced(LLVM_MEMOPFINDERPASS_LINK_INTO_TOOLS)
+mark_as_advanced(LLVM_TYPEART_MEMOPFINDERPASS_LINK_INTO_TOOLS)
 
-set_property(
-  TARGET MemOpFinderPass PROPERTY OUTPUT_NAME "${PROJECT_NAME}MemOpFinderPass"
+set_target_properties(
+  ${TYPEART_PREFIX}_MemOpFinderPass
+  PROPERTIES
+  OUTPUT_NAME "${PROJECT_NAME}MemOpFinderPass"
+  EXPORT_NAME "MemOpFinderPass"
 )
-add_library(typeart::MemOpFinderPass ALIAS MemOpFinderPass)
+add_library(typeart::MemOpFinderPass ALIAS ${TYPEART_PREFIX}_MemOpFinderPass)
 
 target_compile_definitions(
-  MemOpFinderPass PRIVATE LOG_LEVEL=${LOG_LEVEL}
+  ${TYPEART_PREFIX}_MemOpFinderPass PRIVATE LOG_LEVEL=${LOG_LEVEL}
                           $<$<BOOL:${SHOW_STATS}>:LLVM_ENABLE_STATS>
 )
 
-target_project_compile_options(MemOpFinderPass)
-target_project_coverage_options(MemOpFinderPass)
+target_project_compile_options(${TYPEART_PREFIX}_MemOpFinderPass)
+target_project_coverage_options(${TYPEART_PREFIX}_MemOpFinderPass)
 
 set(CONFIG_NAME ${PROJECT_NAME}MemOpFinderPass)
 set(TARGETS_EXPORT_NAME ${CONFIG_NAME}Targets)
 
 install(
-  TARGETS MemOpFinderPass
+  TARGETS ${TYPEART_PREFIX}_MemOpFinderPass
   EXPORT ${TARGETS_EXPORT_NAME}
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}

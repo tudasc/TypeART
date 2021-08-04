@@ -13,7 +13,7 @@ set(PASS_SOURCES
 )
 
 make_llvm_module(
-  TransformPass "${PASS_SOURCES}"
+  ${TYPEART_PREFIX}_TransformPass "${PASS_SOURCES}"
   LINK_LIBS typeart::TypesStatic
             typeart::TypeGenStatic
   DEPENDS typeart::MemOpFinderPass
@@ -22,26 +22,29 @@ make_llvm_module(
                ${PROJECT_SOURCE_DIR}/lib/passes/
                ${CMAKE_CURRENT_SOURCE_DIR}/typegen
 )
-mark_as_advanced(LLVM_TRANSFORMPASS_LINK_INTO_TOOLS)
+mark_as_advanced(LLVM_${TYPEART_PREFIX}_TransformPass_LINK_INTO_TOOLS)
 
-set_property(
-  TARGET TransformPass PROPERTY OUTPUT_NAME "${PROJECT_NAME}TransformPass"
+set_target_properties(
+  ${TYPEART_PREFIX}_TransformPass
+  PROPERTIES
+  OUTPUT_NAME "${PROJECT_NAME}TransformPass"
+  EXPORT_NAME "TransformPass"
 )
-add_library(typeart::TransformPass ALIAS TransformPass)
+add_library(typeart::TransformPass ALIAS ${TYPEART_PREFIX}_TransformPass)
 
 target_compile_definitions(
-  TransformPass PRIVATE LOG_LEVEL=${LOG_LEVEL}
+  ${TYPEART_PREFIX}_TransformPass PRIVATE LOG_LEVEL=${LOG_LEVEL}
                         $<$<BOOL:${SHOW_STATS}>:LLVM_ENABLE_STATS>
 )
 
-target_project_compile_options(TransformPass)
-target_project_coverage_options(TransformPass)
+target_project_compile_options(${TYPEART_PREFIX}_TransformPass)
+target_project_coverage_options(${TYPEART_PREFIX}_TransformPass)
 
 set(CONFIG_NAME ${PROJECT_NAME}TransformPass)
 set(TARGETS_EXPORT_NAME ${CONFIG_NAME}Targets)
 
 install(
-  TARGETS TransformPass
+  TARGETS ${TYPEART_PREFIX}_TransformPass
   EXPORT ${TARGETS_EXPORT_NAME}
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
