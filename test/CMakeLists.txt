@@ -34,6 +34,7 @@ function(configure_typeart_lit_site_cfg input output)
   pythonize_bool(ENABLE_ASAN TYPEARTPASS_ASAN)
   pythonize_bool(ENABLE_UBSAN TYPEARTPASS_UBSAN)
 
+  set(TYPEART_COVERAGE False)
   if(ENABLE_CODE_COVERAGE OR ENABLE_LLVM_CODE_COVERAGE)
     set(TYPEART_COVERAGE True)
   endif()
