@@ -4,6 +4,9 @@
 // RUN: %s.exe | FileCheck %s
 
 // RUN: %run %s --manual | FileCheck %s --check-prefix=RUNTIME-LINK
+
+// UNSUPPORTED: sanitizer
+
 // clang-format on
 
 #include "TypeDatabase.h"

@@ -2,8 +2,8 @@
 
 #include "../../lib/runtime/RuntimeInterface.h"
 
-#include <stdio.h>
 #include <stdbool.h>
+#include <stdio.h>
 
 struct Datastruct {
   int start;
@@ -13,7 +13,7 @@ struct Datastruct {
 
 int main(int argc, char** argv) {
   printf("Version: %s\n", typeart_get_project_version());
-  printf("Revision: %s\n",typeart_get_git_revision());
+  printf("Revision: %s\n", typeart_get_git_revision());
 
   return 0;
 }
