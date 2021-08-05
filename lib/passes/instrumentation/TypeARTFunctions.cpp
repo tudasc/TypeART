@@ -29,8 +29,8 @@ using namespace llvm;
 
 namespace typeart {
 
-TAFunctionDeclarator::TAFunctionDeclarator(Module& m, InstrumentationHelper& instr, TAFunctions& tafunc)
-    : m(m), instr(instr), tafunc(tafunc) {
+TAFunctionDeclarator::TAFunctionDeclarator(Module& m, InstrumentationHelper&, TAFunctions& tafunc)
+    : m(m), tafunc(tafunc) {
 }
 
 llvm::Function* TAFunctionDeclarator::make_function(IFunc id, llvm::StringRef basename,

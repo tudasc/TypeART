@@ -37,6 +37,24 @@ function parse_cmd_line() {
       skip_typeart=1
       shift
       ;;
+    --object)
+      if [ -n "$2" ]; then
+        object_file="$2"
+        shift 2
+      else
+        echo "Error: Object file argument for $1 is missing." >&2
+        shift
+      fi
+      ;;
+    --executable)
+      if [ -n "$2" ]; then
+        exe_file="$2"
+        shift 2
+      else
+        echo "Error: Executable file argument for $1 is missing." >&2
+        shift
+      fi
+      ;;
     *) # preserve other arguments
       ta_more_args="$ta_more_args $1"
       shift

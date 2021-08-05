@@ -25,13 +25,13 @@ namespace debug {
 std::string toString(const void* memAddr, int typeId, size_t count, size_t typeSize, const void* calledFrom) {
   std::string buf;
   llvm::raw_string_ostream s(buf);
-  const auto name = typeart::RuntimeSystem::get().typeResolution.getTypeName(typeId);
+  const auto name = typeart::RuntimeSystem::get().typeResolution.db().getTypeName(typeId);
   s << memAddr << " " << typeId << " " << name << " " << typeSize << " " << count << " (" << calledFrom << ")";
   return s.str();
 }
 
 std::string toString(const void* memAddr, int typeId, size_t count, const void* calledFrom) {
-  const auto typeSize = typeart::RuntimeSystem::get().typeResolution.getTypeSize(typeId);
+  const auto typeSize = typeart::RuntimeSystem::get().typeResolution.db().getTypeSize(typeId);
   return toString(memAddr, typeId, count, typeSize, calledFrom);
 }
 
@@ -53,24 +53,35 @@ static constexpr const char* defaultTypeFileName = "types.yaml";
 RuntimeSystem::RuntimeSystem() : rtScopeInit(), typeResolution(typeDB, recorder), allocTracker(typeDB, recorder) {
   debug::printTraceStart();
 
-  auto loadTypes = [this](const std::string& file) -> bool {
-    TypeIO cio(typeDB);
-    return cio.load(file);
+  auto loadTypes = [this](const std::string& file, std::error_code& ec) -> bool {
+    auto loaded = io::load(&typeDB, file);
+    ec          = loaded.getError();
+    return !static_cast<bool>(ec);
   };
 
+  std::error_code error;
   // Try to load types from specified file first.
   // Then look at default location.
-  const char* typeFile = std::getenv("TA_TYPE_FILE");
-  if (typeFile != nullptr) {
-    if (!loadTypes(typeFile)) {
-      LOG_FATAL("Failed to load recorded types from " << typeFile);
+  const char* type_file = std::getenv("TYPEART_TYPE_FILE");
+  if (type_file == nullptr) {
+    // FIXME Deprecated name
+    type_file = std::getenv("TA_TYPE_FILE");
+    if (type_file != nullptr) {
+      LOG_WARNING("Use of deprecated env var TA_TYPE_FILE.");
+    }
+  }
+  if (type_file != nullptr) {
+    if (!loadTypes(type_file, error)) {
+      LOG_FATAL("Failed to load recorded types from TYPEART_TYPE_FILE=" << type_file
+                                                                        << ". Reason: " << error.message());
       std::exit(EXIT_FAILURE);  // TODO: Error handling
     }
   } else {
-    if (!loadTypes(defaultTypeFileName)) {
-      LOG_FATAL("No type file with default name \""
-                << defaultTypeFileName
-                << "\" in current directory. To specify a different file, edit the TA_TYPE_FILE environment variable.");
+    if (!loadTypes(defaultTypeFileName, error)) {
+      LOG_FATAL("No type file with default name \"" << defaultTypeFileName
+                                                    << "\" in current directory. To specify a different file, edit the "
+                                                       "TYPEART_TYPE_FILE environment variable. Reason: "
+                                                    << error.message());
       std::exit(EXIT_FAILURE);  // TODO: Error handling
     }
   }

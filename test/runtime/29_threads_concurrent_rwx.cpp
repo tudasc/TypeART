@@ -39,7 +39,7 @@ void repeat_type_check(S s, E e) {
       int id_result{-1};
       size_t count_check{0};
       typeart_status status = typeart_get_type(reinterpret_cast<const void*>(addr), &id_result, &count_check);
-      if (status == TA_OK) {
+      if (status == TYPEART_OK) {
         if (count_check != extent) {
           fprintf(stderr, "[Error]: Length mismatch of %i (%#02x) is: type=%i count=%zu\n", addr, addr, id_result,
                   count_check);

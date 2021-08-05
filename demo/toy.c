@@ -32,35 +32,35 @@ int main(int argc, char** argv) {
 
   typeart_status status = typeart_get_type(mystruct, &type, &count);
 
-  if (status == TA_OK)
+  if (status == TYPEART_OK)
     printf("type (id=%i), count=%lu\n", type, count);
   else
     printf("[Demo] Toy Error: %i\n", status);
 
   status = typeart_get_type(&(mystruct[2].e), &type, &count);
 
-  if (status == TA_OK)
+  if (status == TYPEART_OK)
     printf("(sub) type (id=%i), count=%lu\n", type, count);
   else
     printf("[Demo] Toy Error: %i\n", status);
 
   status = typeart_get_type(&(mystruct[2].e), &type, &count);
 
-  if (status == TA_OK)
+  if (status == TYPEART_OK)
     printf("type (id=%i), count=%lu\n", type, count);
   else
     printf("[Demo] Toy Error: %i\n", status);
 
   status = typeart_get_type(&(mystruct[2].c), &type, &count);
 
-  if (status == TA_OK)
+  if (status == TYPEART_OK)
     printf("(sub) type (id=%i), count=%lu\n", type, count);
   else
     printf("[Demo] Toy Error: %i\n", status);
 
   status = typeart_get_type(&(mystruct[2].c), &type, &count);
 
-  if (status == TA_OK)
+  if (status == TYPEART_OK)
     printf("type (id=%i), count=%lu\n", type, count);
   else
     printf("[Demo] Toy Error: %i\n", status);
@@ -69,7 +69,7 @@ int main(int argc, char** argv) {
   size_t offset;
   status = typeart_get_containing_type(&(mystruct[2].c), &type, &count, &base_address, &offset);
 
-  if (status == TA_OK)
+  if (status == TYPEART_OK)
     printf("containing_type (id=%i), count=%lu, %p, %lu\n", type, count, base_address, offset);
   else
     printf("[Demo] Toy Error: %i\n", status);
@@ -78,7 +78,7 @@ int main(int argc, char** argv) {
 
   status = typeart_get_containing_type(&(buffer[20]), &type, &count, &base_address, &offset);
 
-  if (status == TA_OK)
+  if (status == TYPEART_OK)
     printf("containing_type (id=%i), count=%lu, %p, %lu\n", type, count, base_address, offset);
   else
     printf("[Demo] Toy Error: %i\n", status);

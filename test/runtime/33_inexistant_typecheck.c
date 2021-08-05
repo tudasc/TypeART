@@ -16,7 +16,7 @@ int main(int argc, char** argv) {
   size_t count_check    = 0;
   typeart_status status = typeart_get_type((const void*)addr, &id_result, &count_check);
 
-  if (status != TA_OK) {
+  if (status != TYPEART_OK) {
     fprintf(stderr, "[Error]: Status not OK: %i\n", status);
   } else {
     if (extent != count_check) {
@@ -32,6 +32,6 @@ int main(int argc, char** argv) {
 
 // TODO the runtime continues, even if type is unkown.
 
-// CHECK: [Error]{{.*}}Allocation of unknown type 0x2 -1 UnknownStruct 0 2
-// CHECK: [Trace] Alloc 0x2 -1 UnknownStruct 0 2
+// CHECK: [Error]{{.*}}Allocation of unknown type 0x2 -1 typeart_unknown_struct 0 2
+// CHECK: [Trace] Alloc 0x2 -1 typeart_unknown_struct 0 2
 // CHECK: Status OK: -1 2

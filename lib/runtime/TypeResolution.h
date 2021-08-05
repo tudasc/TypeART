@@ -9,11 +9,15 @@
 #include "RuntimeData.h"
 #include "RuntimeInterface.h"
 #include "TypeDB.h"
+#include "TypeInterface.h"
 
 #include <cstddef>
 #include <string>
 
 namespace typeart {
+
+using BuiltinType = typeart_builtin_type;
+
 struct PointerInfo;
 
 class TypeResolution {
@@ -25,7 +29,7 @@ class TypeResolution {
 
   TypeResolution(const TypeDB& db, Recorder& recorder);
 
-  size_t getMemberIndex(typeart_struct_layout structInfo, size_t offset) const;
+  [[nodiscard]] size_t getMemberIndex(typeart_struct_layout structInfo, size_t offset) const;
 
   TypeArtStatus getSubTypeInfo(const void* baseAddr, size_t offset, typeart_struct_layout containerInfo, int* subType,
                                const void** subTypeBaseAddr, size_t* subTypeOffset, size_t* subTypeCount) const;
@@ -46,11 +50,7 @@ class TypeResolution {
 
   TypeArtStatus getStructInfo(int id, const StructTypeInfo** structInfo) const;
 
-  const std::string& getTypeName(int id) const;
-
-  size_t getTypeSize(int id) const;
-
-  bool isValidType(int id) const;
+  [[nodiscard]] const TypeDB& db() const;
 };
 
 }  // namespace typeart

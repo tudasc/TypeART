@@ -5,21 +5,18 @@
 #ifndef LLVM_MUST_SUPPORT_CONFIGIO_H
 #define LLVM_MUST_SUPPORT_CONFIGIO_H
 
+#include "llvm/Support/ErrorOr.h"
+
 #include <string>
 
 namespace typeart {
 
 class TypeDB;
 
-class TypeIO {
- private:
-  TypeDB& typeDB;
-
- public:
-  explicit TypeIO(TypeDB& config);
-  bool load(const std::string& file);
-  bool store(const std::string& file) const;
-};
+namespace io {
+[[nodiscard]] llvm::ErrorOr<bool> load(TypeDB* db, const std::string& file);
+[[nodiscard]] llvm::ErrorOr<bool> store(const TypeDB* db, const std::string& file);
+}  // namespace io
 
 }  // namespace typeart
 

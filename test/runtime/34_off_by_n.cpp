@@ -17,7 +17,7 @@ int main(int argc, char** argv) {
     size_t count_check{0};
     typeart_status status = typeart_get_type(reinterpret_cast<const void*>(addr), &id_result, &count_check);
 
-    if (status == TA_OK) {
+    if (status == TYPEART_OK) {
       if (count_check != expected_count) {
         fprintf(stderr, "[Error]: Count not expected: %zu\n", count_check);
       }

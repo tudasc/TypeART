@@ -152,23 +152,6 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   message(STATUS "Installing to (default): ${CMAKE_INSTALL_PREFIX}")
 endif()
 
-find_package(Git QUIET)
-set_package_properties(Git PROPERTIES
-  TYPE OPTIONAL
-  PURPOSE
-  "Create a revision hash for the TypeART package config."
-)
-
-if(EXISTS ${PROJECT_SOURCE_DIR}/.git AND GIT_FOUND)
-  execute_process(
-    OUTPUT_VARIABLE TYPEART_GIT_REV
-    COMMAND ${GIT_EXECUTABLE} rev-parse -q HEAD
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-  )
-  string(REGEX MATCH "[a-f0-9]+" TYPEART_GIT_REV "${TYPEART_GIT_REV}")
-else()
-  set(TYPEART_GIT_REV "---")
-endif()
-
-set(TARGETS_EXPORT_NAME ${PROJECT_NAME}Targets)
+set(TYPEART_PREFIX ${PROJECT_NAME})
+set(TARGETS_EXPORT_NAME ${TYPEART_PREFIX}Targets)
 set(TYPEART_INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})

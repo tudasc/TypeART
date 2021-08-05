@@ -54,7 +54,7 @@ class TAFunctions : public TAFunctionQuery {
 
 class TAFunctionDeclarator {
   llvm::Module& m;
-  [[maybe_unused]] InstrumentationHelper& instr;
+  //  [[maybe_unused]] InstrumentationHelper& instr;
   TAFunctions& tafunc;
   llvm::StringMap<llvm::Function*> f_map;
 

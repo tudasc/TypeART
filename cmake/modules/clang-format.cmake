@@ -11,8 +11,8 @@ function(add_format_target target comment)
   cmake_parse_arguments(ARG "" "" "TARGETS;EXCLUDES;OTHER" ${ARGN})
 
   file(GLOB_RECURSE
-    CONFIGURE_DEPENDS
     ALL_CXX_FILES
+    CONFIGURE_DEPENDS
     ${ARG_TARGETS}
   )
 
