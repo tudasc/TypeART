@@ -75,11 +75,13 @@ bool TypeDB::isValid(int id) const {
 }
 
 void TypeDB::registerStruct(const StructTypeInfo& struct_type) {
-  if (isValid(struct_type.type_id)) {
+  if (isValid(struct_type.type_id) || !isStructType(struct_type.type_id)) {
     if (isBuiltinType(struct_type.type_id)) {
       LOG_ERROR("Built-in type ID used for struct " << struct_type.name);
     } else if (isReservedType(struct_type.type_id)) {
       LOG_ERROR("Type ID is reserved for builtin types. Struct: " << struct_type.name);
+    } else if (isUnknown(struct_type.type_id)) {
+      LOG_ERROR("Type ID is reserved for unkown types. Struct: " << struct_type.name);
     } else {
       LOG_ERROR("Struct type ID already registered for " << struct_type.name << ". Conflicting struct is "
                                                          << getStructInfo(struct_type.type_id)->name);

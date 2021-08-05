@@ -30,18 +30,18 @@ void print_data(int type_id) {
 }
 
 int main(int argc, char** argv) {
-  struct Datastruct data          = {0};
-  struct Secondstruct daTYPEART_2 = {0};
+  struct Datastruct data     = {0};
+  struct Secondstruct data_2 = {0};
 
   int type_id = 0;
   typeart_get_type_id(&data, &type_id);
   print_data(type_id);
 
   type_id = 0;
-  typeart_get_type_id(&daTYPEART_2, &type_id);
+  typeart_get_type_id(&data_2, &type_id);
   print_data(type_id);
 
-  return data.start + daTYPEART_2.start;
+  return data.start + data_2.start;
 }
 
 // CHECK: Name: struct.Datastruct: 24 0 0 1 1 1 0

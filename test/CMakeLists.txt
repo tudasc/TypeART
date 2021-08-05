@@ -99,8 +99,10 @@ if(TEST_CONFIGURE_IDE)
     typeart_cxx_test_objects "${TYPEART_TEST_HEADER}" "${TYPEART_CXX_TESTS}"
   )
   set_target_properties(typeart_cxx_test_objects PROPERTIES LINKER_LANGUAGE CXX)
+  target_compile_features(typeart_cxx_test_objects PUBLIC cxx_std_17)
   add_test_target_ide(
     typeart_cc_test_objects "${TYPEART_TEST_HEADER}" "${TYPEART_CC_TESTS}"
   )
   set_target_properties(typeart_cc_test_objects PROPERTIES LINKER_LANGUAGE C)
+  target_compile_features(typeart_cxx_test_objects PUBLIC c_std_99)
 endif()
