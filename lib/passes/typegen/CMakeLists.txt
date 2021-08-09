@@ -20,6 +20,7 @@ target_include_directories(
   PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
          $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
          $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/passes>
+         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/typelib>
 )
 
 target_include_directories(${TYPEART_PREFIX}_TypeGenObj SYSTEM PRIVATE ${LLVM_INCLUDE_DIRS})

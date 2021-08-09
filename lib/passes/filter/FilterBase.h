@@ -26,7 +26,6 @@
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Intrinsics.h"
 
-#include <TypeARTPass.h>
 #include <iterator>
 #include <type_traits>
 

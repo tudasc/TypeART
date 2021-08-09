@@ -130,6 +130,10 @@ int TypeManager::getOrRegisterVector(llvm::VectorType* type, const llvm::DataLay
 TypeManager::TypeManager(std::string file) : file(std::move(file)), structCount(0) {
 }
 
+const TypeDatabase& TypeManager::getTypeDatabase() const {
+  return typeDB;
+}
+
 std::pair<bool, std::error_code> TypeManager::load() {
   //  TypeIO cio(&typeDB);
   // std::error_code error;

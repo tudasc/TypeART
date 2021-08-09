@@ -17,7 +17,7 @@
 #include "support/Logger.h"
 #include "support/TypeUtil.h"
 #include "support/Util.h"
-#include "typegen/TypeManager.h"
+#include "typegen/TypeGenerator.h"
 #include "typelib/TypeInterface.h"
 
 #include "llvm/IR/Constants.h"
@@ -39,8 +39,8 @@ using namespace llvm;
 
 namespace typeart {
 
-MemOpArgCollector::MemOpArgCollector(TypeManager& tm, InstrumentationHelper& instr)
-    : ArgumentCollector(), type_m(&tm), instr_helper(&instr) {
+MemOpArgCollector::MemOpArgCollector(TypeGenerator* tm, InstrumentationHelper& instr)
+    : ArgumentCollector(), type_m(tm), instr_helper(&instr) {
 }
 
 HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {

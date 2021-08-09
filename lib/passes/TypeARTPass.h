@@ -16,7 +16,6 @@
 #include "instrumentation/Instrumentation.h"
 #include "instrumentation/InstrumentationHelper.h"
 #include "instrumentation/TypeARTFunctions.h"
-#include "typegen/TypeManager.h"
 
 #include "llvm/Pass.h"
 
@@ -31,6 +30,10 @@ class AnalysisUsage;
 class Value;
 class raw_ostream;
 }  // namespace llvm
+
+namespace typeart {
+class TypeGenerator;
+}
 
 namespace typeart::pass {
 
@@ -52,7 +55,7 @@ class TypeArtPass : public llvm::ModulePass {
   TypeArtFunc typeart_free_omp         = typeart_free;
   TypeArtFunc typeart_leave_scope_omp  = typeart_leave_scope;
 
-  TypeManager typeManager;
+  std::unique_ptr<TypeGenerator> typeManager;
   InstrumentationHelper instrumentation_helper;
   TAFunctions functions;
   std::unique_ptr<InstrumentationContext> instrumentation_context;
