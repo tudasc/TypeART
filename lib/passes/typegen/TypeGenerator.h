@@ -13,6 +13,8 @@
 #ifndef TYPEART_TYPEGENERATOR_H
 #define TYPEART_TYPEGENERATOR_H
 
+#include "TypeDatabase.h"
+
 #include <memory>
 #include <string>
 #include <system_error>
@@ -30,6 +32,8 @@ class TypeGenerator {
   [[nodiscard]] virtual int getOrRegisterType(llvm::Type* type, const llvm::DataLayout& layout) = 0;
 
   [[nodiscard]] virtual int getTypeID(llvm::Type* type, const llvm::DataLayout& layout) const = 0;
+
+  [[nodiscard]] virtual const TypeDatabase& getTypeDatabase() const = 0;
 
   [[nodiscard]] virtual std::pair<bool, std::error_code> load() = 0;
 

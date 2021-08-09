@@ -17,15 +17,15 @@
 #include "analysis/MemOpData.h"
 
 namespace typeart {
-class TypeManager;
+class TypeGenerator;
 class InstrumentationHelper;
 
 class MemOpArgCollector final : public ArgumentCollector {
-  TypeManager* type_m;
+  TypeGenerator* type_m;
   InstrumentationHelper* instr_helper;
 
  public:
-  MemOpArgCollector(TypeManager&, InstrumentationHelper&);
+  MemOpArgCollector(TypeGenerator*, InstrumentationHelper&);
   HeapArgList collectHeap(const MallocDataList& mallocs) override;
   FreeArgList collectFree(const FreeDataList& frees) override;
   StackArgList collectStack(const AllocaDataList& allocs) override;

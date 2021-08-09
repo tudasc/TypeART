@@ -42,6 +42,7 @@ class TypeManager final : public TypeGenerator {
   [[nodiscard]] std::pair<bool, std::error_code> store() const override;
   [[nodiscard]] int getOrRegisterType(llvm::Type* type, const llvm::DataLayout& dl) override;
   [[nodiscard]] int getTypeID(llvm::Type* type, const llvm::DataLayout& dl) const override;
+  [[nodiscard]] const TypeDatabase& getTypeDatabase() const override;
 
  private:
   [[nodiscard]] int getOrRegisterStruct(llvm::StructType* type, const llvm::DataLayout& dl);
