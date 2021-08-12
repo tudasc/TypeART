@@ -17,6 +17,7 @@ if(${MPI_C_FOUND} AND ${PYTHONINTERP_FOUND})
 
   add_library(interceptor-rt SHARED
     ${LIB_SOURCE}
+    InterceptorFunctions.cpp
   )
 
   set_property(TARGET interceptor-rt PROPERTY C_STANDARD 11)

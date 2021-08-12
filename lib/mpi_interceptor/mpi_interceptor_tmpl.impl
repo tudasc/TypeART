@@ -1,11 +1,6 @@
-#ifdef  __cplusplus
-extern "C" {
-#endif
-
 //
 // MPI interceptor functions for TypeArt (MPI v3.2)
 //
-
 
 #include "InterceptorFunctions.h"
 
@@ -153,8 +148,3 @@ ta_unsupported_mpi_call("{{fn_name}}", ta_ret_adr);
 return P{{fn_name}}({{args}});
 }
 {{endfn}}
-
-
-#ifdef  __cplusplus
-}
-#endif

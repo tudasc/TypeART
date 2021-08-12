@@ -9,7 +9,7 @@
 
 typedef struct {
   const void* ptr;
-  int count;
+  size_t count;
   int type_id;
   const char* type_name;
 } MPIBufferInfo;

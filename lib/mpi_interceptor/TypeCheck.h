@@ -99,7 +99,7 @@ int ta_check_type(const MPICallInfo* call, const MPIBufferInfo* buffer, const MP
         }
       }
       for (size_t i = 0; i < struct_layout.len; ++i) {
-        const void* member_ptr      = buffer->ptr + struct_layout.offsets[i];
+        const void* member_ptr      = (char *)buffer->ptr + struct_layout.offsets[i];
         int member_type_id          = struct_layout.member_types[i];
         MPIBufferInfo member_buffer = {member_ptr, struct_layout.count[i], member_type_id,
                                        typeart_get_type_name(member_type_id)};
@@ -112,7 +112,7 @@ int ta_check_type(const MPICallInfo* call, const MPIBufferInfo* buffer, const MP
         }
         if (member_buffer.count * member_element_count != array_of_integers[i + 1]) {
           result = -1;
-          PRINT_ERRORV(call, "expected element count of %d for member %ld, but the type \"%s\" has a count of %d\n",
+          PRINT_ERRORV(call, "expected element count of %d for member %ld, but the type \"%s\" has a count of %ld\n",
                        array_of_integers[i + 1], i + 1, buffer->type_name, member_buffer.count * member_element_count);
         }
       }
@@ -135,4 +135,5 @@ int ta_check_type_and_count(const MPICallInfo* call) {
                  (int)call->count * mpi_type_count);
     return -1;
   }
+  return 0;
 }
