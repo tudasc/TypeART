@@ -6,7 +6,7 @@
 
 {{fn fn_name MPI_Finalize}}
 {
-  ta_exit();
+  typeart_exit();
   return P{{fn_name}}({{args}});
 }
 {{endfn}}
@@ -45,8 +45,8 @@
 
              }}
 {
-const void* ta_ret_adr = __builtin_return_address(0);
-{{apply_typeart_check "send" ta_check_send}}
+const void* typeart_ret_adr = __builtin_return_address(0);
+{{apply_typeart_check "send" typeart_check_send}}
 return P{{fn_name}}({{args}});
 }
 {{endfn}}
@@ -78,8 +78,8 @@ return P{{fn_name}}({{args}});
              MPI_File_read_shared
              }}
 {
-const void* ta_ret_adr = __builtin_return_address(0);
-{{apply_typeart_check "recv" ta_check_recv}}
+const void* typeart_ret_adr = __builtin_return_address(0);
+{{apply_typeart_check "recv" typeart_check_recv}}
 return P{{fn_name}}({{args}});
 }
 {{endfn}}
@@ -126,8 +126,8 @@ return P{{fn_name}}({{args}});
              MPI_Ireduce_scatter_block
              }}
 {
-const void* ta_ret_adr = __builtin_return_address(0);
-{{apply_typeart_check "sendrecv" ta_check_send_and_recv}}
+const void* typeart_ret_adr = __builtin_return_address(0);
+{{apply_typeart_check "sendrecv" typeart_check_send_and_recv}}
 return P{{fn_name}}({{args}});
 }
 {{endfn}}
@@ -143,8 +143,8 @@ return P{{fn_name}}({{args}});
 
 }}
 {
-const void* ta_ret_adr = __builtin_return_address(0);
-ta_unsupported_mpi_call("{{fn_name}}", ta_ret_adr);
+const void* typeart_ret_adr = __builtin_return_address(0);
+typeart_unsupported_mpi_call("{{fn_name}}", typeart_ret_adr);
 return P{{fn_name}}({{args}});
 }
 {{endfn}}

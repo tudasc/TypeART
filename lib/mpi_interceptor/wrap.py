@@ -1392,7 +1392,7 @@ class TypeArtTypeApplier:
         #types = type_s.split(',')
         op_type, macro_name = args
 
-        callargs = ['ta_ret_adr']
+        callargs = ['typeart_ret_adr']
 
         buffer_args = self._find_buffer_args()
         count_args = self._find_count_args()
@@ -1467,7 +1467,7 @@ class TypeArtTypeApplier:
                 if argc == len(type):
                     break
         if argc == len(type):
-            out.write("%s(\"%s\", %s, %s);\n" % (macro_name, self.decl.name, 'ta_ret_adr', callargs))
+            out.write("%s(\"%s\", %s, %s);\n" % (macro_name, self.decl.name, 'typeart_ret_adr', callargs))
             '''
 
 def include_decl(scope, decl):

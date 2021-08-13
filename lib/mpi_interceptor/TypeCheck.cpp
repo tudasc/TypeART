@@ -10,16 +10,16 @@ void printMPIError(const MPICall* call, const char* fnname, int mpierr) {
 }
 
 std::optional<Buffer> Buffer::create(const MPICall* call, const void* buffer) {
-  int ta_type_id;
-  size_t ta_count       = 0;
-  auto typeart_status_v = typeart_get_type(buffer, &ta_type_id, &ta_count);
+  int type_id;
+  size_t count          = 0;
+  auto typeart_status_v = typeart_get_type(buffer, &type_id, &count);
   if (typeart_status_v != TA_OK) {
     const char* msg = error_message_for(typeart_status_v);
     PRINT_ERRORV(call, "internal runtime error (%s)\n", msg);
     return {};
   }
-  const char* ta_type_name = typeart_get_type_name(ta_type_id);
-  return {{buffer, ta_count, ta_type_id, ta_type_name}};
+  const char* type_name = typeart_get_type_name(type_id);
+  return {{buffer, count, type_id, type_name}};
 }
 
 std::optional<Buffer> Buffer::create(const MPICall* call, const void* ptr, size_t count, int type_id) {

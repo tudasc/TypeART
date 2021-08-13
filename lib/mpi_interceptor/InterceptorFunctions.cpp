@@ -7,7 +7,7 @@
 #include <sys/resource.h>
 #include <sys/time.h>
 
-int ta_check_buffer(const typeart::MPICall* call);
+int typeart_check_buffer(const typeart::MPICall* call);
 
 struct CallCounter {
   std::atomic_size_t send        = {0};
@@ -28,40 +28,40 @@ static MPICounter mcounter;
 
 extern "C" {
 
-void ta_check_send(const char* name, const void* called_from, const void* sendbuf, int count, MPI_Datatype dtype) {
+void typeart_check_send(const char* name, const void* called_from, const void* sendbuf, int count, MPI_Datatype dtype) {
   ++counter.send;
   auto call = typeart::MPICall::create(name, called_from, sendbuf, 1, count, dtype);
   if (!call) {
     ++mcounter.error;
     return;
   }
-  ta_check_buffer(&*call);
+  typeart_check_buffer(&*call);
 }
 
-void ta_check_recv(const char* name, const void* called_from, void* recvbuf, int count, MPI_Datatype dtype) {
+void typeart_check_recv(const char* name, const void* called_from, void* recvbuf, int count, MPI_Datatype dtype) {
   ++counter.recv;
   auto call = typeart::MPICall::create(name, called_from, recvbuf, 0, count, dtype);
   if (!call) {
     ++mcounter.error;
     return;
   }
-  ta_check_buffer(&*call);
+  typeart_check_buffer(&*call);
 }
 
-void ta_check_send_and_recv(const char* name, const void* called_from, const void* sendbuf, int sendcount,
-                            MPI_Datatype sendtype, void* recvbuf, int recvcount, MPI_Datatype recvtype) {
+void typeart_check_send_and_recv(const char* name, const void* called_from, const void* sendbuf, int sendcount,
+                                 MPI_Datatype sendtype, void* recvbuf, int recvcount, MPI_Datatype recvtype) {
   ++counter.send_recv;
-  ta_check_send(name, called_from, sendbuf, sendcount, sendtype);
-  ta_check_recv(name, called_from, recvbuf, recvcount, recvtype);
+  typeart_check_send(name, called_from, sendbuf, sendcount, sendtype);
+  typeart_check_recv(name, called_from, recvbuf, recvcount, recvtype);
 }
 
-void ta_unsupported_mpi_call(const char* name, const void* called_from) {
+void typeart_unsupported_mpi_call(const char* name, const void* called_from) {
   ++counter.unsupported;
   fprintf(stderr, "[Error] The MPI function %s is currently not checked by TypeArt", name);
   // exit(0);
 }
 
-void ta_exit() {
+void typeart_exit() {
   // Called at MPI_Finalize time
   int rank = 0;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -75,7 +75,7 @@ void ta_exit() {
 }
 }
 
-int ta_check_buffer(const typeart::MPICall* call) {
+int typeart_check_buffer(const typeart::MPICall* call) {
   PRINT_INFOV(call, "%s at %p in function %s: checking %s-buffer %p of type \"%s\" against MPI type \"%s\"\n",
               call->function_name, call->caller.addr, call->caller.name, call->is_send ? "send" : "recv",
               call->buffer.ptr, call->buffer.type_name, call->type.name);
