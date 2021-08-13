@@ -24,6 +24,7 @@ struct MPICall;
 struct MPIType;
 
 struct Buffer {
+  ptrdiff_t offset;
   const void* ptr;
   size_t count;
   int type_id;
@@ -32,7 +33,8 @@ struct Buffer {
 
  public:
   static std::optional<Buffer> create(const MPICall* call, const void* buffer);
-  static std::optional<Buffer> create(const MPICall* call, const void* ptr, size_t count, int type_id);
+  static std::optional<Buffer> create(const MPICall* call, ptrdiff_t offset, const void* ptr, size_t count,
+                                      int type_id);
 
   bool hasStructType() const;
 };
@@ -82,6 +84,7 @@ struct MPICall {
   int check_type_and_count() const;
 
  private:
+  int check_type_and_count(const Buffer* buffer) const;
   int check_type(const Buffer* buffer, const MPIType* type, int* mpi_count) const;
   int check_combiner_named(const Buffer* buffer, const MPIType* type, int* mpi_count) const;
   int check_combiner_contiguous(const Buffer* buffer, const MPIType* type, int* mpi_count) const;

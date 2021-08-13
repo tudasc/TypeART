@@ -18,10 +18,11 @@ std::optional<Buffer> Buffer::create(const MPICall* call, const void* buffer) {
     PRINT_ERRORV(call, "internal runtime error (%s)\n", msg);
     return {};
   }
-  return {Buffer::create(call, buffer, count, type_id)};
+  return {Buffer::create(call, 0, buffer, count, type_id)};
 }
 
-std::optional<Buffer> Buffer::create(const MPICall* call, const void* ptr, size_t count, int type_id) {
+std::optional<Buffer> Buffer::create(const MPICall* call, ptrdiff_t offset, const void* ptr, size_t count,
+                                     int type_id) {
   auto type_name = typeart_get_type_name(type_id);
   typeart_struct_layout struct_layout;
   typeart_status status = typeart_resolve_type(type_id, &struct_layout);
@@ -33,16 +34,16 @@ std::optional<Buffer> Buffer::create(const MPICall* call, const void* ptr, size_
     auto type_layout = std::vector<Buffer>{};
     type_layout.reserve(struct_layout.len);
     for (auto i = size_t{0}; i < struct_layout.len; ++i) {
-      auto buffer = Buffer::create(call, (char*)ptr + struct_layout.offsets[i], struct_layout.count[i],
-                                   struct_layout.member_types[i]);
+      auto buffer = Buffer::create(call, struct_layout.offsets[i], (char*)ptr + struct_layout.offsets[i],
+                                   struct_layout.count[i], struct_layout.member_types[i]);
       if (!buffer) {
         return {};
       }
       type_layout.push_back(*buffer);
     }
-    return {{ptr, count, type_id, type_name, {type_layout}}};
+    return {{offset, ptr, count, type_id, type_name, {type_layout}}};
   } else {
-    return {{ptr, count, type_id, type_name, {}}};
+    return {{offset, ptr, count, type_id, type_name, {}}};
   }
 }
 
@@ -134,12 +135,25 @@ std::optional<MPICall> MPICall::create(const char* function_name, const void* ca
 }
 
 int MPICall::check_type_and_count() const {
+  return check_type_and_count(&buffer);
+}
+
+int MPICall::check_type_and_count(const Buffer* buffer) const {
   int mpi_type_count;
-  if (check_type(&buffer, &type, &mpi_type_count) != 0) {
-    return -1;
+  if (check_type(buffer, &type, &mpi_type_count) != 0) {
+    // If the type is a struct type and has a member with offset 0,
+    // recursively check against the type of the first member.
+    auto type_layout = buffer->type_layout;
+    if (type_layout && (*type_layout)[0].offset == 0) {
+      PRINT_INFOV(this, "found struct member at offset 0 with type \"%s\", checking with this type...\n",
+                  (*type_layout)[0].type_name);
+      return check_type_and_count(&(*type_layout)[0]);
+    } else {
+      return -1;
+    }
   }
-  if (count * mpi_type_count > buffer.count) {
-    PRINT_ERRORV(this, "buffer too small (%ld elements, %d required)\n", buffer.count, count * mpi_type_count);
+  if (count * mpi_type_count > buffer->count) {
+    PRINT_ERRORV(this, "buffer too small (%ld elements, %d required)\n", buffer->count, count * mpi_type_count);
     return -1;
   }
   return 0;
@@ -225,10 +239,9 @@ int MPICall::check_combiner_struct(const Buffer* buffer, const MPIType* type, in
   }
   int result = 0;
   for (size_t i = 0; i < type_layout.size(); ++i) {
-    auto offset = (char*)type_layout[i].ptr - (char*)buffer->ptr;
-    if (offset != integer_args[i]) {
+    if (type_layout[i].offset != integer_args[i]) {
       PRINT_ERRORV(this, "expected a byte offset of %ld for member %ld, but the type \"%s\" has an offset of %ld\n",
-                   type->combiner.address_args[i], i + 1, buffer->type_name, offset);
+                   type->combiner.address_args[i], i + 1, buffer->type_name, type_layout[i].offset);
       result = -1;
     }
   }
