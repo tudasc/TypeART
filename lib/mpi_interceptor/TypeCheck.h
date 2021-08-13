@@ -21,6 +21,7 @@ namespace typeart {
 #define PRINT_ERROR(call, fmt) fprintf(stderr, "R[%d][Error]ID[%ld] " fmt, call->rank, call->trace_id);
 
 struct MPICall;
+struct MPIType;
 
 struct Buffer {
   const void* ptr;
@@ -33,9 +34,20 @@ struct Buffer {
   static std::optional<Buffer> create(const MPICall* call, const void* ptr, size_t count, int type_id);
 };
 
+struct MPICombiner {
+  int id;
+  std::vector<int> integer_args;
+  std::vector<MPI_Aint> address_args;
+  std::vector<MPIType> type_args;
+
+ public:
+  static std::optional<MPICombiner> create(const MPICall* call, MPI_Datatype type);
+};
+
 struct MPIType {
   MPI_Datatype mpi_type;
   char name[MPI_MAX_OBJECT_NAME];
+  MPICombiner combiner;
 
  public:
   static std::optional<MPIType> create(const MPICall* call, MPI_Datatype type);
@@ -64,6 +76,14 @@ struct MPICall {
                                        int is_const, int count, MPI_Datatype type);
 
   int check_type_and_count() const;
+
+ private:
+  int check_type(const Buffer* buffer, const MPIType* type, int* mpi_count) const;
+  int check_combiner_named(const Buffer* buffer, const MPIType* type, int* mpi_count) const;
+  int check_combiner_contiguous(const Buffer* buffer, const MPIType* type, int* mpi_count) const;
+  int check_combiner_vector(const Buffer* buffer, const MPIType* type, int* mpi_count) const;
+  int check_combiner_indexed_block(const Buffer* buffer, const MPIType* type, int* mpi_count) const;
+  int check_combiner_struct(const Buffer* buffer, const MPIType* type, int* mpi_count) const;
 
  private:
   static std::atomic_size_t next_trace_id;
