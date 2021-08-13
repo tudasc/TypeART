@@ -98,11 +98,11 @@ std::optional<MPIType> MPIType::create(const MPICall* call, MPI_Datatype type) {
 }
 
 std::optional<Caller> Caller::create(const void* caller_addr) {
-  char* name;
-  if (!get_symbol_name(caller_addr, &name)) {
+  auto name = get_symbol_name(caller_addr);
+  if (!name) {
     return {};
   } else {
-    return {{caller_addr, name}};
+    return {{caller_addr, *name}};
   }
 }
 

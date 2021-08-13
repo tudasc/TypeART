@@ -3,6 +3,8 @@
 #include "runtime/RuntimeInterface.h"
 
 #include <mpi.h>
+#include <optional>
+#include <string>
 
 namespace typeart {
 
@@ -17,6 +19,6 @@ int type_id_for(MPI_Datatype mpi_type);
 
 const char* combiner_name_for(int combiner);
 
-bool get_symbol_name(const void* call_adr, char** buffer);
+std::optional<std::string> get_symbol_name(const void* call_adr);
 
 }  // namespace typeart

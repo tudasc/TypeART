@@ -121,27 +121,29 @@ const char* combiner_name_for(int combiner) {
   }
 }
 
-bool get_symbol_name(const void* call_adr, char** buffer) {
+std::optional<std::string> get_symbol_name(const void* call_adr) {
   const char* exe = getenv("TA_EXE_TARGET");
   if (exe == NULL || exe[0] == '\0') {
-    return -1;
+    return {};
   }
 
   char cmd_buf[512] = {0};
   snprintf(cmd_buf, sizeof(cmd_buf), "addr2line -e %s -f %p", exe, call_adr);
 
   FILE* fp    = popen(cmd_buf, "r");
-  bool result = false;
+  auto result = std::optional<std::string>{};
   if (fp) {
-    size_t len = 0;
-    if (getline(buffer, &len, fp)) {
+    size_t len   = 0;
+    char* buffer = nullptr;
+    if (getline(&buffer, &len, fp)) {
       for (size_t i = 0; i < len; ++i) {
-        if ((*buffer)[i] == '\n') {
-          (*buffer)[i] = '\0';
+        if (buffer[i] == '\n') {
+          buffer[i] = '\0';
           break;
         }
       }
-      result = true;
+      result = {std::string(buffer)};
+      free(buffer);
     }
   }
   pclose(fp);
