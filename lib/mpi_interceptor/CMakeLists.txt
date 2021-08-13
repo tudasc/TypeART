@@ -18,11 +18,15 @@ if(${MPI_C_FOUND} AND ${PYTHONINTERP_FOUND})
   add_library(interceptor-rt SHARED
     ${LIB_SOURCE}
     InterceptorFunctions.cpp
+    TypeCheck.cpp
+    Util.cpp
   )
 
   set_property(TARGET interceptor-rt PROPERTY C_STANDARD 11)
   set_property(TARGET interceptor-rt PROPERTY C_STANDARD_REQUIRED TRUE)
 
+  set_property(TARGET interceptor-rt PROPERTY CXX_STANDARD 17)
+  set_property(TARGET interceptor-rt PROPERTY CXX_STANDARD_REQUIRED TRUE)
 
   target_define_file_basename(interceptor-rt)
   

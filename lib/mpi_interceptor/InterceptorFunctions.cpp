@@ -2,54 +2,50 @@
 #include "Util.h"
 #include "runtime/RuntimeInterface.h"
 
+#include <atomic>
 #include <mpi.h>
-#include <stdatomic.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <sys/resource.h>
 #include <sys/time.h>
 
-int ta_check_buffer(const MPICallInfo* mpi_call, int const_adr);
+int ta_check_buffer(const typeart::MPICall* call);
 
-static _Atomic size_t trace_id;
+struct CallCounter {
+  std::atomic_size_t send        = {0};
+  std::atomic_size_t recv        = {0};
+  std::atomic_size_t send_recv   = {0};
+  std::atomic_size_t unsupported = {0};
+};
 
-typedef struct CallCounter {
-  _Atomic size_t send;
-  _Atomic size_t recv;
-  _Atomic size_t send_recv;
-  _Atomic size_t unsupported;
-} CCounter;
+static CallCounter counter;
 
-static CCounter counter = {size_t{0}, size_t{0}, size_t{0}, size_t{0}};
+struct MPICounter {
+  std::atomic_size_t null_count = {0};
+  std::atomic_size_t null_buff  = {0};
+  std::atomic_size_t error      = {0};
+};
 
-typedef struct MPISemCounter {
-  _Atomic size_t null_count;
-  _Atomic size_t null_buff;
-  _Atomic size_t error;
-} MPICounter;
-
-static MPICounter mcounter = {size_t{0}, size_t{0}, size_t{0}};
+static MPICounter mcounter;
 
 extern "C" {
 
 void ta_check_send(const char* name, const void* called_from, const void* sendbuf, int count, MPI_Datatype dtype) {
   ++counter.send;
-  MPICallInfo call_info;
-  if (ta_create_call_info(trace_id++, name, called_from, sendbuf, 1, count, dtype, &call_info) != 0) {
+  auto call = typeart::MPICall::create(name, called_from, sendbuf, 1, count, dtype);
+  if (!call) {
     ++mcounter.error;
     return;
   }
-  ta_check_buffer(&call_info, 1);
+  ta_check_buffer(&*call);
 }
 
 void ta_check_recv(const char* name, const void* called_from, void* recvbuf, int count, MPI_Datatype dtype) {
   ++counter.recv;
-  MPICallInfo call_info;
-  if (ta_create_call_info(trace_id++, name, called_from, recvbuf, 0, count, dtype, &call_info) != 0) {
+  auto call = typeart::MPICall::create(name, called_from, recvbuf, 0, count, dtype);
+  if (!call) {
     ++mcounter.error;
     return;
   }
-  ta_check_buffer(&call_info, 0);
+  ta_check_buffer(&*call);
 }
 
 void ta_check_send_and_recv(const char* name, const void* called_from, const void* sendbuf, int sendcount,
@@ -72,14 +68,14 @@ void ta_exit() {
   struct rusage end;
   getrusage(RUSAGE_SELF, &end);
   fprintf(stderr, "R[%i][Info] CCounter { Send: %zu Recv: %zu Send_Recv: %zu Unsupported: %zu MAX RSS[KBytes]: %ld }\n",
-          rank, counter.send, counter.recv, counter.send_recv, counter.unsupported, end.ru_maxrss);
-  fprintf(stderr, "R[%i][Info] MCounter { Error: %zu Null_Buf: %zu Null_Count: %zu }\n", rank, mcounter.error,
-          mcounter.null_buff, mcounter.null_count);
+          rank, counter.send.load(), counter.recv.load(), counter.send_recv.load(), counter.unsupported.load(),
+          end.ru_maxrss);
+  fprintf(stderr, "R[%i][Info] MCounter { Error: %zu Null_Buf: %zu Null_Count: %zu }\n", rank, mcounter.error.load(),
+          mcounter.null_buff.load(), mcounter.null_count.load());
+}
 }
 
-}
-
-int ta_check_buffer(const MPICallInfo* call, int const_adr) {
+int ta_check_buffer(const typeart::MPICall* call) {
   PRINT_INFOV(call, "%s at %p in function %s: checking %s-buffer %p of type \"%s\" against MPI type \"%s\"\n",
               call->function_name, call->caller.addr, call->caller.name, call->is_send ? "send" : "recv",
               call->buffer.ptr, call->buffer.type_name, call->type.name);
@@ -92,5 +88,5 @@ int ta_check_buffer(const MPICallInfo* call, int const_adr) {
     PRINT_ERRORV(call, "buffer %p is NULL\n", call->buffer.ptr);
     return -1;
   }
-  return ta_check_type_and_count(call);
+  return call->check_type_and_count();
 }
