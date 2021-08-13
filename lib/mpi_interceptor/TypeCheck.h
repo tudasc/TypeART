@@ -28,10 +28,13 @@ struct Buffer {
   size_t count;
   int type_id;
   const char* type_name;
+  std::optional<std::vector<Buffer>> type_layout;
 
  public:
   static std::optional<Buffer> create(const MPICall* call, const void* buffer);
   static std::optional<Buffer> create(const MPICall* call, const void* ptr, size_t count, int type_id);
+
+  bool hasStructType() const;
 };
 
 struct MPICombiner {
@@ -46,6 +49,7 @@ struct MPICombiner {
 
 struct MPIType {
   MPI_Datatype mpi_type;
+  int type_id;
   char name[MPI_MAX_OBJECT_NAME];
   MPICombiner combiner;
 

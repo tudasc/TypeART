@@ -18,13 +18,36 @@ std::optional<Buffer> Buffer::create(const MPICall* call, const void* buffer) {
     PRINT_ERRORV(call, "internal runtime error (%s)\n", msg);
     return {};
   }
-  const char* type_name = typeart_get_type_name(type_id);
-  return {{buffer, count, type_id, type_name}};
+  return {Buffer::create(call, buffer, count, type_id)};
 }
 
 std::optional<Buffer> Buffer::create(const MPICall* call, const void* ptr, size_t count, int type_id) {
   auto type_name = typeart_get_type_name(type_id);
-  return {{ptr, count, type_id, type_name}};
+  typeart_struct_layout struct_layout;
+  typeart_status status = typeart_resolve_type(type_id, &struct_layout);
+  if (status == TA_INVALID_ID) {
+    PRINT_ERRORV(call, "Buffer::create received an invalid type_id %d\n", type_id);
+    return {};
+  }
+  if (status == TA_OK) {
+    auto type_layout = std::vector<Buffer>{};
+    type_layout.reserve(struct_layout.len);
+    for (auto i = size_t{0}; i < struct_layout.len; ++i) {
+      auto buffer = Buffer::create(call, (char*)ptr + struct_layout.offsets[i], struct_layout.count[i],
+                                   struct_layout.member_types[i]);
+      if (!buffer) {
+        return {};
+      }
+      type_layout.push_back(*buffer);
+    }
+    return {{ptr, count, type_id, type_name, {type_layout}}};
+  } else {
+    return {{ptr, count, type_id, type_name, {}}};
+  }
+}
+
+bool Buffer::hasStructType() const {
+  return type_layout.has_value();
 }
 
 std::optional<MPICombiner> MPICombiner::create(const MPICall* call, MPI_Datatype type) {
@@ -63,7 +86,8 @@ std::optional<MPIType> MPIType::create(const MPICall* call, MPI_Datatype type) {
   if (!combiner) {
     return {};
   }
-  auto result = MPIType{type, "", *combiner};
+  const int type_id = type_id_for(type);
+  auto result       = MPIType{type, type_id, "", *combiner};
   int len;
   int mpierr = MPI_Type_get_name(type, result.name, &len);
   if (mpierr != MPI_SUCCESS) {
@@ -142,12 +166,7 @@ int MPICall::check_type(const Buffer* buffer, const MPIType* type, int* mpi_coun
 }
 
 int MPICall::check_combiner_named(const Buffer* buffer, const MPIType* type, int* mpi_count) const {
-  const int mpi_type_id = type_id_for(type->mpi_type);
-  if (mpi_type_id == -1) {
-    PRINT_ERROR(this, "couldn't convert builtin type\n");
-    return -1;
-  }
-  if (buffer->type_id != mpi_type_id && !(buffer->type_id == TA_PPC_FP128 && mpi_type_id == TA_FP128)) {
+  if (buffer->type_id != type->type_id && !(buffer->type_id == TA_PPC_FP128 && type->type_id == TA_FP128)) {
     PRINT_ERRORV(this, "expected a type matching MPI type \"%s\", but found type \"%s\"\n", type->name,
                  buffer->type_name);
     return -1;
@@ -194,41 +213,35 @@ int MPICall::check_combiner_indexed_block(const Buffer* buffer, const MPIType* t
 
 int MPICall::check_combiner_struct(const Buffer* buffer, const MPIType* type, int* mpi_count) const {
   auto& integer_args = type->combiner.integer_args;
-  typeart_struct_layout struct_layout;
-  typeart_status status = typeart_resolve_type(buffer->type_id, &struct_layout);
-  if (status != TA_OK) {
+  if (!buffer->hasStructType()) {
     PRINT_ERRORV(this, "expected a struct type, but found type \"%s\"\n", buffer->type_name);
     return -1;
   }
-  if (struct_layout.len != integer_args[0]) {
+  auto& type_layout = *(buffer->type_layout);
+  if (type_layout.size() != integer_args[0]) {
     PRINT_ERRORV(this, "expected %d members, but the type \"%s\" has %ld members\n", integer_args[0], buffer->type_name,
-                 struct_layout.len);
+                 type_layout.size());
     return -1;
   }
   int result = 0;
-  for (size_t i = 0; i < struct_layout.len; ++i) {
-    if (struct_layout.offsets[i] != integer_args[i]) {
+  for (size_t i = 0; i < type_layout.size(); ++i) {
+    auto offset = (char*)type_layout[i].ptr - (char*)buffer->ptr;
+    if (offset != integer_args[i]) {
       PRINT_ERRORV(this, "expected a byte offset of %ld for member %ld, but the type \"%s\" has an offset of %ld\n",
-                   type->combiner.address_args[i], i + 1, buffer->type_name, struct_layout.offsets[i]);
+                   type->combiner.address_args[i], i + 1, buffer->type_name, offset);
       result = -1;
     }
   }
-  for (size_t i = 0; i < struct_layout.len; ++i) {
-    const void* member_ptr = (char*)buffer->ptr + struct_layout.offsets[i];
-    int member_type_id     = struct_layout.member_types[i];
-    auto member_buffer     = Buffer::create(this, member_ptr, struct_layout.count[i], member_type_id);
-    if (!member_buffer) {
-      return -1;
-    }
+  for (size_t i = 0; i < type_layout.size(); ++i) {
     int member_element_count;
-    if (check_type(&*member_buffer, &type->combiner.type_args[i], &member_element_count) != 0) {
+    if (check_type(&type_layout[i], &type->combiner.type_args[i], &member_element_count) != 0) {
       result = -1;
       PRINT_ERRORV(this, "the typechek for member %ld failed\n", i + 1);
     }
-    if (member_buffer->count * member_element_count != integer_args[i + 1]) {
+    if (type_layout[i].count * member_element_count != integer_args[i + 1]) {
       result = -1;
       PRINT_ERRORV(this, "expected element count of %d for member %ld, but the type \"%s\" has a count of %ld\n",
-                   integer_args[i + 1], i + 1, buffer->type_name, member_buffer->count * member_element_count);
+                   integer_args[i + 1], i + 1, buffer->type_name, type_layout[i].count * member_element_count);
     }
   }
   *mpi_count = 1;

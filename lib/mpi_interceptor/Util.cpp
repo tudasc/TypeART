@@ -80,8 +80,6 @@ int type_id_for(MPI_Datatype mpi_type) {
     } else {
       fprintf(stderr, "[Error] long double has unexpected size %zu!\n", sizeof(long double));
     }
-  } else {
-    return -1;
   }
   return TA_UNKNOWN_TYPE;
 }
