@@ -21,6 +21,7 @@ static CallCounter counter;
 struct MPICounter {
   std::atomic_size_t null_count = {0};
   std::atomic_size_t null_buff  = {0};
+  std::atomic_size_t type_error = {0};
   std::atomic_size_t error      = {0};
 };
 
@@ -70,8 +71,8 @@ void typeart_exit() {
   fprintf(stderr, "R[%i][Info] CCounter { Send: %zu Recv: %zu Send_Recv: %zu Unsupported: %zu MAX RSS[KBytes]: %ld }\n",
           rank, counter.send.load(), counter.recv.load(), counter.send_recv.load(), counter.unsupported.load(),
           end.ru_maxrss);
-  fprintf(stderr, "R[%i][Info] MCounter { Error: %zu Null_Buf: %zu Null_Count: %zu }\n", rank, mcounter.error.load(),
-          mcounter.null_buff.load(), mcounter.null_count.load());
+  fprintf(stderr, "R[%i][Info] MCounter { Error: %zu Null_Buf: %zu Null_Count: %zu Type_Error: %zu }\n", rank,
+          mcounter.error.load(), mcounter.null_buff.load(), mcounter.null_count.load(), mcounter.type_error.load());
 }
 }
 
@@ -88,5 +89,9 @@ int typeart_check_buffer(const typeart::MPICall* call) {
     PRINT_ERRORV(call, "buffer %p is NULL\n", call->buffer.ptr);
     return -1;
   }
-  return call->check_type_and_count();
+  if (call->check_type_and_count() != 0) {
+    ++mcounter.type_error;
+    return -1;
+  }
+  return 0;
 }
