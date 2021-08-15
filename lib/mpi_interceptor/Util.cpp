@@ -12,7 +12,9 @@
 
 #include "Util.h"
 
+#include <limits.h>
 #include <stdio.h>
+#include <unistd.h>
 
 namespace typeart {
 
@@ -133,14 +135,21 @@ const char* combiner_name_for(int combiner) {
   }
 }
 
-std::optional<std::string> get_symbol_name(const void* call_adr) {
-  const char* exe = getenv("TA_EXE_TARGET");
-  if (exe == NULL || exe[0] == '\0') {
-    return {};
-  }
+struct Self {
+  char exe[PATH_MAX];
 
+ public:
+  Self() {
+    memset(exe, 0, sizeof(exe));
+    readlink("/proc/self/exe", exe, PATH_MAX);
+  }
+};
+
+static Self self;
+
+std::optional<std::string> get_symbol_name(const void* call_adr) {
   char cmd_buf[512] = {0};
-  snprintf(cmd_buf, sizeof(cmd_buf), "addr2line -e %s -f %p", exe, call_adr);
+  snprintf(cmd_buf, sizeof(cmd_buf), "addr2line -e %s -f %p", self.exe, call_adr);
 
   FILE* fp    = popen(cmd_buf, "r");
   auto result = std::optional<std::string>{};
