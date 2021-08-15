@@ -12,7 +12,7 @@ void test() {
 // CHECK: [[POINTER:%[0-9]+]] = call noalias i8* @malloc
 // CHECK-NEXT: call void @__typeart_alloc(i8* [[POINTER]],
 
-// PASS-OUT: [Warning] {{.*}} Encountered ambiguous pointer type in function
+// PASS-OUT: [Warning]{{.*}}Encountered ambiguous pointer type in function
 
 // PASS-OUT: TypeArtPass [Heap]
 // PASS-OUT-NEXT: Malloc{{[ ]*}}:{{[ ]*}}1

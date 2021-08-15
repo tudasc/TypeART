@@ -1,3 +1,15 @@
+// TypeART library
+//
+// Copyright (c) 2017-2021 TypeART Authors
+// Distributed under the BSD 3-Clause license.
+// (See accompanying file LICENSE.txt or copy at
+// https://opensource.org/licenses/BSD-3-Clause)
+//
+// Project home: https://github.com/tudasc/TypeART
+//
+// SPDX-License-Identifier: BSD-3-Clause
+//
+
 #include "Util.h"
 
 #include <stdio.h>
@@ -6,17 +18,17 @@ namespace typeart {
 
 const char* error_message_for(typeart_status status) {
   switch (status) {
-    case TA_OK:
+    case TYPEART_OK:
       return "No errors";
-    case TA_UNKNOWN_ADDRESS:
+    case TYPEART_UNKNOWN_ADDRESS:
       return "Buffer not registered";
-    case TA_BAD_ALIGNMENT:
+    case TYPEART_BAD_ALIGNMENT:
       return "Buffer access is not aligned correctly";
-    case TA_BAD_OFFSET:
+    case TYPEART_BAD_OFFSET:
       return "Error in offset computation";
-    case TA_WRONG_KIND:
+    case TYPEART_WRONG_KIND:
       return "Wrong type kind";
-    case TA_INVALID_ID:
+    case TYPEART_INVALID_ID:
       return "Invalid type ID";
     default:
       return "Invalid error code";
@@ -27,23 +39,23 @@ template <class T>
 int type_of() {
   static_assert(std::is_integral_v<T>);
   if constexpr (sizeof(T) == 1) {
-    return TA_INT8;
+    return TYPEART_INT8;
   } else if constexpr (sizeof(T) == 2) {
-    return TA_INT16;
+    return TYPEART_INT16;
   } else if constexpr (sizeof(T) == 4) {
-    return TA_INT32;
+    return TYPEART_INT32;
   } else if constexpr (sizeof(T) == 8) {
-    return TA_INT64;
+    return TYPEART_INT64;
   } else {
     fprintf(stderr, "[Error] Unsupperted integer width %lu!\n", sizeof(T));
-    return TA_UNKNOWN_TYPE;
+    return TYPEART_UNKNOWN_TYPE;
   }
 }
 
 // Given a builtin MPI type, returns the corresponding TypeArt type.
 // If the MPI type is a custom type, -1 is returned.
-// Note: this function cannot distinguish between TA_FP128 und TA_PPC_TP128,
-// therefore TA_FP128 is always returned in case of an 16 byte floating point
+// Note: this function cannot distinguish between TYPEART_FP128 und TYPEART_PPC_TP128,
+// therefore TYPEART_FP128 is always returned in case of an 16 byte floating point
 // MPI type. This should be considered by the caller for performing typechecks.
 int type_id_for(MPI_Datatype mpi_type) {
   if (mpi_type == MPI_CHAR) {
@@ -67,21 +79,21 @@ int type_id_for(MPI_Datatype mpi_type) {
   } else if (mpi_type == MPI_LONG_LONG_INT) {
     return type_of<long long int>();
   } else if (mpi_type == MPI_FLOAT) {
-    return TA_FLOAT;
+    return TYPEART_FLOAT;
   } else if (mpi_type == MPI_DOUBLE) {
-    return TA_DOUBLE;
+    return TYPEART_DOUBLE;
   } else if (mpi_type == MPI_LONG_DOUBLE) {
     if constexpr (sizeof(long double) == sizeof(double)) {
-      return TA_DOUBLE;
+      return TYPEART_DOUBLE;
     } else if constexpr (sizeof(long double) == 10) {
-      return TA_X86_FP80;
+      return TYPEART_X86_FP80;
     } else if constexpr (sizeof(long double) == 16) {
-      return TA_FP128;
+      return TYPEART_FP128;
     } else {
       fprintf(stderr, "[Error] long double has unexpected size %zu!\n", sizeof(long double));
     }
   }
-  return TA_UNKNOWN_TYPE;
+  return TYPEART_UNKNOWN_TYPE;
 }
 
 const char* combiner_name_for(int combiner) {

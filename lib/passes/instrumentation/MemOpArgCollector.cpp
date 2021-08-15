@@ -1,15 +1,23 @@
+// TypeART library
 //
-// Created by ahueck on 08.10.20.
+// Copyright (c) 2017-2021 TypeART Authors
+// Distributed under the BSD 3-Clause license.
+// (See accompanying file LICENSE.txt or copy at
+// https://opensource.org/licenses/BSD-3-Clause)
+//
+// Project home: https://github.com/tudasc/TypeART
+//
+// SPDX-License-Identifier: BSD-3-Clause
 //
 
 #include "MemOpArgCollector.h"
 
-#include "../TypeManager.h"
 #include "Instrumentation.h"
 #include "InstrumentationHelper.h"
 #include "support/Logger.h"
 #include "support/TypeUtil.h"
 #include "support/Util.h"
+#include "typegen/TypeGenerator.h"
 #include "typelib/TypeInterface.h"
 
 #include "llvm/IR/Constants.h"
@@ -31,8 +39,8 @@ using namespace llvm;
 
 namespace typeart {
 
-MemOpArgCollector::MemOpArgCollector(TypeManager& tm, InstrumentationHelper& instr)
-    : ArgumentCollector(), type_m(&tm), instr_helper(&instr) {
+MemOpArgCollector::MemOpArgCollector(TypeGenerator* tm, InstrumentationHelper& instr)
+    : ArgumentCollector(), type_m(tm), instr_helper(&instr) {
 }
 
 HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
@@ -50,7 +58,7 @@ HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
     auto mallocArg = malloc_call->getOperand(0);
     int typeId     = type_m->getOrRegisterType(malloc_call->getType()->getPointerElementType(),
                                            dl);  // retrieveTypeID(tu::getVoidType(c));
-    if (typeId == TA_UNKNOWN_TYPE) {
+    if (typeId == TYPEART_UNKNOWN_TYPE) {
       LOG_ERROR("Unknown heap type. Not instrumenting. " << util::dump(*malloc_call));
       // TODO notify caller that we skipped: via lambda callback function
       continue;
@@ -72,7 +80,7 @@ HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
       }
 
       typeId = type_m->getOrRegisterType(dstPtrType, dl);
-      if (typeId == TA_UNKNOWN_TYPE) {
+      if (typeId == TYPEART_UNKNOWN_TYPE) {
         LOG_ERROR("Target type of casted allocation is unknown. Not instrumenting. " << util::dump(*malloc_call));
         LOG_ERROR("Cast: " << util::dump(*primaryBitcast));
         LOG_ERROR("Target type: " << util::dump(*dstPtrType));
@@ -190,7 +198,7 @@ StackArgList MemOpArgCollector::collectStack(const AllocaDataList& allocs) {
     // unsigned typeSize = tu::getTypeSizeInBytes(elementType, dl);
     int typeId = type_m->getOrRegisterType(elementType, dl);
 
-    if (typeId == TA_UNKNOWN_TYPE) {
+    if (typeId == TYPEART_UNKNOWN_TYPE) {
       LOG_ERROR("Unknown stack type. Not instrumenting. " << util::dump(*elementType));
       continue;
     }
@@ -225,7 +233,7 @@ GlobalArgList MemOpArgCollector::collectGlobal(const GlobalDataList& globals) {
 
     int typeId = type_m->getOrRegisterType(type, dl);
 
-    if (typeId == TA_UNKNOWN_TYPE) {
+    if (typeId == TYPEART_UNKNOWN_TYPE) {
       LOG_ERROR("Unknown global type. Not instrumenting. " << util::dump(*type));
       continue;
     }

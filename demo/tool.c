@@ -5,17 +5,17 @@
 int isCompatible(MPI_Datatype mpi_type, typeart_builtin_type recorded_type) {
   // This comparison is not exhaustive and is only used for this simple demo
   switch (recorded_type) {
-    case TA_INT8:
+    case TYPEART_INT8:
       return mpi_type == MPI_CHAR || mpi_type == MPI_UNSIGNED_CHAR;
-    case TA_INT16:
+    case TYPEART_INT16:
       return mpi_type == MPI_SHORT || mpi_type == MPI_UNSIGNED_SHORT;
-    case TA_INT32:
+    case TYPEART_INT32:
       return mpi_type == MPI_INT || mpi_type == MPI_UNSIGNED;
-    case TA_INT64:
+    case TYPEART_INT64:
       return mpi_type == MPI_LONG || mpi_type == MPI_UNSIGNED_LONG;
-    case TA_FLOAT:
+    case TYPEART_FLOAT:
       return mpi_type == MPI_FLOAT;
-    case TA_DOUBLE:
+    case TYPEART_DOUBLE:
       return mpi_type == MPI_DOUBLE;
     default:
       break;
@@ -44,11 +44,11 @@ void analyseBuffer(const void* buf, int count, MPI_Datatype type) {
     size_t count_check;
     typeart_status status = typeart_get_type(buf, &type_id, &count_check);
 
-    if (status == TA_OK) {
+    if (status == TYPEART_OK) {
       // If the address corresponds to a struct, fetch the type of the first member
-      while (type_id >= TA_NUM_RESERVED_IDS) {
+      while (type_id >= TYPEART_NUM_RESERVED_IDS) {
         typeart_struct_layout struct_layout;
-        typeart_resolve_type(type_id, &struct_layout);
+        typeart_resolve_type_id(type_id, &struct_layout);
         type_id = struct_layout.member_types[0];
       }
 
@@ -59,15 +59,15 @@ void analyseBuffer(const void* buf, int count, MPI_Datatype type) {
       } else {
         const char* recorded_name = typeart_get_type_name(type_id);
 
-        fprintf(stdout, "Error: Incompatible buffer of type %d (%s) - expected %s instead\n", type_id, recorded_name,
-                type_name);
+        fprintf(stdout, "[Demo] Error: Incompatible buffer of type %d (%s) - expected %s instead\n", type_id,
+                recorded_name, type_name);
       }
 
     } else {
-      fprintf(stdout, "Error: ");
-      if (status == TA_BAD_ALIGNMENT) {
+      fprintf(stdout, "[Demo] Error: ");
+      if (status == TYPEART_BAD_ALIGNMENT) {
         fprintf(stdout, "Buffer address does not align with the underlying type at %p\n", buf);
-      } else if (status == TA_UNKNOWN_ADDRESS) {
+      } else if (status == TYPEART_UNKNOWN_ADDRESS) {
         fprintf(stdout, "No buffer allocated at address %p\n", buf);
       }
     }

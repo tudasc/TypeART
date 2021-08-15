@@ -1,7 +1,6 @@
 function(target_sanitizer_options target)
   cmake_parse_arguments(ARG "" "" "SAN_FLAGS;LINK_FLAGS" ${ARGN})
-  #target_compile_options(typeart-rt PRIVATE -fsanitize=address,undefined -fno-sanitize=vptr,function -fno-omit-frame-pointer)
-  #target_link_options(typeart-rt PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+
   target_compile_options(${target}
     PRIVATE
       ${ARG_SAN_FLAGS}
@@ -38,7 +37,7 @@ function(target_asan_options target)
   target_sanitizer_options(${target}
     SAN_FLAGS
       ${asan_f}
-    )
+  )
 endfunction()
 
 function(target_ubsan_options target)
@@ -46,7 +45,7 @@ function(target_ubsan_options target)
   target_sanitizer_options(${target}
     SAN_FLAGS
       ${ubsan_f}
-    )
+  )
 endfunction()
 
 function(target_tsan_options target)

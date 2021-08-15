@@ -13,11 +13,11 @@ number of elements.
 
 ## Why use it?
 
-Employ TypeART whenever you need type-related information of allocations in your program to verify some property, and
+TypeART provides type-related information of allocations in your program to help verify some property, and to help
 generate diagnostics if it doesn't hold.
 
 For instance, low-level C-language APIs use `void`-pointers as generic types. Often, the user must specify its type and
-length manually. This can be error prone. Examples for type unsafe APIs include the Message-Passing Interface (MPI),
+length manually. This can be error-prone. Examples for type unsafe APIs include the Message-Passing Interface (MPI),
 checkpointing libraries and numeric solver libraries. With TypeART, it is straightforward to verify that a `void`
 -pointer argument to an API is, e.g., a type `T` array with length `n`.
 
@@ -47,7 +47,7 @@ MPI_Send((void*) array, length, MPI_DOUBLE, ...)
 ```
 
 MUST and TypeART also handle MPI [derived datatypes](https://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node77.htm)
-with complex underlying datastructures, see our [MPI Demo](#13-example-mpi-demo). For more details, see
+with complex underlying data structures, see our [MPI Demo](#13-example-mpi-demo). For more details, see
 our [publications](#references), view the [documentation of the MPI Interceptor Library](lib/mpi_interceptor/README.md), or download the current release (1.8 or higher) of MUST on
 its [project page](https://itc.rwth-aachen.de/must/).
 
@@ -57,7 +57,6 @@ its [project page](https://itc.rwth-aachen.de/must/).
     * [1.1 Compiling a target code](#11-compiling-a-target-code)
         * [1.1.1 Building with TypeART](#111-building-with-typeart)
         * [1.1.2 Options for TypeART passes](#112-options-for-typeart-passes)
-            * [Example invocations](#example-invocations)
         * [1.1.3 Serialized type information](#113-serialized-type-information)
         * [1.1.4 Filtering allocations](#114-filtering-allocations)
     * [1.2 Executing an instrumented target code](#12-executing-an-instrumented-target-code)
@@ -81,7 +80,10 @@ Making use of TypeART consists of two phases:
 ### 1.1 Compiling a target code
 
 Our LLVM compiler pass plugins instrument allocations and also serialize the static type layouts of these allocations to
-a yaml file (default name `types.yaml`).
+a yaml file (default name `types.yaml`). To that end, we provide compiler [wrapper scripts](scripts/typeart-wrapper.in)
+around Clang and MPI to apply TypeART in the `bin` folder of the TypeART installation prefix. By default, the wrappers
+instrument heap, stack and global allocations. The MPI-wrappers also filter allocations that are not passed to an MPI
+call, see [Section 1.1.4](#114-filtering-allocations).
 
 #### 1.1.1 Building with TypeART
 
@@ -94,18 +96,44 @@ $> clang++ -O2 $(COMPILE_FLAGS) -c code.cpp -o code.o
 $> clang++ $(LINK_FLAGS) code.o -o binary
 ```
 
-With TypeART, the recipe needs to be changed, as we rely on the LLVM `opt` (optimizer) tool to load and apply our
-TypeART passes to a target code based on the LLVM intermediate representation (IR):
+With TypeART, the recipe needs to be changed to, e.g., use our provided compiler wrapper, as we rely on the LLVM `opt`
+(optimizer) tool to load and apply our TypeART passes to a target code:
+
+```shell
+# Compile, replace direct clang++ call with wrapper of the TypeART installation:
+$> typeart-clang++ -O2 $(COMPILE_FLAGS) -c code.cpp -o code.o
+# Link, also with the wrapper:
+$> typeart-clang++ $(LINK_FLAGS) code.o -o binary
+```
+
+In particular, the wrapper script does the following:
 
 1. Compile the code down to LLVM IR, and pipe the output to the LLVM `opt` tool. (Keeping your original compile flags)
 2. Apply heap instrumentation with TypeART through `opt`.
-3. Optimize the code with -Ox using `opt`.
+3. Optimize the code with your `-Ox` flag using `opt`.
 4. Apply stack and global instrumentation with TypeART through `opt`.
 5. Pipe the final output to LLVM `llc` to generate the final object file.
-6. Finally, link the TypeART runtime library.
+6. Finally, link the TypeART runtime library using your linker flags.
 
 *Note*: We instrument heap allocations before any optimization, as the compiler may throw out type information of these
 allocations (for optimization reasons).
+
+##### Wrapper usage in CMake build systems
+
+For plain Makefiles, the wrapper replaces the GCC/Clang compiler variables, e.g., `CC` or `MPICC`. For CMake, during the
+configuration, it is advised to disable the wrapper temporarily. This is due to CMake executing internal compiler
+checks, where we do not need TypeART instrumentation:
+
+```shell
+# Temporarily disable wrapper with environment flag TYPEART_WRAPPER=OFF for configuration:
+$> TYPEART_WRAPPER=OFF cmake -B build -DCMAKE_C_COMPILER=*TypeART bin*/typeart-clang 
+# Compile with TypeART now:
+$> cmake --build build --target install
+```
+
+##### Internal wrapper invocation
+
+For reference, the wrapper script executes the following (pseudo):
 
 ```shell
 # Compile: 1.Code-To-LLVM | 2.TypeART_HEAP | 3.Optimize | 4.TypeART_Stack | 5.Object-file 
@@ -116,7 +144,7 @@ $> clang++ $(LINK_FLAGS) -L$(TYPEART_LIBPATH) -ltypeart-rt code.o -o binary
 
 #### 1.1.2 Options for TypeART passes
 
-The main options are shown below.
+For modification of the pass behavior, we provide several options.
 
 | Flag | Default | Description |
 | --- | :---: | --- |
@@ -139,8 +167,8 @@ The main options are shown below.
     ```
 2. Input of `opt` is LLVM IR, e.g.:
     ```shell
-    # Pipe LLVM IR to console
-    clang++ -g -Xclang -disable-llvm-passes -S -emit-llvm -o - example.cpp
+    # Pipe LLVM IR to console:
+    $> clang++ -g -Xclang -disable-llvm-passes -S -emit-llvm -o - example.cpp
     ```
 
 ###### Examples
@@ -166,8 +194,6 @@ The main options are shown below.
     opt $(TYPEART_PLUGIN) -typeart -typeart-alloca -call-filter
     ```
 
-Also consult the [demo Makefile](demo/Makefile) for an example recipe, and flags for TypeART.
-
 #### 1.1.3 Serialized type information
 
 After instrumentation, the file `types.yaml` contains the static type information. Each user-defined type layout is
@@ -186,6 +212,7 @@ struct s1_t {
 
 The TypeART pass may write a `types.yaml` file with the following content:
 <!--- @formatter:off --->
+
 ```yaml
 - id: 256            // struct type-id
   name: struct.s1_t
@@ -195,6 +222,7 @@ The TypeART pass may write a `types.yaml` file with the following content:
   types: [ 0, 10 ]   // member type-ids (0->char, 10->pointer)
   sizes: [ 3, 1 ]    // member (array) length
 ```
+
 <!--- @formatter:on --->
 
 #### 1.1.4 Filtering allocations
@@ -226,11 +254,12 @@ void foo() {
 
 To execute the instrumented code, the TypeART runtime library (or a derivative) has to be loaded to accept the
 callbacks. The library also requires access to the `types.yaml` file to correlate the `type-id` with the actual type
-layouts. To specify its path, you can use the environment variable `TA_TYPE_FILE`, e.g.:
+layouts. To specify its path, you can use the environment variable `TYPEART_TYPE_FILE`, e.g.:
 
 ```shell
-export TA_TYPE_FILE=/shared/types.yaml
-env LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(TYPEART_LIBPATH) ./binary
+$> export TYPEART_TYPE_FILE=/shared/types.yaml
+# If the TypeART runtime is not resolved, LD_LIBRARY_PATH is set:
+$> env LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(TYPEART_LIBPATH) ./binary
 ```
 
 An example for pre-loading a TypeART-based library in the context of MPI is found in the demo,
@@ -244,14 +273,31 @@ in [tool.c](demo/tool.c). The check library uses the TypeART [runtime query inte
 It overloads the required MPI calls and checks that the passed `void*` buffer is correct w.r.t. the MPI derived
 datatype.
 
+To compile and run the demo targets:
+
+- Makefile
+    ```shell
+    # Valid MPI demo:
+    $> MPICC=*TypeART prefix*/bin/typeart-mpicc make run-demo
+    # Type-error MPI demo:
+    $> MPICC=*TypeART prefix*/bin/typeart-mpicc make run-demo_broken
+    ```
+- CMake, likewise:
+    ```shell
+    $> TYPEART_WRAPPER=OFF cmake -S demo -B build_demo -DCMAKE_C_COMPILER=*TypeART prefix*/bin/typeart-mpicc 
+    $> cmake --build build_demo --target run-demo
+    $> cmake --build build_demo --target run-demo_broken
+    ```
+
 ## 2. Building TypeART
 
 TypeART requires LLVM version 10 and CMake version >= 3.14.
 
 ### 2.1 Optional software requirements
 
-- MPI library: Needed for some tests, the [demo](demo), our [MPI interceptor library](lib/mpi_interceptor), and for
-  logging with our TypeART runtime library within an MPI target application.
+- MPI library: (soft requirement) Needed for the MPI compiler wrappers, tests, the [demo](demo),
+  our [MPI interceptor library](lib/mpi_interceptor), and for logging with our TypeART runtime library within an MPI
+  target application.
 - OpenMP-enabled Clang compiler: Needed for some tests.
 
 Other smaller, external dependencies are defined within the [externals folder](externals) (depending on configuration
@@ -273,15 +319,25 @@ $> cmake --build build --target install --parallel
 
 #### 2.2.1 CMake configuration: Options for users
 
+##### Binaries (scripts)
+
+<!--- @formatter:off --->
+| Option | Default | Description |
+| --- | :---: | --- |
+| `ENABLE_MPI_WRAPPER` | `ON` | Install TypeART MPI wrapper (mpic, mpic++). Requires MPI. |
+<!--- @formatter:on --->
+
 ##### Runtime
 
 <!--- @formatter:off --->
+
 | Option | Default | Description |
 | --- | :---: | --- |
 | `USE_ABSL` | `ON` | Enable usage of btree-backed map of the [Abseil project](https://abseil.io/) instead of `std::map` |
 | `USE_BTREE` | `OFF` | *Deprecated*. Enable usage of a [btree-backed map](https://github.com/ahueck/cpp-btree) (alternative to Abseil) instead of `std::map` |
 | `SOFTCOUNTERS` | `OFF` | Enable runtime tracking of #tracked addrs. / #distinct checks / etc. |
 | `LOG_LEVEL_RT` | `0` | Granularity of runtime logger. 3 ist most verbose, 0 is least |
+
 <!--- @formatter:on --->
 
 ###### Runtime thread-safety options
@@ -289,32 +345,38 @@ $> cmake --build build --target install --parallel
 Default mode is to protect the global data structure with a (shared) mutex. Two main options exist:
 
 <!--- @formatter:off --->
+
 | Option | Default | Description |
 | --- | :---: | --- |
 | `DISABLE_THREAD_SAFETY` | `OFF` | Disable thread safety of runtime |
 | `ENABLE_SAFEPTR` | `OFF` | Instead of a mutex, use a special data structure wrapper for concurrency, see [object_threadsafe](https://github.com/AlexeyAB/object_threadsafe) |
+
 <!--- @formatter:on --->
 
 ##### LLVM passes
 
 <!--- @formatter:off --->
+
 | Option | Default | Description |
 | --- | :---: | --- |
 | `SHOW_STATS` | `ON` | Passes show compile-time summary w.r.t. allocations counts |
 | `MPI_INTERCEPT_LIB` | `ON` | Library to intercept MPI calls by preloading and check whether TypeART tracks the buffer pointer |
 | `MPI_LOGGER` | `ON` | Enable better logging support in MPI execution context |
 | `LOG_LEVEL` | `0` | Granularity of pass logger. 3 ist most verbose, 0 is least |
+
 <!--- @formatter:on --->
 
 ##### Testing
 
 <!--- @formatter:off --->
+
 | Option | Default | Description |
 | --- | :---: | --- |
 | `TEST_CONFIG` | `OFF` | Set (force) logging levels to appropriate levels for test runner to succeed |
 | `ENABLE_CODE_COVERAGE` | `OFF` | Enable code coverage statistics using LCOV 1.14 and genhtml (gcovr optional) |
 | `ENABLE_LLVM_CODE_COVERAGE` | `OFF` | Enable llvm-cov code coverage statistics (llvm-cov and llvm-profdata  required) |
 | `ENABLE_ASAN, TSAN, UBSAN` | `OFF` | Enable Clang sanitizers (tsan is mutually exlusive w.r.t. ubsan and  asan as they don't play well together) |
+
 <!--- @formatter:on --->
 
 ## References

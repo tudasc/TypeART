@@ -1,4 +1,0 @@
-#!/bin/bash
-
-# Workaround for lcov and clang --coverage incompatibility
-exec @LLVM_COV_COMMAND@ gcov "$@"

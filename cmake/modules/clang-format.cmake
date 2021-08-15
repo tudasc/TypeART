@@ -1,9 +1,9 @@
 function(add_format_target target comment)
-  macro(filter_dir _dir_name_)
-    foreach (SOURCE_FILE ${ALL_CXX_FILES})
-      string(FIND ${SOURCE_FILE} ${_dir_name_} EXCLUDE_FOUND)
+  macro(filter_dir dir_name_)
+    foreach (source_file ${ALL_CXX_FILES})
+      string(FIND ${source_file} ${dir_name_} EXCLUDE_FOUND)
       if (NOT ${EXCLUDE_FOUND} EQUAL -1)
-        list(REMOVE_ITEM ALL_CXX_FILES ${SOURCE_FILE})
+        list(REMOVE_ITEM ALL_CXX_FILES ${source_file})
       endif()
     endforeach()
   endmacro()
@@ -12,6 +12,7 @@ function(add_format_target target comment)
 
   file(GLOB_RECURSE
     ALL_CXX_FILES
+    CONFIGURE_DEPENDS
     ${ARG_TARGETS}
   )
 
@@ -20,7 +21,7 @@ function(add_format_target target comment)
   endforeach()
 
   find_program(FORMAT_COMMAND
-               NAMES clang-format clang-format-10 clang-format-9 clang-format-7 clang-format-5 clang-format-4)
+               NAMES clang-format clang-format-12 clang-format-11 clang-format-10)
   if(FORMAT_COMMAND)
     add_custom_target(${target}
       COMMAND ${FORMAT_COMMAND} -i -style=file ${ARG_OTHER} ${ARG_UNPARSED_ARGUMENTS}

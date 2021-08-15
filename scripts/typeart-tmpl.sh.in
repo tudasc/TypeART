@@ -1,0 +1,242 @@
+#!/bin/bash
+#
+# TypeART library
+#
+# Copyright (c) 2017-2021 TypeART Authors
+# Distributed under the BSD 3-Clause license.
+# (See accompanying file LICENSE.txt or copy at
+# https://opensource.org/licenses/BSD-3-Clause)
+#
+# Project home: https://github.com/tudasc/TypeART
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+
+function parse_cmd_line() {
+  readonly source_file=$1
+  optimize=""
+  ta_more_args=""
+  with_omp=0
+  with_intercept=0
+  with_thread=0
+  skip_typeart=0
+
+  shift # skip over $1
+  while (("$#")); do
+    case "$1" in
+    -o | --optimization)
+      if [ -n "$2" ] && [ "${2:0:2}" == "-O" ]; then
+        optimize=$2
+        shift 2
+      else
+        echo "Error: Optimization argument for $1 is erroneous: $2" >&2
+        exit 1
+      fi
+      ;;
+    --omp)
+      with_omp=1
+      shift
+      ;;
+    --thread)
+      with_thread=1
+      shift
+      ;;
+    --mpi_intercept)
+      with_intercept=1
+      shift
+      ;;
+    --manual)
+      skip_typeart=1
+      shift
+      ;;
+    --object)
+      if [ -n "$2" ]; then
+        object_file="$2"
+        shift 2
+      else
+        echo "Error: Object file argument for $1 is missing." >&2
+        shift
+      fi
+      ;;
+    --executable)
+      if [ -n "$2" ]; then
+        exe_file="$2"
+        shift 2
+      else
+        echo "Error: Executable file argument for $1 is missing." >&2
+        shift
+      fi
+      ;;
+    *) # preserve other arguments
+      ta_more_args="$ta_more_args $1"
+      shift
+      ;;
+    esac
+  done
+
+  if [ -z "${object_file}" ]; then
+    # use filename(source_file).o
+    object_file="${source_file%.*}".o
+  fi
+
+  if [ -z "${exe_file}" ]; then
+    # use filename(source_file).o
+    exe_file="${source_file%.*}".exe
+  fi
+}
+
+function global_init() {
+  local -r typeart_use_rel_path=@TYPEART_RELOCATABLE@
+  if [ "$typeart_use_rel_path" == 0 ]; then
+    local -r typeart_bin_dir="@TYPEART_BINARY_DIR@"
+    local -r typeart_lib_dir="@TYPEART_RT_DIR@"
+    local -r typeart_include_dir="@TYPEART_INCLUDE_DIRS@"
+    local -r typeart_analysis_pass="@TYPEART_ANALYSIS_PASS_DIR@/$<TARGET_FILE_NAME:typeart::MemOpFinderPass>"
+    local -r typeart_pass="@TYPEART_PASS_DIR@/$<TARGET_FILE_NAME:typeart::TransformPass>"
+    readonly typeart_interceptor="@TYPEART_MPI_INTERCEPT_DIR@/@TYPEART_MPI_TOOL@"
+  else
+    # shellcheck disable=SC2155
+    local -r typeart_bin_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    # shellcheck disable=SC2155
+    local -r typeart_install_dir="$(dirname "${typeart_bin_dir}")"
+    local -r typeart_lib_dir="${typeart_install_dir}/@CMAKE_INSTALL_LIBDIR@"
+    local -r typeart_include_dir="-I${typeart_install_dir}/@CMAKE_INSTALL_INCLUDEDIR@"
+    local -r typeart_analysis_pass="${typeart_lib_dir}/$<TARGET_FILE_NAME:typeart::MemOpFinderPass>"
+    local -r typeart_pass="${typeart_lib_dir}/$<TARGET_FILE_NAME:typeart::TransformPass>"
+    readonly typeart_interceptor="@TYPEART_MPI_INTERCEPT_DIR@/@TYPEART_MPI_TOOL@"
+  fi
+
+  readonly typeart_has_interceptor="@TYPEART_HAS_MPI_TOOL@"
+
+  readonly opt_tool="@TYPEART_OPT@"
+  readonly llc_tool="@TYPEART_LLC@"
+
+  readonly typeart_includes="${typeart_include_dir}"
+  readonly typeart_ldflags="-L${typeart_lib_dir}/ \
+                   -Wl,-rpath,${typeart_lib_dir}/ \
+                   -l$<TARGET_FILE_BASE_NAME:typeart::Runtime>"
+
+  # shellcheck disable=SC2027
+  readonly typeart_plugin="-load "${typeart_analysis_pass}" \
+                          -load "${typeart_pass}" -typeart"
+  readonly typeart_stack_mode_args="-typeart-no-heap -typeart-alloca -typeart-stats"
+  readonly typeart_heap_mode_args="-typeart-no-heap=false -typeart-stats"
+  readonly typeart_combined_mode_args="${typeart_heap_mode_args} -typeart-alloca"
+}
+
+function toolchain_init() {
+  readonly extension="${source_file##*.}"
+
+  case "$extension" in
+  c)
+    compiler=clang
+    if [ $with_omp == 1 ]; then
+      readonly omp_flags="@OpenMP_C_FLAGS@" # -I@OpenMP_C_INCLUDE_DIRS@
+    fi
+    ;;
+  cc | cxx | cpp)
+    compiler=clang++
+    if [ $with_omp == 1 ]; then
+      readonly omp_flags="@OpenMP_CXX_FLAGS@" # -I@OpenMP_CXX_INCLUDE_DIRS@
+    fi
+    ;;
+  esac
+
+  if [ $with_thread == 1 ]; then
+    readonly threads_flags="@CMAKE_THREAD_LIBS_INIT@"
+  fi
+
+  readonly typeart_san_flags="@TYPEART_SAN_FLAGS@"
+
+  if [ -e "types.yaml" ]; then
+    rm "types.yaml"
+  fi
+}
+
+function make_no_optim() {
+  # Order: heap and stack/global together, no optimization pass
+  if [ $skip_typeart == 0 ]; then
+    $compiler ${omp_flags} ${typeart_includes} ${typeart_san_flags} \
+      -O1 -Xclang -disable-llvm-passes -S -emit-llvm "${source_file}" -o - |
+      $opt_tool ${typeart_plugin} ${typeart_combined_mode_args} ${ta_more_args} |
+      $llc_tool -x=ir ${llc_flags} -o "${object_file}"
+  else
+    # First create types.yaml:
+    $compiler ${omp_flags} ${typeart_includes} ${typeart_san_flags} \
+      -O1 -Xclang -disable-llvm-passes -S -emit-llvm "${source_file}" -o - |
+      $opt_tool ${typeart_plugin} ${typeart_combined_mode_args} ${ta_more_args} >/dev/null
+
+    $compiler ${omp_flags} ${typeart_includes} ${typeart_san_flags} \
+      -O1 -Xclang -disable-llvm-passes -S -emit-llvm "${source_file}" -o - |
+      $llc_tool -x=ir ${llc_flags} -o "${object_file}"
+  fi
+}
+
+function make_with_optim() {
+  # Order: heap, optimize, alloca with additional args.
+  if [ $skip_typeart == 0 ]; then
+    $compiler ${omp_flags} ${typeart_includes} ${typeart_san_flags} \
+      -O1 -Xclang -disable-llvm-passes -S -emit-llvm "${source_file}" -o - |
+      $opt_tool ${typeart_plugin} ${typeart_heap_mode_args} ${ta_more_args} |
+      $opt_tool ${optimize} -S |
+      $opt_tool ${typeart_plugin} ${typeart_stack_mode_args} ${ta_more_args} |
+      $llc_tool -x=ir ${llc_flags} -o "${object_file}"
+  else
+    # First create types.yaml:
+    $compiler ${omp_flags} ${typeart_includes} ${typeart_san_flags} \
+      -O1 -Xclang -disable-llvm-passes -S -emit-llvm "${source_file}" -o - |
+      $opt_tool ${typeart_plugin} ${typeart_heap_mode_args} ${ta_more_args} |
+      $opt_tool ${optimize} -S |
+      $opt_tool ${typeart_plugin} ${typeart_stack_mode_args} ${ta_more_args} >/dev/null
+
+    $compiler ${omp_flags} ${typeart_includes} ${typeart_san_flags} \
+      -O1 -Xclang -disable-llvm-passes -S -emit-llvm "${source_file}" -o - |
+      $opt_tool ${optimize} |
+      $llc_tool -x=ir ${llc_flags} -o "${object_file}"
+  fi
+}
+
+function compile() {
+  local llc_flags="--filetype=obj"
+  if [ "$optimize" == " " ]; then
+    make_no_optim
+  else
+    make_with_optim
+  fi
+}
+
+function main_link() {
+  $compiler ${omp_flags} ${threads_flags} ${typeart_san_flags} ${typeart_ldflags} "${object_file}" -o "${exe_file}"
+}
+
+function execute() {
+  if [ $with_omp == 1 ]; then
+    export TSAN_OPTIONS='ignore_noninstrumented_modules=1'
+  fi
+
+  if [ $with_intercept == 1 ]; then
+    if [ $typeart_has_interceptor == 1 ]; then
+      echo -e Executing with runtime and interceptor lib
+      LD_LIBRARY_PATH="$LD_LIBRARY_PATH:${typeart_lib_dir}" LD_PRELOAD="${typeart_interceptor}" "${exe_file}"
+    else
+      echo -e Interceptor lib not compiled with TypeART, exiting!
+      exit 1
+    fi
+  else
+    echo -e Executing with runtime lib
+    LD_LIBRARY_PATH="$LD_LIBRARY_PATH:${typeart_lib_dir}" "${exe_file}"
+  fi
+}
+
+function main_in() {
+  parse_cmd_line "$@"
+  global_init
+  toolchain_init
+  compile
+  if [ @TYPEART_RUN_SCRIPT@ == 1 ]; then
+    main_link
+    execute
+  fi
+}
+
+main_in "$@"

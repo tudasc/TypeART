@@ -1,7 +1,18 @@
+// TypeART library
+//
+// Copyright (c) 2017-2021 TypeART Authors
+// Distributed under the BSD 3-Clause license.
+// (See accompanying file LICENSE.txt or copy at
+// https://opensource.org/licenses/BSD-3-Clause)
+//
+// Project home: https://github.com/tudasc/TypeART
+//
+// SPDX-License-Identifier: BSD-3-Clause
+//
+
 #ifndef _LIB_MUSTSUPPORTPASS_H
 #define _LIB_MUSTSUPPORTPASS_H
 
-#include "TypeManager.h"
 #include "instrumentation/Instrumentation.h"
 #include "instrumentation/InstrumentationHelper.h"
 #include "instrumentation/TypeARTFunctions.h"
@@ -19,6 +30,10 @@ class AnalysisUsage;
 class Value;
 class raw_ostream;
 }  // namespace llvm
+
+namespace typeart {
+class TypeGenerator;
+}
 
 namespace typeart::pass {
 
@@ -40,7 +55,7 @@ class TypeArtPass : public llvm::ModulePass {
   TypeArtFunc typeart_free_omp         = typeart_free;
   TypeArtFunc typeart_leave_scope_omp  = typeart_leave_scope;
 
-  TypeManager typeManager;
+  std::unique_ptr<TypeGenerator> typeManager;
   InstrumentationHelper instrumentation_helper;
   TAFunctions functions;
   std::unique_ptr<InstrumentationContext> instrumentation_context;

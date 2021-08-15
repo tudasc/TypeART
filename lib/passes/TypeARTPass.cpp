@@ -1,3 +1,15 @@
+// TypeART library
+//
+// Copyright (c) 2017-2021 TypeART Authors
+// Distributed under the BSD 3-Clause license.
+// (See accompanying file LICENSE.txt or copy at
+// https://opensource.org/licenses/BSD-3-Clause)
+//
+// Project home: https://github.com/tudasc/TypeART
+//
+// SPDX-License-Identifier: BSD-3-Clause
+//
+
 #include "TypeARTPass.h"
 
 #include "analysis/MemInstFinderPass.h"
@@ -6,7 +18,7 @@
 #include "instrumentation/TypeARTFunctions.h"
 #include "support/Logger.h"
 #include "support/Table.h"
-#include "typelib/TypeDB.h"
+#include "typegen/TypeGenerator.h"
 
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/None.h"
@@ -58,9 +70,7 @@ namespace typeart::pass {
 // Used by LLVM pass manager to identify passes in memory
 char TypeArtPass::ID = 0;
 
-// std::unique_ptr<TypeMapping> TypeArtPass::typeMapping = std::make_unique<SimpleTypeMapping>();
-
-TypeArtPass::TypeArtPass() : llvm::ModulePass(ID), typeManager(ClTypeFile.getValue()) {
+TypeArtPass::TypeArtPass() : llvm::ModulePass(ID) {
   assert(!ClTypeFile.empty() && "Default type file not set");
   EnableStatistics();
 }
@@ -70,16 +80,20 @@ void TypeArtPass::getAnalysisUsage(llvm::AnalysisUsage& info) const {
 }
 
 bool TypeArtPass::doInitialization(Module& m) {
-  instrumentation_helper.setModule(m);
+  typeManager = make_typegen(ClTypeFile.getValue());
 
   LOG_DEBUG("Propagating type infos.");
-  if (typeManager.load()) {
+  const auto [loaded, error] = typeManager->load();
+  if (loaded) {
     LOG_DEBUG("Existing type configuration successfully loaded from " << ClTypeFile.getValue());
   } else {
-    LOG_DEBUG("No valid existing type configuration found: " << ClTypeFile.getValue());
+    LOG_DEBUG("No valid existing type configuration found: " << ClTypeFile.getValue()
+                                                             << ". Reason: " << error.message());
   }
 
-  auto arg_collector  = std::make_unique<MemOpArgCollector>(typeManager, instrumentation_helper);
+  instrumentation_helper.setModule(m);
+
+  auto arg_collector  = std::make_unique<MemOpArgCollector>(typeManager.get(), instrumentation_helper);
   auto mem_instrument = std::make_unique<MemOpInstrumentation>(functions, instrumentation_helper);
   instrumentation_context =
       std::make_unique<InstrumentationContext>(std::move(arg_collector), std::move(mem_instrument));
@@ -158,10 +172,11 @@ bool TypeArtPass::doFinalization(Module&) {
    */
   LOG_DEBUG("Writing type file to " << ClTypeFile.getValue());
 
-  if (typeManager.store()) {
+  const auto [stored, error] = typeManager->store();
+  if (stored) {
     LOG_DEBUG("Success!");
   } else {
-    LOG_FATAL("Failed writing type config to " << ClTypeFile.getValue());
+    LOG_FATAL("Failed writing type config to " << ClTypeFile.getValue() << ". Reason: " << error.message());
   }
   if (ClTypeArtStats && AreStatisticsEnabled()) {
     auto& out = llvm::errs();

@@ -1,3 +1,15 @@
+// TypeART library
+//
+// Copyright (c) 2017-2021 TypeART Authors
+// Distributed under the BSD 3-Clause license.
+// (See accompanying file LICENSE.txt or copy at
+// https://opensource.org/licenses/BSD-3-Clause)
+//
+// Project home: https://github.com/tudasc/TypeART
+//
+// SPDX-License-Identifier: BSD-3-Clause
+//
+
 #include "TypeCheck.h"
 
 namespace typeart {
@@ -13,7 +25,7 @@ std::optional<Buffer> Buffer::create(const MPICall* call, const void* buffer) {
   int type_id;
   size_t count          = 0;
   auto typeart_status_v = typeart_get_type(buffer, &type_id, &count);
-  if (typeart_status_v != TA_OK) {
+  if (typeart_status_v != TYPEART_OK) {
     const char* msg = error_message_for(typeart_status_v);
     PRINT_ERRORV(call, "internal runtime error (%s)\n", msg);
     return {};
@@ -25,15 +37,15 @@ std::optional<Buffer> Buffer::create(const MPICall* call, ptrdiff_t offset, cons
                                      int type_id) {
   auto type_name = typeart_get_type_name(type_id);
   typeart_struct_layout struct_layout;
-  typeart_status status = typeart_resolve_type(type_id, &struct_layout);
-  if (status == TA_INVALID_ID) {
+  typeart_status status = typeart_resolve_type_id(type_id, &struct_layout);
+  if (status == TYPEART_INVALID_ID) {
     PRINT_ERRORV(call, "Buffer::create received an invalid type_id %d\n", type_id);
     return {};
   }
-  if (status == TA_OK) {
+  if (status == TYPEART_OK) {
     auto type_layout = std::vector<Buffer>{};
-    type_layout.reserve(struct_layout.len);
-    for (auto i = size_t{0}; i < struct_layout.len; ++i) {
+    type_layout.reserve(struct_layout.num_members);
+    for (auto i = size_t{0}; i < struct_layout.num_members; ++i) {
       auto buffer = Buffer::create(call, struct_layout.offsets[i], (char*)ptr + struct_layout.offsets[i],
                                    struct_layout.count[i], struct_layout.member_types[i]);
       if (!buffer) {
@@ -180,7 +192,7 @@ int MPICall::check_type(const Buffer* buffer, const MPIType* type, int* mpi_coun
 }
 
 int MPICall::check_combiner_named(const Buffer* buffer, const MPIType* type, int* mpi_count) const {
-  if (buffer->type_id != type->type_id && !(buffer->type_id == TA_PPC_FP128 && type->type_id == TA_FP128)) {
+  if (buffer->type_id != type->type_id && !(buffer->type_id == TYPEART_PPC_FP128 && type->type_id == TYPEART_FP128)) {
     PRINT_ERRORV(this, "expected a type matching MPI type \"%s\", but found type \"%s\"\n", type->name,
                  buffer->type_name);
     return -1;

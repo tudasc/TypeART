@@ -1,9 +1,14 @@
-/*
- * Logger.h
- *
- *  Created on: Jan 3, 2018
- *      Author: ahueck
- */
+// TypeART library
+//
+// Copyright (c) 2017-2021 TypeART Authors
+// Distributed under the BSD 3-Clause license.
+// (See accompanying file LICENSE.txt or copy at
+// https://opensource.org/licenses/BSD-3-Clause)
+//
+// Project home: https://github.com/tudasc/TypeART
+//
+// SPDX-License-Identifier: BSD-3-Clause
+//
 
 #ifndef LIB_LOGGER_H_
 #define LIB_LOGGER_H_
@@ -26,15 +31,23 @@
 #define MPI_LOGGER 0
 #endif
 
-// clang-format off
+namespace typeart::detail {
 #if MPI_LOGGER
 void mpi_log(const std::string& msg);
+#else
+inline void mpi_log(const std::string& msg) {
+  llvm::errs() << msg;
+}
+#endif
+}  // namespace typeart::detail
+
+// clang-format off
 #define OO_LOG_LEVEL_MSG(LEVEL_NUM, LEVEL, MSG)                                                                   \
   if ((LEVEL_NUM) <= LOG_LEVEL) {                                                                                 \
     std::string s;                                                                                                \
     llvm::raw_string_ostream rso(s);                                                                              \
     rso << (LEVEL) << LOG_BASENAME_FILE << ":" << __func__ << ":" << __LINE__ << ":" << MSG << "\n"; /* NOLINT */ \
-    mpi_log(rso.str());                                                                                           \
+    typeart::detail::mpi_log(rso.str());                                                                                   \
   }
 
 #define OO_LOG_LEVEL_MSG_BARE(LEVEL_NUM, LEVEL, MSG)   \
@@ -42,19 +55,8 @@ void mpi_log(const std::string& msg);
     std::string s;                                     \
     llvm::raw_string_ostream rso(s);                   \
     rso << (LEVEL) << " " << MSG << "\n"; /* NOLINT */ \
-    mpi_log(rso.str());                                \
+    typeart::detail::mpi_log(rso.str());               \
   }
-#else
-#define OO_LOG_LEVEL_MSG(LEVEL_NUM, LEVEL, MSG)                                                                                     \
-  if ((LEVEL_NUM) <= LOG_LEVEL) {                                                                                                   \
-    llvm::errs() << (LEVEL) << " " << LOG_BASENAME_FILE << ":" << __func__ << ":" << __LINE__ << ": " << MSG << "\n"; /* NOLINT */  \
-  }
-
-#define OO_LOG_LEVEL_MSG_BARE(LEVEL_NUM, LEVEL, MSG)            \
-  if ((LEVEL_NUM) <= LOG_LEVEL) {                               \
-    llvm::errs() << (LEVEL) << " " << MSG << "\n"; /* NOLINT */ \
-  }
-#endif
 // clang-format on
 
 #define LOG_TRACE(MSG) OO_LOG_LEVEL_MSG_BARE(3, "[Trace]", MSG)

@@ -1,5 +1,13 @@
+// TypeART library
 //
-// Created by ahueck on 08.10.20.
+// Copyright (c) 2017-2021 TypeART Authors
+// Distributed under the BSD 3-Clause license.
+// (See accompanying file LICENSE.txt or copy at
+// https://opensource.org/licenses/BSD-3-Clause)
+//
+// Project home: https://github.com/tudasc/TypeART
+//
+// SPDX-License-Identifier: BSD-3-Clause
 //
 
 #include "TypeARTFunctions.h"
@@ -29,8 +37,8 @@ using namespace llvm;
 
 namespace typeart {
 
-TAFunctionDeclarator::TAFunctionDeclarator(Module& m, InstrumentationHelper& instr, TAFunctions& tafunc)
-    : m(m), instr(instr), tafunc(tafunc) {
+TAFunctionDeclarator::TAFunctionDeclarator(Module& m, InstrumentationHelper&, TAFunctions& tafunc)
+    : m(m), tafunc(tafunc) {
 }
 
 llvm::Function* TAFunctionDeclarator::make_function(IFunc id, llvm::StringRef basename,
