@@ -25,7 +25,7 @@ int main(int argc, char** argv) {
     printf("Test database not loaded.\n");
   }
 
-  auto [database, db_load] = typeart::make_database("types.yaml");
+  auto [database, db_load] = typeart::make_database("44_typedb.types.yaml");
   if (db_load) {
     printf("Error not loaded type file.\n");
   }

@@ -76,6 +76,15 @@ function parse_cmd_line() {
         shift
       fi
       ;;
+    --types_yaml)
+      if [ -n "$2" ]; then
+        types_yaml="$2"
+        shift 2
+      else
+        echo "Error: types.yaml filepath for $1 is missing." >&2
+        shift
+      fi
+      ;;
     *) # preserve other arguments
       ta_more_args="$ta_more_args $1"
       shift
@@ -95,6 +104,10 @@ function parse_cmd_line() {
 
   if [ -z "${command}" ]; then
     command="${exe_file}"
+  fi
+
+  if [ -z "${types_yaml}" ]; then
+    types_yaml="${source_file%.*}".types.yaml
   fi
 }
 
@@ -132,8 +145,8 @@ function global_init() {
   # shellcheck disable=SC2027
   readonly typeart_plugin="-load "${typeart_analysis_pass}" \
                           -load "${typeart_pass}" -typeart"
-  readonly typeart_stack_mode_args="-typeart-no-heap -typeart-alloca -typeart-stats"
-  readonly typeart_heap_mode_args="-typeart-no-heap=false -typeart-stats"
+  readonly typeart_stack_mode_args="-typeart-no-heap -typeart-alloca -typeart-stats -typeart-outfile ${types_yaml}"
+  readonly typeart_heap_mode_args="-typeart-no-heap=false -typeart-stats -typeart-outfile ${types_yaml}"
   readonly typeart_combined_mode_args="${typeart_heap_mode_args} -typeart-alloca"
 }
 
@@ -167,9 +180,10 @@ function toolchain_init() {
 
   readonly typeart_san_flags="@TYPEART_SAN_FLAGS@"
 
-  if [ -e "types.yaml" ]; then
-    rm "types.yaml"
+  if [ -e ${types_yaml} ]; then
+    rm ${types_yaml}
   fi
+  touch ${types_yaml}
 }
 
 function make_no_optim() {
@@ -236,14 +250,14 @@ function execute() {
   if [ $with_intercept == 1 ]; then
     if [ $typeart_has_interceptor == 1 ]; then
       echo -e Executing with runtime and interceptor lib
-      LD_LIBRARY_PATH="$LD_LIBRARY_PATH:${typeart_lib_dir}" LD_PRELOAD="${typeart_interceptor}" ${command}
+      LD_LIBRARY_PATH="$LD_LIBRARY_PATH:${typeart_lib_dir}" LD_PRELOAD="${typeart_interceptor}" TYPEART_TYPE_FILE=${types_yaml} ${command}
     else
       echo -e Interceptor lib not compiled with TypeART, exiting!
       exit 1
     fi
   else
     echo -e Executing with runtime lib
-    LD_LIBRARY_PATH="$LD_LIBRARY_PATH:${typeart_lib_dir}" ${command}
+    LD_LIBRARY_PATH="$LD_LIBRARY_PATH:${typeart_lib_dir}" TYPEART_TYPE_FILE=${types_yaml} ${command}
   fi
 }
 
