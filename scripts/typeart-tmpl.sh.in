@@ -67,6 +67,15 @@ function parse_cmd_line() {
         shift
       fi
       ;;
+    --command)
+      if [ -n "$2" ]; then
+        command="$2"
+        shift 2
+      else
+        echo "Error: Command argument for $1 is missing." >&2
+        shift
+      fi
+      ;;
     *) # preserve other arguments
       ta_more_args="$ta_more_args $1"
       shift
@@ -82,6 +91,10 @@ function parse_cmd_line() {
   if [ -z "${exe_file}" ]; then
     # use filename(source_file).o
     exe_file="${source_file%.*}".exe
+  fi
+
+  if [ -z "${command}" ]; then
+    command="${exe_file}"
   fi
 }
 
@@ -223,14 +236,14 @@ function execute() {
   if [ $with_intercept == 1 ]; then
     if [ $typeart_has_interceptor == 1 ]; then
       echo -e Executing with runtime and interceptor lib
-      LD_LIBRARY_PATH="$LD_LIBRARY_PATH:${typeart_lib_dir}" LD_PRELOAD="${typeart_interceptor}" "${exe_file}"
+      LD_LIBRARY_PATH="$LD_LIBRARY_PATH:${typeart_lib_dir}" LD_PRELOAD="${typeart_interceptor}" ${command}
     else
       echo -e Interceptor lib not compiled with TypeART, exiting!
       exit 1
     fi
   else
     echo -e Executing with runtime lib
-    LD_LIBRARY_PATH="$LD_LIBRARY_PATH:${typeart_lib_dir}" "${exe_file}"
+    LD_LIBRARY_PATH="$LD_LIBRARY_PATH:${typeart_lib_dir}" ${command}
   fi
 }
 
