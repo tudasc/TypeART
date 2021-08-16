@@ -38,7 +38,7 @@ function(configure_typeart_script input output)
   endif()
 
   # TODO use generator in the scripts, even if target does not exist. How?
-  set(TYPEART_MPI_TOOL "typeartMPITool.so")
+  set(TYPEART_MPI_TOOL "libtypeartMPITool${CMAKE_DEBUG_POSTFIX}.so")
   if(TARGET typeart::MPITool)
     set(TYPEART_HAS_MPI_TOOL 1)
   else()
