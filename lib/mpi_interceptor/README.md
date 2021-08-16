@@ -37,6 +37,15 @@ types based on existing MPI types. A list of all type combiners can be found
 - [MPI_Type_hindexed](https://www.open-mpi.org/doc/v4.1/man3/MPI_Type_hindexed.3.php)
 - [MPI_Type_create_hindexed_block](https://www.open-mpi.org/doc/v4.1/man3/MPI_Type_create_indexed_block.3.php)
 
+### Handling of ambiguous types
+
+In cases where a variable has a struct type where the first member of that
+type has an offset of 0 bytes, the runtime cannot discern whether an address
+to an instance of this struct is meant to have the type of that struct or of
+the first member. In these cases the runtime first tries to match the MPI type
+to the struct type and then, if that fails, recursively attempts to match it
+to the type of the first member.
+
 ### [MPI_Type_dup](https://www.open-mpi.org/doc/v4.1/man3/MPI_Type_dup.3.php)
 
 The original type will be used for the typecheck. No special limitations apply.
@@ -59,3 +68,13 @@ Matches any buffer that is an array and can hold at least `max(array_of_displace
 elements of a datatype that matches `oldtype`.
 
 Note: negative displacements are currently unsupported.
+
+### [MPI_Type_create_struct](https://www.open-mpi.org/doc/v4.1/man3/MPI_Type_create_struct.3.php)
+
+Matches any buffer that has a struct type where
+- the struct has the same number of members as the MPI type,
+- the offset of each member (as determined by the
+  [offsetof-operator](https://en.cppreference.com/w/cpp/types/offsetof))
+  matches the displacement in the MPI type,
+- the type of each member matches the respective MPI type and
+- where the buffer can hold at least `count` instances of the struct type.
