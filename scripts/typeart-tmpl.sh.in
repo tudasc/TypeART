@@ -198,7 +198,7 @@ function make_with_optim() {
 
 function compile() {
   local llc_flags="--filetype=obj"
-  if [ "$optimize" == " " ]; then
+  if [ "$optimize" == "" ]; then
     make_no_optim
   else
     make_with_optim
