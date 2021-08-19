@@ -103,6 +103,7 @@ struct MPICall {
   int check_combiner_vector(const Buffer* buffer, const MPIType* type, int* mpi_count) const;
   int check_combiner_indexed_block(const Buffer* buffer, const MPIType* type, int* mpi_count) const;
   int check_combiner_struct(const Buffer* buffer, const MPIType* type, int* mpi_count) const;
+  int check_combiner_subarray(const Buffer* buffer, const MPIType* type, int* mpi_count) const;
 
  private:
   static std::atomic_size_t next_trace_id;

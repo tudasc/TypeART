@@ -78,3 +78,8 @@ Matches any buffer that has a struct type where
   matches the displacement in the MPI type,
 - the type of each member matches the respective MPI type and
 - where the buffer can hold at least `count` instances of the struct type.
+
+### [MPI_Type_create_subarray](https://www.open-mpi.org/doc/v4.1/man3/MPI_Type_create_subarray.3.php)
+
+Matches any buffer that is an array and can hold at least as many elements as
+the product of all `array_of_sizes` elements of a datatype that matches `oldtype`.

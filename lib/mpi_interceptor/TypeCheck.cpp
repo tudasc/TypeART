@@ -185,6 +185,8 @@ int MPICall::check_type(const Buffer* buffer, const MPIType* type, int* mpi_coun
       return check_combiner_indexed_block(buffer, type, mpi_count);
     case MPI_COMBINER_STRUCT:
       return check_combiner_struct(buffer, type, mpi_count);
+    case MPI_COMBINER_SUBARRAY:
+      return check_combiner_subarray(buffer, type, mpi_count);
     default:
       PRINT_ERRORV(this, "the MPI type combiner %s is currently not supported\n", combiner_name_for(type->combiner.id));
   }
@@ -270,6 +272,17 @@ int MPICall::check_combiner_struct(const Buffer* buffer, const MPIType* type, in
     }
   }
   *mpi_count = 1;
+  return result;
+}
+
+int MPICall::check_combiner_subarray(const Buffer* buffer, const MPIType* type, int* mpi_count) const {
+  auto result              = check_type(buffer, &type->combiner.type_args[0], mpi_count);
+  auto& integer_args       = type->combiner.integer_args;
+  auto array_element_count = 1;
+  for (auto i = 0; i < integer_args[0]; ++i) {
+    array_element_count *= integer_args[i + 1];
+  }
+  *mpi_count *= array_element_count;
   return result;
 }
 
