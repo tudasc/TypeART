@@ -31,6 +31,4 @@ int type_id_for(MPI_Datatype mpi_type);
 
 const char* combiner_name_for(int combiner);
 
-std::optional<std::string> get_symbol_name(const void* call_adr);
-
 }  // namespace typeart

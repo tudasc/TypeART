@@ -87,10 +87,10 @@ void typeart_exit() {
 }
 
 int typeart_check_buffer(const typeart::MPICall* call) {
-  PRINT_INFOV(call, "%s at %p in function %s: checking %s-buffer %p of type \"%s\" against MPI type \"%s\"\n",
-              call->function_name.c_str(), call->caller.addr, call->caller.name.c_str(),
-              call->is_send ? "send" : "recv", call->buffer.ptr, call->buffer.type_name.c_str(),
-              call->type.name.c_str());
+  PRINT_INFOV(call, "%s[%p] at %s:%s: %s: checking %s-buffer %p of type \"%s\" against MPI type \"%s\"\n",
+              call->caller.function.c_str(), call->caller.addr, call->caller.file.c_str(), call->caller.line.c_str(),
+              call->function_name.c_str(), call->is_send ? "send" : "recv", call->buffer.ptr,
+              call->buffer.type_name.c_str(), call->type.name.c_str());
   if (call->count <= 0) {
     ++mcounter.null_count;
     return 1;

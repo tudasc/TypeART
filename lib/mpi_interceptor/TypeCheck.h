@@ -72,7 +72,9 @@ struct MPIType {
 
 struct Caller {
   const void* addr;
-  std::string name;
+  std::string function;
+  std::string file;
+  std::string line;
 
  public:
   static std::optional<Caller> create(const void* caller_addr);

@@ -14,6 +14,7 @@
 
 function parse_cmd_line() {
   readonly source_file=$1
+  compile_flags="-g -fno-omit-frame-pointer -fno-inline"
   optimize=""
   ta_more_args=""
   with_omp=0
@@ -190,17 +191,17 @@ function make_no_optim() {
   # Order: heap and stack/global together, no optimization pass
   if [ $skip_typeart == 0 ]; then
     $compiler ${omp_flags} ${typeart_includes} ${typeart_san_flags} \
-      -O1 -Xclang -disable-llvm-passes -S -emit-llvm "${source_file}" -o - |
+      -O1 ${compile_flags} -Xclang -disable-llvm-passes -S -emit-llvm "${source_file}" -o - |
       $opt_tool ${typeart_plugin} ${typeart_combined_mode_args} ${ta_more_args} |
       $llc_tool -x=ir ${llc_flags} -o "${object_file}"
   else
     # First create types.yaml:
     $compiler ${omp_flags} ${typeart_includes} ${typeart_san_flags} \
-      -O1 -Xclang -disable-llvm-passes -S -emit-llvm "${source_file}" -o - |
+      -O1 ${compile_flags} -Xclang -disable-llvm-passes -S -emit-llvm "${source_file}" -o - |
       $opt_tool ${typeart_plugin} ${typeart_combined_mode_args} ${ta_more_args} >/dev/null
 
     $compiler ${omp_flags} ${typeart_includes} ${typeart_san_flags} \
-      -O1 -Xclang -disable-llvm-passes -S -emit-llvm "${source_file}" -o - |
+      -O1 ${compile_flags} -Xclang -disable-llvm-passes -S -emit-llvm "${source_file}" -o - |
       $llc_tool -x=ir ${llc_flags} -o "${object_file}"
   fi
 }
@@ -209,7 +210,7 @@ function make_with_optim() {
   # Order: heap, optimize, alloca with additional args.
   if [ $skip_typeart == 0 ]; then
     $compiler ${omp_flags} ${typeart_includes} ${typeart_san_flags} \
-      -O1 -Xclang -disable-llvm-passes -S -emit-llvm "${source_file}" -o - |
+      -O1 ${compile_flags} -Xclang -disable-llvm-passes -S -emit-llvm "${source_file}" -o - |
       $opt_tool ${typeart_plugin} ${typeart_heap_mode_args} ${ta_more_args} |
       $opt_tool ${optimize} -S |
       $opt_tool ${typeart_plugin} ${typeart_stack_mode_args} ${ta_more_args} |
@@ -217,13 +218,13 @@ function make_with_optim() {
   else
     # First create types.yaml:
     $compiler ${omp_flags} ${typeart_includes} ${typeart_san_flags} \
-      -O1 -Xclang -disable-llvm-passes -S -emit-llvm "${source_file}" -o - |
+      -O1 ${compile_flags} -Xclang -disable-llvm-passes -S -emit-llvm "${source_file}" -o - |
       $opt_tool ${typeart_plugin} ${typeart_heap_mode_args} ${ta_more_args} |
       $opt_tool ${optimize} -S |
       $opt_tool ${typeart_plugin} ${typeart_stack_mode_args} ${ta_more_args} >/dev/null
 
     $compiler ${omp_flags} ${typeart_includes} ${typeart_san_flags} \
-      -O1 -Xclang -disable-llvm-passes -S -emit-llvm "${source_file}" -o - |
+      -O1 ${compile_flags} -Xclang -disable-llvm-passes -S -emit-llvm "${source_file}" -o - |
       $opt_tool ${optimize} |
       $llc_tool -x=ir ${llc_flags} -o "${object_file}"
   fi

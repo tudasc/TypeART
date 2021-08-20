@@ -12,6 +12,12 @@
 
 #include "TypeCheck.h"
 
+#include <cxxabi.h>
+#include <filesystem>
+#include <memory>
+
+namespace fs = std::filesystem;
+
 namespace typeart {
 
 void printMPIError(const MPICall* call, const char* fnname, int mpierr) {
@@ -117,12 +123,67 @@ std::optional<MPIType> MPIType::create(const MPICall* call, MPI_Datatype type) {
   return {result};
 }
 
-std::optional<Caller> Caller::create(const void* caller_addr) {
-  auto name = get_symbol_name(caller_addr);
-  if (!name) {
+struct Self {
+  std::string exe;
+
+ public:
+  Self() {
+    exe = fs::canonical("/proc/self/exe");
+  }
+};
+
+static Self self;
+
+using unique_file = std::unique_ptr<FILE, int (*)(FILE*)>;
+
+struct pipe : public unique_file {
+  explicit pipe(const std::string& command) : unique_file(popen(command.c_str(), "r"), &pclose) {
+  }
+
+  [[nodiscard]] std::string next_line() const {
+    size_t len   = 0;
+    char* buffer = nullptr;
+    auto result  = std::string{};
+    if (getline(&buffer, &len, get()) != -1) {
+      result = {std::string(buffer)};
+      free(buffer);
+    }
+    result.resize(result.size() - 1);
+    return result;
+  }
+};
+
+std::optional<std::string> demangle(const std::string& symbol_name) {
+  auto status  = -1;
+  auto* buffer = abi::__cxa_demangle(symbol_name.c_str(), nullptr, nullptr, &status);
+  if (status != 0) {
     return {};
   }
-  return {{caller_addr, *name}};
+  auto result = std::string{buffer};
+  free(buffer);
+  return result;
+}
+
+std::optional<Caller> Caller::create(const void* addr) {
+  auto result  = Caller{};
+  result.addr  = addr;
+  auto command = std::ostringstream{};
+  command << "addr2line -e " << self.exe << " -f " << addr;
+  auto output = pipe(command.str());
+  if (!output) {
+    return {};
+  }
+  auto demangled = demangle(output.next_line());
+  if (!demangled) {
+    return {};
+  }
+  result.function    = *demangled;
+  auto file_and_line = output.next_line();
+  auto delim         = file_and_line.find(':');
+  result.line        = file_and_line.substr(delim + 1);
+  file_and_line.resize(delim);
+  result.file = std::move(file_and_line);
+  return result;
 }
 
 std::atomic_size_t MPICall::next_trace_id = {0};

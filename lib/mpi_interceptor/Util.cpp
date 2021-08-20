@@ -12,13 +12,6 @@
 
 #include "Util.h"
 
-#include <cstdio>
-#include <filesystem>
-#include <sstream>
-#include <unistd.h>
-
-namespace fs = std::filesystem;
-
 namespace typeart {
 
 const char* error_message_for(typeart_status status) {
@@ -136,45 +129,6 @@ const char* combiner_name_for(int combiner) {
     default:
       return "invalid combiner id";
   }
-}
-
-struct Self {
-  std::string exe;
-
- public:
-  Self() {
-    exe = fs::canonical("/proc/self/exe");
-  }
-};
-
-static Self self;
-
-using unique_file = std::unique_ptr<FILE, int (*)(FILE*)>;
-
-struct pipe : public unique_file {
-  explicit pipe(const std::string& command) : unique_file(popen(command.c_str(), "r"), &pclose) {
-  }
-
-  [[nodiscard]] std::string next_line() const {
-    size_t len   = 0;
-    char* buffer = nullptr;
-    auto result  = std::string{};
-    if (getline(&buffer, &len, get()) != -1) {
-      result = {std::string(buffer)};
-      free(buffer);
-    }
-    return result;
-  }
-};
-
-std::optional<std::string> get_symbol_name(const void* call_adr) {
-  auto command = std::ostringstream{};
-  command << "addr2line -e " << self.exe << " -f " << call_adr;
-  auto output = pipe(command.str());
-  if (!output) {
-    return {};
-  }
-  return output.next_line();
 }
 
 }  // namespace typeart
