@@ -10,7 +10,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //
 
-#pragma once
+#ifndef TYPEART_MPI_INTERCEPTOR_UTIL_H
+#define TYPEART_MPI_INTERCEPTOR_UTIL_H
 
 #include "runtime/RuntimeInterface.h"
 
@@ -32,3 +33,5 @@ int type_id_for(MPI_Datatype mpi_type);
 const char* combiner_name_for(int combiner);
 
 }  // namespace typeart
+
+#endif  // TYPEART_MPI_INTERCEPTOR_UTIL_H

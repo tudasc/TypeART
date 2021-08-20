@@ -10,7 +10,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //
 
-#pragma once
+#ifndef TYPEART_MPI_INTERCEPTOR_INTERCEPTOR_FUNCTIONS_H
+#define TYPEART_MPI_INTERCEPTOR_INTERCEPTOR_FUNCTIONS_H
 
 #include <mpi.h>
 
@@ -32,3 +33,5 @@ void typeart_exit();
 #ifdef __cplusplus
 }
 #endif
+
+#endif // TYPEART_MPI_INTERCEPTOR_INTERCEPTOR_FUNCTIONS_H

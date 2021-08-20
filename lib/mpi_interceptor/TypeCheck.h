@@ -10,7 +10,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //
 
-#pragma once
+#ifndef TYPEART_MPI_INTERCEPTOR_TYPE_CHECK_H
+#define TYPEART_MPI_INTERCEPTOR_TYPE_CHECK_H
 
 #include "Util.h"
 #include "runtime/RuntimeInterface.h"
@@ -110,3 +111,5 @@ struct MPICall {
 };
 
 }  // namespace typeart
+
+#endif  // TYPEART_MPI_INTERCEPTOR_TYPE_CHECK_H
