@@ -12,9 +12,12 @@
 
 #include "Util.h"
 
-#include <limits.h>
-#include <stdio.h>
+#include <cstdio>
+#include <filesystem>
+#include <sstream>
 #include <unistd.h>
+
+namespace fs = std::filesystem;
 
 namespace typeart {
 
@@ -40,13 +43,13 @@ const char* error_message_for(typeart_status status) {
 template <class T>
 int type_of() {
   static_assert(std::is_integral_v<T>);
-  if constexpr (sizeof(T) == 1) {
+  if constexpr (sizeof(T) == sizeof(int8_t)) {
     return TYPEART_INT8;
-  } else if constexpr (sizeof(T) == 2) {
+  } else if constexpr (sizeof(T) == sizeof(int16_t)) {
     return TYPEART_INT16;
-  } else if constexpr (sizeof(T) == 4) {
+  } else if constexpr (sizeof(T) == sizeof(int32_t)) {
     return TYPEART_INT32;
-  } else if constexpr (sizeof(T) == 8) {
+  } else if constexpr (sizeof(T) == sizeof(int64_t)) {
     return TYPEART_INT64;
   } else {
     fprintf(stderr, "[Error] Unsupperted integer width %lu!\n", sizeof(T));
@@ -136,39 +139,42 @@ const char* combiner_name_for(int combiner) {
 }
 
 struct Self {
-  char exe[PATH_MAX];
+  std::string exe;
 
  public:
   Self() {
-    memset(exe, 0, sizeof(exe));
-    readlink("/proc/self/exe", exe, PATH_MAX);
+    exe = fs::canonical("/proc/self/exe");
   }
 };
 
 static Self self;
 
-std::optional<std::string> get_symbol_name(const void* call_adr) {
-  char cmd_buf[512] = {0};
-  snprintf(cmd_buf, sizeof(cmd_buf), "addr2line -e %s -f %p", self.exe, call_adr);
+using unique_file = std::unique_ptr<FILE, int (*)(FILE*)>;
 
-  FILE* fp    = popen(cmd_buf, "r");
-  auto result = std::optional<std::string>{};
-  if (fp) {
+struct pipe : public unique_file {
+  explicit pipe(const std::string& command) : unique_file(popen(command.c_str(), "r"), &pclose) {
+  }
+
+  [[nodiscard]] std::string next_line() const {
     size_t len   = 0;
     char* buffer = nullptr;
-    if (getline(&buffer, &len, fp)) {
-      for (size_t i = 0; i < len; ++i) {
-        if (buffer[i] == '\n') {
-          buffer[i] = '\0';
-          break;
-        }
-      }
+    auto result  = std::string{};
+    if (getline(&buffer, &len, get()) != -1) {
       result = {std::string(buffer)};
       free(buffer);
     }
+    return result;
   }
-  pclose(fp);
-  return result;
+};
+
+std::optional<std::string> get_symbol_name(const void* call_adr) {
+  auto command = std::ostringstream{};
+  command << "addr2line -e " << self.exe << " -f " << call_adr;
+  auto output = pipe(command.str());
+  if (!output) {
+    return {};
+  }
+  return output.next_line();
 }
 
 }  // namespace typeart

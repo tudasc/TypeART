@@ -11,13 +11,11 @@
 //
 
 #include "TypeCheck.h"
-#include "Util.h"
 #include "runtime/RuntimeInterface.h"
 
 #include <atomic>
 #include <mpi.h>
 #include <sys/resource.h>
-#include <sys/time.h>
 
 int typeart_check_buffer(const typeart::MPICall* call);
 
@@ -90,13 +88,14 @@ void typeart_exit() {
 
 int typeart_check_buffer(const typeart::MPICall* call) {
   PRINT_INFOV(call, "%s at %p in function %s: checking %s-buffer %p of type \"%s\" against MPI type \"%s\"\n",
-              call->function_name, call->caller.addr, call->caller.name.c_str(), call->is_send ? "send" : "recv",
-              call->buffer.ptr, call->buffer.type_name, call->type.name);
+              call->function_name.c_str(), call->caller.addr, call->caller.name.c_str(),
+              call->is_send ? "send" : "recv", call->buffer.ptr, call->buffer.type_name.c_str(),
+              call->type.name.c_str());
   if (call->count <= 0) {
     ++mcounter.null_count;
     return 1;
   }
-  if (call->buffer.ptr == NULL) {
+  if (call->buffer.ptr == nullptr) {
     ++mcounter.null_buff;
     PRINT_ERRORV(call, "buffer %p is NULL\n", call->buffer.ptr);
     return -1;

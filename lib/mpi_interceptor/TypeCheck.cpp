@@ -16,9 +16,11 @@ namespace typeart {
 
 void printMPIError(const MPICall* call, const char* fnname, int mpierr) {
   int len;
-  char mpierrstr[MPI_MAX_ERROR_STRING];
-  MPI_Error_string(mpierr, mpierrstr, &len);
-  PRINT_ERRORV(call, "%s failed: %s", fnname, mpierrstr);
+  auto mpierrstr = std::string{};
+  mpierrstr.resize(MPI_MAX_ERROR_STRING);
+  MPI_Error_string(mpierr, &mpierrstr[0], &len);
+  mpierrstr.resize(strlen(mpierrstr.c_str()));
+  PRINT_ERRORV(call, "%s failed: %s", fnname, mpierrstr.c_str());
 }
 
 std::optional<Buffer> Buffer::create(const MPICall* call, const void* buffer) {
@@ -35,7 +37,7 @@ std::optional<Buffer> Buffer::create(const MPICall* call, const void* buffer) {
 
 std::optional<Buffer> Buffer::create(const MPICall* call, ptrdiff_t offset, const void* ptr, size_t count,
                                      int type_id) {
-  auto type_name = typeart_get_type_name(type_id);
+  const auto* type_name = typeart_get_type_name(type_id);
   typeart_struct_layout struct_layout;
   typeart_status status = typeart_resolve_type_id(type_id, &struct_layout);
   if (status == TYPEART_INVALID_ID) {
@@ -46,17 +48,17 @@ std::optional<Buffer> Buffer::create(const MPICall* call, ptrdiff_t offset, cons
     auto type_layout = std::vector<Buffer>{};
     type_layout.reserve(struct_layout.num_members);
     for (auto i = size_t{0}; i < struct_layout.num_members; ++i) {
-      auto buffer = Buffer::create(call, struct_layout.offsets[i], (char*)ptr + struct_layout.offsets[i],
-                                   struct_layout.count[i], struct_layout.member_types[i]);
+      auto buffer =
+          Buffer::create(call, static_cast<ptrdiff_t>(struct_layout.offsets[i]), (char*)ptr + struct_layout.offsets[i],
+                         struct_layout.count[i], struct_layout.member_types[i]);
       if (!buffer) {
         return {};
       }
       type_layout.push_back(*buffer);
     }
     return {{offset, ptr, count, type_id, type_name, {type_layout}}};
-  } else {
-    return {{offset, ptr, count, type_id, type_name, {}}};
   }
+  return {{offset, ptr, count, type_id, type_name, {}}};
 }
 
 bool Buffer::hasStructType() const {
@@ -65,7 +67,10 @@ bool Buffer::hasStructType() const {
 
 std::optional<MPICombiner> MPICombiner::create(const MPICall* call, MPI_Datatype type) {
   auto result = MPICombiner{};
-  int num_integers, num_addresses, num_datatypes, combiner;
+  int num_integers;
+  int num_addresses;
+  int num_datatypes;
+  int combiner;
   auto mpierr = MPI_Type_get_envelope(type, &num_integers, &num_addresses, &num_datatypes, &combiner);
   if (mpierr != MPI_SUCCESS) {
     printMPIError(call, "MPI_Type_get_envelope", mpierr);
@@ -75,9 +80,9 @@ std::optional<MPICombiner> MPICombiner::create(const MPICall* call, MPI_Datatype
   if (combiner != MPI_COMBINER_NAMED) {
     result.integer_args.resize(num_integers);
     result.address_args.resize(num_addresses);
-    MPI_Datatype type_args[num_datatypes];
-    mpierr = MPI_Type_get_contents(type, num_integers, num_addresses, num_datatypes, result.integer_args.data(),
-                                   result.address_args.data(), type_args);
+    auto type_args = std::vector<MPI_Datatype>(num_datatypes);
+    mpierr         = MPI_Type_get_contents(type, num_integers, num_addresses, num_datatypes, result.integer_args.data(),
+                                   result.address_args.data(), type_args.data());
     if (mpierr != MPI_SUCCESS) {
       printMPIError(call, "MPI_Type_get_contents", mpierr);
       return {};
@@ -102,7 +107,9 @@ std::optional<MPIType> MPIType::create(const MPICall* call, MPI_Datatype type) {
   const int type_id = type_id_for(type);
   auto result       = MPIType{type, type_id, "", *combiner};
   int len;
-  int mpierr = MPI_Type_get_name(type, result.name, &len);
+  result.name.resize(MPI_MAX_OBJECT_NAME);
+  int mpierr = MPI_Type_get_name(type, &result.name[0], &len);
+  result.name.resize(strlen(result.name.c_str()));
   if (mpierr != MPI_SUCCESS) {
     printMPIError(call, "MPI_Type_get_name", mpierr);
     return {};
@@ -114,9 +121,8 @@ std::optional<Caller> Caller::create(const void* caller_addr) {
   auto name = get_symbol_name(caller_addr);
   if (!name) {
     return {};
-  } else {
-    return {{caller_addr, *name}};
   }
+  return {{caller_addr, *name}};
 }
 
 std::atomic_size_t MPICall::next_trace_id = {0};
@@ -158,11 +164,10 @@ int MPICall::check_type_and_count(const Buffer* buffer) const {
     auto type_layout = buffer->type_layout;
     if (type_layout && (*type_layout)[0].offset == 0) {
       PRINT_INFOV(this, "found struct member at offset 0 with type \"%s\", checking with this type...\n",
-                  (*type_layout)[0].type_name);
+                  (*type_layout)[0].type_name.c_str());
       return check_type_and_count(&(*type_layout)[0]);
-    } else {
-      return -1;
     }
+    return -1;
   }
   if (count * mpi_type_count > buffer->count) {
     PRINT_ERRORV(this, "buffer too small (%ld elements, %d required)\n", buffer->count, count * mpi_type_count);
@@ -195,8 +200,8 @@ int MPICall::check_type(const Buffer* buffer, const MPIType* type, int* mpi_coun
 
 int MPICall::check_combiner_named(const Buffer* buffer, const MPIType* type, int* mpi_count) const {
   if (buffer->type_id != type->type_id && !(buffer->type_id == TYPEART_PPC_FP128 && type->type_id == TYPEART_FP128)) {
-    PRINT_ERRORV(this, "expected a type matching MPI type \"%s\", but found type \"%s\"\n", type->name,
-                 buffer->type_name);
+    PRINT_ERRORV(this, "expected a type matching MPI type \"%s\", but found type \"%s\"\n", type->name.c_str(),
+                 buffer->type_name.c_str());
     return -1;
   }
   *mpi_count = 1;
@@ -210,8 +215,8 @@ int MPICall::check_combiner_contiguous(const Buffer* buffer, const MPIType* type
 }
 
 int MPICall::check_combiner_vector(const Buffer* buffer, const MPIType* type, int* mpi_count) const {
-  auto result        = check_type(buffer, &type->combiner.type_args[0], mpi_count);
-  auto& integer_args = type->combiner.integer_args;
+  auto result              = check_type(buffer, &type->combiner.type_args[0], mpi_count);
+  const auto& integer_args = type->combiner.integer_args;
   if (integer_args[2] < 0) {
     PRINT_ERROR(this, "negative strides for MPI_Type_vector are currently not supported\n");
     return -1;
@@ -222,9 +227,9 @@ int MPICall::check_combiner_vector(const Buffer* buffer, const MPIType* type, in
 }
 
 int MPICall::check_combiner_indexed_block(const Buffer* buffer, const MPIType* type, int* mpi_count) const {
-  auto& integer_args    = type->combiner.integer_args;
-  auto result           = check_type(buffer, &type->combiner.type_args[0], mpi_count);
-  auto max_displacement = 0;
+  const auto& integer_args = type->combiner.integer_args;
+  auto result              = check_type(buffer, &type->combiner.type_args[0], mpi_count);
+  auto max_displacement    = 0;
   for (size_t i = 2; i < integer_args.size(); ++i) {
     if (integer_args[i] > max_displacement) {
       max_displacement = integer_args[i];
@@ -240,22 +245,22 @@ int MPICall::check_combiner_indexed_block(const Buffer* buffer, const MPIType* t
 }
 
 int MPICall::check_combiner_struct(const Buffer* buffer, const MPIType* type, int* mpi_count) const {
-  auto& integer_args = type->combiner.integer_args;
+  const auto& integer_args = type->combiner.integer_args;
   if (!buffer->hasStructType()) {
-    PRINT_ERRORV(this, "expected a struct type, but found type \"%s\"\n", buffer->type_name);
+    PRINT_ERRORV(this, "expected a struct type, but found type \"%s\"\n", buffer->type_name.c_str());
     return -1;
   }
-  auto& type_layout = *(buffer->type_layout);
+  const auto& type_layout = *(buffer->type_layout);
   if (type_layout.size() != integer_args[0]) {
-    PRINT_ERRORV(this, "expected %d members, but the type \"%s\" has %ld members\n", integer_args[0], buffer->type_name,
-                 type_layout.size());
+    PRINT_ERRORV(this, "expected %d members, but the type \"%s\" has %ld members\n", integer_args[0],
+                 buffer->type_name.c_str(), type_layout.size());
     return -1;
   }
   int result = 0;
   for (size_t i = 0; i < type_layout.size(); ++i) {
     if (type_layout[i].offset != integer_args[i]) {
       PRINT_ERRORV(this, "expected a byte offset of %ld for member %ld, but the type \"%s\" has an offset of %ld\n",
-                   type->combiner.address_args[i], i + 1, buffer->type_name, type_layout[i].offset);
+                   type->combiner.address_args[i], i + 1, buffer->type_name.c_str(), type_layout[i].offset);
       result = -1;
     }
   }
@@ -268,7 +273,7 @@ int MPICall::check_combiner_struct(const Buffer* buffer, const MPIType* type, in
     if (type_layout[i].count * member_element_count != integer_args[i + 1]) {
       result = -1;
       PRINT_ERRORV(this, "expected element count of %d for member %ld, but the type \"%s\" has a count of %ld\n",
-                   integer_args[i + 1], i + 1, buffer->type_name, type_layout[i].count * member_element_count);
+                   integer_args[i + 1], i + 1, buffer->type_name.c_str(), type_layout[i].count * member_element_count);
     }
   }
   *mpi_count = 1;
@@ -277,7 +282,7 @@ int MPICall::check_combiner_struct(const Buffer* buffer, const MPIType* type, in
 
 int MPICall::check_combiner_subarray(const Buffer* buffer, const MPIType* type, int* mpi_count) const {
   auto result              = check_type(buffer, &type->combiner.type_args[0], mpi_count);
-  auto& integer_args       = type->combiner.integer_args;
+  const auto& integer_args = type->combiner.integer_args;
   auto array_element_count = 1;
   for (auto i = 0; i < integer_args[0]; ++i) {
     array_element_count *= integer_args[i + 1];
