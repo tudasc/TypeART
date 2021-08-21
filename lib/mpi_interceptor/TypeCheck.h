@@ -25,12 +25,12 @@
 namespace typeart {
 
 #define PRINT_INFOV(call, fmt, ...) \
-  fprintf(stderr, "R[%d][Info]ID[%ld] " fmt, (call)->rank, (call)->trace_id, __VA_ARGS__)
+  fprintf(stderr, "R[%d][Info]ID[%ld] " fmt, (call).rank, (call).trace_id, __VA_ARGS__)
 
 #define PRINT_ERRORV(call, fmt, ...) \
-  fprintf(stderr, "R[%d][Error]ID[%ld] " fmt, (call)->rank, (call)->trace_id, __VA_ARGS__)
+  fprintf(stderr, "R[%d][Error]ID[%ld] " fmt, (call).rank, (call).trace_id, __VA_ARGS__)
 
-#define PRINT_ERROR(call, fmt) fprintf(stderr, "R[%d][Error]ID[%ld] " fmt, (call)->rank, (call)->trace_id)
+#define PRINT_ERROR(call, fmt) fprintf(stderr, "R[%d][Error]ID[%ld] " fmt, (call).rank, (call).trace_id)
 
 struct MPICall;
 struct MPIType;
@@ -44,8 +44,8 @@ struct Buffer {
   std::optional<std::vector<Buffer>> type_layout;
 
  public:
-  static std::optional<Buffer> create(const MPICall* call, const void* buffer);
-  static std::optional<Buffer> create(const MPICall* call, ptrdiff_t offset, const void* ptr, size_t count,
+  static std::optional<Buffer> create(const MPICall& call, const void* buffer);
+  static std::optional<Buffer> create(const MPICall& call, ptrdiff_t offset, const void* ptr, size_t count,
                                       int type_id);
 
   [[nodiscard]] bool hasStructType() const;
@@ -58,7 +58,7 @@ struct MPICombiner {
   std::vector<MPIType> type_args;
 
  public:
-  static std::optional<MPICombiner> create(const MPICall* call, MPI_Datatype type);
+  static std::optional<MPICombiner> create(const MPICall& call, MPI_Datatype type);
 };
 
 struct MPIType {
@@ -68,7 +68,7 @@ struct MPIType {
   MPICombiner combiner;
 
  public:
-  static std::optional<MPIType> create(const MPICall* call, MPI_Datatype type);
+  static std::optional<MPIType> create(const MPICall& call, MPI_Datatype type);
 };
 
 struct Caller {
@@ -108,14 +108,14 @@ struct MPICall {
     CheckResult& multiply_count_by(int rhs);
   };
 
-  int check_type_and_count(const Buffer* buffer) const;
-  CheckResult check_type(const Buffer* buffer, const MPIType* type) const;
-  CheckResult check_combiner_named(const Buffer* buffer, const MPIType* type) const;
-  CheckResult check_combiner_contiguous(const Buffer* buffer, const MPIType* type) const;
-  CheckResult check_combiner_vector(const Buffer* buffer, const MPIType* type) const;
-  CheckResult check_combiner_indexed_block(const Buffer* buffer, const MPIType* type) const;
-  CheckResult check_combiner_struct(const Buffer* buffer, const MPIType* type) const;
-  CheckResult check_combiner_subarray(const Buffer* buffer, const MPIType* type) const;
+  int check_type_and_count(const Buffer& buffer) const;
+  CheckResult check_type(const Buffer& buffer, const MPIType& type) const;
+  CheckResult check_combiner_named(const Buffer& buffer, const MPIType& type) const;
+  CheckResult check_combiner_contiguous(const Buffer& buffer, const MPIType& type) const;
+  CheckResult check_combiner_vector(const Buffer& buffer, const MPIType& type) const;
+  CheckResult check_combiner_indexed_block(const Buffer& buffer, const MPIType& type) const;
+  CheckResult check_combiner_struct(const Buffer& buffer, const MPIType& type) const;
+  CheckResult check_combiner_subarray(const Buffer& buffer, const MPIType& type) const;
 
   static std::atomic_size_t next_trace_id;
 };

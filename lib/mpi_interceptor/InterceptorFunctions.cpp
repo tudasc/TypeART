@@ -17,7 +17,7 @@
 #include <mpi.h>
 #include <sys/resource.h>
 
-int typeart_check_buffer(const typeart::MPICall* call);
+int typeart_check_buffer(const typeart::MPICall& call);
 
 struct CallCounter {
   std::atomic_size_t send        = {0};
@@ -46,7 +46,7 @@ void typeart_check_send(const char* name, const void* called_from, const void* s
     ++mcounter.error;
     return;
   }
-  typeart_check_buffer(&*call);
+  typeart_check_buffer(*call);
 }
 
 void typeart_check_recv(const char* name, const void* called_from, void* recvbuf, int count, MPI_Datatype dtype) {
@@ -56,7 +56,7 @@ void typeart_check_recv(const char* name, const void* called_from, void* recvbuf
     ++mcounter.error;
     return;
   }
-  typeart_check_buffer(&*call);
+  typeart_check_buffer(*call);
 }
 
 void typeart_check_send_and_recv(const char* name, const void* called_from, const void* sendbuf, int sendcount,
@@ -86,21 +86,21 @@ void typeart_exit() {
 }
 }
 
-int typeart_check_buffer(const typeart::MPICall* call) {
+int typeart_check_buffer(const typeart::MPICall& call) {
   PRINT_INFOV(call, "%s[%p] at %s:%s: %s: checking %s-buffer %p of type \"%s\" against MPI type \"%s\"\n",
-              call->caller.function.c_str(), call->caller.addr, call->caller.file.c_str(), call->caller.line.c_str(),
-              call->function_name.c_str(), call->is_send ? "send" : "recv", call->buffer.ptr,
-              call->buffer.type_name.c_str(), call->type.name.c_str());
-  if (call->count <= 0) {
+              call.caller.function.c_str(), call.caller.addr, call.caller.file.c_str(), call.caller.line.c_str(),
+              call.function_name.c_str(), call.is_send ? "send" : "recv", call.buffer.ptr,
+              call.buffer.type_name.c_str(), call.type.name.c_str());
+  if (call.count <= 0) {
     ++mcounter.null_count;
     return 1;
   }
-  if (call->buffer.ptr == nullptr) {
+  if (call.buffer.ptr == nullptr) {
     ++mcounter.null_buff;
-    PRINT_ERRORV(call, "buffer %p is NULL\n", call->buffer.ptr);
+    PRINT_ERRORV(call, "buffer %p is NULL\n", call.buffer.ptr);
     return -1;
   }
-  if (call->check_type_and_count() != 0) {
+  if (call.check_type_and_count() != 0) {
     ++mcounter.type_error;
     return -1;
   }
