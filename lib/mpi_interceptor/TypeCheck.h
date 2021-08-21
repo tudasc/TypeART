@@ -98,14 +98,24 @@ struct MPICall {
   [[nodiscard]] int check_type_and_count() const;
 
  private:
+  struct [[nodiscard]] CheckResult {
+    int result;
+    int count;
+
+    static CheckResult error();
+    static CheckResult with_count(int count);
+
+    CheckResult& multiply_count_by(int rhs);
+  };
+
   int check_type_and_count(const Buffer* buffer) const;
-  int check_type(const Buffer* buffer, const MPIType* type, int* mpi_count) const;
-  int check_combiner_named(const Buffer* buffer, const MPIType* type, int* mpi_count) const;
-  int check_combiner_contiguous(const Buffer* buffer, const MPIType* type, int* mpi_count) const;
-  int check_combiner_vector(const Buffer* buffer, const MPIType* type, int* mpi_count) const;
-  int check_combiner_indexed_block(const Buffer* buffer, const MPIType* type, int* mpi_count) const;
-  int check_combiner_struct(const Buffer* buffer, const MPIType* type, int* mpi_count) const;
-  int check_combiner_subarray(const Buffer* buffer, const MPIType* type, int* mpi_count) const;
+  CheckResult check_type(const Buffer* buffer, const MPIType* type) const;
+  CheckResult check_combiner_named(const Buffer* buffer, const MPIType* type) const;
+  CheckResult check_combiner_contiguous(const Buffer* buffer, const MPIType* type) const;
+  CheckResult check_combiner_vector(const Buffer* buffer, const MPIType* type) const;
+  CheckResult check_combiner_indexed_block(const Buffer* buffer, const MPIType* type) const;
+  CheckResult check_combiner_struct(const Buffer* buffer, const MPIType* type) const;
+  CheckResult check_combiner_subarray(const Buffer* buffer, const MPIType* type) const;
 
   static std::atomic_size_t next_trace_id;
 };

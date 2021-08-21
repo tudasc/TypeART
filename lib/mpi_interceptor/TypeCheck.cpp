@@ -217,9 +217,22 @@ int MPICall::check_type_and_count() const {
   return check_type_and_count(&buffer);
 }
 
+MPICall::CheckResult MPICall::CheckResult::error() {
+  return {-1, -1};
+}
+
+MPICall::CheckResult MPICall::CheckResult::with_count(int count) {
+  return {0, count};
+}
+
+MPICall::CheckResult& MPICall::CheckResult::multiply_count_by(int rhs) {
+  count *= rhs;
+  return *this;
+}
+
 int MPICall::check_type_and_count(const Buffer* buffer) const {
-  int mpi_type_count;
-  if (check_type(buffer, &type, &mpi_type_count) != 0) {
+  auto result = check_type(buffer, &type);
+  if (result.result != 0) {
     // If the type is a struct type and has a member with offset 0,
     // recursively check against the type of the first member.
     auto type_layout = buffer->type_layout;
@@ -230,66 +243,61 @@ int MPICall::check_type_and_count(const Buffer* buffer) const {
     }
     return -1;
   }
-  if (count * mpi_type_count > buffer->count) {
-    PRINT_ERRORV(this, "buffer too small (%ld elements, %d required)\n", buffer->count, count * mpi_type_count);
+  if (count * result.count > buffer->count) {
+    PRINT_ERRORV(this, "buffer too small (%ld elements, %d required)\n", buffer->count, count * result.count);
     return -1;
   }
   return 0;
 }
 
-int MPICall::check_type(const Buffer* buffer, const MPIType* type, int* mpi_count) const {
+MPICall::CheckResult MPICall::check_type(const Buffer* buffer, const MPIType* type) const {
   switch (type->combiner.id) {
     case MPI_COMBINER_NAMED:
-      return check_combiner_named(buffer, type, mpi_count);
+      return check_combiner_named(buffer, type);
     case MPI_COMBINER_DUP:
-      return check_type(buffer, &type->combiner.type_args[0], mpi_count);
+      return check_type(buffer, &type->combiner.type_args[0]);
     case MPI_COMBINER_CONTIGUOUS:
-      return check_combiner_contiguous(buffer, type, mpi_count);
+      return check_combiner_contiguous(buffer, type);
     case MPI_COMBINER_VECTOR:
-      return check_combiner_vector(buffer, type, mpi_count);
+      return check_combiner_vector(buffer, type);
     case MPI_COMBINER_INDEXED_BLOCK:
-      return check_combiner_indexed_block(buffer, type, mpi_count);
+      return check_combiner_indexed_block(buffer, type);
     case MPI_COMBINER_STRUCT:
-      return check_combiner_struct(buffer, type, mpi_count);
+      return check_combiner_struct(buffer, type);
     case MPI_COMBINER_SUBARRAY:
-      return check_combiner_subarray(buffer, type, mpi_count);
+      return check_combiner_subarray(buffer, type);
     default:
       PRINT_ERRORV(this, "the MPI type combiner %s is currently not supported\n", combiner_name_for(type->combiner.id));
   }
-  return -1;
+  return CheckResult::error();
 }
 
-int MPICall::check_combiner_named(const Buffer* buffer, const MPIType* type, int* mpi_count) const {
+MPICall::CheckResult MPICall::check_combiner_named(const Buffer* buffer, const MPIType* type) const {
   if (buffer->type_id != type->type_id && !(buffer->type_id == TYPEART_PPC_FP128 && type->type_id == TYPEART_FP128)) {
     PRINT_ERRORV(this, "expected a type matching MPI type \"%s\", but found type \"%s\"\n", type->name.c_str(),
                  buffer->type_name.c_str());
-    return -1;
+    return CheckResult::error();
   }
-  *mpi_count = 1;
-  return 0;
+  return CheckResult::with_count(1);
 }
 
-int MPICall::check_combiner_contiguous(const Buffer* buffer, const MPIType* type, int* mpi_count) const {
-  auto result = check_type(buffer, &type->combiner.type_args[0], mpi_count);
-  *mpi_count *= type->combiner.integer_args[0];
-  return result;
+MPICall::CheckResult MPICall::check_combiner_contiguous(const Buffer* buffer, const MPIType* type) const {
+  return check_type(buffer, &type->combiner.type_args[0]).multiply_count_by(type->combiner.integer_args[0]);
 }
 
-int MPICall::check_combiner_vector(const Buffer* buffer, const MPIType* type, int* mpi_count) const {
-  auto result              = check_type(buffer, &type->combiner.type_args[0], mpi_count);
+MPICall::CheckResult MPICall::check_combiner_vector(const Buffer* buffer, const MPIType* type) const {
   const auto& integer_args = type->combiner.integer_args;
   if (integer_args[2] < 0) {
     PRINT_ERROR(this, "negative strides for MPI_Type_vector are currently not supported\n");
-    return -1;
+    return {-1, -1};
   }
-  // (count - 1) * stride + blocklength
-  *mpi_count *= (integer_args[0] - 1) * integer_args[2] + integer_args[1];
-  return result;
+  return check_type(buffer, &type->combiner.type_args[0])
+      //                      (count - 1)      *     stride      +   blocklength
+      .multiply_count_by((integer_args[0] - 1) * integer_args[2] + integer_args[1]);
 }
 
-int MPICall::check_combiner_indexed_block(const Buffer* buffer, const MPIType* type, int* mpi_count) const {
+MPICall::CheckResult MPICall::check_combiner_indexed_block(const Buffer* buffer, const MPIType* type) const {
   const auto& integer_args = type->combiner.integer_args;
-  auto result              = check_type(buffer, &type->combiner.type_args[0], mpi_count);
   auto max_displacement    = 0;
   for (size_t i = 2; i < integer_args.size(); ++i) {
     if (integer_args[i] > max_displacement) {
@@ -297,59 +305,55 @@ int MPICall::check_combiner_indexed_block(const Buffer* buffer, const MPIType* t
     }
     if (integer_args[i] < 0) {
       PRINT_ERROR(this, "negative displacements for MPI_Type_create_indexed_block are currently not supported\n");
-      return -1;
+      return {-1, -1};
     }
   }
-  // max(array_of_displacements) + blocklength
-  *mpi_count *= max_displacement + integer_args[1];
-  return result;
+  //                                                                    max(array_of_displacements) + blocklength
+  return check_type(buffer, &type->combiner.type_args[0]).multiply_count_by(max_displacement + integer_args[1]);
 }
 
-int MPICall::check_combiner_struct(const Buffer* buffer, const MPIType* type, int* mpi_count) const {
+MPICall::CheckResult MPICall::check_combiner_struct(const Buffer* buffer, const MPIType* type) const {
   const auto& integer_args = type->combiner.integer_args;
   if (!buffer->hasStructType()) {
     PRINT_ERRORV(this, "expected a struct type, but found type \"%s\"\n", buffer->type_name.c_str());
-    return -1;
+    return CheckResult::error();
   }
   const auto& type_layout = *(buffer->type_layout);
   if (type_layout.size() != integer_args[0]) {
     PRINT_ERRORV(this, "expected %d members, but the type \"%s\" has %ld members\n", integer_args[0],
                  buffer->type_name.c_str(), type_layout.size());
-    return -1;
+    return CheckResult::error();
   }
-  int result = 0;
+  auto result = CheckResult::with_count(1);
   for (size_t i = 0; i < type_layout.size(); ++i) {
-    if (type_layout[i].offset != integer_args[i]) {
+    if (type_layout[i].offset != type->combiner.address_args[i]) {
       PRINT_ERRORV(this, "expected a byte offset of %ld for member %ld, but the type \"%s\" has an offset of %ld\n",
                    type->combiner.address_args[i], i + 1, buffer->type_name.c_str(), type_layout[i].offset);
-      result = -1;
+      result = CheckResult::error();
     }
   }
   for (size_t i = 0; i < type_layout.size(); ++i) {
-    int member_element_count;
-    if (check_type(&type_layout[i], &type->combiner.type_args[i], &member_element_count) != 0) {
-      result = -1;
+    auto check_result = check_type(&type_layout[i], &type->combiner.type_args[i]);
+    if (check_result.result != 0) {
       PRINT_ERRORV(this, "the typechek for member %ld failed\n", i + 1);
+      result = CheckResult::error();
     }
-    if (type_layout[i].count * member_element_count != integer_args[i + 1]) {
-      result = -1;
+    if (type_layout[i].count * check_result.count != integer_args[i + 1]) {
       PRINT_ERRORV(this, "expected element count of %d for member %ld, but the type \"%s\" has a count of %ld\n",
-                   integer_args[i + 1], i + 1, buffer->type_name.c_str(), type_layout[i].count * member_element_count);
+                   integer_args[i + 1], i + 1, buffer->type_name.c_str(), type_layout[i].count * check_result.count);
+      result = CheckResult::error();
     }
   }
-  *mpi_count = 1;
   return result;
 }
 
-int MPICall::check_combiner_subarray(const Buffer* buffer, const MPIType* type, int* mpi_count) const {
-  auto result              = check_type(buffer, &type->combiner.type_args[0], mpi_count);
+MPICall::CheckResult MPICall::check_combiner_subarray(const Buffer* buffer, const MPIType* type) const {
   const auto& integer_args = type->combiner.integer_args;
   auto array_element_count = 1;
   for (auto i = 0; i < integer_args[0]; ++i) {
     array_element_count *= integer_args[i + 1];
   }
-  *mpi_count *= array_element_count;
-  return result;
+  return check_type(buffer, &type->combiner.type_args[0]).multiply_count_by(array_element_count);
 }
 
 }  // namespace typeart
