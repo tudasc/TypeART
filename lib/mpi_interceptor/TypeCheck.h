@@ -81,15 +81,19 @@ struct Caller {
   static std::optional<Caller> create(const void* caller_addr);
 };
 
-struct MPICall {
-  size_t trace_id;
-  std::string function_name;
-  Caller caller;
-  int is_send;
-  int rank;
+struct MPICallArguments {
   Buffer buffer;
   int count;
   MPIType type;
+};
+
+struct MPICall {
+  size_t trace_id;
+  Caller caller;
+  std::string function_name;
+  int is_send;
+  int rank;
+  MPICallArguments args;
 
  public:
   static std::optional<MPICall> create(const char* function_name, const void* called_from, const void* buffer,
@@ -108,7 +112,7 @@ struct MPICall {
     CheckResult& multiply_count_by(int rhs);
   };
 
-  int check_type_and_count(const Buffer& buffer) const;
+  [[nodiscard]] int check_type_and_count(const Buffer& buffer) const;
   CheckResult check_type(const Buffer& buffer, const MPIType& type) const;
   CheckResult check_combiner_named(const Buffer& buffer, const MPIType& type) const;
   CheckResult check_combiner_contiguous(const Buffer& buffer, const MPIType& type) const;

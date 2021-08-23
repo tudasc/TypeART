@@ -95,11 +95,11 @@ std::optional<MPICombiner> MPICombiner::create(const MPICall& call, MPI_Datatype
     }
     result.type_args.reserve(num_datatypes);
     for (auto i = size_t{0}; i < num_datatypes; ++i) {
-      auto type = MPIType::create(call, type_args[i]);
-      if (!type) {
+      auto type_arg = MPIType::create(call, type_args[i]);
+      if (!type_arg) {
         return {};
       }
-      result.type_args.push_back(*type);
+      result.type_args.push_back(*type_arg);
     }
   }
   return {result};
@@ -192,7 +192,7 @@ std::optional<MPICall> MPICall::create(const char* function_name, const void* ca
                                        int is_const, int count, MPI_Datatype type) {
   auto rank = 0;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  auto result = MPICall{next_trace_id++, function_name, (Caller){}, is_const, rank, (Buffer){}, count, (MPIType){}};
+  auto result = MPICall{next_trace_id++, (Caller){}, function_name, is_const, rank, {(Buffer){}, count, (MPIType){}}};
   auto caller = Caller::create(called_from);
   if (!caller) {
     fprintf(stderr, "[Info, r%d, id%ld] couldn't resolve the symbol name for address %p", result.rank, result.trace_id,
@@ -207,14 +207,14 @@ std::optional<MPICall> MPICall::create(const char* function_name, const void* ca
   if (!mpi_type) {
     return {};
   }
-  result.caller = *caller;
-  result.buffer = *buffer;
-  result.type   = *mpi_type;
+  result.caller      = *caller;
+  result.args.buffer = *buffer;
+  result.args.type   = *mpi_type;
   return {result};
 }
 
 int MPICall::check_type_and_count() const {
-  return check_type_and_count(buffer);
+  return check_type_and_count(args.buffer);
 }
 
 MPICall::CheckResult MPICall::CheckResult::error() {
@@ -231,7 +231,7 @@ MPICall::CheckResult& MPICall::CheckResult::multiply_count_by(int rhs) {
 }
 
 int MPICall::check_type_and_count(const Buffer& buffer) const {
-  auto result = check_type(buffer, type);
+  auto result = check_type(buffer, args.type);
   if (result.result != 0) {
     // If the type is a struct type and has a member with offset 0,
     // recursively check against the type of the first member.
@@ -243,8 +243,8 @@ int MPICall::check_type_and_count(const Buffer& buffer) const {
     }
     return -1;
   }
-  if (count * result.count > buffer.count) {
-    PRINT_ERRORV(*this, "buffer too small (%ld elements, %d required)\n", buffer.count, count * result.count);
+  if (static_cast<size_t>(args.count) * result.count > buffer.count) {
+    PRINT_ERRORV(*this, "buffer too small (%ld elements, %d required)\n", buffer.count, args.count * result.count);
     return -1;
   }
   return 0;
