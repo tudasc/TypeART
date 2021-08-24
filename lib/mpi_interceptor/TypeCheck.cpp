@@ -400,11 +400,11 @@ MPICall::CheckResult MPICall::check_combiner_struct(const Buffer& buffer, const 
       PRINT_ERRORV(*this, "the typechek for member %ld failed\n", i + 1);
       result = CheckResult::error();
     }
-    if (type_layout[i].count * check_result.count != integer_args[i + 1]) {
     // ... the count of elements in the buffer of the member matches the count
     // required to represent `blocklength` elements of the MPI type.
-      PRINT_ERRORV(*this, "expected element count of %d for member %ld, but the type \"%s\" has a count of %ld\n",
-                   integer_args[i + 1], i + 1, buffer.type_name.c_str(), type_layout[i].count * check_result.count);
+    if (static_cast<size_t>(integer_args[i + 1]) * check_result.count != type_layout[i].count) {
+      PRINT_ERRORV(*this, "expected element count of %ld for member %ld, but the type \"%s\" has a count of %d\n",
+                   type_layout[i].count, i + 1, buffer.type_name.c_str(), integer_args[i + 1] * check_result.count);
       result = CheckResult::error();
     }
   }
