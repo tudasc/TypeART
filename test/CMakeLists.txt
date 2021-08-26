@@ -89,6 +89,11 @@ if(TEST_CONFIGURE_IDE)
                         ${PROJECT_SOURCE_DIR}/lib/runtime
                         ${PROJECT_SOURCE_DIR}
     )
+
+    target_link_libraries(${target} PRIVATE
+      $<$<BOOL:${MPI_C_FOUND}>:MPI::MPI_C>
+      $<$<BOOL:${OpenMP_FOUND}>:OpenMP::OpenMP_C>
+    )
   endfunction()
 
   file(GLOB_RECURSE TYPEART_CXX_TESTS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)

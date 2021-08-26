@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TYPEART_TEST_MPI_INTERCEPTOR_UTIL_H
+#define TYPEART_TEST_MPI_INTERCEPTOR_UTIL_H
 
 #include <mpi.h>
 
@@ -9,7 +10,7 @@ struct padded_array {
   double padding;
 };
 
-void run_test(void* data, int count, MPI_Datatype type) {
+inline void run_test(void* data, int count, MPI_Datatype type) {
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   if (rank == 0) {
@@ -20,6 +21,8 @@ void run_test(void* data, int count, MPI_Datatype type) {
 }
 
 template <size_t N>
-void run_test(padded_array<N>& data, int count, MPI_Datatype type) {
+inline void run_test(padded_array<N>& data, int count, MPI_Datatype type) {
   run_test(data.arr, count, type);
 }
+
+#endif  // TYPEART_TEST_MPI_INTERCEPTOR_UTIL_H

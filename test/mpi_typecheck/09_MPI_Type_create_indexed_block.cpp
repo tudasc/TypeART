@@ -1,3 +1,4 @@
+
 // REQUIRES: mpi
 // UNSUPPORTED: asan
 // clang-format off
@@ -16,37 +17,32 @@ int main(int argc, char** argv) {
   // CHECK: [Trace] TypeART Runtime Trace
 
   MPI_Datatype mpi_double_vec;
-  MPI_Type_contiguous(3, MPI_DOUBLE, &mpi_double_vec);
+  MPI_Type_create_indexed_block(3, 2, (int[3]){0, 3, 1}, MPI_DOUBLE, &mpi_double_vec);
+  MPI_Type_set_name(mpi_double_vec, "test_type");
   MPI_Type_commit(&mpi_double_vec);
 
-  MPI_Datatype mpi_double_arr;
-  MPI_Type_contiguous(3, mpi_double_vec, &mpi_double_arr);
-  MPI_Type_set_name(mpi_double_arr, "test_type");
-  MPI_Type_commit(&mpi_double_arr);
-
-  double f[9];
-  padded_array<8> too_small;
+  double f[5];
+  padded_array<4> too_small;
 
   // clang-format off
   // RANK0: R[0][Info]ID[0] run_test(void*, int, {{.*}}[0x{{.*}}] at {{(/.*)*/.*\..*}}:{{[0-9]+}}: MPI_Send: checking send-buffer 0x{{.*}} of type "double" against MPI type "test_type"
   // RANK1: R[1][Info]ID[0] run_test(void*, int, {{.*}}[0x{{.*}}] at {{(/.*)*/.*\..*}}:{{[0-9]+}}: MPI_Recv: checking recv-buffer 0x{{.*}} of type "double" against MPI type "test_type"
   // CHECK-NOT: R[{{0|1}}][Error]{{.*}}
   // clang-format on
-  run_test(f, 1, mpi_double_arr);
+  run_test(f, 1, mpi_double_vec);
 
   // clang-format off
   // RANK0: R[0][Info]ID[1] run_test(void*, int, {{.*}}[0x{{.*}}] at {{(/.*)*/.*\..*}}:{{[0-9]+}}: MPI_Send: checking send-buffer 0x{{.*}} of type "double" against MPI type "test_type"
-  // RANK0: R[0][Error]ID[1] buffer too small (8 elements, 9 required)
+  // RANK0: R[0][Error]ID[1] buffer too small (4 elements, 5 required)
   // RANK1: R[1][Info]ID[1] run_test(void*, int, {{.*}}[0x{{.*}}] at {{(/.*)*/.*\..*}}:{{[0-9]+}}: MPI_Recv: checking recv-buffer 0x{{.*}} of type "double" against MPI type "test_type"
-  // RANK1: R[1][Error]ID[1] buffer too small (8 elements, 9 required)
+  // RANK1: R[1][Error]ID[1] buffer too small (4 elements, 5 required)
   // CHECK-NOT: R[{{0|1}}][Error]{{.*}}
   // clang-format on
-  run_test(too_small, 1, mpi_double_arr);
+  run_test(too_small, 1, mpi_double_vec);
 
   // RANK0: R[0][Info] CCounter { Send: 2 Recv: 0 Send_Recv: 0 Unsupported: 0 MAX RSS[KBytes]: {{[0-9]+}} }
   // RANK1: R[1][Info] CCounter { Send: 0 Recv: 2 Send_Recv: 0 Unsupported: 0 MAX RSS[KBytes]: {{[0-9]+}} }
   // CHECK: R[{{0|1}}][Info] MCounter { Error: 0 Null_Buf: 0 Null_Count: 0 Type_Error: 1 }
-  MPI_Type_free(&mpi_double_arr);
   MPI_Type_free(&mpi_double_vec);
   MPI_Finalize();
   return 0;

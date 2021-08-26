@@ -15,6 +15,7 @@
 #include <cxxabi.h>
 #include <filesystem>
 #include <memory>
+#include <sstream>
 
 namespace fs = std::filesystem;
 
@@ -30,6 +31,9 @@ void printMPIError(const MPICall& call, const char* fnname, int mpierr) {
 }
 
 std::optional<Buffer> Buffer::create(const MPICall& call, const void* buffer) {
+  if (buffer == nullptr) {
+    return {Buffer::create(call, 0, nullptr, 0, TYPEART_INVALID_ID)};
+  }
   int type_id;
   size_t count          = 0;
   auto typeart_status_v = typeart_get_type(buffer, &type_id, &count);
@@ -43,6 +47,9 @@ std::optional<Buffer> Buffer::create(const MPICall& call, const void* buffer) {
 
 std::optional<Buffer> Buffer::create(const MPICall& call, ptrdiff_t offset, const void* ptr, size_t count,
                                      int type_id) {
+  if (ptr == nullptr) {
+    return {{0, nullptr, 0, TYPEART_INVALID_ID, "", {}}};
+  }
   const auto* type_name = typeart_get_type_name(type_id);
   typeart_struct_layout struct_layout;
   typeart_status status = typeart_resolve_type_id(type_id, &struct_layout);
@@ -156,6 +163,13 @@ struct pipe : public unique_file {
 std::optional<std::string> demangle(const std::string& symbol_name) {
   auto status  = -1;
   auto* buffer = abi::__cxa_demangle(symbol_name.c_str(), nullptr, nullptr, &status);
+  // If the status is
+  //   "-2: mangled_name is not a valid name under the C++ ABI mangling rules"
+  //   Source: https://gcc.gnu.org/onlinedocs/libstdc++/libstdc++-html-USERS-4.3/a01696.html
+  // we assume that the mangled string is a C symbol and return it as-is.
+  if (status == -2) {
+    return symbol_name;
+  }
   if (status != 0) {
     return {};
   }
@@ -195,7 +209,7 @@ std::optional<MPICall> MPICall::create(const char* function_name, const void* ca
   auto result = MPICall{next_trace_id++, (Caller){}, function_name, is_const, rank, {(Buffer){}, count, (MPIType){}}};
   auto caller = Caller::create(called_from);
   if (!caller) {
-    fprintf(stderr, "[Info, r%d, id%ld] couldn't resolve the symbol name for address %p", result.rank, result.trace_id,
+    fprintf(stderr, "R[%d][Error]ID[%ld] couldn't resolve the symbol name for address %p", result.rank, result.trace_id,
             called_from);
     return {};
   }
@@ -399,6 +413,7 @@ MPICall::CheckResult MPICall::check_combiner_struct(const Buffer& buffer, const 
     if (check_result.result != 0) {
       PRINT_ERRORV(*this, "the typechek for member %ld failed\n", i + 1);
       result = CheckResult::error();
+      continue;
     }
     // ... the count of elements in the buffer of the member matches the count
     // required to represent `blocklength` elements of the MPI type.

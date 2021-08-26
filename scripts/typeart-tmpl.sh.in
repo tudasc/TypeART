@@ -14,13 +14,13 @@
 
 function parse_cmd_line() {
   readonly source_file=$1
-  compile_flags="-g -fno-omit-frame-pointer -fno-inline"
   optimize=""
   ta_more_args=""
   with_omp=0
   with_intercept=0
   with_thread=0
   skip_typeart=0
+  compile_flags=""
 
   shift # skip over $1
   while (("$#")); do
@@ -83,6 +83,15 @@ function parse_cmd_line() {
         shift 2
       else
         echo "Error: types.yaml filepath for $1 is missing." >&2
+        shift
+      fi
+      ;;
+    --compile_flags)
+      if [ -n "$2" ]; then
+        compile_flags="$2"
+        shift 2
+      else
+        echo "Error: argument for $1 is missing." >&2
         shift
       fi
       ;;
