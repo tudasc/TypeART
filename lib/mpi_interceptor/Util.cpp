@@ -56,8 +56,10 @@ int type_of() {
 // therefore TYPEART_FP128 is always returned in case of an 16 byte floating point
 // MPI type. This should be considered by the caller for performing typechecks.
 int type_id_for(MPI_Datatype mpi_type) {
-  if (mpi_type == MPI_CHAR) {
-    fprintf(stderr, "[Error] MPI_CHAR is currently unsupported!\n");
+  if (mpi_type == MPI_BYTE) {
+    return TYPEART_INT8;
+  } else if (mpi_type == MPI_CHAR) {
+    return type_of<char>();
   } else if (mpi_type == MPI_UNSIGNED_CHAR) {
     fprintf(stderr, "[Error] MPI_UNSIGNED_CHAR is currently unsupported!\n");
   } else if (mpi_type == MPI_SIGNED_CHAR) {
