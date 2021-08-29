@@ -24,7 +24,10 @@
 #ifdef USE_BTREE
 #error TypeART-RT: Set ABSL and BTREE, mutually exclusive.
 #endif
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
 #include "absl/container/btree_map.h"
+#pragma GCC diagnostic pop
 #endif
 
 #if !defined(USE_BTREE) && !defined(USE_ABSL)

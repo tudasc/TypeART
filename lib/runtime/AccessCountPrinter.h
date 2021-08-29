@@ -50,7 +50,7 @@ inline MemOverhead estimate(Counter stack_max, Counter heap_max, Counter global_
 }  // namespace memory
 
 template <typename Recorder>
-void serialise(const Recorder& r, llvm::raw_ostream& buf) {
+void serialise(const Recorder& r, std::ostringstream& buf) {
   if constexpr (std::is_same_v<Recorder, NoneRecorder>) {
     return;
   } else {
@@ -96,7 +96,7 @@ void serialise(const Recorder& r, llvm::raw_ostream& buf) {
       if (it != map.end()) {
         return it->second;
       }
-      return 0ll;
+      return 0LL;
     };
 
     Table type_table("Allocation type detail (heap, stack, global)");

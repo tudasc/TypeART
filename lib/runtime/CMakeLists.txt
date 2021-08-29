@@ -40,6 +40,7 @@ add_library(typeart::Runtime ALIAS ${TYPEART_PREFIX}_Runtime)
 target_link_libraries(
   ${TYPEART_PREFIX}_Runtime
   PRIVATE typeart::TypesStatic
+          typeart::SystemStatic
           LLVMCore
           LLVMSupport
           $<$<BOOL:${MPI_LOGGER}>:MPI::MPI_CXX>
@@ -71,7 +72,7 @@ target_compile_definitions(
           $<$<BOOL:${DISABLE_THREAD_SAFETY}>:DISABLE_THREAD_SAFETY>
 )
 
-target_project_compile_definitions(${TYPEART_PREFIX}_Runtime)
+target_project_compile_options(${TYPEART_PREFIX}_Runtime)
 target_define_file_basename(${TYPEART_PREFIX}_Runtime)
 target_project_coverage_options(${TYPEART_PREFIX}_Runtime)
 

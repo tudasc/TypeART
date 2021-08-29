@@ -13,11 +13,9 @@
 #ifndef TYPEART_TABLE_H
 #define TYPEART_TABLE_H
 
-#include "llvm/Support/Format.h"
-#include "llvm/Support/FormatProviders.h"
-#include "llvm/Support/raw_ostream.h"
-
+#include <iomanip>
 #include <numeric>
+#include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -28,14 +26,31 @@ namespace detail {
 template <typename Number>
 inline std::string num2str(Number num) {
   if constexpr (std::is_floating_point_v<Number>) {
-    std::string buf;
-    llvm::raw_string_ostream os(buf);
-    llvm::format_provider<Number>::format(num, os, llvm::StringRef("f"));
+    std::ostringstream os;
+    os << std::setprecision(2) << std::fixed << num;
+
     return os.str();
   } else {
     return std::to_string(num);
   }
 }
+
+struct JustifiedString final {
+  enum align_as { left, right };
+  std::string_view string;
+  int width;
+  align_as alignment;
+
+ public:
+  JustifiedString(std::string_view string, int w, align_as a) : string(string), width(w), alignment(a) {
+  }
+
+  friend std::ostream& operator<<(std::ostream& os, const JustifiedString& js) {
+    os << std::setw(js.width) << (js.alignment == JustifiedString::align_as::left ? std::left : std::right)
+       << js.string;
+    return os;
+  }
+};
 }  // namespace detail
 
 struct Cell {
@@ -109,12 +124,22 @@ struct Table {
 
   template <typename... Rows>
   static Table make(std::string title, Rows&&... r) {
-    Table t(std::move(title));
+    Table t{std::move(title)};
     (t.put(std::forward<Rows>(r)), ...);
     return t;
   }
 
-  void print(llvm::raw_ostream& s) const {
+  void print(std::ostream& s) const {
+    const auto left_justify = [](std::string_view cell_str, int width) {
+      using namespace detail;
+      return JustifiedString(cell_str, width, JustifiedString::left);
+    };
+
+    const auto right_justify = [](std::string_view cell_str, int width) {
+      using namespace detail;
+      return JustifiedString(cell_str, width, JustifiedString::right);
+    };
+
     const auto max_row_id = max_row_label_width + 1;
 
     // determine per column width
@@ -141,7 +166,7 @@ struct Table {
     s << std::string(head_rep_count(), table_header) << "\n";
     s << title << "\n";
     for (const auto& row : row_vec) {
-      s << llvm::left_justify(row.label.c, max_row_id);
+      s << left_justify(row.label.c, max_row_id);
 
       if (!row.cells.empty() || colon_empty) {
         s << ":";
@@ -153,11 +178,10 @@ struct Table {
 
       if (has_cells) {
         // print first row cell, then subsequent cells with *cell_sep* as prefix
-        s << llvm::right_justify(num_beg->c, col_width[col_num]);
+        s << right_justify(num_beg->c, col_width[col_num]);
         std::for_each(std::next(num_beg), std::end(row.cells), [&](const auto& v) {
-          const auto width = col_width[++col_num];
-          const auto aligned_cell =
-              v.align == Cell::right ? llvm::right_justify(v.c, width) : llvm::left_justify(v.c, width);
+          const auto width        = col_width[++col_num];
+          const auto aligned_cell = v.align == Cell::right ? right_justify(v.c, width) : left_justify(v.c, width);
           s << cell_sep << aligned_cell;
         });
       }
@@ -172,10 +196,10 @@ struct Table {
 
         // print first empty padding, then subsequent padding with *cell_sep* as prefix
         if (!has_cells) {
-          s << llvm::right_justify(empty_cell, iterate_w());
+          s << right_justify(empty_cell, iterate_w());
         }
         for (int pad = 0; pad < padding; ++pad) {
-          s << cell_sep << llvm::right_justify(empty_cell, iterate_w());
+          s << cell_sep << right_justify(empty_cell, iterate_w());
         }
       }
       s << "\n";

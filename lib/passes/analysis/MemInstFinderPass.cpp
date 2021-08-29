@@ -45,6 +45,7 @@
 
 #include <algorithm>
 #include <cstdlib>
+#include <sstream>
 #include <utility>
 
 using namespace llvm;
@@ -416,7 +417,9 @@ void MemInstFinderPass::printStats(llvm::raw_ostream& out) {
   stats.put(Row::make("Global call filtered %", call_filter_global_p));
   stats.put(Row::make("Global filtered %", call_filter_global_nocallfilter_p));
 
-  stats.print(out);
+  std::ostringstream stream;
+  stats.print(stream);
+  out << stream.str();
 }
 
 bool MemInstFinderPass::hasFunctionData(Function* f) const {
