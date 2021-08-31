@@ -32,6 +32,12 @@ void printMPIError(const MPICall& call, const char* fnname, int mpierr) {
   PRINT_ERRORV(call, "%s failed: %s", fnname, mpierrstr.c_str());
 }
 
+std::optional<Type> Type::create(const MPICall& call, int type_id) {
+  const auto type_name = typeart_get_type_name(type_id);
+  const auto type_size = typeart_get_type_size(type_id);
+  return {{type_id, type_name, type_size}};
+}
+
 std::optional<Buffer> Buffer::create(const MPICall& call, const void* buffer) {
   if (buffer == nullptr) {
     return {Buffer::create(call, 0, nullptr, 0, TYPEART_INVALID_ID)};
@@ -52,7 +58,10 @@ std::optional<Buffer> Buffer::create(const MPICall& call, ptrdiff_t offset, cons
   if (ptr == nullptr) {
     return {{0, nullptr, 0, TYPEART_INVALID_ID, "", {}}};
   }
-  auto type_name = typeart_get_type_name(type_id);
+  const auto type = Type::create(call, type_id);
+  if (!type) {
+    return {};
+  }
   typeart_struct_layout struct_layout;
   typeart_status status = typeart_resolve_type_id(type_id, &struct_layout);
   if (status == TYPEART_INVALID_ID) {
@@ -71,9 +80,9 @@ std::optional<Buffer> Buffer::create(const MPICall& call, ptrdiff_t offset, cons
       }
       type_layout.push_back(*buffer);
     }
-    return {{offset, ptr, count, type_id, type_name, {type_layout}}};
+    return {{offset, ptr, count, *type, {type_layout}}};
   }
-  return {{offset, ptr, count, type_id, type_name, {}}};
+  return {{offset, ptr, count, *type, {}}};
 }
 
 bool Buffer::hasStructType() const {
@@ -234,15 +243,15 @@ int MPICall::check_type_and_count() const {
 }
 
 MPICall::CheckResult MPICall::CheckResult::error() {
-  return {-1, -1};
+  return {-1, -1, -1};
 }
 
-MPICall::CheckResult MPICall::CheckResult::with_count(int count) {
-  return {0, count};
+MPICall::CheckResult MPICall::CheckResult::with_multipliers(int type, int buffer) {
+  return {0, type, buffer};
 }
 
-MPICall::CheckResult& MPICall::CheckResult::multiply_count_by(int rhs) {
-  count *= rhs;
+MPICall::CheckResult& MPICall::CheckResult::multiply_type_count_by(int rhs) {
+  type_count_multiplier *= rhs;
   return *this;
 }
 
@@ -261,14 +270,15 @@ int MPICall::check_type_and_count_against(const Buffer& buffer) const {
     const auto first_member = (*type_layout)[0];
     if (first_member.offset == 0) {
       PRINT_INFOV(*this, "found struct member at offset 0 with type \"%s\", checking with this type...\n",
-                  first_member.type_name.c_str());
+                  first_member.type.name.c_str());
       return check_type_and_count_against(first_member);
     }
     return -1;
   }
-  auto required_count = static_cast<size_t>(args.count) * result.count;
-  if (required_count > buffer.count) {
-    PRINT_ERRORV(*this, "buffer too small (%ld elements, %d required)\n", buffer.count, required_count);
+  auto type_count   = static_cast<size_t>(args.count) * result.type_count_multiplier;
+  auto buffer_count = buffer.count * result.buffer_count_multiplier;
+  if (type_count > buffer_count) {
+    PRINT_ERRORV(*this, "buffer too small (%ld elements, %lu required)\n", buffer_count, type_count);
     return -1;
   }
   return 0;
@@ -276,10 +286,14 @@ int MPICall::check_type_and_count_against(const Buffer& buffer) const {
 
 // For a given Buffer and MPIType, checks that the buffer's type matches the
 // MPI type.
-// The resulting integer `count` is the number of elements of the buffer's type
-// required to represent one element of the MPI type.
+// The resulting integer `type_count_multiplier` is the number of elements of
+// the buffer's type required to represent one element of the MPI type
 // (e.g. an MPI_Type_contiguous with a `count` of 4 and an `oldtype` of
 // MPI_DOUBLE would require 4 double elements for each element of that type.)
+// Similarly, `buffer_count_multiplier` is the number of elements of the MPI
+// type needed to represent one element of the buffer's type. This is used to
+// correctly handle MPI_BYTE, where for each given type T, sizeof(T) elements
+// of MPI_BYTE are needed to represent one instance of T.
 MPICall::CheckResult MPICall::check_type(const Buffer& buffer, const MPIType& type) const {
   switch (type.combiner.id) {
     case MPI_COMBINER_NAMED:
@@ -306,17 +320,21 @@ MPICall::CheckResult MPICall::check_type(const Buffer& buffer, const MPIType& ty
 
 // See MPICall::check_type(const Buffer&, const MPIType&)
 MPICall::CheckResult MPICall::check_combiner_named(const Buffer& buffer, const MPIType& type) const {
+  // We assume MPI_BYTE to be the MPI equivalent of void*.
+  if (type.mpi_type == MPI_BYTE) {
+    return CheckResult::with_multipliers(1, buffer.type.size);
+  }
   // For named types (like e.g. MPI_DOUBLE) we compare the type id of the
   // buffer with the type id deduced for the MPI type using the type_id_for
   // function from Util.h.
   // As a special case, if the types do not match, but both represent a 128bit
   // floating point type, they are also considered to match.
-  if (buffer.type_id != type.type_id && !(buffer.type_id == TYPEART_PPC_FP128 && type.type_id == TYPEART_FP128)) {
+  if (buffer.type.id != type.type_id && !(buffer.type.id == TYPEART_PPC_FP128 && type.type_id == TYPEART_FP128)) {
     PRINT_ERRORV(*this, "expected a type matching MPI type \"%s\", but found type \"%s\"\n", type.name.c_str(),
-                 buffer.type_name.c_str());
+                 buffer.type.name.c_str());
     return CheckResult::error();
   }
-  return CheckResult::with_count(1);
+  return CheckResult::with_multipliers(1, 1);
 }
 
 // Type check for the type combiner:
@@ -332,7 +350,7 @@ MPICall::CheckResult MPICall::check_combiner_contiguous(const Buffer& buffer, co
   // buffer's type and multiply the count required for on element by the first
   // the first integer argument of the type combiner.
   auto count = type.combiner.integer_args[0];
-  return check_type(buffer, type.combiner.type_args[0]).multiply_count_by(count);
+  return check_type(buffer, type.combiner.type_args[0]).multiply_type_count_by(count);
 }
 
 // Type check for the type combiner:
@@ -354,7 +372,7 @@ MPICall::CheckResult MPICall::check_combiner_vector(const Buffer& buffer, const 
   // and each block consists of `blocklength` elements of oldtype.
   // We therefore check the buffer's type against `oldtype` and multiply the
   // resulting count by `(count - 1) * stride + blocklength`.
-  return check_type(buffer, type.combiner.type_args[0]).multiply_count_by((count - 1) * stride + blocklength);
+  return check_type(buffer, type.combiner.type_args[0]).multiply_type_count_by((count - 1) * stride + blocklength);
 }
 
 // Type check for the type combiner:
@@ -377,7 +395,7 @@ MPICall::CheckResult MPICall::check_combiner_indexed_block(const Buffer& buffer,
   // each block.
   // We therefore check the buffer's type against `oldtype` and multiply the
   // resulting count by `max(array_of_displacements) + blocklength`.
-  return check_type(buffer, type.combiner.type_args[0]).multiply_count_by(*max_displacement + blocklength);
+  return check_type(buffer, type.combiner.type_args[0]).multiply_type_count_by(*max_displacement + blocklength);
 }
 
 // Type check for the type combiner:
@@ -392,25 +410,25 @@ MPICall::CheckResult MPICall::check_combiner_struct(const Buffer& buffer, const 
   const auto array_of_blocklenghts = type.combiner.integer_args.begin() + 1;
   // First, check that the buffer's type is a struct type...
   if (!buffer.hasStructType()) {
-    PRINT_ERRORV(*this, "expected a struct type, but found type \"%s\"\n", buffer.type_name.c_str());
+    PRINT_ERRORV(*this, "expected a struct type, but found type \"%s\"\n", buffer.type.name.c_str());
     return CheckResult::error();
   }
   // ... and that the number of members of the struct matches the argument
   // `count` of the type combiner.
   const auto& type_layout = *(buffer.type_layout);
   if (type_layout.size() != count) {
-    PRINT_ERRORV(*this, "expected %d members, but the type \"%s\" has %ld members\n", count, buffer.type_name.c_str(),
+    PRINT_ERRORV(*this, "expected %d members, but the type \"%s\" has %ld members\n", count, buffer.type.name.c_str(),
                  type_layout.size());
     return CheckResult::error();
   }
   // Then, for each member check that...
-  auto result = CheckResult::with_count(1);
+  auto result = CheckResult::with_multipliers(1, 1);
   for (size_t i = 0; i < type_layout.size(); ++i) {
     // ... the byte offset of the member matches the respective element in
     // the `array_of_displacements` type combiner argument.
     if (type_layout[i].offset != type.combiner.address_args[i]) {
       PRINT_ERRORV(*this, "expected a byte offset of %ld for member %ld, but the type \"%s\" has an offset of %ld\n",
-                   type.combiner.address_args[i], i + 1, buffer.type_name.c_str(), type_layout[i].offset);
+                   type.combiner.address_args[i], i + 1, buffer.type.name.c_str(), type_layout[i].offset);
       result = CheckResult::error();
     }
   }
@@ -425,10 +443,11 @@ MPICall::CheckResult MPICall::check_combiner_struct(const Buffer& buffer, const 
     }
     // ... the count of elements in the buffer of the member matches the count
     // required to represent `blocklength` elements of the MPI type.
-    const auto required_count = static_cast<size_t>(array_of_blocklenghts[i]) * check_result.count;
-    if (required_count != type_layout[i].count) {
-      PRINT_ERRORV(*this, "expected element count of %ld for member %ld, but the type \"%s\" has a count of %d\n",
-                   type_layout[i].count, i + 1, buffer.type_name.c_str(), required_count);
+    const auto type_count   = static_cast<size_t>(array_of_blocklenghts[i]) * check_result.type_count_multiplier;
+    const auto buffer_count = type_layout[i].count * check_result.buffer_count_multiplier;
+    if (type_count != buffer_count) {
+      PRINT_ERRORV(*this, "expected element count of %ld for member %ld, but the type \"%s\" has a count of %lu\n",
+                   buffer_count, i + 1, buffer.type.name.c_str(), type_count);
       result = CheckResult::error();
     }
   }
@@ -451,7 +470,7 @@ MPICall::CheckResult MPICall::check_combiner_subarray(const Buffer& buffer, cons
   // buffer's type against `oldtype` and multiply the resulting count with
   // the product of all elements of the `array_of_sizes` (i.e. the element
   // count of the large n-dimensional array).
-  return check_type(buffer, type.combiner.type_args[0]).multiply_count_by(array_element_count);
+  return check_type(buffer, type.combiner.type_args[0]).multiply_type_count_by(array_element_count);
 }
 
 }  // namespace typeart

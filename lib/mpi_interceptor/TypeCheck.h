@@ -35,12 +35,20 @@ namespace typeart {
 struct MPICall;
 struct MPIType;
 
+struct Type {
+  int id;
+  std::string name;
+  size_t size;
+
+ public:
+  static std::optional<Type> create(const MPICall& call, int type_id);
+};
+
 struct Buffer {
   ptrdiff_t offset;
   const void* ptr;
   size_t count;
-  int type_id;
-  std::string type_name;
+  Type type;
   std::optional<std::vector<Buffer>> type_layout;
 
  public:
@@ -104,12 +112,13 @@ struct MPICall {
  private:
   struct [[nodiscard]] CheckResult {
     int result;
-    int count;
+    int type_count_multiplier;
+    int buffer_count_multiplier;
 
     static CheckResult error();
-    static CheckResult with_count(int count);
+    static CheckResult with_multipliers(int type, int buffer);
 
-    CheckResult& multiply_count_by(int rhs);
+    CheckResult& multiply_type_count_by(int rhs);
   };
 
   [[nodiscard]] int check_type_and_count_against(const Buffer& buffer) const;

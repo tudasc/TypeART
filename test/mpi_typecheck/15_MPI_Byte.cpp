@@ -7,8 +7,6 @@
 // REQUIRES: mpi
 // UNSUPPORTED: asan
 
-// XFAIL: *
-
 #include "Util.hpp"
 
 #include <mpi.h>
