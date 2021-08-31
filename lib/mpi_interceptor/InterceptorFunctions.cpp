@@ -92,19 +92,19 @@ int typeart_check_buffer(const typeart::MPICall& call) {
               call.function_name.c_str(), call.is_send ? "send" : "recv", call.args.buffer.ptr,
               call.args.buffer.type_name.c_str(), call.args.type.name.c_str());
 
-  const bool count_zero     = call.args.count <= 0;
-  const bool buffer_nullptr = call.args.buffer.ptr == nullptr;
+  const bool count_is_zero     = call.args.count <= 0;
+  const bool buffer_is_nullptr = call.args.buffer.ptr == nullptr;
 
-  if (count_zero) {
+  if (count_is_zero) {
     ++mcounter.null_count;
   }
 
-  if (buffer_nullptr) {
+  if (buffer_is_nullptr) {
     ++mcounter.null_buff;
     PRINT_ERROR(call, "buffer is NULL\n");
   }
 
-  if (count_zero || buffer_nullptr) {
+  if (count_is_zero || buffer_is_nullptr) {
     return -1;
   }
 

@@ -112,7 +112,7 @@ struct MPICall {
     CheckResult& multiply_count_by(int rhs);
   };
 
-  [[nodiscard]] int check_type_and_count(const Buffer& buffer) const;
+  [[nodiscard]] int check_type_and_count_against(const Buffer& buffer) const;
   CheckResult check_type(const Buffer& buffer, const MPIType& type) const;
   CheckResult check_combiner_named(const Buffer& buffer, const MPIType& type) const;
   CheckResult check_combiner_contiguous(const Buffer& buffer, const MPIType& type) const;
