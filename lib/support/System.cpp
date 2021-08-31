@@ -12,7 +12,9 @@
 
 #include "System.h"
 
+#include <cstdio>
 #include <filesystem>
+#include <memory>
 #include <sys/resource.h>
 
 namespace typeart {
@@ -31,33 +33,30 @@ const Process& Process::get() {
   return self;
 }
 
-long Process::getMemoryUsage() {
-  struct rusage proc;
+long Process::getMaxRSS() {
+  rusage proc;
   getrusage(RUSAGE_SELF, &proc);
 
   return proc.ru_maxrss;
 }
 
 class CommandPipe {
-  using unique_file = std::unique_ptr<FILE, int (*)(FILE*)>;
-  unique_file command;
+  using UniqueFile = std::unique_ptr<FILE, int (*)(FILE*)>;
+  UniqueFile command;
 
-  explicit CommandPipe(unique_file command);
+  explicit CommandPipe(UniqueFile command);
 
  public:
-  static std::optional<CommandPipe> create(const std::string& command);
-
-  explicit operator bool() const;
+  static std::optional<CommandPipe> create(std::string_view command);
 
   [[nodiscard]] std::string nextLine() const;
 };
 
-CommandPipe::CommandPipe(CommandPipe::unique_file command) : command(std::move(command)) {
+CommandPipe::CommandPipe(CommandPipe::UniqueFile command) : command(std::move(command)) {
 }
 
-std::optional<CommandPipe> CommandPipe::create(const std::string& command) {
-  auto* val = popen(command.c_str(), "r");
-  unique_file comm(popen(command.c_str(), "r"), &pclose);
+std::optional<CommandPipe> CommandPipe::create(std::string_view command) {
+  UniqueFile comm(popen(command.data(), "r"), &pclose);
 
   if (!comm) {
     return {};
@@ -65,9 +64,7 @@ std::optional<CommandPipe> CommandPipe::create(const std::string& command) {
 
   return CommandPipe{std::move(comm)};
 }
-CommandPipe::operator bool() const {
-  return command.operator bool();
-}
+
 std::string CommandPipe::nextLine() const {
   char* buffer{nullptr};
   size_t buffer_length{0};
@@ -88,7 +85,7 @@ std::string CommandPipe::nextLine() const {
   return result;
 }
 
-bool test_command(const std::string& command, const std::string& test_arg) {
+bool test_command(std::string_view command, std::string_view test_arg) {
   const auto available = [](const std::string_view command) -> bool {
     constexpr int command_not_found{127};
     auto* proc        = popen(command.data(), "r");

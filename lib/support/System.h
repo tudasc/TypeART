@@ -13,9 +13,9 @@
 #ifndef TYPEART_SYSTEM_H
 #define TYPEART_SYSTEM_H
 
-#include <cstdio>
-#include <memory>
 #include <optional>
+#include <string>
+#include <string_view>
 
 namespace typeart {
 namespace system {
@@ -29,10 +29,10 @@ class Process {
   static const Process& get();
 
   [[nodiscard]] const std::string& exe() const;
-  [[nodiscard]] static long getMemoryUsage();
+  [[nodiscard]] static long getMaxRSS();
 };
 
-bool test_command(const std::string& command, const std::string& test_arg = "-h");
+bool test_command(std::string_view command, std::string_view test_arg = "-h");
 
 }  // namespace system
 
