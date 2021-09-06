@@ -37,6 +37,7 @@
 
 #include <cassert>
 #include <cstddef>
+#include <sstream>
 #include <string>
 #include <utility>
 
@@ -216,15 +217,19 @@ void TypeArtPass::printStats(llvm::raw_ostream& out) {
   const auto get_ta_mode = [&]() {
     const bool heap  = !ClIgnoreHeap.getValue();
     const bool stack = ClTypeArtAlloca.getValue();
+
     if (heap) {
       if (stack) {
         return " [Heap & Stack]";
       }
       return " [Heap]";
-    } else if (stack) {
+    }
+
+    if (stack) {
       return " [Stack]";
     }
-    return " [Unknown]";
+
+    llvm_unreachable("Did not find heap or stack, or combination thereof!");
   };
 
   Table stats("TypeArtPass");
@@ -235,7 +240,9 @@ void TypeArtPass::printStats(llvm::raw_ostream& out) {
   stats.put(Row::make("Alloca", NumInstrumentedAlloca.getValue()));
   stats.put(Row::make("Global", NumInstrumentedGlobal.getValue()));
 
-  stats.print(out);
+  std::ostringstream stream;
+  stats.print(stream);
+  out << stream.str();
 }
 
 }  // namespace typeart::pass

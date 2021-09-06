@@ -22,7 +22,7 @@ make_llvm_module(
                ${PROJECT_SOURCE_DIR}/lib/passes/
                ${CMAKE_CURRENT_SOURCE_DIR}/typegen
 )
-mark_as_advanced(LLVM_${TYPEART_PREFIX}_TransformPass_LINK_INTO_TOOLS)
+mark_as_advanced(LLVM_TYPEART_TRANSFORMPASS_LINK_INTO_TOOLS)
 
 set_target_properties(
   ${TYPEART_PREFIX}_TransformPass

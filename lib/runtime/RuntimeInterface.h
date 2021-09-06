@@ -32,7 +32,8 @@ typedef enum typeart_status_t {  // NOLINT
   TYPEART_BAD_ALIGNMENT,
   TYPEART_BAD_OFFSET,
   TYPEART_WRONG_KIND,
-  TYPEART_INVALID_ID
+  TYPEART_INVALID_ID,
+  TYPEART_ERROR
 } typeart_status;
 
 typedef struct typeart_struct_layout_t {  // NOLINT
@@ -122,6 +123,24 @@ typeart_status typeart_get_subtype(const void* base_addr, size_t offset, typeart
  *  - TYPEART_UNKNOWN_ADDRESS: The given address is either not allocated, or was not recorded by the runtime.
  */
 typeart_status typeart_get_return_address(const void* addr, const void** return_addr);
+
+/**
+ * Tries to return file, function and line of a memory adress from the current process.
+ * Needs (1) either llvm-symbolizer or addr2line to be installed, and (2) target code should be compiled debug
+ * information for useful output. Note: file, function, line are allocated with malloc. They need to be free'd by the
+ * caller.
+ *
+ * \param[in] addr The address.
+ * \param[out] file The file where the address was created at.
+ * \param[out] function The function where the address was created at.
+ * \param[out] line The approximate line where the address was created at.
+ *
+ * \return One of the following status codes:
+ *  - TYPEART_OK: Success.
+ *  - TYPEART_UNKNOWN_ADDRESS: The given address is either not allocated, or was not recorded by the runtime.
+ *  - TYPEART_ERROR: Memory could not be allocated.
+ */
+typeart_status typeart_get_source_location(const void* addr, char** file, char** function, char** line);
 
 /**
  * Given an address, this function provides information about the corresponding struct type.
