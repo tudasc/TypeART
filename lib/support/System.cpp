@@ -115,11 +115,11 @@ class SourceLocHelper {
     return helper;
   }
 
-  [[nodiscard]] bool addr2line() const {
+  [[nodiscard]] bool hasAddr2line() const {
     return has_addr2line;
   }
 
-  [[nodiscard]] bool llvmsymbolizer() const {
+  [[nodiscard]] bool hasLLVMSymbolizer() const {
     return has_llvmsymbolizer;
   }
 };
@@ -132,7 +132,7 @@ std::optional<SourceLocation> SourceLocation::create(const void* addr) {
     const auto& sloc_helper = SourceLocHelper::get();
     const auto& proc        = system::Process::get();
 
-    if (sloc_helper.llvmsymbolizer()) {
+    if (sloc_helper.hasLLVMSymbolizer()) {
       std::ostringstream command;
       command << "llvm-symbolizer --demangle --output-style=GNU -f -e " << proc.exe() << " " << addr;
       auto llvm_symbolizer = system::CommandPipe::create(command.str());
@@ -141,7 +141,7 @@ std::optional<SourceLocation> SourceLocation::create(const void* addr) {
       }
     }
 
-    if (sloc_helper.addr2line()) {
+    if (sloc_helper.hasAddr2line()) {
       std::ostringstream command;
       command << "addr2line --demangle=auto -f -e " << proc.exe() << " " << addr;
       auto addr2line = system::CommandPipe::create(command.str());
