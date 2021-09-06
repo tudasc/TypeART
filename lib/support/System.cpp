@@ -15,6 +15,7 @@
 #include <cstdio>
 #include <filesystem>
 #include <memory>
+#include <sstream>
 #include <sys/resource.h>
 
 namespace typeart {
