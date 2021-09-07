@@ -88,9 +88,9 @@ void typeart_exit() {
 
 int typeart_check_buffer(const typeart::MPICall& call) {
   PRINT_INFOV(call, "%s[%p] at %s:%s: %s: checking %s-buffer %p of type \"%s\" against MPI type \"%s\"\n",
-              call.caller.function.c_str(), call.caller.addr, call.caller.file.c_str(), call.caller.line.c_str(),
-              call.function_name.c_str(), call.is_send ? "send" : "recv", call.args.buffer.ptr,
-              call.args.buffer.type.name.c_str(), call.args.type.name.c_str());
+              call.caller.location.function.c_str(), call.caller.addr, call.caller.location.file.c_str(),
+              call.caller.location.line.c_str(), call.function_name.c_str(), call.is_send ? "send" : "recv",
+              call.args.buffer.ptr, call.args.buffer.type.name.c_str(), call.args.type.name.c_str());
 
   const bool count_is_zero     = call.args.count <= 0;
   const bool buffer_is_nullptr = call.args.buffer.ptr == nullptr;

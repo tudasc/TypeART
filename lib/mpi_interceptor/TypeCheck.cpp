@@ -141,73 +141,14 @@ std::optional<MPIType> MPIType::create(const MPICall& call, MPI_Datatype type) {
   return {result};
 }
 
-struct Self {
-  std::string exe;
-
- public:
-  Self() {
-    exe = fs::canonical("/proc/self/exe");
-  }
-};
-
-static Self self;
-
-using unique_file = std::unique_ptr<FILE, int (*)(FILE*)>;
-
-struct pipe : public unique_file {
-  explicit pipe(const std::string& command) : unique_file(popen(command.c_str(), "r"), &pclose) {
-  }
-
-  [[nodiscard]] std::string next_line() const {
-    size_t len   = 0;
-    char* buffer = nullptr;
-    std::string result;
-    if (getline(&buffer, &len, get()) != -1) {
-      result = {std::string(buffer)};
-      free(buffer);
-    }
-    result.resize(result.size() - 1);
-    return result;
-  }
-};
-
-std::optional<std::string> demangle(const std::string& symbol_name) {
-  auto status  = -1;
-  auto* buffer = abi::__cxa_demangle(symbol_name.c_str(), nullptr, nullptr, &status);
-  // If the status is
-  //   "-2: mangled_name is not a valid name under the C++ ABI mangling rules"
-  //   Source: https://gcc.gnu.org/onlinedocs/libstdc++/libstdc++-html-USERS-4.3/a01696.html
-  // we assume that the mangled string is a C symbol and return it as-is.
-  if (status == -2) {
-    return symbol_name;
-  }
-  if (status != 0) {
-    return {};
-  }
-  std::string result{buffer};
-  free(buffer);
-  return result;
-}
-
 std::optional<Caller> Caller::create(const void* addr) {
   Caller result;
-  result.addr = addr;
-  std::ostringstream command;
-  command << "addr2line -e " << self.exe << " -f " << addr;
-  auto output = pipe(command.str());
-  if (!output) {
+  result.addr   = addr;
+  auto location = SourceLocation::create(addr);
+  if (!location) {
     return {};
   }
-  auto demangled = demangle(output.next_line());
-  if (!demangled) {
-    return {};
-  }
-  result.function    = *demangled;
-  auto file_and_line = output.next_line();
-  auto delim         = file_and_line.find(':');
-  result.line        = file_and_line.substr(delim + 1);
-  file_and_line.resize(delim);
-  result.file = std::move(file_and_line);
+  result.location = *location;
   return result;
 }
 

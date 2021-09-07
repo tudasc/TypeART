@@ -15,6 +15,7 @@
 
 #include "Util.h"
 #include "runtime/RuntimeInterface.h"
+#include "support/System.h"
 
 #include <atomic>
 #include <cstdio>
@@ -81,9 +82,7 @@ struct MPIType {
 
 struct Caller {
   const void* addr;
-  std::string function;
-  std::string file;
-  std::string line;
+  SourceLocation location;
 
  public:
   static std::optional<Caller> create(const void* caller_addr);
