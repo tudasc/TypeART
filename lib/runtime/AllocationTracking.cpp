@@ -199,7 +199,7 @@ void AllocationTracker::onFreeHeap(const void* addr, const void* retAddr) {
 }
 
 void AllocationTracker::onLeaveScope(int alloca_count, const void* retAddr) {
-  if (unlikely(alloca_count > threadData.stackVars.size())) {
+  if (unlikely(alloca_count > static_cast<int>(threadData.stackVars.size()))) {
     LOG_ERROR("Stack is smaller than requested de-allocation count. alloca_count: " << alloca_count << ". size: "
                                                                                     << threadData.stackVars.size());
     alloca_count = threadData.stackVars.size();

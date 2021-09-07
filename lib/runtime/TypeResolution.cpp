@@ -17,6 +17,7 @@
 #include "RuntimeData.h"
 #include "RuntimeInterface.h"
 #include "support/Logger.h"
+#include "support/System.h"
 
 #include "llvm/ADT/Optional.h"
 #include "llvm/Support/raw_ostream.h"
@@ -277,6 +278,23 @@ inline typeart_status query_struct_layout(int id, typeart_struct_layout* struct_
   }
   return status;
 }
+
+char* string2char(std::string_view src) {
+  const void* ret_addr       = __builtin_return_address(0);
+  const size_t source_length = src.size() + 1;  // +1 for '\0'
+  char* string_copy          = (char*)malloc(sizeof(char) * source_length);
+
+  if (string_copy == nullptr) {
+    return nullptr;
+  }
+
+  typeart::RuntimeSystem::get().allocTracker.onAlloc(string_copy, TYPEART_INT8, source_length, ret_addr);
+
+  memcpy(string_copy, src.data(), source_length);
+
+  return string_copy;
+};
+
 }  // namespace detail
 }  // namespace typeart
 
@@ -316,9 +334,9 @@ typeart_status typeart_get_containing_type(const void* addr, int* type, size_t* 
   typeart::RTGuard guard;
   auto alloc = typeart::RuntimeSystem::get().allocTracker.findBaseAlloc(addr);
   if (alloc) {
-    auto& allocVal = alloc.getValue();
-    *type          = alloc->second.typeId;
-    *base_address  = alloc->first;
+    //    auto& allocVal = alloc.getValue();
+    *type         = alloc->second.typeId;
+    *base_address = alloc->first;
     return typeart::RuntimeSystem::get().typeResolution.getContainingTypeInfo(addr, alloc->first, alloc->second, count,
                                                                               offset);
   }
@@ -358,6 +376,27 @@ typeart_status typeart_get_return_address(const void* addr, const void** return_
     return TYPEART_OK;
   }
   *return_addr = nullptr;
+  return TYPEART_UNKNOWN_ADDRESS;
+}
+
+typeart_status_t typeart_get_source_location(const void* addr, char** file, char** function, char** line) {
+  using namespace typeart::detail;
+  typeart::RTGuard guard;
+
+  auto source_loc = typeart::SourceLocation::create(addr);
+
+  if (source_loc) {
+    *file     = string2char(source_loc->file);
+    *function = string2char(source_loc->function);
+    *line     = string2char(source_loc->line);
+
+    if (*file == nullptr || *function == nullptr || *line == nullptr) {
+      return TYPEART_ERROR;
+    }
+
+    return TYPEART_OK;
+  }
+
   return TYPEART_UNKNOWN_ADDRESS;
 }
 

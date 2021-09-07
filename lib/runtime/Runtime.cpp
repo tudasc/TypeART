@@ -18,11 +18,12 @@
 #include "TypeIO.h"
 #include "support/Logger.h"
 
-#include "llvm/Support/raw_ostream.h"
+//#include "llvm/Support/raw_ostream.h"
 
 #include <cstdlib>
 #include <iostream>
 #include <set>
+#include <sstream>
 #include <unordered_map>
 #include <vector>
 
@@ -107,8 +108,10 @@ RuntimeSystem::RuntimeSystem() : rtScopeInit(), typeResolution(typeDB, recorder)
 RuntimeSystem::~RuntimeSystem() {
   rtScope = true;
 
-  std::string stats;
-  llvm::raw_string_ostream stream(stats);
+  //  std::string stats;
+  //  llvm::raw_string_ostream stream(stats);
+
+  std::ostringstream stream;
   softcounter::serialise(recorder, stream);
   if (!stream.str().empty()) {
     // llvm::errs/LOG will crash with virtual call error
