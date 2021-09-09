@@ -6,6 +6,7 @@
 
 // REQUIRES: mpi
 // UNSUPPORTED: asan
+// UNSUPPORTED: tsan
 
 #include "Util.hpp"
 

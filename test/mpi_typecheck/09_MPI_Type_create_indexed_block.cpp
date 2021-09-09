@@ -1,6 +1,7 @@
 
 // REQUIRES: mpi
 // UNSUPPORTED: asan
+// UNSUPPORTED: tsan
 // clang-format off
 // RUN: %run %s --mpi_intercept --compile_flags "-g" --executable %s.exe --command "%mpi-exec -n 2 --output-filename %s.log %s.exe"
 // RUN: cat "%s.log/1/rank.0/stderr" | FileCheck --check-prefixes CHECK,RANK0 %s
