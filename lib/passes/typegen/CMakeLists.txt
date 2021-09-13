@@ -42,6 +42,8 @@ set_target_properties(
   EXPORT_NAME "TypeGenStatic"
 )
 
+target_project_coverage_options(${TYPEART_PREFIX}_TypeGenStatic)
+
 target_link_libraries(${TYPEART_PREFIX}_TypeGenStatic typeart::TypesStatic)
 
 target_include_directories(
