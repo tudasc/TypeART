@@ -25,8 +25,12 @@
 
 namespace typeart {
 
+#ifndef NDEBUG
 #define PRINT_INFOV(call, fmt, ...) \
   fprintf(stderr, "R[%d][Info]ID[%ld] " fmt, (call).rank, (call).trace_id, __VA_ARGS__)
+#else
+#define PRINT_INFOV(call, fmt, ...)
+#endif
 
 #define PRINT_WARNING(call, fmt) fprintf(stderr, "R[%d][Warning]ID[%ld] " fmt, (call).rank, (call).trace_id)
 
