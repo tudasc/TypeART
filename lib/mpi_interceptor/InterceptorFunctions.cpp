@@ -101,7 +101,7 @@ int typeart_check_buffer(const typeart::MPICall& call) {
 
   if (buffer_is_nullptr) {
     ++mcounter.null_buff;
-    PRINT_ERROR(call, "buffer is NULL\n");
+    PRINT_WARNING(call, "buffer is NULL\n");
   }
 
   if (count_is_zero || buffer_is_nullptr) {

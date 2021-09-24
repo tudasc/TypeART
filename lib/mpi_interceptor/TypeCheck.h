@@ -28,6 +28,8 @@ namespace typeart {
 #define PRINT_INFOV(call, fmt, ...) \
   fprintf(stderr, "R[%d][Info]ID[%ld] " fmt, (call).rank, (call).trace_id, __VA_ARGS__)
 
+#define PRINT_WARNING(call, fmt) fprintf(stderr, "R[%d][Warning]ID[%ld] " fmt, (call).rank, (call).trace_id)
+
 #define PRINT_ERRORV(call, fmt, ...) \
   fprintf(stderr, "R[%d][Error]ID[%ld] " fmt, (call).rank, (call).trace_id, __VA_ARGS__)
 
