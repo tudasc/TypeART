@@ -35,6 +35,11 @@ namespace typeart {
 
 #define PRINT_ERROR(call, fmt) fprintf(stderr, "R[%d][Error]ID[%ld] " fmt, (call).rank, (call).trace_id)
 
+#define PRINT_TRACEV(call, fmt, ...) \
+  fprintf(stderr, "R[%d][Trace]ID[%ld] " fmt, (call).rank, (call).trace_id, __VA_ARGS__)
+
+#define PRINT_TRACE(call, fmt) fprintf(stderr, "R[%d][Trace]ID[%ld] " fmt, (call).rank, (call).trace_id)
+
 struct MPICall;
 struct MPIType;
 

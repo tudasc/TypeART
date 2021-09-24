@@ -33,10 +33,9 @@ int main(int argc, char** argv) {
 
   // clang-format off
   // RANK0: R[0][Info]ID[1] run_test(void*, int, {{.*}}[0x{{.*}}] at {{(/.*)*/.*\..*}}:{{[0-9]+}}: MPI_Send: checking send-buffer 0x{{.*}} of type "double" against MPI type "test_type"
-  // RANK0: R[0][Error]ID[1] buffer too small (8 elements, 9 required)
+  // RANK0: R[0][Trace]ID[1] buffer too small (8 elements, 9 required)
   // RANK1: R[1][Info]ID[1] run_test(void*, int, {{.*}}[0x{{.*}}] at {{(/.*)*/.*\..*}}:{{[0-9]+}}: MPI_Recv: checking recv-buffer 0x{{.*}} of type "double" against MPI type "test_type"
-  // RANK1: R[1][Error]ID[1] buffer too small (8 elements, 9 required)
-  // CHECK-NOT: R[{{0|1}}][Error]{{.*}}
+  // RANK1: R[1][Trace]ID[1] buffer too small (8 elements, 9 required)
   // clang-format on
   run_test(too_small, 1, mpi_subarray);
 

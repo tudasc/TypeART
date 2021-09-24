@@ -18,7 +18,7 @@ int main(int argc, char** argv) {
 
   // clang-format off
   // CHECK: R[{{0|1}}][Info]ID[0] run_test(void*, int, {{.*}}[0x{{.*}}] at {{(/.*)*/.*\..*}}:{{[0-9]+}}: MPI_Send: checking send-buffer {{.*}} of type "" against MPI type "MPI_DOUBLE"
-  // CHECK: R[{{0|1}}][Error]ID[0] buffer is NULL
+  // CHECK: R[{{0|1}}][Warning]ID[0] buffer is NULL
   // CHECK: Null_Buf: 1
   // clang-format on
 

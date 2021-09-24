@@ -180,7 +180,11 @@ std::optional<MPICall> MPICall::create(const char* function_name, const void* ca
 }
 
 int MPICall::check_type_and_count() const {
-  return check_type_and_count_against(args.buffer);
+  auto result = check_type_and_count_against(args.buffer);
+  if (result == -1) {
+    PRINT_ERROR(*this, "The typecheck failed! Check \"Trace\" messages with the same ID for more details!\n");
+  }
+  return result;
 }
 
 MPICall::CheckResult MPICall::CheckResult::error() {
@@ -219,7 +223,7 @@ int MPICall::check_type_and_count_against(const Buffer& buffer) const {
   auto type_count   = static_cast<size_t>(args.count) * result.type_count_multiplier;
   auto buffer_count = buffer.count * result.buffer_count_multiplier;
   if (type_count > buffer_count) {
-    PRINT_ERRORV(*this, "buffer too small (%ld elements, %lu required)\n", buffer_count, type_count);
+    PRINT_TRACEV(*this, "buffer too small (%ld elements, %lu required)\n", buffer_count, type_count);
     return -1;
   }
   return 0;
@@ -254,7 +258,7 @@ MPICall::CheckResult MPICall::check_type(const Buffer& buffer, const MPIType& ty
     case MPI_COMBINER_SUBARRAY:
       return check_combiner_subarray(buffer, type);
     default:
-      PRINT_ERRORV(*this, "the MPI type combiner %s is currently not supported\n", combiner_name_for(type.combiner.id));
+      PRINT_TRACEV(*this, "the MPI type combiner %s is currently not supported\n", combiner_name_for(type.combiner.id));
   }
   return CheckResult::error();
 }
@@ -271,7 +275,7 @@ MPICall::CheckResult MPICall::check_combiner_named(const Buffer& buffer, const M
   // As a special case, if the types do not match, but both represent a 128bit
   // floating point type, they are also considered to match.
   if (buffer.type.id != type.type_id && !(buffer.type.id == TYPEART_PPC_FP128 && type.type_id == TYPEART_FP128)) {
-    PRINT_ERRORV(*this, "expected a type matching MPI type \"%s\", but found type \"%s\"\n", type.name.c_str(),
+    PRINT_TRACEV(*this, "expected a type matching MPI type \"%s\", but found type \"%s\"\n", type.name.c_str(),
                  buffer.type.name.c_str());
     return CheckResult::error();
   }
@@ -305,7 +309,7 @@ MPICall::CheckResult MPICall::check_combiner_vector(const Buffer& buffer, const 
   const auto blocklength = type.combiner.integer_args[1];
   const auto stride      = type.combiner.integer_args[2];
   if (stride < 0) {
-    PRINT_ERROR(*this, "negative strides for MPI_Type_vector are currently not supported\n");
+    PRINT_TRACE(*this, "negative strides for MPI_Type_vector are currently not supported\n");
     return {-1, -1};
   }
   // MPI_Type_vector forms a number of `count` blocks of `oldtype` where the
@@ -329,7 +333,7 @@ MPICall::CheckResult MPICall::check_combiner_indexed_block(const Buffer& buffer,
   const auto [min_displacement, max_displacement] =
       std::minmax_element(array_of_displacements, array_of_displacements + count);
   if (*min_displacement < 0) {
-    PRINT_ERROR(*this, "negative displacements for MPI_Type_create_indexed_block are currently not supported\n");
+    PRINT_TRACE(*this, "negative displacements for MPI_Type_create_indexed_block are currently not supported\n");
     return {-1, -1};
   }
   // Similer to MPI_Type_vector but with a separate displacement specified for
@@ -351,14 +355,14 @@ MPICall::CheckResult MPICall::check_combiner_struct(const Buffer& buffer, const 
   const auto array_of_blocklenghts = type.combiner.integer_args.begin() + 1;
   // First, check that the buffer's type is a struct type...
   if (!buffer.hasStructType()) {
-    PRINT_ERRORV(*this, "expected a struct type, but found type \"%s\"\n", buffer.type.name.c_str());
+    PRINT_TRACEV(*this, "expected a struct type, but found type \"%s\"\n", buffer.type.name.c_str());
     return CheckResult::error();
   }
   // ... and that the number of members of the struct matches the argument
   // `count` of the type combiner.
   const auto& type_layout = *(buffer.type_layout);
   if (type_layout.size() != count) {
-    PRINT_ERRORV(*this, "expected %d members, but the type \"%s\" has %ld members\n", count, buffer.type.name.c_str(),
+    PRINT_TRACEV(*this, "expected %d members, but the type \"%s\" has %ld members\n", count, buffer.type.name.c_str(),
                  type_layout.size());
     return CheckResult::error();
   }
@@ -368,7 +372,7 @@ MPICall::CheckResult MPICall::check_combiner_struct(const Buffer& buffer, const 
     // ... the byte offset of the member matches the respective element in
     // the `array_of_displacements` type combiner argument.
     if (type_layout[i].offset != type.combiner.address_args[i]) {
-      PRINT_ERRORV(*this, "expected a byte offset of %ld for member %ld, but the type \"%s\" has an offset of %ld\n",
+      PRINT_TRACEV(*this, "expected a byte offset of %ld for member %ld, but the type \"%s\" has an offset of %ld\n",
                    type.combiner.address_args[i], i + 1, buffer.type.name.c_str(), type_layout[i].offset);
       result = CheckResult::error();
     }
@@ -378,7 +382,7 @@ MPICall::CheckResult MPICall::check_combiner_struct(const Buffer& buffer, const 
     // `array_of_types` type combiner argument.
     auto check_result = check_type(type_layout[i], type.combiner.type_args[i]);
     if (check_result.result != 0) {
-      PRINT_ERRORV(*this, "the typechek for member %ld failed\n", i + 1);
+      PRINT_TRACEV(*this, "the typechek for member %ld failed\n", i + 1);
       result = CheckResult::error();
       continue;
     }
@@ -387,7 +391,7 @@ MPICall::CheckResult MPICall::check_combiner_struct(const Buffer& buffer, const 
     const auto type_count   = static_cast<size_t>(array_of_blocklenghts[i]) * check_result.type_count_multiplier;
     const auto buffer_count = type_layout[i].count * check_result.buffer_count_multiplier;
     if (type_count != buffer_count) {
-      PRINT_ERRORV(*this, "expected element count of %ld for member %ld, but the type \"%s\" has a count of %lu\n",
+      PRINT_TRACEV(*this, "expected element count of %ld for member %ld, but the type \"%s\" has a count of %lu\n",
                    buffer_count, i + 1, buffer.type.name.c_str(), type_count);
       result = CheckResult::error();
     }
