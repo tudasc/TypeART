@@ -45,6 +45,10 @@ std::optional<Buffer> Buffer::create(const MPICall& call, const void* buffer) {
   int type_id;
   size_t count          = 0;
   auto typeart_status_v = typeart_get_type(buffer, &type_id, &count);
+  if (typeart_status_v == TYPEART_UNKNOWN_ADDRESS) {
+    PRINT_WARNING(call, "Buffer not registered!");
+    return {};
+  }
   if (typeart_status_v != TYPEART_OK) {
     const char* msg = error_message_for(typeart_status_v);
     PRINT_ERRORV(call, "internal runtime error (%s)\n", msg);
