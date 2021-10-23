@@ -2,7 +2,7 @@ name: TypeART-CI-ext
 
 on:
   push:
-    branches: [ master, devel ]
+    branches: [master, devel]
   pull_request:
 
 env:
@@ -81,12 +81,14 @@ jobs:
         run: ctest -V -R amg2013 -O amg2013_build.log
 
       - name: Prepare artifact
+        if: ${{ always() }}
         run: |
           mkdir -p artifact/bench
           mv test-bench/build/*_build.log artifact/bench
           mv test-bench/artifact/* artifact/bench
 
       - name: Upload test-bench artifact
+        if: ${{ always() }}
         uses: actions/upload-artifact@v2
         with:
           name: typeart-ci-ext
@@ -150,12 +152,14 @@ jobs:
         run: ctest -V -R lulesh -O ad-lulesh2.0_build.log
 
       - name: Prepare artifact
+        if: ${{ always() }}
         run: |
           mkdir -p artifact/ad-bench
           mv ad-test-bench/build/*_build.log artifact/ad-bench
           mv ad-test-bench/artifact/* artifact/ad-bench
 
       - name: Upload AD test-bench artifact
+        if: ${{ always() }}
         uses: actions/upload-artifact@v2
         with:
           name: typeart-ci-ext-ad
@@ -230,12 +234,14 @@ jobs:
         run: ctest -V -R amg2013 -O amg2013_build.log
 
       - name: Prepare artifact
+        if: ${{ always() }}
         run: |
           mkdir -p artifact/bench
           mv omp-test-bench/build/*_build.log artifact/bench
           mv omp-test-bench/artifact/* artifact/bench
 
       - name: Upload omp-test-bench artifact
+        if: ${{ always() }}
         uses: actions/upload-artifact@v2
         with:
           name: typeart-ci-ext-omp
