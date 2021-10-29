@@ -203,6 +203,13 @@
       "cacheVariables": {
         "CMAKE_CXX_FLAGS": "-stdlib=libc++"
       }
+    },
+    {
+      "name": "ci-mpi",
+      "displayName": "CI build: MPI",
+      "inherits": [
+        "ci-base"
+      ]
     }
   ]
 }

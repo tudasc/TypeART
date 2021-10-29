@@ -52,6 +52,7 @@ jobs:
           - name: ci-libcxx
             libcxx: true
             skip_test: true
+          - name: ci-mpi
 
     steps:
       - uses: actions/checkout@v2
