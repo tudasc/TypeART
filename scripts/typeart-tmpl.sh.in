@@ -199,6 +199,7 @@ function toolchain_init() {
 function make_no_optim() {
   # Order: heap and stack/global together, no optimization pass
   if [ $skip_typeart == 0 ]; then
+    echo "$compiler ${omp_flags} ${typeart_includes} ${typeart_san_flags} -O1 ${compile_flags} -Xclang -disable-llvm-passes -S -emit-llvm "${source_file}" -o - | $opt_tool ${typeart_plugin} ${typeart_combined_mode_args} ${ta_more_args} | $llc_tool -x=ir ${llc_flags} -o \"${object_file}\""
     $compiler ${omp_flags} ${typeart_includes} ${typeart_san_flags} \
       -O1 ${compile_flags} -Xclang -disable-llvm-passes -S -emit-llvm "${source_file}" -o - |
       $opt_tool ${typeart_plugin} ${typeart_combined_mode_args} ${ta_more_args} |

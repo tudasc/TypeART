@@ -55,10 +55,10 @@ struct StackCounter {
     // if(counter > 0) call runtime for stack cleanup
     const auto callback_id = util::omp::isOmpContext(f) ? IFunc::scope_omp : IFunc::scope;
 
+    // TODO
     EscapeEnumerator ee(*f);
     while (IRBuilder<>* irb = ee.Next()) {
-      auto* I = &(*irb->GetInsertPoint());
-
+      auto* I            = &(*irb->GetInsertPoint());
       auto* counter_load = irb->CreateLoad(counter, "__ta_counter_load");
       auto* cond      = irb->CreateICmpNE(counter_load, instr_helper->getConstantFor(IType::stack_count), "__ta_cond");
       auto* then_term = SplitBlockAndInsertIfThen(cond, I, false);

@@ -17,6 +17,8 @@ int main(int argc, char** argv) {
 
   double f[4];
 
+  fprintf(stderr, "BUFFER: %p\n", f);
+
   // CHECK-DAG: Buffer not registered
   // CHECK-DAG: MCounter { Error: 1
   run_test(f, 0, MPI_DOUBLE);

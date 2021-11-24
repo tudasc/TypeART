@@ -17,6 +17,7 @@
 #include "TransformUtil.h"
 #include "TypeARTFunctions.h"
 #include "analysis/MemOpData.h"
+#include "runtime/ParityConstant.h"
 #include "support/Logger.h"
 #include "support/OmpUtil.h"
 #include "support/Util.h"
@@ -55,9 +56,37 @@ InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
     auto kind                = malloc.kind;
     Instruction* malloc_call = args.get_as<Instruction>(ArgMap::ID::pointer);
 
+    // Add space to prepend the pointer info
+    if (auto call = llvm::dyn_cast<CallInst>(malloc_call)) {
+      auto size_arg = call->getArgOperand(0);
+      if (auto arg = llvm::dyn_cast<llvm::ConstantInt>(size_arg)) {
+        call->setArgOperand(0, llvm::ConstantInt::get(arg->getType(), arg->getValue() + 32));
+      } else {
+        if (auto arg = llvm::dyn_cast<llvm::Instruction>(size_arg)) {
+          IRBuilder<> arg_builder(malloc_call);
+          call->setArgOperand(0, arg_builder.CreateAdd(arg, llvm::ConstantInt::get(arg->getType(), 32, true)));
+        } else {
+          llvm::errs() << "TODO unknown malloc arg type\n";
+        }
+      }
+    }
+
+    // Insert the PointerInfo struct
+    auto& ctx = malloc_call->getContext();
+    auto type = malloc_call->getModule()->getTypeByName("Typeart_PointerInfo");
+    if (type == nullptr) {
+      type = llvm::StructType::create({instr_helper->getTypeFor(IType::type_id),
+                                       instr_helper->getTypeFor(IType::extent), llvm::Type::getInt64Ty(ctx)},
+                                      "Typeart_PointerInfo");
+    }
+    auto ptr_type = llvm::PointerType::getUnqual(type);
+
     Instruction* insertBefore = malloc_call->getNextNode();
+    Value* address            = malloc_call;
     if (malloc.array_cookie.hasValue()) {
-      insertBefore = malloc.array_cookie.getValue().array_ptr_gep->getNextNode();
+      auto array_cookie = malloc.array_cookie.getValue();
+      insertBefore      = array_cookie.array_ptr_gep->getNextNode();
+      address           = array_cookie.array_ptr_gep;
     } else {
       if (malloc.is_invoke) {
         const InvokeInst* inv = dyn_cast<InvokeInst>(malloc_call);
@@ -108,6 +137,8 @@ InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
         auto addrOp = args.get_value(ArgMap::ID::realloc_ptr);
 
         elementCount = single_byte_type ? mArg : IRB.CreateUDiv(mArg, typeSizeConst);
+
+        // TODO
         IRBuilder<> FreeB(malloc_call);
         const auto callback_id = omp ? IFunc::free_omp : IFunc::free;
         FreeB.CreateCall(fquery->getFunctionFor(callback_id), ArrayRef<Value*>{addrOp});
@@ -118,8 +149,26 @@ InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
         continue;
     }
 
+    // Write Fat Pointer data
+    auto ptr_info = llvm::dyn_cast<BitCastInst>(IRB.CreateBitCast(address, ptr_type));
+    auto type_id  = IRB.CreateStructGEP(ptr_info, 0);
+    IRB.CreateStore(typeIdConst, type_id);
+    auto count = IRB.CreateStructGEP(ptr_info, 1);
+    IRB.CreateStore(elementCount, count);
+    auto parity = IRB.CreateStructGEP(ptr_info, 2);
+    IRB.CreateStore(llvm::ConstantInt::get(llvm::Type::getInt64Ty(ctx), parity_constant), parity);
+
+    // Offset original pointer and replace uses
+    auto user_data = llvm::dyn_cast<GetElementPtrInst>(
+        IRB.CreateInBoundsGEP(address, llvm::ConstantInt::get(llvm::Type::getInt64Ty(ctx), 32)));
+    address->replaceAllUsesWith(user_data);
+    ptr_info->setOperand(0, address);
+    user_data->setOperand(0, address);
+
+    // TODO
     const auto callback_id = omp ? IFunc::heap_omp : IFunc::heap;
-    IRB.CreateCall(fquery->getFunctionFor(callback_id), ArrayRef<Value*>{malloc_call, typeIdConst, elementCount});
+    IRB.CreateCall(fquery->getFunctionFor(callback_id), ArrayRef<Value*>{user_data, typeIdConst, elementCount});
+
     ++counter;
   }
 
@@ -130,6 +179,7 @@ InstrCount MemOpInstrumentation::instrumentFree(const FreeArgList& frees) {
   InstrCount counter{0};
   for (const auto& [fdata, args] : frees) {
     auto free_call       = fdata.call;
+    auto& ctx            = free_call->getContext();
     const bool is_invoke = fdata.is_invoke;
 
     Instruction* insertBefore = free_call->getNextNode();
@@ -151,15 +201,48 @@ InstrCount MemOpInstrumentation::instrumentFree(const FreeArgList& frees) {
     }
 
     IRBuilder<> IRB(insertBefore);
+    // Reapply the Fat Pointer offset.
+    IRBuilder<> free_builder(llvm::dyn_cast<Instruction>(free_arg)->getNextNode());
+    auto original_ptr = llvm::dyn_cast<GetElementPtrInst>(free_builder.CreateInBoundsGEP(
+        free_arg, llvm::ConstantInt::get(llvm::Type::getInt64Ty(ctx), llvm::APInt(64, 0, true) - 32)));
+    free_arg->replaceAllUsesWith(original_ptr);
+    original_ptr->setOperand(0, free_arg);
 
+    // TODO
     auto parent_f          = fdata.call->getFunction();
     const auto callback_id = util::omp::isOmpContext(parent_f) ? IFunc::free_omp : IFunc::free;
-
     IRB.CreateCall(fquery->getFunctionFor(callback_id), ArrayRef<Value*>{free_arg});
+
     ++counter;
   }
 
   return counter;
+}
+
+std::string typeNameFor(llvm::Type* ty) {
+  if (ty->isPointerTy()) {
+    return typeNameFor(llvm::dyn_cast<PointerType>(ty)->getElementType()) + "*";
+  } else if (ty->isStructTy()) {
+    return ty->getStructName();
+  } else if (ty->isIntegerTy()) {
+    auto int_ty = llvm::dyn_cast<IntegerType>(ty);
+    return std::string{"i"} + std::to_string(int_ty->getBitWidth());
+  } else if (ty->isArrayTy()) {
+    auto arr_ty = llvm::dyn_cast<ArrayType>(ty);
+    return std::string{"["} + std::to_string(arr_ty->getNumElements()) + " x " + typeNameFor(arr_ty->getElementType()) +
+           "]";
+  } else if (ty->isFunctionTy()) {
+    auto fn_ty = llvm::dyn_cast<FunctionType>(ty);
+    auto param = std::string("");
+    for (auto& arg : fn_ty->params()) {
+      param += typeNameFor(arg);
+      param += ", ";
+    }
+    return typeNameFor(fn_ty->getReturnType()) + "(" + param + ")";
+  } else if (ty->isVoidTy()) {
+    return "void";
+  }
+  assert(false);
 }
 
 InstrCount MemOpInstrumentation::instrumentStack(const StackArgList& stack) {
@@ -168,19 +251,49 @@ InstrCount MemOpInstrumentation::instrumentStack(const StackArgList& stack) {
   StackCounter::StackOpCounter allocCounts;
   Function* f{nullptr};
   for (const auto& [sdata, args] : stack) {
-    // auto alloca = sdata.alloca;
-    auto* alloca = args.get_as<Instruction>(ArgMap::ID::pointer);
+    auto* alloca = args.get_as<llvm::AllocaInst>(ArgMap::ID::pointer);
+    auto& ctx    = alloca->getContext();
+
+    // Insert the PointerInfo struct
+    auto info_type = alloca->getModule()->getTypeByName("Typeart_PointerInfo");
+    if (info_type == nullptr) {
+      info_type = llvm::StructType::create({instr_helper->getTypeFor(IType::type_id),
+                                            instr_helper->getTypeFor(IType::extent), llvm::Type::getInt64Ty(ctx)},
+                                           "Typeart_PointerInfo");
+    }
+
+    // Create a struct data type for the stack allocation
+    auto allocated_type = alloca->getAllocatedType();
+    auto type           = (llvm::Type*)nullptr;
+    auto name           = std::string{"Typeart_Wrapper_"};  // + typeNameFor(allocated_type);
+    // type                = alloca->getModule()->getTypeByName(name);
+    if (type == nullptr) {
+      type = llvm::StructType::create({info_type, llvm::Type::getInt64Ty(ctx), alloca->getAllocatedType()}, name);
+    }
 
     IRBuilder<> IRB(alloca->getNextNode());
 
     auto typeIdConst    = args.get_value(ArgMap::ID::type_id);
     auto numElementsVal = args.get_value(ArgMap::ID::element_count);
-    auto arrayPtr       = IRB.CreateBitOrPointerCast(alloca, instr_helper->getTypeFor(IType::ptr));
 
     auto parent_f          = sdata.alloca->getFunction();
     const auto callback_id = util::omp::isOmpContext(parent_f) ? IFunc::stack_omp : IFunc::stack;
+    auto instr_alloca      = IRB.CreateAlloca(type);
+    instr_alloca->setAlignment(llvm::MaybeAlign{alloca->getAlignment()});
+    auto ptr_info = IRB.CreateStructGEP(instr_alloca, 0);
+    auto type_id  = IRB.CreateStructGEP(ptr_info, 0);
+    IRB.CreateStore(typeIdConst, type_id);
+    auto count = IRB.CreateStructGEP(ptr_info, 1);
+    IRB.CreateStore(numElementsVal, count);
+    auto parity = IRB.CreateStructGEP(ptr_info, 2);
+    IRB.CreateStore(llvm::ConstantInt::get(llvm::Type::getInt64Ty(ctx), parity_constant), parity);
+    auto user_data = IRB.CreateStructGEP(instr_alloca, 2);
+    alloca->replaceAllUsesWith(user_data);
 
+    // TODO
+    auto arrayPtr = IRB.CreateBitOrPointerCast(user_data, instr_helper->getTypeFor(IType::ptr));
     IRB.CreateCall(fquery->getFunctionFor(callback_id), ArrayRef<Value*>{arrayPtr, typeIdConst, numElementsVal});
+
     ++counter;
 
     auto bb = alloca->getParent();
@@ -188,6 +301,8 @@ InstrCount MemOpInstrumentation::instrumentStack(const StackArgList& stack) {
     if (!f) {
       f = bb->getParent();
     }
+
+    // alloca->removeFromParent();
   }
 
   if (f) {
@@ -205,10 +320,25 @@ InstrCount MemOpInstrumentation::instrumentGlobal(const GlobalArgList& globals) 
     for (const auto& [gdata, args] : globals) {
       // Instruction* global = args.get_as<llvm::Instruction>("pointer");
       auto global         = gdata.global;
+      auto& ctx           = global->getContext();
       auto typeIdConst    = args.get_value(ArgMap::ID::type_id);
       auto numElementsVal = args.get_value(ArgMap::ID::element_count);
-      auto globalPtr      = IRB.CreateBitOrPointerCast(global, instr_helper->getTypeFor(IType::ptr));
-      IRB.CreateCall(fquery->getFunctionFor(IFunc::global), ArrayRef<Value*>{globalPtr, typeIdConst, numElementsVal});
+      // auto globalPtr      = IRB.CreateBitOrPointerCast(global, instr_helper->getTypeFor(IType::ptr));
+      // IRB.CreateCall(fquery->getFunctionFor(IFunc::global), ArrayRef<Value*>{globalPtr, typeIdConst,
+      // numElementsVal});
+
+      // auto ptr_info = IRB.CreateStructGEP(global, 0);
+      // auto type_id  = IRB.CreateStructGEP(ptr_info, 0);
+      // IRB.CreateStore(typeIdConst, type_id);
+      // auto count = IRB.CreateStructGEP(ptr_info, 1);
+      // IRB.CreateStore(numElementsVal, count);
+      // auto addr    = IRB.CreateStructGEP(ptr_info, 2);
+      // auto i8_null = llvm::ConstantPointerNull::get(llvm::PointerType::getUnqual(llvm::Type::getInt8Ty(ctx)));
+      // IRB.CreateStore(i8_null, addr);
+      // auto user_data = IRB.CreateStructGEP(global, 1);
+      // global->replaceAllUsesWith(user_data);
+      // global->removeFromParent();
+
       ++counter;
     }
   };

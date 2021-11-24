@@ -13,6 +13,7 @@
 #include "TypeResolution.h"
 
 #include "AllocationTracking.h"
+#include "ParityConstant.h"
 #include "Runtime.h"
 #include "RuntimeData.h"
 #include "RuntimeInterface.h"
@@ -254,14 +255,52 @@ const TypeDB& TypeResolution::db() const {
   return typeDB;
 }
 
+template <typename T>
+void print_binary(T* t) {
+  auto arr = (unsigned char*)t;
+  for (size_t i = 0; i < sizeof(T); ++i) {
+    fprintf(stderr, "%02x ", arr[i]);
+  }
+  fprintf(stderr, "\n");
+}
+
 namespace detail {
 inline typeart_status query_type(const void* addr, int* type, size_t* count) {
-  auto alloc = typeart::RuntimeSystem::get().allocTracker.findBaseAlloc(addr);
-  typeart::RuntimeSystem::get().recorder.incUsedInRequest(addr);
-  if (alloc) {
-    return typeart::RuntimeSystem::get().typeResolution.getTypeInfo(addr, alloc->first, alloc->second, type, count);
+  fflush(stderr);
+  fprintf(stderr, "=====\n");
+  fprintf(stderr, "%p\n", addr);
+  fflush(stderr);
+  auto original_alloc = typeart::RuntimeSystem::get().allocTracker.findBaseAlloc(addr);
+  if (original_alloc) {
+    auto& ptr_info = original_alloc->second;
+    print_binary(&ptr_info);
+    fprintf(stderr, "%p %p\n", addr, original_alloc->first);
+    fprintf(stderr, "=====\n");
   }
-  return TYPEART_UNKNOWN_ADDRESS;
+  fflush(stderr);
+
+  auto alignment_mask  = ~(alignof(PointerInfo) - 1);
+  const auto base_addr = [&]() {
+    auto result = (const size_t*)((std::intptr_t)addr & alignment_mask) - 2;
+    for (; *result != parity_constant; --result)
+      ;
+    return (const void*)(result + 2);
+  }();
+  auto alloc = (const PointerInfo*)((const char*)base_addr - 32);
+
+  fprintf(stderr, "%p %p\n", addr, base_addr);
+  if (original_alloc) {
+    auto& ptr_info = original_alloc->second;
+    print_binary(alloc);
+    fprintf(stderr, "ALLOC TYPEID: %d %d\n", alloc->typeId, ptr_info.typeId);
+    fprintf(stderr, "ALLOC COUNT:  %zu %zu\n", alloc->count, ptr_info.count);
+    assert(alloc->typeId == ptr_info.typeId);
+    assert(alloc->count == ptr_info.count);
+  }
+  fprintf(stderr, "=====\n");
+
+  typeart::RuntimeSystem::get().recorder.incUsedInRequest(addr);
+  return typeart::RuntimeSystem::get().typeResolution.getTypeInfo(addr, base_addr, *alloc, type, count);
 }
 
 inline typeart_status query_struct_layout(int id, typeart_struct_layout* struct_layout) {

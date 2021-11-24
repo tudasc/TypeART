@@ -54,6 +54,8 @@ struct PointerInfo final {
   MemAddr debug{nullptr};
 };
 
+static_assert(sizeof(PointerInfo) == 24);
+
 struct RuntimeT {
   using Stack = std::vector<MemAddr>;
   static constexpr auto StackReserve{512U};

@@ -135,7 +135,8 @@ std::optional<SourceLocation> SourceLocation::create(const void* addr) {
 
     if (sloc_helper.hasLLVMSymbolizer()) {
       std::ostringstream command;
-      command << "llvm-symbolizer --demangle --output-style=GNU -f -e " << proc.exe() << " " << addr;
+      command << "unset LD_PRELOAD && llvm-symbolizer --demangle --output-style=GNU -f -e " << proc.exe() << " "
+              << addr;
       auto llvm_symbolizer = system::CommandPipe::create(command.str());
       if (llvm_symbolizer) {
         return llvm_symbolizer;
@@ -144,7 +145,7 @@ std::optional<SourceLocation> SourceLocation::create(const void* addr) {
 
     if (sloc_helper.hasAddr2line()) {
       std::ostringstream command;
-      command << "addr2line --demangle=auto -f -e " << proc.exe() << " " << addr;
+      command << "unset LD_PRELOAD && addr2line --demangle=auto -f -e " << proc.exe() << " " << addr;
       auto addr2line = system::CommandPipe::create(command.str());
       if (addr2line) {
         return addr2line;
