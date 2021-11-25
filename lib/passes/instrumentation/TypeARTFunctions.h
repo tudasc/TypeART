@@ -40,6 +40,8 @@ enum class IFunc : unsigned {
   stack_omp,
   free_omp,
   scope_omp,
+  set_context,
+  clear_context,
 };
 
 class TAFunctionQuery {

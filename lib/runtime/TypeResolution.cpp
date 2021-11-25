@@ -266,18 +266,18 @@ void print_binary(T* t) {
 
 namespace detail {
 inline typeart_status query_type(const void* addr, int* type, size_t* count) {
-  fflush(stderr);
-  fprintf(stderr, "=====\n");
-  fprintf(stderr, "%p\n", addr);
-  fflush(stderr);
-  auto original_alloc = typeart::RuntimeSystem::get().allocTracker.findBaseAlloc(addr);
-  if (original_alloc) {
-    auto& ptr_info = original_alloc->second;
-    print_binary(&ptr_info);
-    fprintf(stderr, "%p %p\n", addr, original_alloc->first);
-    fprintf(stderr, "=====\n");
-  }
-  fflush(stderr);
+  // fflush(stderr);
+  // fprintf(stderr, "=====\n");
+  // fprintf(stderr, "%p\n", addr);
+  // fflush(stderr);
+  // auto original_alloc = typeart::RuntimeSystem::get().allocTracker.findBaseAlloc(addr);
+  // if (original_alloc) {
+  //   auto& ptr_info = original_alloc->second;
+  //   print_binary(&ptr_info);
+  //   fprintf(stderr, "%p %p\n", addr, original_alloc->first);
+  //   fprintf(stderr, "=====\n");
+  // }
+  // fflush(stderr);
 
   auto alignment_mask  = ~(alignof(PointerInfo) - 1);
   const auto base_addr = [&]() {
@@ -288,18 +288,18 @@ inline typeart_status query_type(const void* addr, int* type, size_t* count) {
   }();
   auto alloc = (const PointerInfo*)((const char*)base_addr - 32);
 
-  fprintf(stderr, "%p %p\n", addr, base_addr);
-  if (original_alloc) {
-    auto& ptr_info = original_alloc->second;
-    print_binary(alloc);
-    fprintf(stderr, "ALLOC TYPEID: %d %d\n", alloc->typeId, ptr_info.typeId);
-    fprintf(stderr, "ALLOC COUNT:  %zu %zu\n", alloc->count, ptr_info.count);
-    assert(alloc->typeId == ptr_info.typeId);
-    assert(alloc->count == ptr_info.count);
-  }
-  fprintf(stderr, "=====\n");
+  // fprintf(stderr, "%p %p\n", addr, base_addr);
+  // if (original_alloc) {
+  //   auto& ptr_info = original_alloc->second;
+  //   print_binary(alloc);
+  //   fprintf(stderr, "ALLOC TYPEID: %d %d\n", alloc->typeId, ptr_info.typeId);
+  //   fprintf(stderr, "ALLOC COUNT:  %zu %zu\n", alloc->count, ptr_info.count);
+  //   assert(alloc->typeId == ptr_info.typeId);
+  //   assert(alloc->count == ptr_info.count);
+  // }
+  // fprintf(stderr, "=====\n");
 
-  typeart::RuntimeSystem::get().recorder.incUsedInRequest(addr);
+  // typeart::RuntimeSystem::get().recorder.incUsedInRequest(addr);
   return typeart::RuntimeSystem::get().typeResolution.getTypeInfo(addr, base_addr, *alloc, type, count);
 }
 

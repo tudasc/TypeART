@@ -36,6 +36,9 @@ void __typeart_alloc_omp(const void* addr, int type_id, size_t count);
 void __typeart_free_omp(const void* addr);
 void __typeart_alloc_stack_omp(const void* addr, int type_id, size_t count);
 void __typeart_leave_scope_omp(int alloca_count);
+
+void __typeart_set_context();
+void __typeart_clear_context();
 #ifdef __cplusplus
 }
 #endif

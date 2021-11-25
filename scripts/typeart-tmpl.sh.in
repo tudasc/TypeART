@@ -129,6 +129,7 @@ function global_init() {
     local -r typeart_include_dir="@TYPEART_INCLUDE_DIRS@"
     local -r typeart_analysis_pass="@TYPEART_ANALYSIS_PASS_DIR@/$<TARGET_FILE_NAME:typeart::MemOpFinderPass>"
     local -r typeart_pass="@TYPEART_PASS_DIR@/$<TARGET_FILE_NAME:typeart::TransformPass>"
+    readonly typeart_preload="@TYPEART_PRELOAD_DIR@/$<TARGET_FILE_NAME:typeart::Preload>"
     readonly typeart_interceptor="@TYPEART_MPI_INTERCEPT_DIR@/@TYPEART_MPI_TOOL@"
   else
     # shellcheck disable=SC2155
@@ -139,6 +140,7 @@ function global_init() {
     local -r typeart_include_dir="-I${typeart_install_dir}/@CMAKE_INSTALL_INCLUDEDIR@"
     local -r typeart_analysis_pass="${typeart_lib_dir}/$<TARGET_FILE_NAME:typeart::MemOpFinderPass>"
     local -r typeart_pass="${typeart_lib_dir}/$<TARGET_FILE_NAME:typeart::TransformPass>"
+    readonly typeart_preload="@TYPEART_PRELOAD_DIR@/$<TARGET_FILE_NAME:typeart::Preload>"
     readonly typeart_interceptor="@TYPEART_MPI_INTERCEPT_DIR@/@TYPEART_MPI_TOOL@"
   fi
 
@@ -261,14 +263,14 @@ function execute() {
   if [ $with_intercept == 1 ]; then
     if [ $typeart_has_interceptor == 1 ]; then
       echo -e Executing with runtime and interceptor lib
-      LD_LIBRARY_PATH="$LD_LIBRARY_PATH:${typeart_lib_dir}" LD_PRELOAD="${typeart_interceptor}" TYPEART_TYPE_FILE=${types_yaml} ${command}
+      LD_LIBRARY_PATH="$LD_LIBRARY_PATH:${typeart_lib_dir}" LD_PRELOAD="${typeart_interceptor} ${typeart_preload}" TYPEART_TYPE_FILE=${types_yaml} ${command}
     else
       echo -e Interceptor lib not compiled with TypeART, exiting!
       exit 1
     fi
   else
     echo -e Executing with runtime lib
-    LD_LIBRARY_PATH="$LD_LIBRARY_PATH:${typeart_lib_dir}" TYPEART_TYPE_FILE=${types_yaml} ${command}
+    LD_LIBRARY_PATH="$LD_LIBRARY_PATH:${typeart_lib_dir}" LD_PRELOAD="${typeart_preload}" TYPEART_TYPE_FILE=${types_yaml} ${command}
   fi
 }
 

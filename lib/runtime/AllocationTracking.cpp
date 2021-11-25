@@ -28,6 +28,10 @@
 #include <type_traits>
 #include <vector>
 
+extern "C" {
+thread_local int8_t TYPEART_CONTEXT = 0;
+}
+
 #ifdef USE_BTREE
 using namespace btree;
 #endif
@@ -286,4 +290,14 @@ void __typeart_leave_scope_omp(int alloca_count) {
   TYPEART_RUNTIME_GUARD;
   const void* retAddr = __builtin_return_address(0);
   typeart::RuntimeSystem::get().allocTracker.onLeaveScope(alloca_count, retAddr);
+}
+
+void __typeart_set_context() {
+  // fprintf(stderr, "SET CONTEXT\n");
+  TYPEART_CONTEXT += 1;
+}
+
+void __typeart_clear_context() {
+  // fprintf(stderr, "CLEAR CONTEXT\n");
+  TYPEART_CONTEXT -= 1;
 }

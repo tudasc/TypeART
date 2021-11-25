@@ -23,6 +23,9 @@ function(configure_typeart_script input output)
     set(TYPEART_ANALYSIS_PASS_DIR
         ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}
     )
+    set(TYPEART_PRELOAD_DIR
+        ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}
+    )
     set(TYPEART_BINARY_DIR -I${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR})
     set(TYPEART_RELOCATABLE 1)
   else()
@@ -33,6 +36,7 @@ function(configure_typeart_script input output)
     set(TYPEART_RT_DIR ${CMAKE_BINARY_DIR}/lib/runtime)
     set(TYPEART_PASS_DIR ${CMAKE_BINARY_DIR}/lib/passes)
     set(TYPEART_ANALYSIS_PASS_DIR ${TYPEART_PASS_DIR}/analysis)
+    set(TYPEART_PRELOAD_DIR ${CMAKE_BINARY_DIR}/lib/preload)
     set(TYPEART_BINARY_DIR ${CMAKE_BINARY_DIR})
     set(TYPEART_RELOCATABLE 0)
   endif()

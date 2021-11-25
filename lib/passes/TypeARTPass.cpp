@@ -193,6 +193,11 @@ void TypeArtPass::declareInstrumentationFunctions(Module& m) {
     return;
   }
 
+  // auto global = llvm::dyn_cast<llvm::GlobalVariable>(
+  //     m.getOrInsertGlobal("TYPEART_CONTEXT", llvm::Type::getInt8Ty(m.getContext())));
+  // global->setThreadLocal(true);
+  // global->setAlignment(1);
+
   TAFunctionDeclarator decl(m, instrumentation_helper, functions);
 
   auto alloc_arg_types      = instrumentation_helper.make_parameters(IType::ptr, IType::type_id, IType::extent);
@@ -204,6 +209,9 @@ void TypeArtPass::declareInstrumentationFunctions(Module& m) {
   typeart_alloc_global.f = decl.make_function(IFunc::global, typeart_alloc_global.name, alloc_arg_types);
   typeart_free.f         = decl.make_function(IFunc::free, typeart_free.name, free_arg_types);
   typeart_leave_scope.f  = decl.make_function(IFunc::scope, typeart_leave_scope.name, leavescope_arg_types);
+
+  typeart_set_context.f   = decl.make_function(IFunc::set_context, typeart_set_context.name, {});
+  typeart_clear_context.f = decl.make_function(IFunc::clear_context, typeart_clear_context.name, {});
 
   typeart_alloc_omp.f = decl.make_function(IFunc::heap_omp, typeart_alloc_omp.name, alloc_arg_types, true);
   typeart_alloc_stacks_omp.f =

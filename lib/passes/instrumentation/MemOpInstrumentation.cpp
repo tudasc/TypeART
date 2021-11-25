@@ -55,6 +55,10 @@ InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
   for (const auto& [malloc, args] : heap) {
     auto kind                = malloc.kind;
     Instruction* malloc_call = args.get_as<Instruction>(ArgMap::ID::pointer);
+    auto& ctx                = malloc_call->getContext();
+
+    IRBuilder<> IRM(malloc_call);
+    IRM.CreateCall(fquery->getFunctionFor(IFunc::set_context));
 
     // Add space to prepend the pointer info
     if (auto call = llvm::dyn_cast<CallInst>(malloc_call)) {
@@ -72,7 +76,6 @@ InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
     }
 
     // Insert the PointerInfo struct
-    auto& ctx = malloc_call->getContext();
     auto type = malloc_call->getModule()->getTypeByName("Typeart_PointerInfo");
     if (type == nullptr) {
       type = llvm::StructType::create({instr_helper->getTypeFor(IType::type_id),
@@ -95,6 +98,7 @@ InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
     }
 
     IRBuilder<> IRB(insertBefore);
+    IRB.CreateCall(fquery->getFunctionFor(IFunc::clear_context));
 
     auto typeIdConst   = args.get_value(ArgMap::ID::type_id);
     auto typeSizeConst = args.get_value(ArgMap::ID::type_size);
@@ -166,8 +170,8 @@ InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
     user_data->setOperand(0, address);
 
     // TODO
-    const auto callback_id = omp ? IFunc::heap_omp : IFunc::heap;
-    IRB.CreateCall(fquery->getFunctionFor(callback_id), ArrayRef<Value*>{user_data, typeIdConst, elementCount});
+    // const auto callback_id = omp ? IFunc::heap_omp : IFunc::heap;
+    // IRB.CreateCall(fquery->getFunctionFor(callback_id), ArrayRef<Value*>{user_data, typeIdConst, elementCount});
 
     ++counter;
   }
@@ -202,16 +206,16 @@ InstrCount MemOpInstrumentation::instrumentFree(const FreeArgList& frees) {
 
     IRBuilder<> IRB(insertBefore);
     // Reapply the Fat Pointer offset.
-    IRBuilder<> free_builder(llvm::dyn_cast<Instruction>(free_arg)->getNextNode());
-    auto original_ptr = llvm::dyn_cast<GetElementPtrInst>(free_builder.CreateInBoundsGEP(
-        free_arg, llvm::ConstantInt::get(llvm::Type::getInt64Ty(ctx), llvm::APInt(64, 0, true) - 32)));
-    free_arg->replaceAllUsesWith(original_ptr);
-    original_ptr->setOperand(0, free_arg);
+    // IRBuilder<> free_builder(llvm::dyn_cast<Instruction>(free_arg)->getNextNode());
+    // auto original_ptr = llvm::dyn_cast<GetElementPtrInst>(free_builder.CreateInBoundsGEP(
+    //     free_arg, llvm::ConstantInt::get(llvm::Type::getInt64Ty(ctx), llvm::APInt(64, 0, true) - 32)));
+    // free_arg->replaceAllUsesWith(original_ptr);
+    // original_ptr->setOperand(0, free_arg);
 
     // TODO
-    auto parent_f          = fdata.call->getFunction();
-    const auto callback_id = util::omp::isOmpContext(parent_f) ? IFunc::free_omp : IFunc::free;
-    IRB.CreateCall(fquery->getFunctionFor(callback_id), ArrayRef<Value*>{free_arg});
+    // auto parent_f          = fdata.call->getFunction();
+    // const auto callback_id = util::omp::isOmpContext(parent_f) ? IFunc::free_omp : IFunc::free;
+    // IRB.CreateCall(fquery->getFunctionFor(callback_id), ArrayRef<Value*>{free_arg});
 
     ++counter;
   }
@@ -291,8 +295,8 @@ InstrCount MemOpInstrumentation::instrumentStack(const StackArgList& stack) {
     alloca->replaceAllUsesWith(user_data);
 
     // TODO
-    auto arrayPtr = IRB.CreateBitOrPointerCast(user_data, instr_helper->getTypeFor(IType::ptr));
-    IRB.CreateCall(fquery->getFunctionFor(callback_id), ArrayRef<Value*>{arrayPtr, typeIdConst, numElementsVal});
+    // auto arrayPtr = IRB.CreateBitOrPointerCast(user_data, instr_helper->getTypeFor(IType::ptr));
+    // IRB.CreateCall(fquery->getFunctionFor(callback_id), ArrayRef<Value*>{arrayPtr, typeIdConst, numElementsVal});
 
     ++counter;
 
