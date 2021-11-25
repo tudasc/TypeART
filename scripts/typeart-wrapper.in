@@ -46,6 +46,7 @@ function global_init() {
                           -load "${typeart_pass}" -typeart"
   readonly typeart_stack_mode_args="-typeart-no-heap -typeart-alloca -typeart-stats @TYPEART_CALLFILTER@"
   readonly typeart_heap_mode_args="-typeart-no-heap=false -typeart-stats"
+  readonly typeart_combined_mode_args="${typeart_heap_mode_args} -typeart-alloca"
 }
 
 function is_wrapper_disabled() {
@@ -249,9 +250,10 @@ function main_compile() {
   # shellcheck disable=SC2086
   $compiler ${ta_more_args} ${typeart_includes} ${typeart_san_flags} \
     -O1 -Xclang -disable-llvm-passes -S -emit-llvm "${source_file}" -o - |
-    $opt_tool ${typeart_plugin} ${typeart_heap_mode_args} |
+    # $opt_tool ${typeart_plugin} ${typeart_heap_mode_args} |
+    $opt_tool ${typeart_plugin} ${typeart_combined_mode_args} |
     $opt_tool ${optimize} -S |
-    $opt_tool ${typeart_plugin} ${typeart_stack_mode_args} |
+    # $opt_tool ${typeart_plugin} ${typeart_stack_mode_args} |
     $llc_tool -x=ir ${llc_flags} -o "${out_file}"
 }
 

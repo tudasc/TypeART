@@ -22,6 +22,10 @@ static void* libc_function(const char* function_name) {
 
 static thread_local int8_t skip = 0;
 
+__attribute__((destructor)) static void __dtor() {
+  fprintf(stderr, "PRELOAD DTOR\n");
+}
+
 void __typeart_preload_print_backtrace() {
   skip += 1;
   int nptrs;
@@ -42,7 +46,7 @@ void __typeart_preload_print_backtrace() {
 size_t const offset = 32;
 
 void* malloc(size_t size) {
-  // fprintf(stderr, "%d MALLOC %d\n", TYPEART_CONTEXT, skip);
+  fprintf(stderr, "%d MALLOC %d\n", TYPEART_CONTEXT, skip);
   static thread_local void* (*real_malloc)(size_t) = NULL;
   if (!real_malloc) {
     real_malloc = (void* (*)(size_t))libc_function("malloc");
@@ -53,19 +57,19 @@ void* malloc(size_t size) {
   skip += 1;
   void* result = real_malloc(size + offset);
   skip -= 1;
-  // fprintf(stderr, "==> %d MALLOC %p of size %zu\n", result, size);
+  fprintf(stderr, "==> MALLOC %p of size %zu\n", result, size);
   return result == NULL ? NULL : ((char*)result + offset);
 }
 
 static thread_local char* buffer[8192] = {0};
 
 void* initial_calloc(size_t num, size_t size) {
-  // fprintf(stderr, "INITIAL CALLOC %p\n", buffer);
+  fprintf(stderr, "INITIAL CALLOC %p\n", buffer);
   return buffer;
 }
 
 void* calloc(size_t num, size_t size) {
-  // fprintf(stderr, "CALLOC %d\n", skip);
+  fprintf(stderr, "CALLOC %d\n", skip);
   static thread_local void* (*real_calloc)(size_t, size_t) = NULL;
   if (!real_calloc) {
     real_calloc = initial_calloc;
@@ -78,12 +82,12 @@ void* calloc(size_t num, size_t size) {
   skip += 1;
   void* result = real_calloc(bytes + offset, 1);
   skip -= 1;
-  // fprintf(stderr, "==> CALLOC %p of num %zu and size %zu\n", result, num, size);
+  fprintf(stderr, "==> CALLOC %p of num %zu and size %zu\n", result, num, size);
   return result == NULL ? NULL : ((char*)result + offset);
 }
 
 void free(void* ptr) {
-  // fprintf(stderr, "%d FREE %d\n", TYPEART_CONTEXT, skip);
+  fprintf(stderr, "%d FREE %d\n", TYPEART_CONTEXT, skip);
   static thread_local void (*real_free)(void*) = NULL;
   if (!real_free) {
     real_free = (void (*)(void*))libc_function("free");
@@ -92,14 +96,14 @@ void free(void* ptr) {
     real_free(ptr);
     return;
   }
-  // fprintf(stderr, "==> FREE %p\n", ptr == NULL ? NULL : ((char*)ptr - offset));
+  fprintf(stderr, "==> FREE %p\n", ptr == NULL ? NULL : ((char*)ptr - offset));
   skip += 1;
   real_free(ptr == NULL ? NULL : ((char*)ptr - offset));
   skip -= 1;
 }
 
 void* realloc(void* ptr, size_t new_size) {
-  // fprintf(stderr, "REALLOC %d\n", skip);
+  fprintf(stderr, "REALLOC %d\n", skip);
   static thread_local void* (*real_realloc)(void*, size_t) = NULL;
   if (!real_realloc) {
     real_realloc = (void* (*)(void*, size_t))libc_function("realloc");
@@ -107,11 +111,11 @@ void* realloc(void* ptr, size_t new_size) {
   if (skip >= 1) {
     return real_realloc(ptr, new_size);
   }
-  // fprintf(stderr, "==> REALLOC %p to %zu\n", ptr, new_size);
+  fprintf(stderr, "==> REALLOC %p to %zu\n", ptr, new_size);
   skip += 1;
   void* result = real_realloc(ptr == NULL ? NULL : ((char*)ptr - offset), new_size + offset);
   skip -= 1;
-  // fprintf(stderr, "==> REALLOC %p of size %zu\n", result, new_size);
+  fprintf(stderr, "==> REALLOC %p of size %zu\n", result, new_size);
   return result == NULL ? NULL : ((char*)result + offset);
 }
 
@@ -122,7 +126,7 @@ void* memalign(size_t alignment, size_t size) {
     actual = (ACTUAL)libc_function("memalign");
   }
   void* result = actual(alignment, size);
-  // fprintf(stderr, "==> MEMALIGN %p\n", result);
+  fprintf(stderr, "==> MEMALIGN %p\n", result);
   return result;
 }
 
@@ -133,7 +137,7 @@ void* aligned_alloc(size_t alignment, size_t size) {
     actual = (ACTUAL)libc_function("aligned_alloc");
   }
   void* result = actual(alignment, size);
-  // fprintf(stderr, "==> ALIGNED_ALLOC %p\n", result);
+  fprintf(stderr, "==> ALIGNED_ALLOC %p\n", result);
   return result;
 }
 
@@ -144,7 +148,7 @@ void* valloc(size_t size) {
     actual = (ACTUAL)libc_function("valloc");
   }
   void* result = actual(size);
-  // fprintf(stderr, "==> VALLOC %p\n", result);
+  fprintf(stderr, "==> VALLOC %p\n", result);
   return result;
 }
 
@@ -155,7 +159,7 @@ void* pvalloc(size_t size) {
     actual = (ACTUAL)libc_function("pvalloc");
   }
   void* result = actual(size);
-  // fprintf(stderr, "==> PVALLOC %p\n", result);
+  fprintf(stderr, "==> PVALLOC %p\n", result);
   return result;
 }
 
@@ -165,7 +169,8 @@ int posix_memalign(void** memptr, size_t alignment, size_t size) {
   if (!actual) {
     actual = (ACTUAL)libc_function("posix_memalign");
   }
-  int result = actual(memptr, alignment, size);
-  // fprintf(stderr, "==> POSIX_MEMALIGN %p\n", *memptr);
+  int result = actual(memptr, alignment, size + 32);
+  fprintf(stderr, "==> POSIX_MEMALIGN %p %zu %zu\n", *memptr, alignment, size);
+  *memptr = (char*)(*memptr) + 32;
   return result;
 }

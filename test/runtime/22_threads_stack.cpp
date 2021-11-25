@@ -4,10 +4,9 @@
 // REQUIRES: thread
 // clang-format on
 
-#include <stdlib.h>
-
-#include <thread>
 #include <stdio.h>
+#include <stdlib.h>
+#include <thread>
 
 void f() {
   char c[7];
