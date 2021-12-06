@@ -48,6 +48,8 @@ function(configure_typeart_script input output)
   if(ARG_COMPILER)
     set(TYPEART_COMPILER ${ARG_COMPILER})
   endif()
+  set(TYPEART_CLANG ${CLANG_EXEC})
+  set(TYPEART_CLANG_CPP ${CLANGCXX_EXEC})
   set(TYPEART_OPT ${OPT_EXEC})
   set(TYPEART_LLC ${LLC_EXEC})
 

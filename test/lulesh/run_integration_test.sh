@@ -3,8 +3,9 @@
 exe="$1"
 np=$2
 args="$3"
-TYPEART_PATH_RT="$4"
-TYPEART_PATH_INTERCEPT="$5"
+TYPEART_PLUGIN_PATH_RT="$4"
+TYPEART_PLUGIN_PATH_INTERCEPT="$5"
+preload="$TYPEART_PLUGIN_PATH_RT $TYPEART_PLUGIN_PATH_INTERCEPT"
 
 log_file="$(basename $exe)_out.log"
 
@@ -14,9 +15,9 @@ fi
 
 type_file="$(pwd)/types.yaml"
 
-echo "Executing integration test: mpiexec -n $np $exe $args with typeart runtime=$TYPEART_PATH_RT and typeart intercept=$TYPEART_PATH_INTERCEPT inside folder: $(pwd)"
+echo "Executing integration test: mpiexec -n $np $exe $args with typeart runtime=$TYPEART_PLUGIN_PATH_RT and typeart intercept=$TYPEART_PLUGIN_PATH_INTERCEPT inside folder: $(pwd)"
 
-LD_PRELOAD="$TYPEART_PATH_RT/libtypeart-rt.so $TYPEART_PATH_INTERCEPT/libinterceptor-rt.so" TA_EXE_TARGET=$exe TA_TYPE_FILE=${type_file} mpiexec --oversubscribe -n $np $exe $args &> "$log_file"
+LD_PRELOAD=${preload} TA_EXE_TARGET=$exe TA_TYPE_FILE=${type_file} mpiexec --oversubscribe -n $np $exe $args &> "$log_file"
 
 app_result=$?
 
