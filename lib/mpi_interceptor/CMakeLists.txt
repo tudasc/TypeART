@@ -29,6 +29,7 @@ target_define_file_basename(MPITool)
 
 target_include_directories(MPITool
   PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
+         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/support>
          $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
          $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )

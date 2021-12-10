@@ -12,6 +12,11 @@
 
 #include "Util.h"
 
+#include "TypeInterface.h"
+
+#include <cstdint>
+#include <cstdio>
+
 namespace typeart {
 
 const char* error_message_for(typeart_status status) {
@@ -36,6 +41,7 @@ const char* error_message_for(typeart_status status) {
 template <class T>
 int type_of() {
   static_assert(std::is_integral_v<T>);
+
   if constexpr (sizeof(T) == sizeof(int8_t)) {
     return TYPEART_INT8;
   } else if constexpr (sizeof(T) == sizeof(int16_t)) {
@@ -93,6 +99,7 @@ int type_id_for(MPI_Datatype mpi_type) {
       fprintf(stderr, "[Error] long double has unexpected size %zu!\n", sizeof(long double));
     }
   }
+
   return TYPEART_UNKNOWN_TYPE;
 }
 

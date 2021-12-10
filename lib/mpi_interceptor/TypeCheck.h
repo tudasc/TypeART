@@ -13,14 +13,14 @@
 #ifndef TYPEART_MPI_INTERCEPTOR_TYPE_CHECK_H
 #define TYPEART_MPI_INTERCEPTOR_TYPE_CHECK_H
 
-#include "Util.h"
-#include "runtime/RuntimeInterface.h"
-#include "support/System.h"
+#include "System.h"
 
 #include <atomic>
+#include <cstddef>
 #include <cstdio>
 #include <mpi.h>
 #include <optional>
+#include <string>
 #include <vector>
 
 namespace typeart {

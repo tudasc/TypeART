@@ -10,11 +10,15 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //
 
+#include "System.h"
 #include "TypeCheck.h"
-#include "runtime/RuntimeInterface.h"
 
 #include <atomic>
+#include <bits/types/struct_rusage.h>
+#include <cstdio>
 #include <mpi.h>
+#include <optional>
+#include <string>
 #include <sys/resource.h>
 
 int typeart_check_buffer(const typeart::MPICall& call);
@@ -42,20 +46,24 @@ extern "C" {
 void typeart_check_send(const char* name, const void* called_from, const void* sendbuf, int count, MPI_Datatype dtype) {
   ++counter.send;
   auto call = typeart::MPICall::create(name, called_from, sendbuf, 1, count, dtype);
+
   if (!call) {
     ++mcounter.error;
     return;
   }
+
   typeart_check_buffer(*call);
 }
 
 void typeart_check_recv(const char* name, const void* called_from, void* recvbuf, int count, MPI_Datatype dtype) {
   ++counter.recv;
   auto call = typeart::MPICall::create(name, called_from, recvbuf, 0, count, dtype);
+
   if (!call) {
     ++mcounter.error;
     return;
   }
+
   typeart_check_buffer(*call);
 }
 
@@ -66,7 +74,7 @@ void typeart_check_send_and_recv(const char* name, const void* called_from, cons
   typeart_check_recv(name, called_from, recvbuf, recvcount, recvtype);
 }
 
-void typeart_unsupported_mpi_call(const char* name, const void* called_from) {
+void typeart_unsupported_mpi_call(const char* name, const void* /*called_from*/) {
   ++counter.unsupported;
   fprintf(stderr, "[Error] The MPI function %s is currently not checked by TypeArt", name);
   // exit(0);
@@ -112,5 +120,6 @@ int typeart_check_buffer(const typeart::MPICall& call) {
     ++mcounter.type_error;
     return -1;
   }
+
   return 0;
 }

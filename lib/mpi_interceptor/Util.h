@@ -13,11 +13,9 @@
 #ifndef TYPEART_MPI_INTERCEPTOR_UTIL_H
 #define TYPEART_MPI_INTERCEPTOR_UTIL_H
 
-#include "runtime/RuntimeInterface.h"
+#include "RuntimeInterface.h"
 
 #include <mpi.h>
-#include <optional>
-#include <string>
 
 namespace typeart {
 
