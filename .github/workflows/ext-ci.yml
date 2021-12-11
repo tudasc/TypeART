@@ -83,15 +83,15 @@ jobs:
       - name: Prepare artifact
         if: ${{ always() }}
         run: |
-          mkdir -p artifact/bench
-          mv test-bench/build/*_build.log artifact/bench
-          mv test-bench/artifact/* artifact/bench
+          mkdir -p artifact/$GITHUB_JOB/${{ matrix.preset.name }}/
+          mv -v test-bench/build/*_build.log artifact/$GITHUB_JOB/${{ matrix.preset.name }}/
+          mv -v test-bench/artifact/* artifact/$GITHUB_JOB/${{ matrix.preset.name }}/
 
       - name: Upload test-bench artifact
         if: ${{ always() }}
         uses: actions/upload-artifact@v2
         with:
-          name: typeart-ci-ext
+          name: typeart-ci-ext-logs
           path: artifact
 
   run-AD-testbench:
@@ -154,15 +154,15 @@ jobs:
       - name: Prepare artifact
         if: ${{ always() }}
         run: |
-          mkdir -p artifact/ad-bench
-          mv ad-test-bench/build/*_build.log artifact/ad-bench
-          mv ad-test-bench/artifact/* artifact/ad-bench
+          mkdir -p artifact/$GITHUB_JOB/${{ matrix.preset.name }}/
+          mv -v ad-test-bench/build/*_build.log artifact/$GITHUB_JOB/${{ matrix.preset.name }}/
+          mv -v ad-test-bench/artifact/* artifact/$GITHUB_JOB/${{ matrix.preset.name }}/
 
       - name: Upload AD test-bench artifact
         if: ${{ always() }}
         uses: actions/upload-artifact@v2
         with:
-          name: typeart-ci-ext-ad
+          name: typeart-ci-ext-logs
           path: artifact
 
   run-OMP-testbench:
@@ -236,13 +236,13 @@ jobs:
       - name: Prepare artifact
         if: ${{ always() }}
         run: |
-          mkdir -p artifact/bench
-          mv omp-test-bench/build/*_build.log artifact/bench
-          mv omp-test-bench/artifact/* artifact/bench
+          mkdir -p artifact/$GITHUB_JOB/${{ matrix.preset.name }}/
+          mv -v omp-test-bench/build/*_build.log artifact/$GITHUB_JOB/${{ matrix.preset.name }}/
+          mv -v omp-test-bench/artifact/* artifact/$GITHUB_JOB/${{ matrix.preset.name }}/
 
       - name: Upload omp-test-bench artifact
         if: ${{ always() }}
         uses: actions/upload-artifact@v2
         with:
-          name: typeart-ci-ext-omp
+          name: typeart-ci-ext-logs
           path: artifact
