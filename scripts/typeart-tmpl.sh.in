@@ -249,7 +249,7 @@ function compile() {
 }
 
 function main_link() {
-  $compiler ${omp_flags} ${threads_flags} ${typeart_san_flags} ${typeart_ldflags} "${object_file}" -o "${exe_file}"
+  $compiler -rdynamic ${omp_flags} ${threads_flags} ${typeart_san_flags} ${typeart_ldflags} "${object_file}" -o "${exe_file}"
 }
 
 function execute() {

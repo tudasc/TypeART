@@ -12,7 +12,10 @@
 
 #include "System.h"
 
+#include <algorithm>
 #include <cstdio>
+#include <dlfcn.h>
+#include <execinfo.h>
 #include <filesystem>
 #include <memory>
 #include <sstream>
@@ -127,6 +130,22 @@ class SourceLocHelper {
 
 }  // namespace system
 
+std::optional<BinaryLocation> BinaryLocation::create(const void* addr) {
+  const auto demangle = [](auto sname) {
+    std::ostringstream command;
+    command << "c++filt " << sname;
+    auto pipe = system::CommandPipe::create(command.str());
+    return pipe.has_value() ? pipe->nextLine() : std::string{sname};
+  };
+  Dl_info info;
+  if (dladdr(addr, &info)) {
+    auto sname = info.dli_sname != nullptr ? std::optional{demangle(info.dli_sname)} : std::nullopt;
+    return {BinaryLocation{std::string{info.dli_fname}, info.dli_fbase, sname, info.dli_saddr}};
+  }
+
+  return {};
+}
+
 std::optional<SourceLocation> SourceLocation::create(const void* addr) {
   const auto pipe = [](const void* addr) -> std::optional<system::CommandPipe> {
     using namespace system;
@@ -167,6 +186,48 @@ std::optional<SourceLocation> SourceLocation::create(const void* addr) {
   loc.file                 = file_and_line.substr(0, delimiter);
 
   return loc;
+}
+
+StacktraceEntry StacktraceEntry::create(void* addr) {
+  return StacktraceEntry{addr, BinaryLocation::create(addr), SourceLocation::create(addr)};
+}
+
+std::ostream& operator<<(std::ostream& os, const StacktraceEntry& entry) {
+  if (entry.binary.has_value()) {
+    const auto& binary = entry.binary.value();
+    os << binary.file << " (";
+    if (binary.function.has_value()) {
+      os << binary.function.value() << "+" << ((char*)entry.addr - (char*)binary.function_addr);
+    } else {
+      if (entry.source.has_value()) {
+        os << entry.source->function;
+      }
+    }
+  } else {
+    os << "?? (";
+    if (entry.source.has_value()) {
+      os << entry.source->function;
+    }
+  }
+  os << ") at ";
+  if (entry.source.has_value()) {
+    const auto& source = entry.source.value();
+    os << source.file << ":" << source.line;
+  } else {
+    os << "??:0";
+  }
+  return os;
+}
+
+Stacktrace::Stacktrace(std::vector<StacktraceEntry> entries) : entries(std::move(entries)) {
+}
+
+Stacktrace Stacktrace::current() {
+  void* buffer[MAX_STACKTRACE_SIZE];
+  auto size    = backtrace(buffer, MAX_STACKTRACE_SIZE);
+  auto entries = std::vector<StacktraceEntry>{};
+  std::transform(buffer, buffer + size, std::back_inserter(entries), &StacktraceEntry::create);
+  return {entries};
 }
 
 }  // namespace typeart
