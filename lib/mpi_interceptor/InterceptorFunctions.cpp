@@ -10,72 +10,48 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //
 
+#include "Logger.h"
+#include "Stats.h"
+#include "System.h"
 #include "TypeCheck.h"
 
-#include <atomic>
 #include <bits/types/struct_rusage.h>
-#include <cstdio>
+#include <fmt/printf.h>
 #include <mpi.h>
 #include <optional>
 #include <sys/resource.h>
 
-int typeart_check_buffer(const typeart::MPICall& call);
+namespace typeart {
 
-struct CallCounter {
-  std::atomic_size_t send        = {0};
-  std::atomic_size_t recv        = {0};
-  std::atomic_size_t send_recv   = {0};
-  std::atomic_size_t unsupported = {0};
-};
+void check_buffer(const char* name, const void* called_from, bool is_send, const void* ptr, int count,
+                  MPI_Datatype type);
 
-static CallCounter counter;
+static CallCounter call_counter;
+static MPICounter mpi_counter;
 
-struct MPICounter {
-  std::atomic_size_t null_count = {0};
-  std::atomic_size_t null_buff  = {0};
-  std::atomic_size_t type_error = {0};
-  std::atomic_size_t error      = {0};
-};
-
-static MPICounter mcounter;
+}  // namespace typeart
 
 extern "C" {
 
 void typeart_check_send(const char* name, const void* called_from, const void* sendbuf, int count, MPI_Datatype dtype) {
-  ++counter.send;
-  auto call = typeart::MPICall::create(name, called_from, sendbuf, 1, count, dtype);
-
-  if (!call) {
-    ++mcounter.error;
-    return;
-  }
-
-  typeart_check_buffer(*call);
+  ++typeart::call_counter.send;
+  typeart::check_buffer(name, called_from, true, sendbuf, count, dtype);
 }
 
 void typeart_check_recv(const char* name, const void* called_from, void* recvbuf, int count, MPI_Datatype dtype) {
-  ++counter.recv;
-  auto call = typeart::MPICall::create(name, called_from, recvbuf, 0, count, dtype);
-
-  if (!call) {
-    ++mcounter.error;
-    return;
-  }
-
-  typeart_check_buffer(*call);
+  ++typeart::call_counter.recv;
+  typeart::check_buffer(name, called_from, false, recvbuf, count, dtype);
 }
 
 void typeart_check_send_and_recv(const char* name, const void* called_from, const void* sendbuf, int sendcount,
                                  MPI_Datatype sendtype, void* recvbuf, int recvcount, MPI_Datatype recvtype) {
-  ++counter.send_recv;
+  ++typeart::call_counter.send_recv;
   typeart_check_send(name, called_from, sendbuf, sendcount, sendtype);
   typeart_check_recv(name, called_from, recvbuf, recvcount, recvtype);
 }
 
 void typeart_unsupported_mpi_call(const char* name, const void* /*called_from*/) {
-  ++counter.unsupported;
-  fprintf(stderr, "[Error] The MPI function %s is currently not checked by TypeArt", name);
-  // exit(0);
+  ++typeart::call_counter.unsupported;
 }
 
 void typeart_exit() {
@@ -84,39 +60,48 @@ void typeart_exit() {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   struct rusage end;
   getrusage(RUSAGE_SELF, &end);
-  fprintf(stderr, "R[%i][Info] CCounter { Send: %zu Recv: %zu Send_Recv: %zu Unsupported: %zu MAX RSS[KBytes]: %ld }\n",
-          rank, counter.send.load(), counter.recv.load(), counter.send_recv.load(), counter.unsupported.load(),
-          end.ru_maxrss);
-  fprintf(stderr, "R[%i][Info] MCounter { Error: %zu Null_Buf: %zu Null_Count: %zu Type_Error: %zu }\n", rank,
-          mcounter.error.load(), mcounter.null_buff.load(), mcounter.null_count.load(), mcounter.type_error.load());
-}
+  typeart::logger::call_counter(typeart::call_counter, end.ru_maxrss);
+  typeart::logger::mpi_counter(typeart::mpi_counter);
 }
 
-int typeart_check_buffer(const typeart::MPICall& call) {
-  PRINT_INFOV(call, "%s at %p: checking %s-buffer %p of type \"%s\" against MPI type \"%s\"\n",
-              call.function_name.c_str(), call.caller, call.is_send ? "send" : "recv", call.args.buffer.ptr,
-              call.args.buffer.type.name.c_str(), call.args.type.name.c_str());
+}  // extern "C"
 
-  const bool count_is_zero     = call.args.count <= 0;
-  const bool buffer_is_nullptr = call.args.buffer.ptr == nullptr;
+namespace typeart {
+
+void check_buffer(const char* name, const void* called_from, bool is_send, const void* ptr, int count,
+                  MPI_Datatype type) {
+  const bool count_is_zero     = count <= 0;
+  const bool buffer_is_nullptr = ptr == nullptr;
 
   if (count_is_zero) {
-    ++mcounter.null_count;
+    ++mpi_counter.null_count;
+    return;
   }
 
   if (buffer_is_nullptr) {
-    ++mcounter.null_buff;
-    PRINT_WARNING(call, "buffer is NULL\n");
+    ++mpi_counter.null_buff;
+    logger::null_buffer();
+    return;
   }
 
-  if (count_is_zero || buffer_is_nullptr) {
-    return -1;
+  auto buffer = Buffer::create(ptr);
+  if (buffer.has_error()) {
+    ++mpi_counter.error;
+    logger::error(name, called_from, *std::move(buffer).error());
+    return;
+  }
+  auto mpi_type = MPIType::create(type);
+  if (mpi_type.has_error()) {
+    ++mpi_counter.error;
+    logger::error(name, called_from, *std::move(mpi_type).error());
+    return;
   }
 
-  if (call.check_type_and_count() != 0) {
-    ++mcounter.type_error;
-    return -1;
+  auto result = check_buffer(*buffer, *mpi_type, count);
+  if (result.has_error()) {
+    ++mpi_counter.type_error;
   }
-
-  return 0;
+  logger::result(name, called_from, is_send, *buffer, *mpi_type, result);
 }
+
+}  // namespace typeart

@@ -8,6 +8,10 @@ mark_as_advanced(
   FETCHCONTENT_UPDATES_DISCONNECTED
 )
 
+add_subdirectory(result)
+add_subdirectory(fmt)
+add_subdirectory(spdlog)
+
 if(USE_BTREE)
   add_subdirectory(btree)
 endif()

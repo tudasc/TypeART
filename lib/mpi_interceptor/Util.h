@@ -21,6 +21,8 @@ namespace typeart {
 
 const char* error_message_for(typeart_status status);
 
+std::string error_message_for(int mpierr);
+
 // Given a builtin MPI type, returns the corresponding TypeArt type.
 // If the MPI type is a custom type, -1 is returned.
 // Note: this function cannot distinguish between TA_FP128 und TA_PPC_TP128,
