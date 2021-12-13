@@ -46,17 +46,17 @@ int main(int argc, char** argv) {
 
   // 1: Check non-struct buffer type and wrong member count
   // clang-format off
-  // RANK0: R[0][Info]ID[0] run_test(void*, int, {{.*}}[0x{{.*}}] at {{(/.*)*/.*\..*}}:{{[0-9]+}}: MPI_Send: checking send-buffer 0x{{.*}} of type "double" against MPI type "test_type"
+  // RANK0: R[0][Info]ID[0] MPI_Send at 0x{{.*}}: checking send-buffer 0x{{.*}} of type "double" against MPI type "test_type"
   // RANK0: R[0][Trace]ID[0] expected a struct type, but found type "double"
-  // RANK1: R[1][Info]ID[0] run_test(void*, int, {{.*}}[0x{{.*}}] at {{(/.*)*/.*\..*}}:{{[0-9]+}}: MPI_Recv: checking recv-buffer 0x{{.*}} of type "double" against MPI type "test_type"
+  // RANK1: R[1][Info]ID[0] MPI_Recv at 0x{{.*}}: checking recv-buffer 0x{{.*}} of type "double" against MPI type "test_type"
   // RANK1: R[1][Trace]ID[0] expected a struct type, but found type "double"
   // clang-format on
   run_test(arr, 2, counts, offsets, types);
 
   // clang-format off
-  // RANK0: R[0][Info]ID[1] run_test(void*, int, {{.*}}[0x{{.*}}] at {{(/.*)*/.*\..*}}:{{[0-9]+}}: MPI_Send: checking send-buffer 0x{{.*}} of type "struct.S1" against MPI type "test_type"
+  // RANK0: R[0][Info]ID[1] MPI_Send at 0x{{.*}}: checking send-buffer 0x{{.*}} of type "struct.S1" against MPI type "test_type"
   // RANK0: R[0][Trace]ID[1] expected 2 members, but the type "struct.S1" has 3 members
-  // RANK1: R[1][Info]ID[1] run_test(void*, int, {{.*}}[0x{{.*}}] at {{(/.*)*/.*\..*}}:{{[0-9]+}}: MPI_Recv: checking recv-buffer 0x{{.*}} of type "struct.S1" against MPI type "test_type"
+  // RANK1: R[1][Info]ID[1] MPI_Recv at 0x{{.*}}: checking recv-buffer 0x{{.*}} of type "struct.S1" against MPI type "test_type"
   // RANK1: R[1][Trace]ID[1] expected 2 members, but the type "struct.S1" has 3 members
   // CHECK: R[{{0|1}}][Trace]ID[{{[0-9]+}}] expected a struct type, but found type "double"
   // clang-format on
@@ -64,9 +64,9 @@ int main(int argc, char** argv) {
 
   // 2: Check wrong offsets
   // clang-format off
-  // RANK0: R[0][Info]ID[2] run_test(void*, int, {{.*}}[0x{{.*}}] at {{(/.*)*/.*\..*}}:{{[0-9]+}}: MPI_Send: checking send-buffer 0x{{.*}} of type "struct.S1" against MPI type "test_type"
+  // RANK0: R[0][Info]ID[2] MPI_Send at 0x{{.*}}: checking send-buffer 0x{{.*}} of type "struct.S1" against MPI type "test_type"
   // RANK0: R[0][Trace]ID[2] expected a byte offset of 24 for member 2, but the type "struct.S1" has an offset of 16
-  // RANK1: R[1][Info]ID[2] run_test(void*, int, {{.*}}[0x{{.*}}] at {{(/.*)*/.*\..*}}:{{[0-9]+}}: MPI_Recv: checking recv-buffer 0x{{.*}} of type "struct.S1" against MPI type "test_type"
+  // RANK1: R[1][Info]ID[2] MPI_Recv at 0x{{.*}}: checking recv-buffer 0x{{.*}} of type "struct.S1" against MPI type "test_type"
   // RANK1: R[1][Trace]ID[2] expected a byte offset of 24 for member 2, but the type "struct.S1" has an offset of 16
   // CHECK: R[{{0|1}}][Trace]ID[{{[0-9]+}}] expected a struct type, but found type "double"
   // clang-format on
@@ -74,10 +74,10 @@ int main(int argc, char** argv) {
 
   // 3: Check wrong types
   // clang-format off
-  // RANK0: R[0][Info]ID[3] run_test(void*, int, {{.*}}[0x{{.*}}] at {{(/.*)*/.*\..*}}:{{[0-9]+}}: MPI_Send: checking send-buffer 0x{{.*}} of type "struct.S1" against MPI type "test_type"
+  // RANK0: R[0][Info]ID[3] MPI_Send at 0x{{.*}}: checking send-buffer 0x{{.*}} of type "struct.S1" against MPI type "test_type"
   // RANK0: R[0][Trace]ID[3] expected a type matching MPI type "MPI_INT", but found type "double"
   // RANK0: R[0][Trace]ID[3] the typechek for member 3 failed
-  // RANK1: R[1][Info]ID[3] run_test(void*, int, {{.*}}[0x{{.*}}] at {{(/.*)*/.*\..*}}:{{[0-9]+}}: MPI_Recv: checking recv-buffer 0x{{.*}} of type "struct.S1" against MPI type "test_type"
+  // RANK1: R[1][Info]ID[3] MPI_Recv at 0x{{.*}}: checking recv-buffer 0x{{.*}} of type "struct.S1" against MPI type "test_type"
   // RANK1: R[1][Trace]ID[3] expected a type matching MPI type "MPI_INT", but found type "double"
   // RANK1: R[1][Trace]ID[3] the typechek for member 3 failed
   // CHECK: R[{{0|1}}][Trace]ID[{{[0-9]+}}] expected a struct type, but found type "double"
@@ -86,9 +86,9 @@ int main(int argc, char** argv) {
 
   // 3: Check member count
   // clang-format off
-  // RANK0: R[0][Info]ID[4] run_test(void*, int, {{.*}}[0x{{.*}}] at {{(/.*)*/.*\..*}}:{{[0-9]+}}: MPI_Send: checking send-buffer 0x{{.*}} of type "struct.S1" against MPI type "test_type"
+  // RANK0: R[0][Info]ID[4] MPI_Send at 0x{{.*}}: checking send-buffer 0x{{.*}} of type "struct.S1" against MPI type "test_type"
   // RANK0: R[0][Trace]ID[4] expected element count of 2 for member 1, but the type "struct.S1" has a count of 1
-  // RANK1: R[1][Info]ID[4] run_test(void*, int, {{.*}}[0x{{.*}}] at {{(/.*)*/.*\..*}}:{{[0-9]+}}: MPI_Recv: checking recv-buffer 0x{{.*}} of type "struct.S1" against MPI type "test_type"
+  // RANK1: R[1][Info]ID[4] MPI_Recv at 0x{{.*}}: checking recv-buffer 0x{{.*}} of type "struct.S1" against MPI type "test_type"
   // RANK1: R[1][Trace]ID[4] expected element count of 2 for member 1, but the type "struct.S1" has a count of 1
   // CHECK: R[{{0|1}}][Trace]ID[{{[0-9]+}}] expected a struct type, but found type "double"
   // clang-format on
@@ -96,16 +96,16 @@ int main(int argc, char** argv) {
 
   // 3: Check member count
   // clang-format off
-  // RANK0: R[0][Info]ID[5] run_test(void*, int, {{.*}}[0x{{.*}}] at {{(/.*)*/.*\..*}}:{{[0-9]+}}: MPI_Send: checking send-buffer 0x{{.*}} of type "struct.S1" against MPI type "test_type"
-  // RANK1: R[1][Info]ID[5] run_test(void*, int, {{.*}}[0x{{.*}}] at {{(/.*)*/.*\..*}}:{{[0-9]+}}: MPI_Recv: checking recv-buffer 0x{{.*}} of type "struct.S1" against MPI type "test_type"
+  // RANK0: R[0][Info]ID[5] MPI_Send at 0x{{.*}}: checking send-buffer 0x{{.*}} of type "struct.S1" against MPI type "test_type"
+  // RANK1: R[1][Info]ID[5] MPI_Recv at 0x{{.*}}: checking recv-buffer 0x{{.*}} of type "struct.S1" against MPI type "test_type"
   // CHECK-NOT: R[{{0|1}}][Error]{{.*}}
   // clang-format on
   run_test(&s1, 3, counts, offsets, types);
 
   // 4: Check member count with complex MPI type
   // clang-format off
-  // RANK0: R[0][Info]ID[6] run_test(void*, int, {{.*}}[0x{{.*}}] at {{(/.*)*/.*\..*}}:{{[0-9]+}}: MPI_Send: checking send-buffer 0x{{.*}} of type "struct.S1" against MPI type "test_type"
-  // RANK1: R[1][Info]ID[6] run_test(void*, int, {{.*}}[0x{{.*}}] at {{(/.*)*/.*\..*}}:{{[0-9]+}}: MPI_Recv: checking recv-buffer 0x{{.*}} of type "struct.S1" against MPI type "test_type"
+  // RANK0: R[0][Info]ID[6] MPI_Send at 0x{{.*}}: checking send-buffer 0x{{.*}} of type "struct.S1" against MPI type "test_type"
+  // RANK1: R[1][Info]ID[6] MPI_Recv at 0x{{.*}}: checking recv-buffer 0x{{.*}} of type "struct.S1" against MPI type "test_type"
   // CHECK-NOT: R[{{0|1}}][Error]{{.*}}
   // clang-format on
   MPI_Datatype member_a;

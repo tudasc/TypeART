@@ -170,34 +170,13 @@ std::optional<MPIType> MPIType::create(const MPICall& call, MPI_Datatype type) {
   return {result};
 }
 
-std::optional<Caller> Caller::create(const void* addr) {
-  Caller result;
-  result.addr   = addr;
-  auto location = SourceLocation::create(addr);
-
-  if (!location) {
-    return {};
-  }
-
-  result.location = *location;
-  return result;
-}
-
 std::atomic_size_t MPICall::next_trace_id = {0};
 
 std::optional<MPICall> MPICall::create(const char* function_name, const void* called_from, const void* buffer_ptr,
                                        int is_const, int count, MPI_Datatype type) {
   auto rank = 0;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  auto result = MPICall{next_trace_id++, Caller{}, function_name, is_const, rank, {Buffer{}, count, MPIType{}}};
-  auto caller = Caller::create(called_from);
-
-  if (!caller) {
-    fprintf(stderr, "R[%d][Error]ID[%ld] couldn't resolve the symbol name for address %p", result.rank, result.trace_id,
-            called_from);
-    return {};
-  }
-
+  auto result = MPICall{next_trace_id++, called_from, function_name, is_const, rank, {Buffer{}, count, MPIType{}}};
   auto buffer = Buffer::create(result, buffer_ptr);
 
   if (!buffer) {
@@ -210,7 +189,6 @@ std::optional<MPICall> MPICall::create(const char* function_name, const void* ca
     return {};
   }
 
-  result.caller      = *caller;
   result.args.buffer = *buffer;
   result.args.type   = *mpi_type;
   return {result};

@@ -91,14 +91,6 @@ struct MPIType {
   static std::optional<MPIType> create(const MPICall& call, MPI_Datatype type);
 };
 
-struct Caller {
-  const void* addr;
-  SourceLocation location;
-
- public:
-  static std::optional<Caller> create(const void* caller_addr);
-};
-
 struct MPICallArguments {
   Buffer buffer;
   int count;
@@ -107,7 +99,7 @@ struct MPICallArguments {
 
 struct MPICall {
   size_t trace_id;
-  Caller caller;
+  const void* caller;
   std::string function_name;
   int is_send;
   int rank;

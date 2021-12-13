@@ -21,25 +21,25 @@ int main(int argc, char** argv) {
   padded_array<n> data;
 
   // clang-format off
-  // RANK0: R[0][Info]ID[0] run_test(void*, int, {{.*}}[0x{{.*}}] at {{(/.*)*/.*\..*}}:{{[0-9]+}}: MPI_Send: checking send-buffer 0x{{.*}} of type "double" against MPI type "MPI_DOUBLE"
-  // RANK1: R[1][Info]ID[0] run_test(void*, int, {{.*}}[0x{{.*}}] at {{(/.*)*/.*\..*}}:{{[0-9]+}}: MPI_Recv: checking recv-buffer 0x{{.*}} of type "double" against MPI type "MPI_DOUBLE"
+  // RANK0: R[0][Info]ID[0] MPI_Send at 0x{{.*}}: checking send-buffer 0x{{.*}} of type "double" against MPI type "MPI_DOUBLE"
+  // RANK1: R[1][Info]ID[0] MPI_Recv at 0x{{.*}}: checking recv-buffer 0x{{.*}} of type "double" against MPI type "MPI_DOUBLE"
   // CHECK-NOT: R[{{0|1}}][Error]{{.*}}
   // clang-format on
   run_test(data, n, MPI_DOUBLE);
 
   // clang-format off
-  // RANK0: R[0][Info]ID[1] run_test(void*, int, {{.*}}[0x{{.*}}] at {{(/.*)*/.*\..*}}:{{[0-9]+}}: MPI_Send: checking send-buffer 0x{{.*}} of type "double" against MPI type "MPI_DOUBLE"
+  // RANK0: R[0][Info]ID[1] MPI_Send at 0x{{.*}}: checking send-buffer 0x{{.*}} of type "double" against MPI type "MPI_DOUBLE"
   // RANK0: R[0][Trace]ID[1] buffer too small (16 elements, 17 required)
-  // RANK1: R[1][Info]ID[1] run_test(void*, int, {{.*}}[0x{{.*}}] at {{(/.*)*/.*\..*}}:{{[0-9]+}}: MPI_Recv: checking recv-buffer 0x{{.*}} of type "double" against MPI type "MPI_DOUBLE"
+  // RANK1: R[1][Info]ID[1] MPI_Recv at 0x{{.*}}: checking recv-buffer 0x{{.*}} of type "double" against MPI type "MPI_DOUBLE"
   // RANK1: R[1][Trace]ID[1] buffer too small (16 elements, 17 required)
   // clang-format on
   run_test(data, n + 1, MPI_DOUBLE);
 
   // clang-format off
-  // RANK0: R[0][Info]ID[2] main[0x{{.*}}] at {{(/.*)*/.*\..*}}:{{[0-9]+}}: MPI_Sendrecv: checking send-buffer 0x{{.*}} of type "double" against MPI type "MPI_DOUBLE"
-  // RANK0: R[0][Info]ID[3] main[0x{{.*}}] at {{(/.*)*/.*\..*}}:{{[0-9]+}}: MPI_Sendrecv: checking recv-buffer 0x{{.*}} of type "double" against MPI type "MPI_DOUBLE"
-  // RANK1: R[1][Info]ID[2] main[0x{{.*}}] at {{(/.*)*/.*\..*}}:{{[0-9]+}}: MPI_Sendrecv: checking send-buffer 0x{{.*}} of type "double" against MPI type "MPI_DOUBLE"
-  // RANK1: R[1][Info]ID[3] main[0x{{.*}}] at {{(/.*)*/.*\..*}}:{{[0-9]+}}: MPI_Sendrecv: checking recv-buffer 0x{{.*}} of type "double" against MPI type "MPI_DOUBLE"
+  // RANK0: R[0][Info]ID[2] MPI_Sendrecv at 0x{{.*}}: checking send-buffer 0x{{.*}} of type "double" against MPI type "MPI_DOUBLE"
+  // RANK0: R[0][Info]ID[3] MPI_Sendrecv at 0x{{.*}}: checking recv-buffer 0x{{.*}} of type "double" against MPI type "MPI_DOUBLE"
+  // RANK1: R[1][Info]ID[2] MPI_Sendrecv at 0x{{.*}}: checking send-buffer 0x{{.*}} of type "double" against MPI type "MPI_DOUBLE"
+  // RANK1: R[1][Info]ID[3] MPI_Sendrecv at 0x{{.*}}: checking recv-buffer 0x{{.*}} of type "double" against MPI type "MPI_DOUBLE"
   // CHECK-NOT: R[{{0|1}}][Error]{{.*}}
   // clang-format on
   int rank;

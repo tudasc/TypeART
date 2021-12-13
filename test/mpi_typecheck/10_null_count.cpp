@@ -19,8 +19,8 @@ int main(int argc, char** argv) {
   double f[4];
 
   // clang-format off
-  // RANK0: R[0][Info]ID[0] run_test(void*, int, {{.*}}[0x{{.*}}] at {{(/.*)*/.*\..*}}:{{[0-9]+}}: MPI_Send: checking send-buffer 0x{{.*}} of type "double" against MPI type "MPI_DOUBLE"
-  // RANK1: R[1][Info]ID[0] run_test(void*, int, {{.*}}[0x{{.*}}] at {{(/.*)*/.*\..*}}:{{[0-9]+}}: MPI_Recv: checking recv-buffer 0x{{.*}} of type "double" against MPI type "MPI_DOUBLE"
+  // RANK0: R[0][Info]ID[0] MPI_Send at 0x{{.*}}: checking send-buffer 0x{{.*}} of type "double" against MPI type "MPI_DOUBLE"
+  // RANK1: R[1][Info]ID[0] MPI_Recv at 0x{{.*}}: checking recv-buffer 0x{{.*}} of type "double" against MPI type "MPI_DOUBLE"
   // CHECK-NOT: R[{{0|1}}][Error]{{.*}}
   // clang-format on
   run_test(f, 0, MPI_DOUBLE);

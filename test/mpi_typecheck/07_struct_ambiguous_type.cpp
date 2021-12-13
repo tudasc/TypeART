@@ -30,22 +30,22 @@ int main(int argc, char** argv) {
   B b;
 
   // clang-format off
-  // RANK0: R[0][Info]ID[0] run_test(void*, int, {{.*}}[0x{{.*}}] at {{(/.*)*/.*\..*}}:{{[0-9]+}}: MPI_Send: checking send-buffer 0x{{.*}} of type "struct.A" against MPI type "MPI_DOUBLE"
+  // RANK0: R[0][Info]ID[0] MPI_Send at 0x{{.*}}: checking send-buffer 0x{{.*}} of type "struct.A" against MPI type "MPI_DOUBLE"
   // RANK0: R[0][Trace]ID[0] expected a type matching MPI type "MPI_DOUBLE", but found type "struct.A"
   // RANK0: R[0][Info]ID[0] found struct member at offset 0 with type "double", checking with this type...
-  // RANK1: R[1][Info]ID[0] run_test(void*, int, {{.*}}[0x{{.*}}] at {{(/.*)*/.*\..*}}:{{[0-9]+}}: MPI_Recv: checking recv-buffer 0x{{.*}} of type "struct.A" against MPI type "MPI_DOUBLE"
+  // RANK1: R[1][Info]ID[0] MPI_Recv at 0x{{.*}}: checking recv-buffer 0x{{.*}} of type "struct.A" against MPI type "MPI_DOUBLE"
   // RANK1: R[1][Trace]ID[0] expected a type matching MPI type "MPI_DOUBLE", but found type "struct.A"
   // RANK1: R[1][Info]ID[0] found struct member at offset 0 with type "double", checking with this type...
   // clang-format on
   run_test(a.arr, n, MPI_DOUBLE);
 
   // clang-format off
-  // RANK0: R[0][Info]ID[1] run_test(void*, int, {{.*}}[0x{{.*}}] at {{(/.*)*/.*\..*}}:{{[0-9]+}}: MPI_Send: checking send-buffer 0x{{.*}} of type "struct.B" against MPI type "MPI_DOUBLE"
+  // RANK0: R[0][Info]ID[1] MPI_Send at 0x{{.*}}: checking send-buffer 0x{{.*}} of type "struct.B" against MPI type "MPI_DOUBLE"
   // RANK0: R[0][Trace]ID[1] expected a type matching MPI type "MPI_DOUBLE", but found type "struct.B"
   // RANK0: R[0][Info]ID[1] found struct member at offset 0 with type "struct.A", checking with this type...
   // RANK0: R[0][Trace]ID[1] expected a type matching MPI type "MPI_DOUBLE", but found type "struct.A"
   // RANK0: R[0][Info]ID[1] found struct member at offset 0 with type "double", checking with this type...
-  // RANK1: R[1][Info]ID[1] run_test(void*, int, {{.*}}[0x{{.*}}] at {{(/.*)*/.*\..*}}:{{[0-9]+}}: MPI_Recv: checking recv-buffer 0x{{.*}} of type "struct.B" against MPI type "MPI_DOUBLE"
+  // RANK1: R[1][Info]ID[1] MPI_Recv at 0x{{.*}}: checking recv-buffer 0x{{.*}} of type "struct.B" against MPI type "MPI_DOUBLE"
   // RANK1: R[1][Trace]ID[1] expected a type matching MPI type "MPI_DOUBLE", but found type "struct.B"
   // RANK1: R[1][Info]ID[1] found struct member at offset 0 with type "struct.A", checking with this type...
   // RANK1: R[1][Trace]ID[1] expected a type matching MPI type "MPI_DOUBLE", but found type "struct.A"
