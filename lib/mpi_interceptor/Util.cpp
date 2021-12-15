@@ -51,7 +51,7 @@ int type_of() {
   } else if constexpr (sizeof(T) == sizeof(int64_t)) {
     return TYPEART_INT64;
   } else {
-    fprintf(stderr, "[Error] Unsupperted integer width %lu!\n", sizeof(T));
+    fprintf(stderr, "[Error] Unsupported integer width %lu!\n", sizeof(T));
     return TYPEART_UNKNOWN_TYPE;
   }
 }
@@ -67,21 +67,21 @@ int type_id_for(MPI_Datatype mpi_type) {
   } else if (mpi_type == MPI_CHAR) {
     return type_of<char>();
   } else if (mpi_type == MPI_UNSIGNED_CHAR) {
-    fprintf(stderr, "[Error] MPI_UNSIGNED_CHAR is currently unsupported!\n");
+    fprintf(stderr, "[Error] MPI_UNSIGNED_CHAR is unsupported!\n");
   } else if (mpi_type == MPI_SIGNED_CHAR) {
-    fprintf(stderr, "[Error] MPI_SIGNED_CHAR is currently unsupported!\n");
+    fprintf(stderr, "[Error] MPI_SIGNED_CHAR is unsupported!\n");
   } else if (mpi_type == MPI_SHORT) {
     return type_of<short>();
   } else if (mpi_type == MPI_UNSIGNED_SHORT) {
-    fprintf(stderr, "[Error] Unsigned integers are currently not supported!\n");
+    fprintf(stderr, "[Error] Unsigned integers are unsupported!\n");
   } else if (mpi_type == MPI_INT) {
     return type_of<int>();
   } else if (mpi_type == MPI_UNSIGNED) {
-    fprintf(stderr, "[Error] Unsigned integers are currently not supported!\n");
+    fprintf(stderr, "[Error] Unsigned integers are unsupported!\n");
   } else if (mpi_type == MPI_LONG) {
     return type_of<long int>();
   } else if (mpi_type == MPI_UNSIGNED_LONG) {
-    fprintf(stderr, "[Error] Unsigned integers are currently not supported!\n");
+    fprintf(stderr, "[Error] Unsigned integers are unsupported!\n");
   } else if (mpi_type == MPI_LONG_LONG_INT) {
     return type_of<long long int>();
   } else if (mpi_type == MPI_FLOAT) {
@@ -106,7 +106,7 @@ int type_id_for(MPI_Datatype mpi_type) {
 const char* combiner_name_for(int combiner) {
   switch (combiner) {
     case MPI_COMBINER_NAMED:
-      return "predefined type";
+      return "MPI predefined datatype";
     case MPI_COMBINER_DUP:
       return "MPI_Type_dup";
     case MPI_COMBINER_CONTIGUOUS:

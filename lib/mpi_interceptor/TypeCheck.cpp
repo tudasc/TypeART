@@ -198,7 +198,7 @@ int MPICall::check_type_and_count() const {
   auto result = check_type_and_count_against(args.buffer);
 
   if (result == -1) {
-    PRINT_ERROR(*this, "The typecheck failed! Check \"Trace\" messages with the same ID for more details!\n");
+    PRINT_ERROR(*this, "The type check failed! Check \"Trace\" messages with the same ID for more details!\n");
   }
 
   return result;
@@ -421,7 +421,7 @@ MPICall::CheckResult MPICall::check_combiner_struct(const Buffer& buffer, const 
     auto check_result = check_type(type_layout[i], type.combiner.type_args[i]);
 
     if (check_result.result != 0) {
-      PRINT_TRACEV(*this, "the typechek for member %ld failed\n", i + 1);
+      PRINT_TRACEV(*this, "the type check for member %ld failed\n", i + 1);
       result = CheckResult::error();
       continue;
     }
