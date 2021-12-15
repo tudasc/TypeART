@@ -2,7 +2,7 @@ name: TypeART-CI-ext
 
 on:
   push:
-    branches: [master, devel]
+    branches: [ master, devel ]
   pull_request:
 
 env:
@@ -62,7 +62,7 @@ jobs:
 
       - name: Setup tests
         working-directory: test-bench
-        run: cmake -B build -DLOG_PATH=${GITHUB_WORKSPACE}/test-bench/artifact -DUSE_WRAPPER=ON -DLOG_FILTER="N\;/R\[[0-9]\]\[Trace\]ID\[[0-9]+\] expected a type matching MPI type \\\"MPI_FLOAT\\\", but found type \\\"int64\\\"/d"
+        run: cmake -B build -DLOG_PATH=${GITHUB_WORKSPACE}/test-bench/artifact -DUSE_WRAPPER=ON -DLOG_FILTER="N\;/R\[[0-9]\]\[Trace\]ID\[[0-9]+\] expected a type matching MPI type \\\"MPI_FLOAT\\\", but found type \\\"(int64|vec2:float)\\\"/d"
 
       - name: Run lulesh
         working-directory: test-bench/build
