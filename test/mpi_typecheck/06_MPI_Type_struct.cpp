@@ -76,10 +76,10 @@ int main(int argc, char** argv) {
   // clang-format off
   // RANK0: R[0][Info]ID[3] MPI_Send at 0x{{.*}}: checking send-buffer 0x{{.*}} of type "struct.S1" against MPI type "test_type"
   // RANK0: R[0][Trace]ID[3] expected a type matching MPI type "MPI_INT", but found type "double"
-  // RANK0: R[0][Trace]ID[3] the typechek for member 3 failed
+  // RANK0: R[0][Trace]ID[3] the type check for member 3 failed
   // RANK1: R[1][Info]ID[3] MPI_Recv at 0x{{.*}}: checking recv-buffer 0x{{.*}} of type "struct.S1" against MPI type "test_type"
   // RANK1: R[1][Trace]ID[3] expected a type matching MPI type "MPI_INT", but found type "double"
-  // RANK1: R[1][Trace]ID[3] the typechek for member 3 failed
+  // RANK1: R[1][Trace]ID[3] the type check for member 3 failed
   // CHECK: R[{{0|1}}][Trace]ID[{{[0-9]+}}] expected a struct type, but found type "double"
   // clang-format on
   run_test(&s1, 3, counts, offsets, (MPI_Datatype[3]){MPI_DOUBLE, MPI_INT, MPI_INT});
