@@ -10,7 +10,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //
 
-#include "System.h"
 #include "TypeCheck.h"
 
 #include <atomic>
@@ -18,7 +17,6 @@
 #include <cstdio>
 #include <mpi.h>
 #include <optional>
-#include <string>
 #include <sys/resource.h>
 
 int typeart_check_buffer(const typeart::MPICall& call);

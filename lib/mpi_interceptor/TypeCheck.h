@@ -13,8 +13,6 @@
 #ifndef TYPEART_MPI_INTERCEPTOR_TYPE_CHECK_H
 #define TYPEART_MPI_INTERCEPTOR_TYPE_CHECK_H
 
-#include "System.h"
-
 #include <atomic>
 #include <cstddef>
 #include <cstdio>
