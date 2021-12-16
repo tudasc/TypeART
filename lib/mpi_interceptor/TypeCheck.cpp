@@ -50,7 +50,7 @@ std::optional<Buffer> Buffer::create(const MPICall& call, const void* buffer) {
   auto typeart_status_v = typeart_get_type(buffer, &type_id, &count);
 
   if (typeart_status_v == TYPEART_UNKNOWN_ADDRESS) {
-    PRINT_WARNING(call, "Buffer not registered!");
+    PRINT_WARNING(call, "Buffer not registered!\n");
     return {};
   }
 
