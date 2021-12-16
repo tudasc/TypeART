@@ -235,8 +235,8 @@ int MPICall::check_type_and_count_against(const Buffer& buffer) const {
     const auto first_member = (*type_layout)[0];
 
     if (first_member.offset == 0) {
-      PRINT_INFOV(*this, "found struct member at offset 0 with type \"%s\", checking with this type...\n",
-                  first_member.type.name.c_str());
+      PRINT_TRACEV(*this, "found struct member at offset 0 with type \"%s\", checking with this type...\n",
+                   first_member.type.name.c_str());
       return check_type_and_count_against(first_member);
     }
 
