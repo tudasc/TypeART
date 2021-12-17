@@ -10,8 +10,15 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //
 
+#ifdef NDEBUG
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_ERROR
+#else
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
+#endif
+
 #include "Logger.h"
 
+#include <fmt/ostream.h>
 #include <spdlog/pattern_formatter.h>
 #include <spdlog/sinks/stdout_sinks.h>
 #include <spdlog/spdlog.h>
@@ -90,68 +97,69 @@ std::string name_for(MPI_Datatype datatype) {
   return mpi_type_name;
 }
 
-struct Visitor {
-  const char* function_name;
-  const void* called_from;
-
-  template <class... Ts>
-  void print_internal_error(const std::string& fmt, Ts... fmt_args) {
-    logger->error("internal error while typechecking a call to {} from {}: " + fmt + "\n", function_name, called_from,
-                  std::forward<Ts>(fmt_args)...);
+struct InternalErrorVisitor {
+  std::string operator()(const MPIError& err) {
+    return fmt::format("{} failed: {}", err.function_name, err.message);
   }
-  void operator()(const MPIError& err) {
-    print_internal_error("{} failed: {}", err.function_name, err.message);
+  std::string operator()(const TypeARTError& err) {
+    return fmt::format("{}", err.message);
   }
-  void operator()(const TypeARTError& err) {
-    print_internal_error("internal runtime error ({})", err.message);
+  std::string operator()(const InvalidArgument& err) {
+    return fmt::format("{}", err.message);
   }
-  void operator()(const InvalidArgument& err) {
-    print_internal_error("{}", err.message);
-  }
-  void operator()(const UnsupportedCombiner& err) {
-    logger->error("the MPI type combiner {} is currently not supported", err.combiner_name);
-  }
-  void operator()(const InsufficientBufferSize& err) {
-    logger->error("buffer too small ({} elements, {} required)", err.actual, err.required);
-  }
-  void operator()(const BuiltinTypeMismatch& err) {
-    auto type_name     = typeart_get_type_name(err.buffer_type_id);
-    auto mpi_type_name = name_for(err.mpi_type);
-    logger->error("expected a type matching MPI type \"{}\", but found type \"{}\"", mpi_type_name, type_name);
-  }
-  void operator()(const UnsupportedCombinerArgs& err) {
-    logger->error("{}", err.message);
-  }
-  void operator()(const BufferNotOfStructType& err) {
-    auto type_name = typeart_get_type_name(err.buffer_type_id);
-    logger->error("expected a struct type, but found type \"{}\"", type_name);
-  }
-  void operator()(const MemberCountMismatch& err) {
-    auto type_name = typeart_get_type_name(err.buffer_type_id);
-    logger->error("expected {} members, but the type \"{}\" has {} members", err.mpi_count, type_name,
-                  err.buffer_count);
-  }
-  void operator()(const MemberOffsetMismatch& err) {
-    auto type_name = typeart_get_type_name(err.type_id);
-    logger->error("expected a byte offset of {} for member {}, but the type \"{}\" has an offset of {}", err.mpi_offset,
-                  err.member, type_name, err.struct_offset);
-  }
-  void operator()(const MemberTypeMismatch& err) {
-    (*err.error).visit(*this);
-    logger->error("the typechek for member {} failed", err.member);
-  }
-  void operator()(const MemberElementCountMismatch& err) {
-    auto type_name = typeart_get_type_name(err.type_id);
-    logger->error("expected element count of {} for member {}, but the type \"{}\" has a count of {}", err.mpi_count,
-                  err.member, type_name, err.count);
+  std::string operator()(const UnsupportedCombiner& err) {
+    return fmt::format("the MPI type combiner {} is currently not supported", err.combiner_name);
   }
 };
 
-#ifdef NDEBUG
-constexpr auto print_info = false;
-#else
-constexpr auto print_info = true;
-#endif
+struct TypeErrorVisitor {
+  std::string operator()(const InsufficientBufferSize& err) {
+    return fmt::format("buffer too small ({} elements, {} required)", err.actual, err.required);
+  }
+  std::string operator()(const BuiltinTypeMismatch& err) {
+    auto type_name     = typeart_get_type_name(err.buffer_type_id);
+    auto mpi_type_name = name_for(err.mpi_type);
+    return fmt::format("expected a type matching MPI type \"{}\", but found type \"{}\"", mpi_type_name, type_name);
+  }
+  std::string operator()(const UnsupportedCombinerArgs& err) {
+    return fmt::format("{}", err.message);
+  }
+  std::string operator()(const BufferNotOfStructType& err) {
+    auto type_name = typeart_get_type_name(err.buffer_type_id);
+    return fmt::format("expected a struct type, but found type \"{}\"", type_name);
+  }
+  std::string operator()(const MemberCountMismatch& err) {
+    auto type_name = typeart_get_type_name(err.buffer_type_id);
+    return fmt::format("expected {} members, but the type \"{}\" has {} members", err.mpi_count, type_name,
+                       err.buffer_count);
+  }
+  std::string operator()(const MemberOffsetMismatch& err) {
+    auto type_name = typeart_get_type_name(err.type_id);
+    return fmt::format("expected a byte offset of {} for member {}, but the type \"{}\" has an offset of {}",
+                       err.mpi_offset, err.member, type_name, err.struct_offset);
+  }
+  std::string operator()(const MemberTypeMismatch& err) {
+    return fmt::format("the typechek for member {} failed: {}", err.member, (*err.error).visit(*this));
+  }
+  std::string operator()(const MemberElementCountMismatch& err) {
+    auto type_name = typeart_get_type_name(err.type_id);
+    return fmt::format("expected element count of {} for member {}, but the type \"{}\" has a count of {}",
+                       err.mpi_count, err.member, type_name, err.count);
+  }
+};
+
+struct ErrorVisitor {
+  std::string operator()(const InternalError& err) {
+    return err.visit(InternalErrorVisitor{});
+  }
+  std::string operator()(const TypeError& err) {
+    return err.visit(TypeErrorVisitor{});
+  }
+};
+
+std::string format_error(const Error& error) {
+  return error.visit(ErrorVisitor{});
+}
 
 void null_buffer() {
   logger->warn("buffer is NULL");
@@ -159,19 +167,23 @@ void null_buffer() {
 
 void result(const char* name, const void* called_from, bool is_send, const Buffer& buffer, const MPIType& type,
             const Result<void>& result) {
-  auto type_name     = typeart_get_type_name(buffer.type_id);
-  auto mpi_type_name = name_for(type.mpi_type);
-  if constexpr (print_info) {
-    logger->info("at {}: {}: checking {}-buffer {} of type \"{}\" against MPI type \"{}\"\n", called_from, name,
-                 is_send ? "send" : "recv", buffer.ptr, type_name, mpi_type_name);
-  }
-  if (result.has_error()) {
-    (*result.error()).visit(Visitor{name, called_from});
+  if (result.has_value()) {
+    SPDLOG_LOGGER_INFO(logger, "at {}: {}: checking {}-buffer {} of type \"{}\" against MPI type \"{}\"", called_from,
+                       name, is_send ? "send" : "recv", buffer.ptr, typeart_get_type_name(buffer.type_id),
+                       name_for(type.mpi_type));
+  } else {
+    auto error                 = result.error();
+    auto internal_error_prefix = error->is<TypeError>() ? "" : "internal error ";
+    logger->error("at {}: {}: {}while checking {}-buffer {} of type \"{}\" against MPI type \"{}\": {}", called_from,
+                  name, internal_error_prefix, is_send ? "send" : "recv", buffer.ptr,
+                  typeart_get_type_name(buffer.type_id), name_for(type.mpi_type), format_error(*error));
   }
 }
 
-void error(const char* name, const void* called_from, const InternalError& error) {
-  error.visit(Visitor{name, called_from});
+void error(const char* name, const void* called_from, bool is_send, const void* ptr, const Error& error) {
+  auto error_prefix = error.is<TypeError>() ? "error " : "internal error ";
+  logger->error("at {}: {}while checking the {}-buffer {} in a call to {}: {}", called_from, error_prefix, called_from,
+                is_send ? "send" : "recv", ptr, name, format_error(error));
 }
 
 void call_counter(const CallCounter& call_counter, long ru_maxrss) {

@@ -19,7 +19,7 @@ namespace typeart::logger {
 
 void result(const char* name, const void* called_from, bool is_send, const Buffer& buffer, const MPIType& type,
             const Result<void>&);
-void error(const char* function_name, const void* called_from, const Error&);
+void error(const char* function_name, const void* called_from, bool is_send, const void* ptr, const Error&);
 void call_counter(const CallCounter& call_counter, long ru_maxrss);
 void mpi_counter(const MPICounter& mpi_counter);
 void null_buffer();

@@ -24,8 +24,10 @@
 namespace typeart {
 template <class... Ts>
 struct [[nodiscard]] VariantError {
+ private:
   std::variant<Ts...> data;
 
+ public:
   template <class... Param>
   VariantError(Param&&... param) : data(std::forward<Param>(param)...) {
   }
@@ -35,13 +37,22 @@ struct [[nodiscard]] VariantError {
     return std::holds_alternative<T>(data);
   }
 
+  template <class T>
+  [[nodiscard]] const T& get() const& {
+    return std::get<T>(data);
+  }
+
+  template <class T>
+  [[nodiscard]] T get() && {
+    return std::get<T>(std::move(data));
+  }
+
   template <class Visitor>
   auto visit(Visitor&& visitor) const -> decltype(auto) {
     return std::visit(std::forward<Visitor>(visitor), data);
   }
 };
 
-struct Error;
 struct MPIError {
   std::string function_name;
   std::string message;
@@ -55,6 +66,10 @@ struct InvalidArgument {
 struct UnsupportedCombiner {
   std::string combiner_name;
 };
+struct [[nodiscard]] InternalError : public VariantError<MPIError, TypeARTError, InvalidArgument, UnsupportedCombiner> {
+};
+
+struct TypeError;
 struct InsufficientBufferSize {
   size_t actual;
   size_t required;
@@ -82,7 +97,7 @@ struct MemberOffsetMismatch {
 };
 struct MemberTypeMismatch {
   size_t member;
-  std::shared_ptr<Error> error;
+  std::unique_ptr<TypeError> error;
 };
 struct MemberElementCountMismatch {
   int type_id;
@@ -90,11 +105,11 @@ struct MemberElementCountMismatch {
   size_t count;
   size_t mpi_count;
 };
+struct [[nodiscard]] TypeError
+    : public VariantError<InsufficientBufferSize, BuiltinTypeMismatch, UnsupportedCombinerArgs, BufferNotOfStructType,
+                          MemberCountMismatch, MemberOffsetMismatch, MemberTypeMismatch, MemberElementCountMismatch> {};
 
-struct [[nodiscard]] Error
-    : public VariantError<MPIError, TypeARTError, InvalidArgument, UnsupportedCombiner, InsufficientBufferSize,
-                          BuiltinTypeMismatch, UnsupportedCombinerArgs, BufferNotOfStructType, MemberCountMismatch,
-                          MemberOffsetMismatch, MemberTypeMismatch, MemberElementCountMismatch> {
+struct [[nodiscard]] Error : public VariantError<InternalError, TypeError> {
   Stacktrace stacktrace = Stacktrace::current();
 };
 
@@ -118,8 +133,13 @@ struct Result<void> : public cpp::result<void, std::shared_ptr<Error>> {
 };
 
 template <class Type, class... Param>
-std::shared_ptr<Error> make_error(Param... param) {
-  return std::make_shared<Error>(Error{Type{std::forward<Param>(param)...}});
+std::shared_ptr<Error> make_internal_error(Param... param) {
+  return std::make_shared<Error>(Error{InternalError{Type{std::forward<Param>(param)...}}});
+}
+
+template <class Type, class... Param>
+std::shared_ptr<Error> make_type_error(Param... param) {
+  return std::make_shared<Error>(Error{TypeError{Type{std::forward<Param>(param)...}}});
 }
 
 }  // namespace typeart

@@ -31,7 +31,7 @@ Result<Buffer> Buffer::create(const void* ptr) {
   size_t count          = 0;
   auto typeart_status_v = typeart_get_type(ptr, &type_id, &count);
   if (typeart_status_v != TYPEART_OK) {
-    return make_error<TypeARTError>(error_message_for(typeart_status_v));
+    return make_internal_error<TypeARTError>(error_message_for(typeart_status_v));
   }
   return Buffer{0, ptr, count, type_id};
 }
@@ -58,7 +58,7 @@ Result<MPICombiner> MPICombiner::create(MPI_Datatype type) {
   auto mpierr = MPI_Type_get_envelope(type, &num_integers, &num_addresses, &num_datatypes, &combiner);
 
   if (mpierr != MPI_SUCCESS) {
-    return make_error<MPIError>("MPI_Type_get_envelope", error_message_for(mpierr));
+    return make_internal_error<MPIError>("MPI_Type_get_envelope", error_message_for(mpierr));
   }
 
   result.id = combiner;
@@ -71,7 +71,7 @@ Result<MPICombiner> MPICombiner::create(MPI_Datatype type) {
                                    result.address_args.data(), type_args.data());
 
     if (mpierr != MPI_SUCCESS) {
-      return make_error<MPIError>("MPI_Type_get_contents", error_message_for(mpierr));
+      return make_internal_error<MPIError>("MPI_Type_get_contents", error_message_for(mpierr));
     }
 
     result.type_args.reserve(num_datatypes);
@@ -110,7 +110,7 @@ Result<void> check_buffer(const Buffer& buffer, const MPIType& type, int count) 
     typeart_status status = typeart_resolve_type_id(buffer.type_id, &struct_layout);
     if (status == TYPEART_INVALID_ID) {
       auto message = fmt::format("Buffer::create received an invalid type_id {}", buffer.type_id);
-      return make_error<InvalidArgument>(message);
+      return make_internal_error<InvalidArgument>(message);
     }
     if (status == TYPEART_OK && struct_layout.offsets[0] == 0) {
       auto first_member =
@@ -126,7 +126,7 @@ Result<void> check_buffer(const Buffer& buffer, const MPIType& type, int count) 
   auto type_count   = static_cast<size_t>(count * multipliers.type);
   auto buffer_count = buffer.count * multipliers.buffer;
   if (type_count > buffer_count) {
-    return make_error<InsufficientBufferSize>(buffer_count, type_count);
+    return make_type_error<InsufficientBufferSize>(buffer_count, type_count);
   }
   return {};
 }
@@ -160,7 +160,7 @@ Result<Multipliers> check_type(const Buffer& buffer, const MPIType& type) {
     case MPI_COMBINER_SUBARRAY:
       return check_combiner_subarray(buffer, type);
     default:
-      return make_error<UnsupportedCombiner>(combiner_name_for(type.combiner.id));
+      return make_internal_error<UnsupportedCombiner>(combiner_name_for(type.combiner.id));
   }
 }
 
@@ -178,7 +178,7 @@ Result<Multipliers> check_combiner_named(const Buffer& buffer, const MPIType& ty
   // As a special case, if the types do not match, but both represent a 128bit
   // floating point type, they are also considered to match.
   if (buffer.type_id != type.type_id && !(buffer.type_id == TYPEART_PPC_FP128 && type.type_id == TYPEART_FP128)) {
-    return make_error<BuiltinTypeMismatch>(buffer.type_id, type.mpi_type);
+    return make_type_error<BuiltinTypeMismatch>(buffer.type_id, type.mpi_type);
   }
   return Multipliers{1, 1};
 }
@@ -213,7 +213,7 @@ Result<Multipliers> check_combiner_vector(const Buffer& buffer, const MPIType& t
   const auto stride      = type.combiner.integer_args[2];
 
   if (stride < 0) {
-    return make_error<UnsupportedCombinerArgs>("negative strides for MPI_Type_vector are currently not supported\n");
+    return make_type_error<UnsupportedCombinerArgs>("negative strides for MPI_Type_vector are currently not supported");
   }
 
   // MPI_Type_vector forms a number of `count` blocks of `oldtype` where the
@@ -240,8 +240,8 @@ Result<Multipliers> check_combiner_indexed_block(const Buffer& buffer, const MPI
       std::minmax_element(array_of_displacements, array_of_displacements + count);
 
   if (*min_displacement < 0) {
-    return make_error<UnsupportedCombinerArgs>(
-        "negative displacements for MPI_Type_create_indexed_block are currently not supported\n");
+    return make_type_error<UnsupportedCombinerArgs>(
+        "negative displacements for MPI_Type_create_indexed_block are currently not supported");
   }
 
   // Similer to MPI_Type_vector but with a separate displacement specified for
@@ -270,7 +270,7 @@ Result<Multipliers> check_combiner_struct(const Buffer& buffer, const MPIType& t
   typeart_status status = typeart_resolve_type_id(buffer.type_id, &struct_layout);
   if (status == TYPEART_INVALID_ID) {
     auto message = fmt::format("Buffer::create received an invalid type_id {}", buffer.type_id);
-    return make_error<InvalidArgument>(message);
+    return make_internal_error<InvalidArgument>(message);
   }
   std::vector<Buffer> type_layout = {};
   if (status == TYPEART_OK) {
@@ -286,7 +286,7 @@ Result<Multipliers> check_combiner_struct(const Buffer& buffer, const MPIType& t
   // ... and that the number of members of the struct matches the argument
   // `count` of the type combiner.
   if (type_layout.size() != count) {
-    return make_error<MemberCountMismatch>(buffer.type_id, type_layout.size(), count);
+    return make_type_error<MemberCountMismatch>(buffer.type_id, type_layout.size(), count);
   }
 
   // Then, for each member check that...
@@ -294,8 +294,8 @@ Result<Multipliers> check_combiner_struct(const Buffer& buffer, const MPIType& t
     // ... the byte offset of the member matches the respective element in
     // the `array_of_displacements` type combiner argument.
     if (type_layout[i].offset != type.combiner.address_args[i]) {
-      return make_error<MemberOffsetMismatch>(buffer.type_id, i + 1, type_layout[i].offset,
-                                              type.combiner.address_args[i]);
+      return make_type_error<MemberOffsetMismatch>(buffer.type_id, i + 1, type_layout[i].offset,
+                                                   type.combiner.address_args[i]);
     }
   }
 
@@ -304,7 +304,13 @@ Result<Multipliers> check_combiner_struct(const Buffer& buffer, const MPIType& t
     // `array_of_types` type combiner argument.
     auto result = check_type(type_layout[i], type.combiner.type_args[i]);
     if (result.has_error()) {
-      return make_error<MemberTypeMismatch>(i + 1, std::move(result).error());
+      auto error = std::move(result).error();
+      if (error->is<InternalError>()) {
+        return std::move(error);
+      } else {
+        return make_type_error<MemberTypeMismatch>(i + 1,
+                                                   std::make_unique<TypeError>(std::move(*error).get<TypeError>()));
+      }
     }
 
     // ... the count of elements in the buffer of the member matches the count
@@ -313,7 +319,7 @@ Result<Multipliers> check_combiner_struct(const Buffer& buffer, const MPIType& t
     const auto type_count   = static_cast<size_t>(array_of_blocklenghts[i]) * multipliers.type;
     const auto buffer_count = type_layout[i].count * multipliers.buffer;
     if (type_count != buffer_count) {
-      return make_error<MemberElementCountMismatch>(buffer.type_id, i + 1, type_count, buffer_count);
+      return make_type_error<MemberElementCountMismatch>(buffer.type_id, i + 1, type_count, buffer_count);
     }
   }
   return Multipliers{1, 1};
