@@ -36,6 +36,9 @@ class Logger {
   void log(const MPICounter& mpi_counter);
   void log_null_buffer();
   void log_unsupported(const char* name);
+
+ private:
+  void log(const void* called_from, std::string info, const Error&);
 };
 
 }  // namespace typeart

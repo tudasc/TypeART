@@ -11,6 +11,7 @@ add_custom_command(
 
 add_library(MPITool SHARED
   ${LIB_SOURCE}
+  Config.cpp
   InterceptorFunctions.cpp
   Logger.cpp
   TypeCheck.cpp
@@ -50,6 +51,11 @@ target_link_libraries(MPITool
           result
           fmt
           spdlog
+)
+
+target_compile_definitions(
+  MPITool
+  PRIVATE LOG_LEVEL=${LOG_LEVEL_RT}
 )
 
 set(CONFIG_NAME ${PROJECT_NAME}MPITool)

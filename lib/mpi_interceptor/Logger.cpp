@@ -10,8 +10,10 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //
 
-#ifdef NDEBUG
-#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_ERROR
+#if LOG_LEVEL <= 0
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_WARN
+#elif LOG_LEVEL <= 2
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_INFO
 #else
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
 #endif
@@ -159,39 +161,66 @@ struct ErrorVisitor {
   }
 };
 
-std::string format_error(const Error& error) {
-  return error.visit(ErrorVisitor{});
+bool use_source_location_for(spdlog::level::level_enum level) {
+  auto source_location_config = Config::get().source_location;
+  return source_location_config == Config::SourceLocation::None ||
+         (source_location_config == Config::SourceLocation::Error && level < spdlog::level::err);
+}
+
+std::string format_source_location(spdlog::level::level_enum level, const void* addr) {
+  auto source_location =
+      use_source_location_for(level) ? std::optional<SourceLocation>{} : SourceLocation::create(addr);
+  if (source_location.has_value()) {
+    return fmt::format("{}[{}] at {}:{}: ", source_location->function, addr, source_location->file,
+                       source_location->line);
+  } else {
+    return fmt::format("at {}: ", addr);
+  }
+}
+
+void Logger::log(const void* called_from, std::string info, const Error& error) {
+  auto source_location = error.stacktrace.has_value() ? "" : format_source_location(spdlog::level::err, called_from);
+  logger->error("{}{}{}", source_location, info, error.visit(ErrorVisitor{}));
+  if (error.stacktrace.has_value()) {
+    for (auto& entry : error.stacktrace.value()) {
+      logger->error("\tin {}", entry);
+    }
+  }
 }
 
 void Logger::log(const char* name, const void* called_from, bool is_send, const Buffer& buffer, const MPIType& type,
                  const Result<void>& result) {
   if (result.has_value()) {
-    SPDLOG_LOGGER_INFO(logger, "at {}: {}: checking {}-buffer {} of type \"{}\" against MPI type \"{}\"", called_from,
-                       name, is_send ? "send" : "recv", buffer.ptr, typeart_get_type_name(buffer.type_id),
-                       name_for(type.mpi_type));
+    SPDLOG_LOGGER_INFO(logger, "{}{}: checking {}-buffer {} of type \"{}\" against MPI type \"{}\"",
+                       format_source_location(spdlog::level::info, called_from), name, is_send ? "send" : "recv",
+                       buffer.ptr, typeart_get_type_name(buffer.type_id), name_for(type.mpi_type));
   } else {
     auto error                 = result.error();
     auto internal_error_prefix = error->is<TypeError>() ? "" : "internal error ";
-    logger->error("at {}: {}: {}while checking {}-buffer {} of type \"{}\" against MPI type \"{}\": {}", called_from,
-                  name, internal_error_prefix, is_send ? "send" : "recv", buffer.ptr,
-                  typeart_get_type_name(buffer.type_id), name_for(type.mpi_type), format_error(*error));
+    log(called_from,
+        fmt::format("{}: {}while checking {}-buffer {} of type \"{}\" against MPI type \"{}\": ", name,
+                    internal_error_prefix, is_send ? "send" : "recv", buffer.ptr, typeart_get_type_name(buffer.type_id),
+                    name_for(type.mpi_type)),
+        *error);
   }
 }
 
 void Logger::log(const char* name, const void* called_from, bool is_send, const void* ptr, const Error& error) {
   auto error_prefix = error.is<TypeError>() ? "error " : "internal error ";
-  logger->error("at {}: {}while checking the {}-buffer {} in a call to {}: {}", called_from, error_prefix, called_from,
-                is_send ? "send" : "recv", ptr, name, format_error(error));
+  log(called_from,
+      fmt::format("{}while checking the {}-buffer {} in a call to {}: ", error_prefix, called_from,
+                  is_send ? "send" : "recv", ptr, name),
+      error);
 }
 
 void Logger::log(const CallCounter& call_counter, long ru_maxrss) {
-  logger->info("CCounter {{ Send: {} Recv: {} Send_Recv: {} Unsupported: {} MAX RSS[KBytes]: {} }}", call_counter.send,
-               call_counter.recv, call_counter.send_recv, call_counter.unsupported, ru_maxrss);
+  SPDLOG_LOGGER_INFO(logger, "CCounter {{ Send: {} Recv: {} Send_Recv: {} Unsupported: {} MAX RSS[KBytes]: {} }}",
+                     call_counter.send, call_counter.recv, call_counter.send_recv, call_counter.unsupported, ru_maxrss);
 }
 
 void Logger::log(const MPICounter& mpi_counter) {
-  logger->info("MCounter {{ Error: {} Null_Buf: {} Null_Count: {} Type_Error: {} }}", mpi_counter.error,
-               mpi_counter.null_buff, mpi_counter.null_count, mpi_counter.type_error);
+  SPDLOG_LOGGER_INFO(logger, "MCounter {{ Error: {} Null_Buf: {} Null_Count: {} Type_Error: {} }}", mpi_counter.error,
+                     mpi_counter.null_buff, mpi_counter.null_count, mpi_counter.type_error);
 }
 
 void Logger::log_null_buffer() {

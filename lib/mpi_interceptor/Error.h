@@ -13,10 +13,12 @@
 #ifndef TYPEART_MPI_INTERCEPTOR_ERROR_H
 #define TYPEART_MPI_INTERCEPTOR_ERROR_H
 
+#include "Config.h"
 #include "System.h"
 
 #include <memory>
 #include <mpi.h>
+#include <optional>
 #include <result.hpp>
 #include <variant>
 #include <vector>
@@ -110,7 +112,8 @@ struct [[nodiscard]] TypeError
                           MemberCountMismatch, MemberOffsetMismatch, MemberTypeMismatch, MemberElementCountMismatch> {};
 
 struct [[nodiscard]] Error : public VariantError<InternalError, TypeError> {
-  Stacktrace stacktrace = Stacktrace::current();
+  std::optional<Stacktrace> stacktrace =
+      Config::get().with_backtraces ? std::optional{Stacktrace::current()} : std::optional<Stacktrace>{};
 };
 
 template <class T>
