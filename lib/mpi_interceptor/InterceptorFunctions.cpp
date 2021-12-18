@@ -28,6 +28,7 @@ void check_buffer(const char* name, const void* called_from, bool is_send, const
 
 static CallCounter call_counter;
 static MPICounter mpi_counter;
+static Logger logger;
 
 }  // namespace typeart
 
@@ -52,6 +53,7 @@ void typeart_check_send_and_recv(const char* name, const void* called_from, cons
 
 void typeart_unsupported_mpi_call(const char* name, const void* /*called_from*/) {
   ++typeart::call_counter.unsupported;
+  typeart::logger.log_unsupported(name);
 }
 
 void typeart_exit() {
@@ -60,8 +62,8 @@ void typeart_exit() {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   struct rusage end;
   getrusage(RUSAGE_SELF, &end);
-  typeart::logger::call_counter(typeart::call_counter, end.ru_maxrss);
-  typeart::logger::mpi_counter(typeart::mpi_counter);
+  typeart::logger.log(typeart::call_counter, end.ru_maxrss);
+  typeart::logger.log(typeart::mpi_counter);
 }
 
 }  // extern "C"
@@ -80,20 +82,20 @@ void check_buffer(const char* name, const void* called_from, bool is_send, const
 
   if (buffer_is_nullptr) {
     ++mpi_counter.null_buff;
-    logger::null_buffer();
+    logger.log_null_buffer();
     return;
   }
 
   auto buffer = Buffer::create(ptr);
   if (buffer.has_error()) {
     ++mpi_counter.error;
-    logger::error(name, called_from, is_send, ptr, *std::move(buffer).error());
+    logger.log(name, called_from, is_send, ptr, *std::move(buffer).error());
     return;
   }
   auto mpi_type = MPIType::create(type);
   if (mpi_type.has_error()) {
     ++mpi_counter.error;
-    logger::error(name, called_from, is_send, ptr, *std::move(mpi_type).error());
+    logger.log(name, called_from, is_send, ptr, *std::move(mpi_type).error());
     return;
   }
 
@@ -105,7 +107,7 @@ void check_buffer(const char* name, const void* called_from, bool is_send, const
       ++mpi_counter.type_error;
     }
   }
-  logger::result(name, called_from, is_send, *buffer, *mpi_type, result);
+  logger.log(name, called_from, is_send, *buffer, *mpi_type, result);
 }
 
 }  // namespace typeart

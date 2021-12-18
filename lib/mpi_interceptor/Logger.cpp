@@ -79,16 +79,18 @@ class MPIRankFlag : public spdlog::custom_flag_formatter {
 };
 
 auto create_logger() {
-  auto result    = spdlog::stderr_logger_mt("typeart_mpi_interceptor_logger");
-  auto formatter = std::make_unique<spdlog::pattern_formatter>();
-  formatter->add_flag<MPIRankFlag>('M').add_flag<LogLevelFlag>('L').set_pattern("R[%M][%L]T[%t] %v");
-  result->set_formatter(std::move(formatter));
-  return result;
 }
 
-namespace typeart::logger {
+namespace typeart {
 
-static auto logger = create_logger();
+Logger::Logger() {
+  logger         = spdlog::stderr_logger_mt("typeart_mpi_interceptor_logger");
+  auto formatter = std::make_unique<spdlog::pattern_formatter>();
+  formatter->add_flag<MPIRankFlag>('M').add_flag<LogLevelFlag>('L').set_pattern("R[%M][%L]T[%t] %v");
+  logger->set_formatter(std::move(formatter));
+}
+
+Logger::~Logger(){};
 
 std::string name_for(MPI_Datatype datatype) {
   int len;
@@ -161,12 +163,8 @@ std::string format_error(const Error& error) {
   return error.visit(ErrorVisitor{});
 }
 
-void null_buffer() {
-  logger->warn("buffer is NULL");
-}
-
-void result(const char* name, const void* called_from, bool is_send, const Buffer& buffer, const MPIType& type,
-            const Result<void>& result) {
+void Logger::log(const char* name, const void* called_from, bool is_send, const Buffer& buffer, const MPIType& type,
+                 const Result<void>& result) {
   if (result.has_value()) {
     SPDLOG_LOGGER_INFO(logger, "at {}: {}: checking {}-buffer {} of type \"{}\" against MPI type \"{}\"", called_from,
                        name, is_send ? "send" : "recv", buffer.ptr, typeart_get_type_name(buffer.type_id),
@@ -180,24 +178,28 @@ void result(const char* name, const void* called_from, bool is_send, const Buffe
   }
 }
 
-void error(const char* name, const void* called_from, bool is_send, const void* ptr, const Error& error) {
+void Logger::log(const char* name, const void* called_from, bool is_send, const void* ptr, const Error& error) {
   auto error_prefix = error.is<TypeError>() ? "error " : "internal error ";
   logger->error("at {}: {}while checking the {}-buffer {} in a call to {}: {}", called_from, error_prefix, called_from,
                 is_send ? "send" : "recv", ptr, name, format_error(error));
 }
 
-void call_counter(const CallCounter& call_counter, long ru_maxrss) {
+void Logger::log(const CallCounter& call_counter, long ru_maxrss) {
   logger->info("CCounter {{ Send: {} Recv: {} Send_Recv: {} Unsupported: {} MAX RSS[KBytes]: {} }}", call_counter.send,
                call_counter.recv, call_counter.send_recv, call_counter.unsupported, ru_maxrss);
 }
 
-void mpi_counter(const MPICounter& mpi_counter) {
+void Logger::log(const MPICounter& mpi_counter) {
   logger->info("MCounter {{ Error: {} Null_Buf: {} Null_Count: {} Type_Error: {} }}", mpi_counter.error,
                mpi_counter.null_buff, mpi_counter.null_count, mpi_counter.type_error);
 }
 
-void unsupported(const char* name) {
+void Logger::log_null_buffer() {
+  logger->warn("buffer is NULL");
+}
+
+void Logger::log_unsupported(const char* name) {
   logger->error("The MPI function {} is currently not checked by TypeArt", name);
 }
 
-}  // namespace typeart::logger
+}  // namespace typeart

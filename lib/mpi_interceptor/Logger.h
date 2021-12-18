@@ -14,15 +14,28 @@
 #include "TypeCheck.h"
 
 #include <atomic>
+#include <memory>
 
-namespace typeart::logger {
+namespace spdlog {
+class logger;
+}
 
-void result(const char* name, const void* called_from, bool is_send, const Buffer& buffer, const MPIType& type,
-            const Result<void>&);
-void error(const char* function_name, const void* called_from, bool is_send, const void* ptr, const Error&);
-void call_counter(const CallCounter& call_counter, long ru_maxrss);
-void mpi_counter(const MPICounter& mpi_counter);
-void null_buffer();
-void unsupported(const char* name);
+namespace typeart {
 
-}  // namespace typeart::logger
+class Logger {
+  std::shared_ptr<spdlog::logger> logger;
+
+ public:
+  Logger();
+  ~Logger();
+
+  void log(const char* name, const void* called_from, bool is_send, const Buffer& buffer, const MPIType& type,
+           const Result<void>&);
+  void log(const char* function_name, const void* called_from, bool is_send, const void* ptr, const Error&);
+  void log(const CallCounter& call_counter, long ru_maxrss);
+  void log(const MPICounter& mpi_counter);
+  void log_null_buffer();
+  void log_unsupported(const char* name);
+};
+
+}  // namespace typeart
