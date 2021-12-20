@@ -23,7 +23,6 @@
 #include <string>
 
 namespace llvm {
-class Constant;
 class Module;
 class Function;
 class AnalysisUsage;

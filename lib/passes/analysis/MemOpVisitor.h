@@ -15,7 +15,6 @@
 
 #include "MemOpData.h"
 
-#include "llvm/ADT/StringMap.h"
 #include "llvm/IR/InstVisitor.h"
 
 namespace llvm {

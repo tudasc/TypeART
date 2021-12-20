@@ -21,7 +21,6 @@
 #include "typegen/TypeGenerator.h"
 
 #include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/None.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/Statistic.h"
@@ -30,7 +29,6 @@
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Module.h"
 #include "llvm/Pass.h"
-#include "llvm/PassAnalysisSupport.h"
 #include "llvm/PassSupport.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/raw_ostream.h"

@@ -15,11 +15,12 @@
 
 #include "MemOpData.h"
 
+#include <memory>
+#include <string>
+
 namespace llvm {
 class Module;
 class Function;
-class AllocaInst;
-class GlobalValue;
 class raw_ostream;
 }  // namespace llvm
 
