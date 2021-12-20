@@ -1,4 +1,4 @@
-; RUN: cat %s | %apply-typeart -typeart-alloca -S 2>&1 | FileCheck %s
+; RUN: cat %s | %apply-typeart -typeart-alloca -typeart-filter-pointer-stack=false -S 2>&1 | FileCheck %s
 
 define dso_local i32 @main() #0 {
 ; CHECK: [Error]{{.*}}Target type of casted allocation is unknown. Not instrumenting.{{.*}}%3 = call noalias i8* @malloc(i64 12)

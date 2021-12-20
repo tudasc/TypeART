@@ -49,9 +49,10 @@ using namespace llvm;
 STATISTIC(NumDetectedHeap, "Number of detected heap allocs");
 STATISTIC(NumFilteredDetectedHeap, "Number of filtered heap allocs");
 STATISTIC(NumDetectedAllocs, "Number of detected allocs");
+STATISTIC(NumFilteredPointerAllocs, "Number of filtered pointer allocs");
 STATISTIC(NumCallFilteredAllocs, "Number of call filtered allocs");
 STATISTIC(NumFilteredMallocAllocs, "Number of  filtered  malloc-related allocs");
-STATISTIC(NumFilteredNonArrayAllocs, "Number of call filtered allocs");
+STATISTIC(NumFilteredNonArrayAllocs, "Number of filtered non-array allocs");
 STATISTIC(NumDetectedGlobals, "Number of detected globals");
 STATISTIC(NumFilteredGlobals, "Number of filtered globals");
 STATISTIC(NumCallFilteredGlobals, "Number of filtered globals");
@@ -333,6 +334,20 @@ bool MemInstFinderPass::runOnFunction(llvm::Function& function) {
                  allocs.end());
   }
 
+  if (config.filter.ClFilterPointerStack) {
+    auto& allocs = mOpsCollector.allocas;
+    allocs.erase(llvm::remove_if(allocs,
+                                 [&](const auto& data) {
+                                   auto alloca = data.alloca;
+                                   if (!data.is_vla && isa<llvm::PointerType>(alloca->getAllocatedType())) {
+                                     ++NumFilteredPointerAllocs;
+                                     return true;
+                                   }
+                                   return false;
+                                 }),
+                 allocs.end());
+  }
+
   if (config.filter.ClUseCallFilter) {
     auto& allocs = mOpsCollector.allocas;
     allocs.erase(llvm::remove_if(allocs,
@@ -363,13 +378,16 @@ bool MemInstFinderPass::runOnFunction(llvm::Function& function) {
 }  // namespace typeart
 
 void MemInstFinderPass::printStats(llvm::raw_ostream& out) const {
-  auto all_stack          = double(NumDetectedAllocs);
-  auto nonarray_stack     = double(NumFilteredNonArrayAllocs);
-  auto malloc_alloc_stack = double(NumFilteredMallocAllocs);
-  auto call_filter_stack  = double(NumCallFilteredAllocs);
+  auto all_stack            = double(NumDetectedAllocs);
+  auto nonarray_stack       = double(NumFilteredNonArrayAllocs);
+  auto malloc_alloc_stack   = double(NumFilteredMallocAllocs);
+  auto call_filter_stack    = double(NumCallFilteredAllocs);
+  auto filter_pointer_stack = double(NumFilteredPointerAllocs);
 
   const auto call_filter_stack_p =
-      (call_filter_stack / std::max<double>(1.0, all_stack - nonarray_stack - malloc_alloc_stack)) * 100.0;
+      (call_filter_stack /
+       std::max<double>(1.0, all_stack - nonarray_stack - malloc_alloc_stack - filter_pointer_stack)) *
+      100.0;
 
   const auto call_filter_heap_p =
       (double(NumFilteredDetectedHeap) / std::max<double>(1.0, double(NumDetectedHeap))) * 100.0;
@@ -390,6 +408,7 @@ void MemInstFinderPass::printStats(llvm::raw_ostream& out) const {
   stats.put(Row::make_row("> Stack Memory"));
   stats.put(Row::make("Alloca", all_stack));
   stats.put(Row::make("Stack call filtered %", call_filter_stack_p));
+  stats.put(Row::make("Stack pointer discarded", filter_pointer_stack));
   stats.put(Row::make_row("> Global Memory"));
   stats.put(Row::make("Global", NumDetectedGlobals.getValue()));
   stats.put(Row::make("Global filter total", NumFilteredGlobals.getValue()));

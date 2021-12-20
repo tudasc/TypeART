@@ -1,6 +1,6 @@
-; RUN: cat %s | %apply-typeart -typeart-alloca -S 2>&1 | FileCheck %s
-; RUN: cat %s | %apply-typeart -typeart-alloca -call-filter -call-filter-impl=deprecated::default -S 2>&1 | FileCheck %s -check-prefix=CHECK-FILTER
-; RUN: cat %s | %apply-typeart -typeart-alloca -call-filter -S 2>&1 | FileCheck %s -check-prefix=CHECK-FILTER-EXP
+; RUN: cat %s | %apply-typeart -typeart-alloca -typeart-filter-pointer-stack=false -S 2>&1 | FileCheck %s
+; RUN: cat %s | %apply-typeart -typeart-alloca -call-filter -call-filter-impl=deprecated::default -typeart-filter-pointer-stack=false -S 2>&1 | FileCheck %s -check-prefix=CHECK-FILTER
+; RUN: cat %s | %apply-typeart -typeart-alloca -call-filter -typeart-filter-pointer-stack=false -S 2>&1 | FileCheck %s -check-prefix=CHECK-FILTER-EXP
 
 ; ModuleID = '01_alloca.c'
 source_filename = "01_alloca.c"

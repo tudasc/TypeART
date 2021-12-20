@@ -33,6 +33,7 @@ struct MemInstFinderConfig {
     bool ClFilterGlobal{true};
     bool ClUseCallFilter{false};
     bool ClCallFilterDeep{false};
+    bool ClFilterPointerStack{false};
 
     std::string ClCallFilterImpl{"default"};
     std::string ClCallFilterGlob{"*MPI_*"};
