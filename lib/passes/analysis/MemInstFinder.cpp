@@ -26,6 +26,7 @@
 #include "support/Util.h"
 
 #include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/Statistic.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Function.h"
@@ -46,34 +47,17 @@
 using namespace llvm;
 
 #define DEBUG_TYPE "MemInstFinder"
-
-// STATISTIC(NumDetectedHeap, "Number of detected heap allocs");
-// STATISTIC(NumFilteredDetectedHeap, "Number of filtered heap allocs");
-// STATISTIC(NumDetectedAllocs, "Number of detected allocs");
-// STATISTIC(NumCallFilteredAllocs, "Number of call filtered allocs");
-// STATISTIC(NumFilteredMallocAllocs, "Number of  filtered  malloc-related allocs");
-// STATISTIC(NumFilteredNonArrayAllocs, "Number of call filtered allocs");
-// STATISTIC(NumDetectedGlobals, "Number of detected globals");
-// STATISTIC(NumFilteredGlobals, "Number of filtered globals");
-// STATISTIC(NumCallFilteredGlobals, "Number of filtered globals");
-
-int NumDetectedHeap;
-int NumFilteredDetectedHeap;
-int NumDetectedAllocs;
-int NumCallFilteredAllocs;
-int NumFilteredMallocAllocs;
-int NumFilteredNonArrayAllocs;
-int NumDetectedGlobals;
-int NumFilteredGlobals;
-int NumCallFilteredGlobals;
-
-namespace typeart::filter {
-class Filter;
-}
+STATISTIC(NumDetectedHeap, "Number of detected heap allocs");
+STATISTIC(NumFilteredDetectedHeap, "Number of filtered heap allocs");
+STATISTIC(NumDetectedAllocs, "Number of detected allocs");
+STATISTIC(NumCallFilteredAllocs, "Number of call filtered allocs");
+STATISTIC(NumFilteredMallocAllocs, "Number of  filtered  malloc-related allocs");
+STATISTIC(NumFilteredNonArrayAllocs, "Number of call filtered allocs");
+STATISTIC(NumDetectedGlobals, "Number of detected globals");
+STATISTIC(NumFilteredGlobals, "Number of filtered globals");
+STATISTIC(NumCallFilteredGlobals, "Number of filtered globals");
 
 namespace typeart::analysis {
-
-using namespace finder;
 
 namespace filter {
 class CallFilter {
@@ -260,13 +244,13 @@ bool MemInstFinderPass::runOnModule(Module& module) {
     const auto beforeCallFilter = globals.size();
     NumFilteredGlobals          = NumDetectedGlobals - beforeCallFilter;
 
-    globals.erase(llvm::remove_if(globals, [&](const auto g) { return filter(g.global); }), globals.end());
+    globals.erase(llvm::remove_if(globals, [&](const auto global) { return filter(global.global); }), globals.end());
 
     NumCallFilteredGlobals = beforeCallFilter - globals.size();
     NumFilteredGlobals += NumCallFilteredGlobals;
   }
 
-  return llvm::count_if(module.functions(), [&](auto& f) { return runOnFunction(f); }) > 0;
+  return llvm::count_if(module.functions(), [&](auto& function) { return runOnFunction(function); }) > 0;
 }  // namespace typeart
 
 bool MemInstFinderPass::runOnFunction(llvm::Function& function) {
@@ -371,12 +355,12 @@ bool MemInstFinderPass::runOnFunction(llvm::Function& function) {
     checkAmbigiousMalloc(mallocData);
   }
 
-  FunctionData d{mOpsCollector.mallocs, mOpsCollector.frees, mOpsCollector.allocas};
-  functionMap[&function] = d;
+  FunctionData data{mOpsCollector.mallocs, mOpsCollector.frees, mOpsCollector.allocas};
+  functionMap[&function] = data;
 
   mOpsCollector.clear();
 
-  return false;
+  return true;
 }  // namespace typeart
 
 void MemInstFinderPass::printStats(llvm::raw_ostream& out) const {
@@ -402,14 +386,14 @@ void MemInstFinderPass::printStats(llvm::raw_ostream& out) const {
   stats.wrap_length = true;
   stats.put(Row::make("Filter string", config.filter.ClCallFilterGlob));
   stats.put(Row::make_row("> Heap Memory"));
-  stats.put(Row::make("Heap alloc", NumDetectedHeap));
+  stats.put(Row::make("Heap alloc", NumDetectedHeap.getValue()));
   stats.put(Row::make("Heap call filtered %", call_filter_heap_p));
   stats.put(Row::make_row("> Stack Memory"));
   stats.put(Row::make("Alloca", all_stack));
   stats.put(Row::make("Stack call filtered %", call_filter_stack_p));
   stats.put(Row::make_row("> Global Memory"));
-  stats.put(Row::make("Global", NumDetectedGlobals));
-  stats.put(Row::make("Global filter total", NumFilteredGlobals));
+  stats.put(Row::make("Global", NumDetectedGlobals.getValue()));
+  stats.put(Row::make("Global filter total", NumFilteredGlobals.getValue()));
   stats.put(Row::make("Global call filtered %", call_filter_global_p));
   stats.put(Row::make("Global filtered %", call_filter_global_nocallfilter_p));
 
@@ -431,8 +415,6 @@ const FunctionData& MemInstFinderPass::getFunctionData(const Function& function)
 const GlobalDataList& MemInstFinderPass::getModuleGlobals() const {
   return mOpsCollector.globals;
 }
-// void MemInstFinderPass::configure(MemInstFinderConfig& config) {
-// }
 
 std::unique_ptr<MemInstFinder> create_finder(const MemInstFinderConfig& config) {
   return std::make_unique<MemInstFinderPass>(config);

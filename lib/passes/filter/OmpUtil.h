@@ -90,7 +90,8 @@ struct OmpContext {
     return llvm::None;
   }
 
-  static bool canDiscardMicrotaskArg(CallSite c, const Path& path) {
+  static bool canDiscardMicrotaskArg(llvm::CallSite c, const Path& path) {
+    using namespace llvm;
     auto arg = path.getEndPrev();
     if (!arg) {
       return false;
@@ -129,14 +130,14 @@ struct OmpContext {
     util::DefUseChain finder;
     finder.traverse_custom(
         alloc,
-        [](auto val) -> Optional<decltype(val->users())> {
+        [](auto val) -> llvm::Optional<decltype(val->users())> {
           if (auto cinst = llvm::dyn_cast<llvm::StoreInst>(val)) {
             return cinst->getValueOperand()->users();
           }
           return val->users();
         },
         [&found](auto value) {
-          CallSite site(value);
+          llvm::CallSite site(value);
           if (site.isCall() || site.isInvoke()) {
             const auto called = site.getCalledFunction();
             if (called != nullptr && called->getName().startswith("__kmpc_omp_task(")) {
@@ -164,7 +165,7 @@ struct OmpContext {
         }
         // else find task_alloc, and correlate with store (arg "v") to result of task_alloc
         auto calls = util::find_all(f, [&](auto& inst) {
-          CallSite s(&inst);
+          llvm::CallSite s(&inst);
           if (s.isCall() || s.isInvoke()) {
             if (auto f = s.getCalledFunction()) {
               // once true, the find_all should cancel
@@ -195,7 +196,7 @@ struct OmpContext {
   }
 
   template <typename Distance>
-  static Distance getArgOffsetToMicrotask(const CallSite& c, Distance d) {
+  static Distance getArgOffsetToMicrotask(const llvm::CallSite& c, Distance d) {
     if (d < 1) {
       LOG_WARNING("OMP offset should be > 2 for non-omp-internal args to outlined region")
       return d;
