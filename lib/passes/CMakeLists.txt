@@ -10,16 +10,13 @@ set(PASS_SOURCES
   instrumentation/MemOpArgCollector.cpp
   instrumentation/MemOpInstrumentation.cpp
   instrumentation/Instrumentation.cpp
-  analysis/MemInstFinder.cpp
-  analysis/MemOpVisitor.cpp
 )
 
 make_llvm_module(
   ${TYPEART_PREFIX}_TransformPass "${PASS_SOURCES}"
-  LINK_LIBS typeart::TypesStatic
+  LINK_LIBS typeart::MemInstFinder
+            typeart::TypesStatic
             typeart::TypeGenStatic
-  #          typeart::MemInstFinder
-            typeart::MemOpFilter
   INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}
                ${PROJECT_SOURCE_DIR}/lib/
                ${PROJECT_SOURCE_DIR}/lib/passes/
