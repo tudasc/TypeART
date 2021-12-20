@@ -1,63 +1,39 @@
 set(MEM_PASS_SOURCES
-  MemInstFinderPass.cpp
+  MemInstFinder.cpp
   MemOpVisitor.cpp
   ../support/TypeUtil.cpp
 )
 
-make_llvm_module(
-  ${TYPEART_PREFIX}_MemOpFinderPass "${MEM_PASS_SOURCES}"
-  LINK_LIBS typeart::MemOpFilter
-  INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/lib
-               ${CMAKE_CURRENT_SOURCE_DIR}/..
-               ${CMAKE_CURRENT_SOURCE_DIR}/filter
-)
-mark_as_advanced(LLVM_TYPEART_MEMOPFINDERPASS_LINK_INTO_TOOLS)
-
+add_library(${TYPEART_PREFIX}_MemInstFinder STATIC ${MEM_PASS_SOURCES})
 set_target_properties(
-  ${TYPEART_PREFIX}_MemOpFinderPass
+  ${TYPEART_PREFIX}_MemInstFinder
   PROPERTIES
-  OUTPUT_NAME "${PROJECT_NAME}MemOpFinderPass"
-  EXPORT_NAME "MemOpFinderPass"
-)
-add_library(typeart::MemOpFinderPass ALIAS ${TYPEART_PREFIX}_MemOpFinderPass)
-
-target_compile_definitions(
-  ${TYPEART_PREFIX}_MemOpFinderPass PRIVATE LOG_LEVEL=${LOG_LEVEL}
-                          $<$<BOOL:${SHOW_STATS}>:LLVM_ENABLE_STATS>
+  OUTPUT_NAME "${PROJECT_NAME}MemInstFinder"
+  EXPORT_NAME "MemInstFinder"
 )
 
-target_project_compile_options(${TYPEART_PREFIX}_MemOpFinderPass)
-target_project_coverage_options(${TYPEART_PREFIX}_MemOpFinderPass)
+add_library(typeart::MemInstFinder ALIAS ${TYPEART_PREFIX}_MemInstFinder)
 
-set(CONFIG_NAME ${PROJECT_NAME}MemOpFinderPass)
-set(TARGETS_EXPORT_NAME ${CONFIG_NAME}Targets)
+target_link_libraries(${TYPEART_PREFIX}_MemInstFinder PUBLIC typeart::MemOpFilter)
 
-install(
-  TARGETS ${TYPEART_PREFIX}_MemOpFinderPass
-  EXPORT ${TARGETS_EXPORT_NAME}
-  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+target_compile_options(${TYPEART_PREFIX}_MemInstFinder PRIVATE "-fno-rtti")
+
+target_compile_definitions(${TYPEART_PREFIX}_MemInstFinder PRIVATE LOG_LEVEL=${LOG_LEVEL})
+
+set_target_properties(${TYPEART_PREFIX}_MemInstFinder PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+target_include_directories(
+  ${TYPEART_PREFIX}_MemInstFinder
+  PUBLIC $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
+         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>
+         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/filter>
 )
 
-install(
-  EXPORT ${TARGETS_EXPORT_NAME}
-  NAMESPACE typeart::
-  DESTINATION ${TYPEART_INSTALL_CONFIGDIR}
-)
+target_include_directories(${TYPEART_PREFIX}_MemInstFinder SYSTEM PRIVATE ${LLVM_INCLUDE_DIRS})
 
-export(
-  EXPORT ${TARGETS_EXPORT_NAME}
-  FILE ${CMAKE_BINARY_DIR}/${TARGETS_EXPORT_NAME}.cmake
-  NAMESPACE typeart::
-)
+make_tidy_check(${TYPEART_PREFIX}_MemInstFinder "${MEM_PASS_SOURCES}")
 
-#configure_package_config_file(
-#  ${PROJECT_SOURCE_DIR}/cmake/Config.cmake.in
-#  ${CMAKE_CURRENT_BINARY_DIR}/${CONFIG_NAME}Config.cmake
-#  INSTALL_DESTINATION ${TYPEART_INSTALL_CONFIGDIR}
-#)
-#
-#install(FILES
-#  ${CMAKE_CURRENT_BINARY_DIR}/${CONFIG_NAME}Config.cmake
-#  DESTINATION ${TYPEART_INSTALL_CONFIGDIR}
-#)
+target_project_compile_options(${TYPEART_PREFIX}_MemInstFinder)
+target_define_file_basename(${TYPEART_PREFIX}_MemInstFinder)
+target_project_coverage_options(${TYPEART_PREFIX}_MemInstFinder)

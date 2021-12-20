@@ -15,7 +15,6 @@
 
 #include "MemOpData.h"
 
-#include "llvm/ADT/StringMap.h"
 #include "llvm/IR/InstVisitor.h"
 
 namespace llvm {
@@ -24,7 +23,7 @@ class CallBase;
 class Module;
 }  // namespace llvm
 
-namespace typeart::finder {
+namespace typeart::analysis {
 
 struct MemOpVisitor : public llvm::InstVisitor<MemOpVisitor> {
   GlobalDataList globals;
@@ -50,6 +49,6 @@ struct MemOpVisitor : public llvm::InstVisitor<MemOpVisitor> {
   void visitAllocaInst(llvm::AllocaInst& ai);
 };
 
-}  // namespace typeart::finder
+}  // namespace typeart::analysis
 
 #endif /* LIB_MEMOPVISITOR_H_ */

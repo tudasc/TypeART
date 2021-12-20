@@ -34,7 +34,7 @@
 
 #include <cstddef>
 
-namespace typeart::finder {
+namespace typeart::analysis {
 
 using namespace llvm;
 
@@ -263,4 +263,4 @@ void MemOpVisitor::clear() {
   frees.clear();
 }
 
-}  // namespace typeart::finder
+}  // namespace typeart::analysis

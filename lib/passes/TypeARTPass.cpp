@@ -12,7 +12,7 @@
 
 #include "TypeARTPass.h"
 
-#include "analysis/MemInstFinderPass.h"
+#include "analysis/MemInstFinder.h"
 #include "instrumentation/MemOpArgCollector.h"
 #include "instrumentation/MemOpInstrumentation.h"
 #include "instrumentation/TypeARTFunctions.h"
@@ -21,7 +21,6 @@
 #include "typegen/TypeGenerator.h"
 
 #include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/None.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/Statistic.h"
@@ -30,7 +29,6 @@
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Module.h"
 #include "llvm/Pass.h"
-#include "llvm/PassAnalysisSupport.h"
 #include "llvm/PassSupport.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/raw_ostream.h"
@@ -55,11 +53,44 @@ static llvm::RegisterPass<typeart::pass::TypeArtPass> msp("typeart", "TypeArt ty
 
 static cl::opt<bool> ClTypeArtStats("typeart-stats", cl::desc("Show statistics for TypeArt type pass."), cl::Hidden,
                                     cl::init(false));
-extern cl::opt<bool> ClIgnoreHeap;
-extern cl::opt<bool> ClTypeArtAlloca;
 
 static cl::opt<std::string> ClTypeFile("typeart-outfile", cl::desc("Location of the generated type file."), cl::Hidden,
                                        cl::init("types.yaml"));
+
+cl::opt<bool> ClIgnoreHeap("typeart-no-heap", cl::desc("Ignore heap allocation/free instruction."), cl::Hidden,
+                           cl::init(false));
+cl::opt<bool> ClTypeArtAlloca("typeart-alloca", cl::desc("Track alloca instructions."), cl::Hidden, cl::init(false));
+
+// MemInstFinderPass:
+cl::opt<bool> ClFilterNonArrayAlloca("alloca-array-only", cl::desc("Only use alloca instructions of arrays."),
+                                     cl::Hidden, cl::init(false));
+
+cl::opt<bool> ClFilterMallocAllocPair("malloc-store-filter",
+                                      cl::desc("Filter allocs that get a store from a heap alloc."), cl::Hidden,
+                                      cl::init(false));
+
+cl::opt<bool> ClFilterGlobal("filter-globals", cl::desc("Filter globals of a module."), cl::Hidden, cl::init(true));
+
+cl::opt<bool> ClUseCallFilter("call-filter", cl::desc("Filter alloca instructions that are passed to specific calls."),
+                              cl::Hidden, cl::init(false));
+
+cl::opt<std::string> ClCallFilterImpl("call-filter-impl", cl::desc("Select the filter implementation."), cl::Hidden,
+                                      cl::init("default"));
+
+cl::opt<std::string> ClCallFilterGlob("call-filter-str", cl::desc("Filter values based on string."), cl::Hidden,
+                                      cl::init("*MPI_*"));
+
+cl::opt<std::string> ClCallFilterDeepGlob("call-filter-deep-str",
+                                          cl::desc("Filter values based on API, i.e., passed as void*."), cl::Hidden,
+                                          cl::init("MPI_*"));
+
+cl::opt<std::string> ClCallFilterCGFile("call-filter-cg-file", cl::desc("Location of CG to use."), cl::Hidden,
+                                        cl::init(""));
+
+// Deprecated, only used with the old std filter:
+cl::opt<bool> ClCallFilterDeep("call-filter-deep",
+                               cl::desc("If the CallFilter matches, we look if the value is passed as a void*."),
+                               cl::Hidden, cl::init(false));
 
 STATISTIC(NumInstrumentedMallocs, "Number of instrumented mallocs");
 STATISTIC(NumInstrumentedFrees, "Number of instrumented frees");
@@ -73,14 +104,28 @@ char TypeArtPass::ID = 0;
 
 TypeArtPass::TypeArtPass() : llvm::ModulePass(ID) {
   assert(!ClTypeFile.empty() && "Default type file not set");
+  analysis::MemInstFinderConfig conf{ClIgnoreHeap,                                                   //
+                                     ClTypeArtAlloca,                                                //
+                                     analysis::MemInstFinderConfig::Filter{ClFilterNonArrayAlloca,   //
+                                                                           ClFilterMallocAllocPair,  //
+                                                                           ClFilterGlobal,           //
+                                                                           ClUseCallFilter,          //
+                                                                           ClCallFilterDeep,         //
+                                                                           ClCallFilterImpl,         //
+                                                                           ClCallFilterGlob,         //
+                                                                           ClCallFilterDeepGlob,     //
+                                                                           ClCallFilterCGFile}};
+  meminst_finder = analysis::create_finder(conf);
+
   EnableStatistics();
 }
 
 void TypeArtPass::getAnalysisUsage(llvm::AnalysisUsage& info) const {
-  info.addRequired<typeart::MemInstFinderPass>();
+  // info.addRequired<typeart::MemInstFinder>();
 }
 
 bool TypeArtPass::doInitialization(Module& m) {
+  typeManager = nullptr;
   typeManager = make_typegen(ClTypeFile.getValue());
 
   LOG_DEBUG("Propagating type infos.");
@@ -103,11 +148,13 @@ bool TypeArtPass::doInitialization(Module& m) {
 }
 
 bool TypeArtPass::runOnModule(Module& m) {
+  meminst_finder->runOnModule(m);
+
   bool instrumented_global{false};
   if (ClTypeArtAlloca) {
     declareInstrumentationFunctions(m);
 
-    const auto& globalsList = getAnalysis<MemInstFinderPass>().getModuleGlobals();
+    const auto& globalsList = meminst_finder->getModuleGlobals();
     if (!globalsList.empty()) {
       const auto global_count = instrumentation_context->handleGlobal(globalsList);
       NumInstrumentedGlobal += global_count;
@@ -126,7 +173,7 @@ bool TypeArtPass::runOnFunc(Function& f) {
     return false;
   }
 
-  if (!getAnalysis<MemInstFinderPass>().hasFunctionData(&f)) {
+  if (!meminst_finder->hasFunctionData(f)) {
     LOG_WARNING("No allocation data could be retrieved for function: " << f.getName());
     return false;
   }
@@ -143,7 +190,7 @@ bool TypeArtPass::runOnFunc(Function& f) {
 
   llvm::SmallDenseMap<BasicBlock*, size_t> allocCounts;
 
-  const auto& fData   = getAnalysis<MemInstFinderPass>().getFunctionData(&f);
+  const auto& fData   = meminst_finder->getFunctionData(f);
   const auto& mallocs = fData.mallocs;
   const auto& allocas = fData.allocas;
   const auto& frees   = fData.frees;
@@ -214,6 +261,8 @@ void TypeArtPass::declareInstrumentationFunctions(Module& m) {
 }
 
 void TypeArtPass::printStats(llvm::raw_ostream& out) {
+  meminst_finder->printStats(out);
+
   const auto get_ta_mode = [&]() {
     const bool heap  = !ClIgnoreHeap.getValue();
     const bool stack = ClTypeArtAlloca.getValue();
