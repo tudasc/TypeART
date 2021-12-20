@@ -33,7 +33,12 @@ class raw_ostream;
 
 namespace typeart {
 class TypeGenerator;
-}
+
+namespace analysis {
+class MemInstFinder;
+}  // namespace analysis
+
+}  // namespace typeart
 
 namespace typeart::pass {
 
@@ -55,6 +60,7 @@ class TypeArtPass : public llvm::ModulePass {
   TypeArtFunc typeart_free_omp         = typeart_free;
   TypeArtFunc typeart_leave_scope_omp  = typeart_leave_scope;
 
+  std::unique_ptr<analysis::MemInstFinder> meminst_finder;
   std::unique_ptr<TypeGenerator> typeManager;
   InstrumentationHelper instrumentation_helper;
   TAFunctions functions;
