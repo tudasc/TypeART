@@ -188,10 +188,10 @@ bool MemInstFinderPass::runOnModule(Module& module) {
               }
 
               if (global->hasInitializer()) {
-                auto* ini          = global->getInitializer();
-                StringRef ini_name = util::dump(*ini);
+                auto* ini            = global->getInitializer();
+                std::string ini_name = util::dump(*ini);
 
-                if (ini_name.contains("std::ios_base::Init")) {
+                if (llvm::StringRef(ini_name).contains("std::ios_base::Init")) {
                   return true;
                 }
               }
