@@ -242,6 +242,6 @@ std::string StandardFilter::getName(const Function* f) {
     name = f_name;
   }
 
-  return name;
+  return std::string{name};
 }
 }  // namespace typeart::filter::deprecated

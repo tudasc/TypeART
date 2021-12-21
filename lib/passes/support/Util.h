@@ -84,10 +84,10 @@ inline std::string dump(const Val& s) {
 
 template <typename String>
 inline std::string demangle(String&& s) {
-  std::string name = s;
+  std::string name = std::string{s};
   auto demangle    = llvm::itaniumDemangle(name.data(), nullptr, nullptr, nullptr);
   if (demangle && !std::string(demangle).empty()) {
-    return std::string(demangle);
+    return {demangle};
   }
   return name;
 }
