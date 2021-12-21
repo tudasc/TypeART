@@ -8,6 +8,8 @@ function(target_project_compile_options target)
     -Wcast-qual -Wno-unused-parameter
   )
 
+  target_compile_definitions(${target} PRIVATE "LLVM_VERSION_MAJOR=${LLVM_VERSION_MAJOR}")
+
   if (ARG_PRIVATE_FLAGS)
     target_compile_options(${target} PRIVATE
       "${ARG_PRIVATE_FLAGS}"

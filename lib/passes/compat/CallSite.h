@@ -3,7 +3,10 @@
 
 #ifndef COMPAT_LLVM_IR_CALLSITE_H
 #define COMPAT_LLVM_IR_CALLSITE_H
-#define LLVM_VERSION_MAJOR 12
+
+#ifndef LLVM_VERSION_MAJOR
+#define LLVM_VERSION_MAJOR 10
+#endif
 
 #if LLVM_VERSION_MAJOR < 11
 #include "llvm/IR/CallSite.h"

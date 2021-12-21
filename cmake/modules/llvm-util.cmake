@@ -11,7 +11,7 @@ function(make_llvm_module name sources)
     )
     target_compile_definitions(${name}
       PRIVATE
-        LLVM_VERSION=10
+        LLVM_VERSION_MAJOR=${LLVM_VERSION_MAJOR}
     )
   elseif(${LLVM_PACKAGE_VERSION} VERSION_EQUAL "6.0")
     add_llvm_loadable_module(${name}
