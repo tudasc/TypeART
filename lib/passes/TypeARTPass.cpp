@@ -92,7 +92,7 @@ cl::opt<bool> ClCallFilterDeep("call-filter-deep",
                                cl::desc("If the CallFilter matches, we look if the value is passed as a void*."),
                                cl::Hidden, cl::init(false));
 
-cl::opt<bool> ClFilterPointerStack("typeart-filter-pointer-stack", cl::desc("Filter allocas of pointers."), cl::Hidden,
+cl::opt<bool> ClFilterPointerStack("typeart-filter-pointer-alloca", cl::desc("Filter allocas of pointers."), cl::Hidden,
                                    cl::init(true));
 
 STATISTIC(NumInstrumentedMallocs, "Number of instrumented mallocs");

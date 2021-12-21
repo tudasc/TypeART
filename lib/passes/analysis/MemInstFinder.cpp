@@ -334,7 +334,7 @@ bool MemInstFinderPass::runOnFunction(llvm::Function& function) {
                  allocs.end());
   }
 
-  if (config.filter.ClFilterPointerStack) {
+  if (config.filter.ClFilterPointerAlloca) {
     auto& allocs = mOpsCollector.allocas;
     allocs.erase(llvm::remove_if(allocs,
                                  [&](const auto& data) {
@@ -408,7 +408,7 @@ void MemInstFinderPass::printStats(llvm::raw_ostream& out) const {
   stats.put(Row::make_row("> Stack Memory"));
   stats.put(Row::make("Alloca", all_stack));
   stats.put(Row::make("Stack call filtered %", call_filter_stack_p));
-  stats.put(Row::make("Stack pointer discarded", filter_pointer_stack));
+  stats.put(Row::make("Alloca of pointer discarded", filter_pointer_stack));
   stats.put(Row::make_row("> Global Memory"));
   stats.put(Row::make("Global", NumDetectedGlobals.getValue()));
   stats.put(Row::make("Global filter total", NumFilteredGlobals.getValue()));
