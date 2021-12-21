@@ -15,9 +15,8 @@
 
 #include "FilterBase.h"
 #include "Matcher.h"
+#include "compat/CallSite.h"
 #include "filter/IRPath.h"
-
-#include "llvm/IR/CallSite.h"
 
 #include <memory>
 

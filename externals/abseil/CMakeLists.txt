@@ -15,6 +15,7 @@ mark_as_advanced(
   ABSL_USE_GOOGLETEST_HEAD
   ABSL_PROPAGATE_CXX_STD
   ABSL_BUILD_TESTING
+  BUILD_TESTING
 )
 
 mark_as_advanced(

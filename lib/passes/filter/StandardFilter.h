@@ -14,11 +14,11 @@
 #define TYPEART_STANDARDFILTER_H
 
 #include "Filter.h"
+#include "compat/CallSite.h"
 #include "support/Logger.h"
 #include "support/Util.h"
 
 #include "llvm/ADT/Statistic.h"
-#include "llvm/IR/CallSite.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Intrinsics.h"
 #include "llvm/Support/CommandLine.h"

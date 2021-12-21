@@ -3,7 +3,7 @@ include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)
 include(FeatureSummary)
 
-find_package(LLVM 10 REQUIRED CONFIG)
+find_package(LLVM 12 REQUIRED CONFIG)
 set_package_properties(LLVM PROPERTIES
   URL https://llvm.org/
   TYPE REQUIRED

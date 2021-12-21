@@ -12,6 +12,7 @@
 
 #include "StandardFilter.h"
 
+#include "compat/CallSite.h"
 #include "support/Logger.h"
 #include "support/Util.h"
 
@@ -20,7 +21,6 @@
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/IR/Argument.h"
-#include "llvm/IR/CallSite.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Instruction.h"
 #include "llvm/IR/Instructions.h"

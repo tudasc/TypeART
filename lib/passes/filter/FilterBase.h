@@ -18,11 +18,11 @@
 #include "IRPath.h"
 #include "IRSearch.h"
 #include "OmpUtil.h"
+#include "compat/CallSite.h"
 #include "support/Logger.h"
 #include "support/OmpUtil.h"
 #include "support/Util.h"
 
-#include "llvm/IR/CallSite.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Intrinsics.h"
 

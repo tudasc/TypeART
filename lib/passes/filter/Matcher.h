@@ -15,9 +15,9 @@
 
 #include "../analysis/MemOpData.h"
 #include "../support/Util.h"
+#include "compat/CallSite.h"
 
 #include "llvm/ADT/StringSet.h"
-#include "llvm/IR/CallSite.h"
 
 namespace typeart::filter {
 

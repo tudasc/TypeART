@@ -15,8 +15,9 @@
 
 //#include "Logger.h"
 
+#include "compat/CallSite.h"
+
 #include "llvm/Demangle/Demangle.h"
-#include "llvm/IR/CallSite.h"
 #include "llvm/Support/Regex.h"
 #include "llvm/Support/raw_ostream.h"
 

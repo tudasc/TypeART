@@ -12,7 +12,8 @@
 
 #include "FilterUtil.h"
 
-#include "llvm/IR/CallSite.h"
+#include "compat/CallSite.h"
+
 #include "llvm/IR/Intrinsics.h"
 #include "llvm/Support/raw_ostream.h"
 

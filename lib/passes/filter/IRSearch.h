@@ -13,7 +13,8 @@
 #ifndef TYPEART_IRSEARCH_H
 #define TYPEART_IRSEARCH_H
 
-#include "llvm/IR/CallSite.h"
+#include "compat/CallSite.h"
+
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Intrinsics.h"
 

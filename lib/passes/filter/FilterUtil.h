@@ -15,6 +15,7 @@
 
 #include "IRPath.h"
 #include "OmpUtil.h"
+#include "compat/CallSite.h"
 #include "support/DefUseChain.h"
 #include "support/Logger.h"
 
@@ -24,7 +25,6 @@
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/iterator_range.h"
 #include "llvm/IR/Argument.h"
-#include "llvm/IR/CallSite.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Intrinsics.h"

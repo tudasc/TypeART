@@ -129,7 +129,6 @@ void TypeArtPass::getAnalysisUsage(llvm::AnalysisUsage& info) const {
 }
 
 bool TypeArtPass::doInitialization(Module& m) {
-  typeManager = nullptr;
   typeManager = make_typegen(ClTypeFile.getValue());
 
   LOG_DEBUG("Propagating type infos.");
