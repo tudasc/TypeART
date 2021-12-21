@@ -213,7 +213,7 @@ InstrCount MemOpInstrumentation::instrumentGlobal(const GlobalArgList& globals) 
     }
   };
 
-  const auto makeCtorFuncBody = [&]() -> IRBuilder<> {
+  const auto makeCtorFuncBody = [&]() -> BasicBlock* {
     auto m                = instr_helper->getModule();
     auto& c               = m->getContext();
     auto ctorFunctionName = "__typeart_init_module_" + m->getSourceFileName();  // needed -- will not work with piping?
@@ -225,11 +225,11 @@ InstrCount MemOpInstrumentation::instrumentGlobal(const GlobalArgList& globals) 
 
     llvm::appendToGlobalCtors(*m, ctorFunction, 0, nullptr);
 
-    IRBuilder<> IRB(entry);
-    return IRB;
+    return entry;
   };
 
-  auto IRB = makeCtorFuncBody();
+  auto* entry = makeCtorFuncBody();
+  IRBuilder<> IRB(entry);
   instrumentGlobalsInCtor(IRB);
   IRB.CreateRetVoid();
 
