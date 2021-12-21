@@ -7,11 +7,11 @@ void test() {
   double* pd = (double*)malloc(42 * sizeof(double));
 }
 
-// CHECK: [[POINTER:%[0-9]+]] = call noalias i8* @malloc
+// CHECK: [[POINTER:%[0-9a-z]+]] = call noalias i8* @malloc
 // CHECK-NEXT: call void @__typeart_alloc(i8* [[POINTER]],
 // CHECK-NEXT: bitcast i8* [[POINTER]] to i32*
 
-// CHECK: [[POINTER:%[0-9]+]] = call noalias i8* @malloc
+// CHECK: [[POINTER:%[0-9a-z]+]] = call noalias i8* @malloc
 // CHECK-NEXT: call void @__typeart_alloc(i8* [[POINTER]],
 // CHECK-NEXT: bitcast i8* [[POINTER]] to double*
 

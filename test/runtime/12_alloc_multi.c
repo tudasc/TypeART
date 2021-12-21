@@ -1,5 +1,5 @@
 // clang-format off
-// RUN: %run %s 2>&1 | FileCheck %s
+// RUN: %run %s -typeart-filter-pointer-alloca=false 2>&1 | FileCheck %s
 // RUN: %run %s "-call-filter" 2>&1 | FileCheck %s --check-prefix CHECK-FILTER
 // clang-format on
 

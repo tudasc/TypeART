@@ -7,7 +7,7 @@ void test() {
   void* p = malloc(42 * sizeof(int));  // LLVM-IR: lacks a bitcast
 }
 
-// CHECK: [[POINTER:%[0-9]+]] = call noalias i8* @malloc
+// CHECK: [[POINTER:%[0-9a-z]+]] = call noalias i8* @malloc
 // CHECK-NEXT: call void @__typeart_alloc(i8* [[POINTER]], i32 0, i64 168)
 // CHECK-NOT: bitcast i8* [[POINTER]] to i32*
 

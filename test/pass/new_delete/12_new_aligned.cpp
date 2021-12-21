@@ -17,8 +17,8 @@ C* bar() {
   return new (std::align_val_t(128)) C;
 }
 
-// CHECK: [[POINTER:%[0-9]+]] = call{{.*}} i8* @_ZnamSt11align_val_t(i64 40, i64 64)
+// CHECK: [[POINTER:%[0-9a-z]+]] = call{{.*}} i8* @_ZnamSt11align_val_t(i64 40, i64 64)
 // CHECK-NEXT: call void @__typeart_alloc(i8* [[POINTER]], i32 [[ID:2[5-9][0-9]]], i64 10)
 
-// CHECK: [[POINTER2:%[0-9]+]] = call{{.*}} i8* @_ZnwmSt11align_val_t(i64 4, i64 128)
+// CHECK: [[POINTER2:%[0-9a-z]+]] = call{{.*}} i8* @_ZnwmSt11align_val_t(i64 4, i64 128)
 // CHECK-NEXT: call void @__typeart_alloc(i8* [[POINTER2]], i32 [[ID]], i64 1)
