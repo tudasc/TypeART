@@ -1,4 +1,4 @@
-// RUN: %run  %s --compile_flags "-std=c++17" 2>&1 | FileCheck %s
+// RUN: %run  %s --compile_flags "-std=c++17" 2>&1 | %filecheck %s
 
 #include "../../lib/support/System.h"
 

@@ -1,5 +1,5 @@
 // clang-format off
-// RUN: %cpp-to-llvm %s | %apply-typeart -S 2>&1 | FileCheck %s
+// RUN: %cpp-to-llvm %s | %apply-typeart -S 2>&1 | %filecheck %s
 // clang-format on
 
 struct S1 {

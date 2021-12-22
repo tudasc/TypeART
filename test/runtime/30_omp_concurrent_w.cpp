@@ -1,14 +1,14 @@
 // clang-format off
-// RUN: OMP_NUM_THREADS=3 %run %s -o -O1 --omp --manual 2>&1 | FileCheck %s --check-prefix=CHECK-TSAN
-// RUN: OMP_NUM_THREADS=3 %run %s -o -O1 --omp --manual 2>&1 | FileCheck %s
+// RUN: OMP_NUM_THREADS=3 %run %s -o -O1 --omp --manual 2>&1 | %filecheck %s --check-prefix=CHECK-TSAN
+// RUN: OMP_NUM_THREADS=3 %run %s -o -O1 --omp --manual 2>&1 | %filecheck %s
 // REQUIRES: openmp && softcounter
 // clang-format on
 
 #include "../../lib/runtime/CallbackInterface.h"
 
-#include <vector>
 #include <algorithm>
 #include <random>
+#include <vector>
 
 template <typename S, typename E>
 void repeat_alloc(S s, E e) {
@@ -43,31 +43,32 @@ int main(int argc, char** argv) {
 #pragma omp parallel sections num_threads(3)
   {
 #pragma omp section
-    { repeat_alloc(beg, h1); }
+      {repeat_alloc(beg, h1);
+}
 #pragma omp section
-    { repeat_alloc(h2, e); }
+{ repeat_alloc(h2, e); }
 #pragma omp section
-    { repeat_alloc(h1, h2); }
-  }
+{ repeat_alloc(h1, h2); }
+}
 
 #pragma omp parallel sections num_threads(3)
-  {
+{
 #pragma omp section
-    { repeat_dealloc(beg, h1); }
+  { repeat_dealloc(beg, h1); }
 #pragma omp section
-    { repeat_dealloc(h2, e); }
+  { repeat_dealloc(h2, e); }
 #pragma omp section
-    { repeat_dealloc(h1, h2); }
-  }
+  { repeat_dealloc(h1, h2); }
+}
 
-  // CHECK-TSAN-NOT: ThreadSanitizer
+// CHECK-TSAN-NOT: ThreadSanitizer
 
-  // CHECK-NOT: Error
+// CHECK-NOT: Error
 
-  // CHECK: Allocation type detail (heap, stack, global)
-  // CHECK: 6   : 300 ,     0 ,    0 , double
+// CHECK: Allocation type detail (heap, stack, global)
+// CHECK: 6   : 300 ,     0 ,    0 , double
 
-  // CHECK: Free allocation type detail (heap, stack)
-  // CHECK: 6   : 300 ,     0 , double
-  return 0;
+// CHECK: Free allocation type detail (heap, stack)
+// CHECK: 6   : 300 ,     0 , double
+return 0;
 }

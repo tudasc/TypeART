@@ -1,9 +1,9 @@
 // clang-format off
 // RUN: %apply %s --manual --object %s.o
-// RUN: clang++ %s.o -o %s.exe %types_lib -Wl,-rpath,%typeslib_path
-// RUN: %s.exe | FileCheck %s
+// RUN: %clang-cpp %s.o -o %s.exe %types_lib -Wl,-rpath,%typeslib_path
+// RUN: %s.exe | %filecheck %s
 
-// RUN: %run %s --manual | FileCheck %s --check-prefix=RUNTIME-LINK
+// RUN: %run %s --manual | %filecheck %s --check-prefix=RUNTIME-LINK
 
 // UNSUPPORTED: sanitizer
 // UNSUPPORTED: coverage

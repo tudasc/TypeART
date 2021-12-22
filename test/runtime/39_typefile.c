@@ -1,5 +1,5 @@
-// RUN: TYPEART_TYPE_FILE=%p%{pathsep}%t %run %s 2>&1 | FileCheck %s --check-prefix=CHECK-FAIL-FILE
-// RUN: TA_TYPE_FILE=%p%{pathsep}%t %run %s 2>&1 | FileCheck %s --check-prefix=CHECK-FAIL-FILE-DEP
+// RUN: TYPEART_TYPE_FILE=%p%{pathsep}%t %run %s 2>&1 | %filecheck %s --check-prefix=CHECK-FAIL-FILE
+// RUN: TA_TYPE_FILE=%p%{pathsep}%t %run %s 2>&1 | %filecheck %s --check-prefix=CHECK-FAIL-FILE-DEP
 
 // XFAIL: *
 

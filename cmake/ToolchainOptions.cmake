@@ -133,6 +133,12 @@ set_package_properties(PythonInterp PROPERTIES
   "The Python interp is used for lit-testing and the MPI interceptor tool code generation."
 )
 
+typeart_find_llvm_progs(TYPEART_CLANG_EXEC "clang;clang-13;clang-12;clang-11;clang-10" "clang")
+typeart_find_llvm_progs(TYPEART_CLANGCXX_EXEC "clang++;clang-13;clang-12;clang-11;clang++-10" "clang++")
+typeart_find_llvm_progs(TYPEART_LLC_EXEC "llc;llc-13;llc-12;llc-11;llc-10" "llc")
+typeart_find_llvm_progs(TYPEART_OPT_EXEC "opt;opt-13;opt-12;opt-11;opt-10" "opt")
+typeart_find_llvm_progs(TYPEART_FILECHECK_EXEC "FileCheck;FileCheck-13;FileCheck-12;FileCheck-11;FileCheck-10" "FileCheck")
+
 if(NOT CMAKE_BUILD_TYPE)
   # set default build type
   set(CMAKE_BUILD_TYPE Debug CACHE STRING "" FORCE)

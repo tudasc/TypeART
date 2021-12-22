@@ -259,6 +259,13 @@ const char* typeart_get_project_version();
  */
 const char* typeart_get_git_revision();
 
+/**
+ * Version string "major.minor" of LLVM used to build TypeART.
+ *
+ * \return version string
+ */
+const char* typeart_get_llvm_version();
+
 #ifdef __cplusplus
 }
 #endif

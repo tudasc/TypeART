@@ -1,4 +1,4 @@
-// RUN: %run %s -typeart-filter-pointer-alloca=false 2>&1 | FileCheck %s
+// RUN: %run %s -typeart-filter-pointer-alloca=false 2>&1 | %filecheck %s
 
 #include <stdlib.h>
 

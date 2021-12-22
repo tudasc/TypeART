@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # RUN: chmod +x %s
-# RUN: %s %t %S %wrapper-mpicc run-demo | FileCheck %s --check-prefix check-working
-# RUN: %s %t %S %wrapper-mpicc run-demo_broken | FileCheck %s --check-prefix check-broken
+# RUN: %s %t %S %wrapper-mpicc run-demo | %filecheck %s --check-prefix check-working
+# RUN: %s %t %S %wrapper-mpicc run-demo_broken | %filecheck %s --check-prefix check-broken
 
 # REQUIRES: mpicc
 # UNSUPPORTED: sanitizer

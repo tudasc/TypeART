@@ -4,23 +4,23 @@
 # shellcheck disable=SC1090
 
 # RUN: chmod +x %s
-# RUN: %s %wrapper-cxx | FileCheck %s --check-prefix=wcxx
-# RUN: %s %wrapper-cc | FileCheck %s --check-prefix=wcc
-# RUN: TYPEART_WRAPPER=OFF %s %wrapper-cc | FileCheck %s --check-prefix=wrapper-off
+# RUN: %s %wrapper-cxx | %filecheck %s --check-prefix=wcxx
+# RUN: %s %wrapper-cc | %filecheck %s --check-prefix=wcc
+# RUN: TYPEART_WRAPPER=OFF %s %wrapper-cc | %filecheck %s --check-prefix=wrapper-off
 
-# RUN: %s %wrapper-cxx | FileCheck %s
-# RUN: %s %wrapper-cc | FileCheck %s
+# RUN: %s %wrapper-cxx | %filecheck %s
+# RUN: %s %wrapper-cc | %filecheck %s
 
 source "$1" --version
 
 # wcxx: TypeART-Toolchain:
-# wcxx-NEXT: clang++{{(-10)?}}
-# wcxx-NEXT: opt{{(-10)?}}
-# wcxx-NEXT: llc{{(-10)?}}
+# wcxx-NEXT: clang++{{(-10|-11|-12|-13)?}}
+# wcxx-NEXT: opt{{(-10|-11|-12|-13)?}}
+# wcxx-NEXT: llc{{(-10|-11|-12|-13)?}}
 # wcc: TypeART-Toolchain:
-# wcc-NEXT: clang{{(-10)?}}
-# wcc-NEXT: opt{{(-10)?}}
-# wcc-NEXT: llc{{(-10)?}}
+# wcc-NEXT: clang{{(-10|-11|-12|-13)?}}
+# wcc-NEXT: opt{{(-10|-11|-12|-13)?}}
+# wcc-NEXT: llc{{(-10|-11|-12|-13)?}}
 echo "TypeART-Toolchain:"
 echo "$compiler"
 echo "$opt_tool"

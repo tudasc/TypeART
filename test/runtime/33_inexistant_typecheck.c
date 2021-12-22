@@ -1,4 +1,4 @@
-// RUN: %run %s --manual 2>&1 | FileCheck %s
+// RUN: %run %s --manual 2>&1 | %filecheck %s
 
 #include "../../lib/runtime/CallbackInterface.h"
 #include "util.h"

@@ -49,3 +49,29 @@ function(make_llvm_module name sources)
     ${sources}
   )
 endfunction()
+
+function(typeart_find_llvm_progs target names default)
+  find_program(
+    target-prog
+    NAMES ${names}
+    HINTS ${LLVM_TOOLS_BINARY_DIR}
+    NO_DEFAULT_PATH
+  )
+
+  if(NOT target-prog)
+    set(${target}
+        ${default}
+        PARENT_SCOPE
+    )
+    message(
+      STATUS
+        "Did not find clang program ${names} in ${LLVM_TOOLS_BINARY_DIR}. Using def. value: ${default}"
+    )
+  else()
+    set(${target}
+        ${target-prog}
+        PARENT_SCOPE
+    )
+  endif()
+  unset(target-prog CACHE)
+endfunction()
