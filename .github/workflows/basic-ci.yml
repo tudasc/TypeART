@@ -23,7 +23,7 @@ jobs:
           find demo lib test \
             -type f \
             -a \( -name "*.c" -o -name "*.cpp" -o -name "*.h" \) \
-            -not -path "*/lulesh/*" \
+            -not -path "*/lulesh/*" -not -path "*/CallSite.h" \
             -print0 \
             | xargs -0 clang-format-10 -i
 
