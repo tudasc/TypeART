@@ -6,6 +6,7 @@ function(target_project_compile_options target)
     -Wunreachable-code -Wwrite-strings
     -Wpointer-arith -Wcast-align
     -Wcast-qual -Wno-unused-parameter
+    -Wunused
   )
 
   target_compile_definitions(${target} PRIVATE "LLVM_VERSION_MAJOR=${LLVM_VERSION_MAJOR}")
