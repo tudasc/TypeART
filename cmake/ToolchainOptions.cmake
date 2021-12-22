@@ -3,10 +3,11 @@ include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)
 include(FeatureSummary)
 
-message(STATUS "Dir looked at: ${LLVM_DIR}")
-
-find_package(LLVM REQUIRED CONFIG HINTS "${LLVM_DIR}" NO_DEFAULT_PATH)
-find_package(LLVM 10 REQUIRED CONFIG)
+find_package(LLVM CONFIG HINTS "${LLVM_DIR}" NO_DEFAULT_PATH)
+if(NOT LLVM_FOUND)
+  message(STATUS "LLVM not found at: ${LLVM_DIR}.")
+  find_package(LLVM 10 REQUIRED CONFIG)
+endif()
 set_package_properties(LLVM PROPERTIES
   URL https://llvm.org/
   TYPE REQUIRED
