@@ -3,6 +3,9 @@ include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)
 include(FeatureSummary)
 
+message(STATUS "Dir looked at: ${LLVM_DIR}")
+
+find_package(LLVM REQUIRED CONFIG HINTS "${LLVM_DIR}" NO_DEFAULT_PATH)
 find_package(LLVM REQUIRED CONFIG)
 set_package_properties(LLVM PROPERTIES
   URL https://llvm.org/
