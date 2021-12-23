@@ -6,9 +6,8 @@ on:
   pull_request:
 
 env:
-  CXX: clang++-10
-  CC: clang-10
-  EXTERNAL_LIT: /usr/lib/llvm-10/build/utils/lit/lit.py
+  CXX: clang++
+  CC: clang
   OMP_NUM_THREAD: 2
 
 jobs:
@@ -39,6 +38,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        llvm-version: [ 10, 11, 12 ]
         preset:
           - name: ci-thread-safe-safeptr
           - name: ci-thread-safe
@@ -60,17 +60,17 @@ jobs:
         run: sudo apt-get update
 
       - name: Install LLVM
-        run: sudo apt-get install libllvm10 llvm-10 llvm-10-dev
+        run: sudo apt-get install libllvm${{ matrix.llvm-version }} llvm-${{ matrix.llvm-version }} llvm-${{ matrix.llvm-version }}-dev
 
       - name: Install LLVM OpenMP runtime
-        run: sudo apt-get install libomp-10-dev libomp5-10
+        run: sudo apt-get install libomp-${{ matrix.llvm-version }}-dev libomp5-${{ matrix.llvm-version }}
 
       - name: Install Clang
-        run: sudo apt-get install clang-10 clang-tidy-10
+        run: sudo apt-get install clang-${{ matrix.llvm-version }} clang-tidy-${{ matrix.llvm-version }}
 
       - name: Install libc++
         if: matrix.preset.libcxx
-        run: sudo apt-get install --no-install-recommends libc++-10-dev libc++abi-10-dev
+        run: sudo apt-get install --no-install-recommends libc++-${{ matrix.llvm-version }}-dev libc++abi-${{ matrix.llvm-version }}-dev
 
       - name: Install OpenMPI
         run: sudo apt-get install libopenmpi-dev openmpi-bin
@@ -81,15 +81,13 @@ jobs:
 
       - name: Setup env
         run: |
-          sudo ln -f -s /usr/bin/clang-10 /usr/bin/clang
-          sudo ln -f -s /usr/bin/clang++-10 /usr/bin/clang++
-          sudo ln -f -s /usr/bin/opt-10 /usr/bin/opt
-          sudo ln -f -s /usr/bin/FileCheck-10 /usr/bin/FileCheck
-          sudo ln -f -s /usr/bin/llc-10 /usr/bin/llc
-          sudo ln -f -s /usr/bin/clang-tidy-10 /usr/bin/clang-tidy
+          sudo ln -f -s /usr/bin/clang-${{ matrix.llvm-version }} /usr/bin/clang
+          sudo ln -f -s /usr/bin/clang++-${{ matrix.llvm-version }} /usr/bin/clang++
+          echo "LLVM_CMAKE_DIR=/usr/lib/llvm-${{ matrix.llvm-version }}/cmake" >> $GITHUB_ENV
+          echo "EXTERNAL_LIT=/usr/lib/llvm-${{ matrix.llvm-version }}/build/utils/lit/lit.py" >> $GITHUB_ENV
 
       - name: Configure TypeART
-        run: cmake -B build --preset ${{ matrix.preset.name }} -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT}
+        run: cmake -B build --preset ${{ matrix.preset.name }} -DLLVM_DIR=${{ env.LLVM_CMAKE_DIR }} -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT}
 
       - name: Build TypeART
         run: cmake --build build --parallel 2
@@ -109,8 +107,8 @@ jobs:
       - name: Prepare coverage artifact
         if: matrix.preset.coverage
         run: |
-          mkdir -p artifact/${{ matrix.preset.name }}
-          mv build/profiles/ artifact/${{ matrix.preset.name }}
+          mkdir -p artifact/${{ matrix.preset.name }}-${{ matrix.llvm-version }}
+          mv build/profiles/ artifact/${{ matrix.preset.name }}-${{ matrix.llvm-version }}
 
       - name: Upload test coverage artifact
         if: matrix.preset.coverage
@@ -125,7 +123,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path-to-lcov: build/typeart.coverage
-          flag-name: ${{ matrix.preset.name }}
+          flag-name: ${{ matrix.preset.name }}-${{ matrix.llvm-version }}
           parallel: true
 
   finish-coverage:
