@@ -60,19 +60,7 @@ struct MPIType {
   static Result<MPIType> create(MPI_Datatype type);
 };
 
-struct Multipliers {
-  size_t type;
-  size_t buffer;
-};
-
 Result<void> check_buffer(const Buffer& buffer, const MPIType& type, int count);
-Result<Multipliers> check_type(const Buffer& buffer, const MPIType& type);
-Result<Multipliers> check_combiner_named(const Buffer& buffer, const MPIType& type);
-Result<Multipliers> check_combiner_contiguous(const Buffer& buffer, const MPIType& type);
-Result<Multipliers> check_combiner_vector(const Buffer& buffer, const MPIType& type);
-Result<Multipliers> check_combiner_indexed_block(const Buffer& buffer, const MPIType& type);
-Result<Multipliers> check_combiner_struct(const Buffer& buffer, const MPIType& type);
-Result<Multipliers> check_combiner_subarray(const Buffer& buffer, const MPIType& type);
 
 }  // namespace typeart
 

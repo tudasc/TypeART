@@ -19,7 +19,7 @@ int main(int argc, char** argv) {
 
   // CHECK-DAG: Buffer not registered
   // CHECK-DAG: MCounter { Error: 1
-  run_test(f, 0, MPI_DOUBLE);
+  run_test(f, 1, MPI_DOUBLE);
 
   MPI_Finalize();
   return 0;

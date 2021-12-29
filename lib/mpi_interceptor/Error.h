@@ -68,8 +68,11 @@ struct InvalidArgument {
 struct UnsupportedCombiner {
   std::string combiner_name;
 };
-struct [[nodiscard]] InternalError : public VariantError<MPIError, TypeARTError, InvalidArgument, UnsupportedCombiner> {
+struct UnsupportedCombinerArgs {
+  std::string message;
 };
+struct [[nodiscard]] InternalError
+    : public VariantError<MPIError, TypeARTError, InvalidArgument, UnsupportedCombiner, UnsupportedCombinerArgs> {};
 
 struct TypeError;
 struct InsufficientBufferSize {
@@ -79,9 +82,6 @@ struct InsufficientBufferSize {
 struct BuiltinTypeMismatch {
   int buffer_type_id;
   MPI_Datatype mpi_type;
-};
-struct UnsupportedCombinerArgs {
-  std::string message;
 };
 struct BufferNotOfStructType {
   int buffer_type_id;
@@ -107,8 +107,18 @@ struct MemberElementCountMismatch {
   size_t count;
   size_t mpi_count;
 };
+struct StructSubtypeMismatch {
+  int struct_type_id;
+  int subtype_id;
+  size_t subtype_count;
+  std::unique_ptr<TypeError> error;
+};
+struct StructSubtypeErrors {
+  std::unique_ptr<TypeError> primary_error;
+  std::vector<StructSubtypeMismatch> subtype_errors;
+};
 struct [[nodiscard]] TypeError
-    : public VariantError<InsufficientBufferSize, BuiltinTypeMismatch, UnsupportedCombinerArgs, BufferNotOfStructType,
+    : public VariantError<StructSubtypeErrors, InsufficientBufferSize, BuiltinTypeMismatch, BufferNotOfStructType,
                           MemberCountMismatch, MemberOffsetMismatch, MemberTypeMismatch, MemberElementCountMismatch> {};
 
 struct [[nodiscard]] Error : public VariantError<InternalError, TypeError> {

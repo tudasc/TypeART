@@ -17,7 +17,7 @@ int main(int argc, char** argv) {
 
   // CHECK: [Trace] TypeART Runtime Trace
 
-  // CHECK: "int8" against MPI type "MPI_CHAR"
+  // CHECK: [1 x int8] against 1 element of MPI type "MPI_CHAR"
   // CHECK: Type_Error: 0
   char data{'A'};
   run_test(&data, 1, MPI_CHAR);

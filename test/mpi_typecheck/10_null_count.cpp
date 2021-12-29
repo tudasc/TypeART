@@ -19,12 +19,15 @@ int main(int argc, char** argv) {
   double f[4];
 
   // clang-format off
-  // RANK0: R[0][Info]ID[0] MPI_Send at 0x{{.*}}: checking send-buffer 0x{{.*}} of type "double" against MPI type "MPI_DOUBLE"
-  // RANK1: R[1][Info]ID[0] MPI_Recv at 0x{{.*}}: checking recv-buffer 0x{{.*}} of type "double" against MPI type "MPI_DOUBLE"
+  // RANK0: R[0][Warning]T[{{[0-9]*}}] at 0x{{.*}}: MPI_Send: attempted to send 0 elements of buffer 0x{{.*}} 
+  // RANK1: R[1][Warning]T[{{[0-9]*}}] at 0x{{.*}}: MPI_Recv: attempted to receive 0 elements of buffer 0x{{.*}} 
   // CHECK-NOT: R[{{0|1}}][Error]{{.*}}
   // clang-format on
   run_test(f, 0, MPI_DOUBLE);
 
+  // RANK0: R[0][Info]T[{{[0-9]*}}] CCounter { Send: 1 Recv: 0 Send_Recv: 0 Unsupported: 0 MAX RSS[KBytes]: {{[0-9]+}} }
+  // RANK1: R[1][Info]T[{{[0-9]*}}] CCounter { Send: 0 Recv: 1 Send_Recv: 0 Unsupported: 0 MAX RSS[KBytes]: {{[0-9]+}} }
+  // CHECK: R[{{0|1}}][Info]T[{{[0-9]*}}] MCounter { Error: 0 Null_Buf: 0 Null_Count: 1 Type_Error: 0 }
   MPI_Finalize();
   return 0;
 }

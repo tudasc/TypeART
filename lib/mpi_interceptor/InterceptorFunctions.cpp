@@ -75,14 +75,15 @@ void check_buffer(const char* name, const void* called_from, bool is_send, const
   const bool count_is_zero     = count <= 0;
   const bool buffer_is_nullptr = ptr == nullptr;
 
-  if (count_is_zero) {
-    ++mpi_counter.null_count;
+  if (buffer_is_nullptr) {
+    ++mpi_counter.null_buff;
+    logger.log_null_buffer(name, called_from, is_send);
     return;
   }
 
-  if (buffer_is_nullptr) {
-    ++mpi_counter.null_buff;
-    logger.log_null_buffer();
+  if (count_is_zero) {
+    ++mpi_counter.null_count;
+    logger.log_zero_count(name, called_from, is_send, ptr);
     return;
   }
 
@@ -107,7 +108,7 @@ void check_buffer(const char* name, const void* called_from, bool is_send, const
       ++mpi_counter.type_error;
     }
   }
-  logger.log(name, called_from, is_send, *buffer, *mpi_type, result);
+  logger.log(name, called_from, is_send, *buffer, *mpi_type, count, result);
 }
 
 }  // namespace typeart

@@ -30,32 +30,20 @@ int main(int argc, char** argv) {
   B b;
 
   // clang-format off
-  // RANK0: R[0][Info]ID[0] MPI_Send at 0x{{.*}}: checking send-buffer 0x{{.*}} of type "struct.A" against MPI type "MPI_DOUBLE"
-  // RANK0: R[0][Trace]ID[0] expected a type matching MPI type "MPI_DOUBLE", but found type "struct.A"
-  // RANK0: R[0][Trace]ID[0] found struct member at offset 0 with type "double", checking with this type...
-  // RANK1: R[1][Info]ID[0] MPI_Recv at 0x{{.*}}: checking recv-buffer 0x{{.*}} of type "struct.A" against MPI type "MPI_DOUBLE"
-  // RANK1: R[1][Trace]ID[0] expected a type matching MPI type "MPI_DOUBLE", but found type "struct.A"
-  // RANK1: R[1][Trace]ID[0] found struct member at offset 0 with type "double", checking with this type...
+  // RANK0: R[0][Info]T[{{[0-9]*}}] at 0x{{.*}}: MPI_Send: successfully checked send-buffer 0x{{.*}} of type [1 x struct.A] against 16 elements of MPI type "MPI_DOUBLE"
+  // RANK1: R[1][Info]T[{{[0-9]*}}] at 0x{{.*}}: MPI_Recv: successfully checked recv-buffer 0x{{.*}} of type [1 x struct.A] against 16 elements of MPI type "MPI_DOUBLE"
   // clang-format on
   run_test(a.arr, n, MPI_DOUBLE);
 
   // clang-format off
-  // RANK0: R[0][Info]ID[1] MPI_Send at 0x{{.*}}: checking send-buffer 0x{{.*}} of type "struct.B" against MPI type "MPI_DOUBLE"
-  // RANK0: R[0][Trace]ID[1] expected a type matching MPI type "MPI_DOUBLE", but found type "struct.B"
-  // RANK0: R[0][Trace]ID[1] found struct member at offset 0 with type "struct.A", checking with this type...
-  // RANK0: R[0][Trace]ID[1] expected a type matching MPI type "MPI_DOUBLE", but found type "struct.A"
-  // RANK0: R[0][Trace]ID[1] found struct member at offset 0 with type "double", checking with this type...
-  // RANK1: R[1][Info]ID[1] MPI_Recv at 0x{{.*}}: checking recv-buffer 0x{{.*}} of type "struct.B" against MPI type "MPI_DOUBLE"
-  // RANK1: R[1][Trace]ID[1] expected a type matching MPI type "MPI_DOUBLE", but found type "struct.B"
-  // RANK1: R[1][Trace]ID[1] found struct member at offset 0 with type "struct.A", checking with this type...
-  // RANK1: R[1][Trace]ID[1] expected a type matching MPI type "MPI_DOUBLE", but found type "struct.A"
-  // RANK1: R[1][Trace]ID[1] found struct member at offset 0 with type "double", checking with this type...
+  // RANK0: R[0][Info]T[{{[0-9]*}}] at 0x{{.*}}: MPI_Send: successfully checked send-buffer 0x{{.*}} of type [1 x struct.B] against 16 elements of MPI type "MPI_DOUBLE"
+  // RANK1: R[1][Info]T[{{[0-9]*}}] at 0x{{.*}}: MPI_Recv: successfully checked recv-buffer 0x{{.*}} of type [1 x struct.B] against 16 elements of MPI type "MPI_DOUBLE"
   // clang-format on
   run_test(b.a.arr, n, MPI_DOUBLE);
 
-  // RANK0: R[0][Info] CCounter { Send: 2 Recv: 0 Send_Recv: 0 Unsupported: 0 MAX RSS[KBytes]: {{[0-9]+}} }
-  // RANK1: R[1][Info] CCounter { Send: 0 Recv: 2 Send_Recv: 0 Unsupported: 0 MAX RSS[KBytes]: {{[0-9]+}} }
-  // CHECK: R[{{0|1}}][Info] MCounter { Error: 0 Null_Buf: 0 Null_Count: 0 Type_Error: 0 }
+  // RANK0: R[0][Info]T[{{[0-9]*}}] CCounter { Send: 2 Recv: 0 Send_Recv: 0 Unsupported: 0 MAX RSS[KBytes]: {{[0-9]+}} }
+  // RANK1: R[1][Info]T[{{[0-9]*}}] CCounter { Send: 0 Recv: 2 Send_Recv: 0 Unsupported: 0 MAX RSS[KBytes]: {{[0-9]+}} }
+  // CHECK: R[{{0|1}}][Info]T[{{[0-9]*}}] MCounter { Error: 0 Null_Buf: 0 Null_Count: 0 Type_Error: 0 }
   MPI_Finalize();
   return 0;
 }

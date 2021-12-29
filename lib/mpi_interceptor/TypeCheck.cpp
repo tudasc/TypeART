@@ -98,28 +98,78 @@ Result<MPIType> MPIType::create(MPI_Datatype type) {
   return MPIType{type, type_id, *combiner};
 }
 
+struct Multipliers {
+  size_t type;
+  size_t buffer;
+};
+
+Result<void> check_type_and_count(const Buffer& buffer, const MPIType& type, int count);
+Result<Multipliers> check_type(const Buffer& buffer, const MPIType& type);
+Result<Multipliers> check_combiner_named(const Buffer& buffer, const MPIType& type);
+Result<Multipliers> check_combiner_contiguous(const Buffer& buffer, const MPIType& type);
+Result<Multipliers> check_combiner_vector(const Buffer& buffer, const MPIType& type);
+Result<Multipliers> check_combiner_indexed_block(const Buffer& buffer, const MPIType& type);
+Result<Multipliers> check_combiner_struct(const Buffer& buffer, const MPIType& type);
+Result<Multipliers> check_combiner_subarray(const Buffer& buffer, const MPIType& type);
+
 // For a given Buffer checks that the type of the buffer fits the MPI type
 // `args.type` of this MPICall instance and that the buffer is large enough to
 // hold `args.count` elements of the MPI type.
 Result<void> check_buffer(const Buffer& buffer, const MPIType& type, int count) {
-  auto result = check_type(buffer, type);
-  if (result.has_error()) {
-    // If the type is a struct type and has a member with offset 0,
-    // recursively check against the type of the first member.
-    typeart_struct_layout struct_layout;
-    typeart_status status = typeart_resolve_type_id(buffer.type_id, &struct_layout);
+  auto result = check_type_and_count(buffer, type, count);
+  if (result.has_value()) {
+    return result;
+  }
+  if (result.error()->is<InternalError>()) {
+    return result;
+  }
+
+  // If the type is a struct type and has a member with offset 0,
+  // recursively check against the type of the first member.
+  typeart_struct_layout struct_layout;
+  auto status = typeart_resolve_type_id(buffer.type_id, &struct_layout);
+  if (status == TYPEART_INVALID_ID) {
+    auto message = fmt::format("Buffer::create received an invalid type_id {}", buffer.type_id);
+    return make_internal_error<InvalidArgument>(message);
+  }
+
+  if (status == TYPEART_WRONG_KIND) {
+    return result;
+  }
+
+  std::vector<StructSubtypeMismatch> subtype_errors;
+  int struct_type_id = buffer.type_id;
+  while (status == TYPEART_OK && struct_layout.offsets[0] == 0) {
+    auto first_member =
+        Buffer::create(static_cast<ptrdiff_t>(struct_layout.offsets[0]), (char*)buffer.ptr + struct_layout.offsets[0],
+                       struct_layout.count[0], struct_layout.member_types[0]);
+    auto subtype_result = check_type_and_count(first_member, type, count);
+    if (subtype_result.has_value()) {
+      return subtype_result;
+    }
+
+    if (subtype_result.error()->is<InternalError>()) {
+      return subtype_result;
+    } else {
+      subtype_errors.push_back(
+          StructSubtypeMismatch{struct_type_id, first_member.type_id, first_member.count,
+                                std::make_unique<TypeError>(std::move(*subtype_result.error()).get<TypeError>())});
+    }
+
+    status = typeart_resolve_type_id(first_member.type_id, &struct_layout);
     if (status == TYPEART_INVALID_ID) {
       auto message = fmt::format("Buffer::create received an invalid type_id {}", buffer.type_id);
       return make_internal_error<InvalidArgument>(message);
     }
-    if (status == TYPEART_OK && struct_layout.offsets[0] == 0) {
-      auto first_member =
-          Buffer::create(static_cast<ptrdiff_t>(struct_layout.offsets[0]), (char*)buffer.ptr + struct_layout.offsets[0],
-                         struct_layout.count[0], struct_layout.member_types[0]);
-      if (result.has_value()) {
-        return check_buffer(first_member, type, count);
-      }
-    }
+    struct_type_id = first_member.type_id;
+  }
+  auto primary_error = std::make_unique<TypeError>(std::move(*result.error()).get<TypeError>());
+  return make_type_error<StructSubtypeErrors>(std::move(primary_error), std::move(subtype_errors));
+}
+
+Result<void> check_type_and_count(const Buffer& buffer, const MPIType& type, int count) {
+  auto result = check_type(buffer, type);
+  if (result.has_error()) {
     return std::move(result).error();
   }
   auto multipliers  = std::move(result).value();
@@ -213,7 +263,8 @@ Result<Multipliers> check_combiner_vector(const Buffer& buffer, const MPIType& t
   const auto stride      = type.combiner.integer_args[2];
 
   if (stride < 0) {
-    return make_type_error<UnsupportedCombinerArgs>("negative strides for MPI_Type_vector are currently not supported");
+    return make_internal_error<UnsupportedCombinerArgs>(
+        "negative strides for MPI_Type_vector are currently not supported");
   }
 
   // MPI_Type_vector forms a number of `count` blocks of `oldtype` where the
@@ -240,7 +291,7 @@ Result<Multipliers> check_combiner_indexed_block(const Buffer& buffer, const MPI
       std::minmax_element(array_of_displacements, array_of_displacements + count);
 
   if (*min_displacement < 0) {
-    return make_type_error<UnsupportedCombinerArgs>(
+    return make_internal_error<UnsupportedCombinerArgs>(
         "negative displacements for MPI_Type_create_indexed_block are currently not supported");
   }
 
@@ -271,6 +322,9 @@ Result<Multipliers> check_combiner_struct(const Buffer& buffer, const MPIType& t
   if (status == TYPEART_INVALID_ID) {
     auto message = fmt::format("Buffer::create received an invalid type_id {}", buffer.type_id);
     return make_internal_error<InvalidArgument>(message);
+  }
+  if (status == TYPEART_WRONG_KIND) {
+    return make_type_error<BufferNotOfStructType>(buffer.type_id);
   }
   std::vector<Buffer> type_layout = {};
   if (status == TYPEART_OK) {

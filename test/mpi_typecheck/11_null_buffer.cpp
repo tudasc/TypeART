@@ -17,8 +17,7 @@ int main(int argc, char** argv) {
   // CHECK: [Trace] TypeART Runtime Trace
 
   // clang-format off
-  // CHECK: R[{{0|1}}][Info]ID[0] MPI_Send at 0x{{.*}}: checking send-buffer {{.*}} of type "" against MPI type "MPI_DOUBLE"
-  // CHECK: R[{{0|1}}][Warning]ID[0] buffer is NULL
+  // CHECK: R[{{0|1}}][Warning]T[{{[0-9]*}}] at 0x{{.*}}: MPI_Send: {{send|recv}}-buffer is NULL
   // CHECK: Null_Buf: 1
   // clang-format on
 

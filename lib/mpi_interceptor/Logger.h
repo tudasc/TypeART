@@ -30,11 +30,12 @@ class Logger {
   ~Logger();
 
   void log(const char* name, const void* called_from, bool is_send, const Buffer& buffer, const MPIType& type,
-           const Result<void>&);
+           int count, const Result<void>&);
   void log(const char* function_name, const void* called_from, bool is_send, const void* ptr, const Error&);
   void log(const CallCounter& call_counter, long ru_maxrss);
   void log(const MPICounter& mpi_counter);
-  void log_null_buffer();
+  void log_zero_count(const char* function_name, const void* called_from, bool is_send, const void* ptr);
+  void log_null_buffer(const char* function_name, const void* called_from, bool is_send);
   void log_unsupported(const char* name);
 
  private:
