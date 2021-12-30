@@ -47,8 +47,8 @@ void typeart_check_recv(const char* name, const void* called_from, void* recvbuf
 void typeart_check_send_and_recv(const char* name, const void* called_from, const void* sendbuf, int sendcount,
                                  MPI_Datatype sendtype, void* recvbuf, int recvcount, MPI_Datatype recvtype) {
   ++typeart::call_counter.send_recv;
-  typeart_check_send(name, called_from, sendbuf, sendcount, sendtype);
-  typeart_check_recv(name, called_from, recvbuf, recvcount, recvtype);
+  typeart::check_buffer(name, called_from, true, sendbuf, sendcount, sendtype);
+  typeart::check_buffer(name, called_from, false, recvbuf, recvcount, recvtype);
 }
 
 void typeart_unsupported_mpi_call(const char* name, const void* /*called_from*/) {
