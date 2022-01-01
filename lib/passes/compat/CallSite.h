@@ -320,11 +320,10 @@ class CallSiteBase {
     return isCall() && cast<CallInst>(getInstruction())->isTailCall();
   }
 
-#define CALLSITE_DELEGATE_GETTER(METHOD)             \
-  InstrTy* II = getInstruction();                    \
-  return isCall()     ? cast<CallInst>(II)->METHOD   \
-         : isCallBr() ? cast<CallBrInst>(II)->METHOD \
-                      : cast<InvokeInst>(II)->METHOD
+#define CALLSITE_DELEGATE_GETTER(METHOD)       \
+  InstrTy* II = getInstruction();              \
+  return isCall() ? cast<CallInst>(II)->METHOD \
+                  : isCallBr() ? cast<CallBrInst>(II)->METHOD : cast<InvokeInst>(II)->METHOD
 
 #define CALLSITE_DELEGATE_SETTER(METHOD) \
   InstrTy* II = getInstruction();        \

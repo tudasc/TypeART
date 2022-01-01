@@ -57,7 +57,7 @@ HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
     // Number of bytes allocated
     auto mallocArg = malloc_call->getOperand(0);
     int typeId     = type_m->getOrRegisterType(malloc_call->getType()->getPointerElementType(),
-                                               dl);  // retrieveTypeID(tu::getVoidType(c));
+                                           dl);  // retrieveTypeID(tu::getVoidType(c));
     if (typeId == TYPEART_UNKNOWN_TYPE) {
       LOG_ERROR("Unknown heap type. Not instrumenting. " << util::dump(*malloc_call));
       // TODO notify caller that we skipped: via lambda callback function
