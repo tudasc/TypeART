@@ -13,11 +13,11 @@
 #ifndef TYPEART_FILTER_OMPUTIL_H
 #define TYPEART_FILTER_OMPUTIL_H
 
+#include "compat/CallSite.h"
 #include "support/DefUseChain.h"
 #include "support/OmpUtil.h"
 
 #include "llvm/ADT/Optional.h"
-#include "llvm/IR/CallSite.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Operator.h"

@@ -1,6 +1,6 @@
 // RUN: echo --- > types.yaml
 // RUN: %wrapper-cc -O1 %s -o %s.exe
-// RUN: %s.exe 2>&1 | FileCheck %s
+// RUN: %s.exe 2>&1 | %filecheck %s
 
 #include "../../lib/runtime/CallbackInterface.h"
 

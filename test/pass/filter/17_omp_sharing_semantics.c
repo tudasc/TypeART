@@ -1,9 +1,9 @@
 // clang-format off
-// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %apply-typeart -typeart-alloca -call-filter -S 2>&1 | FileCheck %s
-// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | opt -O2 -S | %apply-typeart -typeart-alloca -call-filter -S 2>&1 | FileCheck %s
+// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %apply-typeart -typeart-alloca -call-filter -S 2>&1 | %filecheck %s
+// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %opt -O2 -S | %apply-typeart -typeart-alloca -call-filter -S 2>&1 | %filecheck %s
 
-// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %apply-typeart -typeart-alloca -call-filter -S | FileCheck %s --check-prefix=check-inst
-// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | opt -O2 -S | %apply-typeart -typeart-alloca -call-filter -S | FileCheck %s --check-prefix=check-inst
+// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %apply-typeart -typeart-alloca -call-filter -S | %filecheck %s --check-prefix=check-inst
+// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %opt -O2 -S | %apply-typeart -typeart-alloca -call-filter -S | %filecheck %s --check-prefix=check-inst
 // REQUIRES: openmp
 // clang-format on
 
@@ -36,8 +36,8 @@ void bar(int count) {
   int d = 3;
   int e = 4;
   // check-inst: define {{.*}} @.omp_outlined
-  // check-inst: %d4 = alloca i32
-  // check-inst-NEXT: %0 = bitcast i32* %d4 to i8*
+  // check-inst: %d{{[0-9]}} = alloca i32
+  // check-inst-NEXT: %0 = bitcast i32* %d{{[0-9]}} to i8*
   // check-inst-NEXT: call void @__typeart_alloc_stack_omp(i8* %0, i32 2, i64 1)
 #pragma omp parallel for schedule(dynamic, 1) lastprivate(d) shared(e)
   for (int i = 0; i < count; ++i) {
@@ -54,8 +54,8 @@ void bar2(int count) {
   int d = 3;
   int e = 4;
   // check-inst: define {{.*}} @.omp_outlined
-  // check-inst: %d4 = alloca i32
-  // check-inst-NEXT: %0 = bitcast i32* %d4 to i8*
+  // check-inst: %d{{[0-9]}} = alloca i32
+  // check-inst-NEXT: %0 = bitcast i32* %d{{[0-9]}} to i8*
   // check-inst-NEXT: call void @__typeart_alloc_stack_omp(i8* %0, i32 2, i64 1)
 #pragma omp parallel for schedule(dynamic, 1) lastprivate(d) shared(e)
   for (int i = 0; i < count; ++i) {

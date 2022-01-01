@@ -13,9 +13,10 @@
 #ifndef TYPEART_IRPATH_H
 #define TYPEART_IRPATH_H
 
+#include "compat/CallSite.h"
+
 #include "llvm/ADT/Optional.h"
 #include "llvm/ADT/STLExtras.h"
-#include "llvm/IR/CallSite.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Value.h"
 #include "llvm/Support/raw_ostream.h"

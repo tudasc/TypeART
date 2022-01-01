@@ -149,13 +149,13 @@ function toolchain_init() {
 
   case "$extension" in
   c)
-    compiler=clang
+    compiler="@TYPEART_CLANG_EXEC@"
     if [ $with_omp == 1 ]; then
       readonly omp_flags="@OpenMP_C_FLAGS@" # -I@OpenMP_C_INCLUDE_DIRS@
     fi
     ;;
   cc | cxx | cpp)
-    compiler=clang++
+    compiler="@TYPEART_CLANGCXX_EXEC@"
     if [ $with_omp == 1 ]; then
       readonly omp_flags="@OpenMP_CXX_FLAGS@" # -I@OpenMP_CXX_INCLUDE_DIRS@
     fi

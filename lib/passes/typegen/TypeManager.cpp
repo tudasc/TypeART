@@ -163,7 +163,12 @@ int TypeManager::getTypeID(llvm::Type* type, const DataLayout& dl) const {
   }
 
   switch (type->getTypeID()) {
-    case llvm::Type::VectorTyID: {
+#if LLVM_VERSION_MAJOR < 11
+    case llvm::Type::VectorTyID:
+#else
+    case llvm::Type::FixedVectorTyID:
+#endif
+    {
       VectorTypeHandler handle{&structMap, &typeDB, dyn_cast<VectorType>(type), dl, *this};
       const auto type_id = handle.getID();
       if (type_id) {
@@ -179,6 +184,12 @@ int TypeManager::getTypeID(llvm::Type* type, const DataLayout& dl) const {
       }
       break;
     }
+#if LLVM_VERSION_MAJOR > 10
+    case llvm::Type::ScalableVectorTyID: {
+      LOG_ERROR("Scalable SIMD vectors are unsupported.")
+      break;
+    }
+#endif
     default:
       break;
   }
@@ -193,8 +204,14 @@ int TypeManager::getOrRegisterType(llvm::Type* type, const llvm::DataLayout& dl)
   }
 
   switch (type->getTypeID()) {
+#if LLVM_VERSION_MAJOR < 11
     case llvm::Type::VectorTyID:
+#else
+    case llvm::Type::FixedVectorTyID:
+#endif
+    {
       return getOrRegisterVector(dyn_cast<VectorType>(type), dl);
+    }
     case llvm::Type::StructTyID:
       return getOrRegisterStruct(dyn_cast<StructType>(type), dl);
     default:

@@ -12,7 +12,7 @@ add_custom_target(
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   find_program(LLVMCOV_COMMAND REQUIRED
-    NAMES llvm-cov-10 llvm-cov
+    NAMES llvm-cov-${LLVM_VERSION_MAJOR} llvm-cov
   )
   # workaround lcov and clang --coverage have a version mismatch
   set(GCOV_TOOL --gcov-tool ${CMAKE_BINARY_DIR}/scripts/llvm-gcov.sh)

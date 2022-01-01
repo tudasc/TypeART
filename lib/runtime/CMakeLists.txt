@@ -6,6 +6,8 @@ add_custom_command(
           -DROOT_DIR=${PROJECT_SOURCE_DIR}
           -DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}
           -DPROJECT_VERSION=${PROJECT_VERSION}
+          -DLLVM_VERSION_MAJOR=${LLVM_VERSION_MAJOR}
+          -DLLVM_VERSION_MINOR=${LLVM_VERSION_MINOR}
           -P ${PROJECT_SOURCE_DIR}/cmake/modules/version-helper.cmake
   MAIN_DEPENDENCY Version.cpp.in
   DEPENDS ${PROJECT_SOURCE_DIR}/cmake/modules/version-helper.cmake

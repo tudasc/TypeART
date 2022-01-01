@@ -148,7 +148,7 @@ void JSONCG::construct_call_information(const std::string& entry_caller, const l
           const auto callee_json_string = callee.getAsString();
           assert(callee_json_string.hasValue() && "Could not get callee as string");
           if (callee_json_string.hasValue()) {
-            const std::string callee_string = callee_json_string.getValue();
+            const std::string callee_string = std::string{callee_json_string.getValue()};
             directly_called_functions[entry_caller].insert(callee_string);
           }
         }
@@ -161,7 +161,7 @@ void JSONCG::construct_call_information(const std::string& entry_caller, const l
           const auto functionStr = function.getAsString();
           assert(functionStr.hasValue() && "Retrieving overriding function as String failed");
           if (functionStr.hasValue()) {
-            const std::string functionName = functionStr.getValue();
+            const std::string functionName = std::string{functionStr.getValue()};
             virtualTargets[entry_caller].insert(functionName);
           }
         }

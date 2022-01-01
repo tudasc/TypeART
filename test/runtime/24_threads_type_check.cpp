@@ -1,14 +1,14 @@
 // clang-format off
-// RUN: %run %s --thread 2>&1 | FileCheck %s --check-prefix=CHECK-TSAN
-// RUN: %run %s --thread 2>&1 | FileCheck %s
+// RUN: %run %s --thread 2>&1 | %filecheck %s --check-prefix=CHECK-TSAN
+// RUN: %run %s --thread 2>&1 | %filecheck %s
 // REQUIRES: thread && softcounter
 // clang-format on
 
-#include <stdlib.h>
-
-#include <thread>
-#include <atomic>
 #include "util.h"
+
+#include <atomic>
+#include <stdlib.h>
+#include <thread>
 
 void repeat_alloc_free(unsigned n) {
   for (int i = 0; i < n; i++) {

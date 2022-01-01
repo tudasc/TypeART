@@ -99,7 +99,7 @@ FilterAnalysis CGFilterImpl::decl(CallSite current, const Path& p) {
 
   const auto searchCG = [&](auto from) {
     if (call_graph) {
-      return call_graph->reachable(from->getName(), filter);
+      return call_graph->reachable(std::string{from->getName()}, filter);
     }
     return CGInterface::ReachabilityResult::unknown;
   };
