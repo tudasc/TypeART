@@ -36,7 +36,7 @@ int main(int argc, char** argv) {
   // CHECK: Alloc Stats from softcounters
   // CHECK-NEXT: Total heap                 :   0 ,    0 ,    -
   // CHECK: Total stack                     :   {{[0-9]+}} ,   400 ,    -
-  // CHECK-NEXT: Total global               :   0 ,    0 ,    -
+  // CHECK-NEXT: Total global               :   {{[0-9]+}} ,    {{[0-9]+}} ,    -
   // CHECK-NEXT: Max. Heap Allocs           :   0 ,    - ,    -
   // CHECK-NEXT: Max. Stack Allocs          :  17 ,    - ,    -
   // CHECK-NEXT: Addresses checked          :   0 ,    - ,    -
