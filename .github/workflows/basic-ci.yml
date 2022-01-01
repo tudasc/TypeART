@@ -34,7 +34,7 @@ jobs:
 
   lit-suite:
     runs-on: ubuntu-20.04
-    if: "!contains(github.event.head_commit.message, '[ci skip]')"
+
     strategy:
       fail-fast: false
       matrix:
@@ -87,7 +87,7 @@ jobs:
           echo "EXTERNAL_LIT=/usr/lib/llvm-${{ matrix.llvm-version }}/build/utils/lit/lit.py" >> $GITHUB_ENV
 
       - name: Configure TypeART
-        run: cmake -B build --preset ${{ matrix.preset.name }} -DLLVM_DIR=${{ env.LLVM_CMAKE_DIR }} -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT}
+        run: cmake -B build --preset ${{ matrix.preset.name }} -DLLVM_DIR=${LLVM_CMAKE_DIR} -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT}
 
       - name: Build TypeART
         run: cmake --build build --parallel 2
