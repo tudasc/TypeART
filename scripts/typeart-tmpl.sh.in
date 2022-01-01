@@ -104,7 +104,7 @@ function parse_cmd_line() {
   fi
 
   if [ $show_ir == 1 ]; then
-    ta_more_args+="-S"
+    ta_more_args+=" -S"
   fi
 }
 
