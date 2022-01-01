@@ -87,11 +87,12 @@ RuntimeSystem::RuntimeSystem() : rtScopeInit(), typeResolution(typeDB, recorder)
     }
   } else {
     if (!loadTypes(defaultTypeFileName, error)) {
-      LOG_FATAL("No type file with default name \"" << defaultTypeFileName
-                                                    << "\" in current directory. To specify a different file, edit the "
-                                                       "TYPEART_TYPE_FILE environment variable. Reason: "
-                                                    << error.message());
-      std::exit(EXIT_FAILURE);  // TODO: Error handling
+      LOG_WARNING(
+          "No type file with default name \""
+          << defaultTypeFileName
+          << "\" in current directory. Using default built-in types only. To specify a different file, edit the "
+             "TYPEART_TYPE_FILE environment variable. Reason: "
+          << error.message());
     }
   }
 
