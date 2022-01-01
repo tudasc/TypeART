@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2021 TypeART Authors
+// Copyright (c) 2017-2022 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -57,7 +57,7 @@ HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
     // Number of bytes allocated
     auto mallocArg = malloc_call->getOperand(0);
     int typeId     = type_m->getOrRegisterType(malloc_call->getType()->getPointerElementType(),
-                                           dl);  // retrieveTypeID(tu::getVoidType(c));
+                                               dl);  // retrieveTypeID(tu::getVoidType(c));
     if (typeId == TYPEART_UNKNOWN_TYPE) {
       LOG_ERROR("Unknown heap type. Not instrumenting. " << util::dump(*malloc_call));
       // TODO notify caller that we skipped: via lambda callback function

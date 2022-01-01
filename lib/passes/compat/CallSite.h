@@ -1,5 +1,18 @@
-// Compatibility for Clang v10 and higher. In Clang 11 the CallSite.h was removed, therefore we copied the Clang v10
-// version of the header into the TypeART project.
+// TypeART library
+//
+// Copyright (c) 2017-2022 TypeART Authors
+// Distributed under the BSD 3-Clause license.
+// (See accompanying file LICENSE.txt or copy at
+// https://opensource.org/licenses/BSD-3-Clause)
+//
+// Project home: https://github.com/tudasc/TypeART
+//
+// SPDX-License-Identifier: BSD-3-Clause
+//
+
+// Compatibility for Clang v10 and higher.
+// In Clang 11 the CallSite.h was removed, therefore we copied the Clang v10 version of the header into the TypeART
+// project, see https://github.com/llvm/llvm-project
 
 #ifndef COMPAT_LLVM_IR_CALLSITE_H
 #define COMPAT_LLVM_IR_CALLSITE_H
