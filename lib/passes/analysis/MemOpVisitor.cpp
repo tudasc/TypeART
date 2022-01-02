@@ -71,10 +71,10 @@ void MemOpVisitor::visitCallBase(llvm::CallBase& cb) {
     return None;
   };
 
-  if (auto val = isInSet(mem_operations.allocs())) {
-    visitMallocLike(cb, val.getValue());
-  } else if (auto val = isInSet(mem_operations.deallocs())) {
-    visitFreeLike(cb, val.getValue());
+  if (auto alloc_val = isInSet(mem_operations.allocs())) {
+    visitMallocLike(cb, alloc_val.getValue());
+  } else if (auto dealloc_val = isInSet(mem_operations.deallocs())) {
+    visitFreeLike(cb, dealloc_val.getValue());
   }
 }
 

@@ -22,42 +22,42 @@
 namespace typeart::detail {
 
 inline std::vector<int> getRanks() {
-  const auto rStr = std::getenv("TYPEART_MPI_LOG");
+  const auto* rank_option = std::getenv("TYPEART_MPI_LOG");
   std::vector<int> ranks{};
 
-  if (rStr == nullptr) {
+  if (rank_option == nullptr) {
     ranks.push_back(0);
     return ranks;
   }
 
-  if (strncmp(rStr, "all", 3) == 0) {
+  if (strncmp(rank_option, "all", 3) == 0) {
     return ranks;
   }
 
-  ranks.push_back(std::atoi(rStr));
+  ranks.push_back(std::atoi(rank_option));
   return ranks;
 }
 
-void mpi_log(const std::string& msg) {
-  int initFlag{0};
-  int finiFlag{0};
-  MPI_Initialized(&initFlag);
-  MPI_Finalized(&finiFlag);
+void typeart_log(const std::string& msg) {
+  int mpi_initialized{0};
+  int mpi_finalized{0};
+  MPI_Initialized(&mpi_initialized);
+  MPI_Finalized(&mpi_finalized);
 
-  if (initFlag != 0 && finiFlag == 0) {
-    int mRank{0};
-    MPI_Comm_rank(MPI_COMM_WORLD, &mRank);
+  if (mpi_initialized != 0 && mpi_finalized == 0) {
+    int mpi_rank{0};
+    MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
     const auto outputRanks = getRanks();
 
-    const auto isIn = [&](int r) {
+    const auto isIn = [&](int rank) {
       if (outputRanks.empty()) {
         return true;
       }
-      return std::find(std::begin(outputRanks), std::end(outputRanks), r) != std::end(outputRanks);
+      return std::find(std::begin(outputRanks), std::end(outputRanks), rank) != std::end(outputRanks);
     };
 
-    if (isIn(mRank)) {
-      llvm::errs() << "R[" << mRank << "]" << msg;
+    if (isIn(mpi_rank)) {
+      llvm::errs() << "R[" << mpi_rank << "]" << msg;
     }
   } else {
     llvm::errs() << msg;

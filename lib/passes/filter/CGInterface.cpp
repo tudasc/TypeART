@@ -44,8 +44,8 @@ CGInterface::ReachabilityResult JSONCG::reachable(const std::string& source, con
     f.push_back(source);
   }
 
-  for (const auto& f : reachables) {
-    matches |= util::regex_matches(target, f, case_sensitive);
+  for (const auto& function_n : reachables) {
+    matches |= util::regex_matches(target, function_n, case_sensitive);
     allBodies = allBodies && hasBodyMap[target];
 
     if (matches && short_circuit) {
