@@ -23,7 +23,7 @@ namespace typeart {
 
 enum class StructTypeFlag : int { USER_DEFINED = 1, LLVM_VECTOR = 2 };
 
-struct StructTypeInfo final {
+struct StructTypeInfo {
   int type_id;
   std::string name;
   size_t extent;
