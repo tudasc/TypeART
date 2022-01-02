@@ -111,7 +111,7 @@ HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
         break;
       case MemOpKind::CallocLike: {
         if (mdata.primary == nullptr) {
-          // we need the second arg when the calloc type is identified as void* to calculcate total bytes allocated
+          // we need the second arg when the calloc type is identified as void* to calculate total bytes allocated
           typeSizeConst = malloc_call->getOperand(1);
         }
         elementCount = malloc_call->getOperand(0);

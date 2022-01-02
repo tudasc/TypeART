@@ -89,7 +89,7 @@ void TypeDB::registerStruct(const StructTypeInfo& struct_type) {
     } else if (isReservedType(struct_type.type_id)) {
       LOG_ERROR("Type ID is reserved for builtin types. Struct: " << struct_type.name);
     } else if (isUnknown(struct_type.type_id)) {
-      LOG_ERROR("Type ID is reserved for unkown types. Struct: " << struct_type.name);
+      LOG_ERROR("Type ID is reserved for unknown types. Struct: " << struct_type.name);
     } else {
       LOG_ERROR("Struct type ID already registered for " << struct_type.name << ". Conflicting struct is "
                                                          << getStructInfo(struct_type.type_id)->name);

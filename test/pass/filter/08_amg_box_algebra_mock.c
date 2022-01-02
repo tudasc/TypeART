@@ -31,7 +31,7 @@ typedef struct hypre_Box_struct {
 typedef struct hypre_BoxArray_struct {
   hypre_Box* boxes; /* Array of boxes */
   int size;         /* Size of box array */
-  int alloc_size;   /* Size of currently alloced space */
+  int alloc_size;   /* Size of currently allocated space */
 
 } hypre_BoxArray;
 

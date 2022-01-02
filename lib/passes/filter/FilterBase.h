@@ -126,7 +126,7 @@ class BaseFilter : public Filter {
         continue;
       }
 
-      // TODO: here we have a definiton OR a omp call, e.g., @__kmpc_fork_call
+      // TODO: here we have a definition OR a omp call, e.g., @__kmpc_fork_call
       LOG_DEBUG("Looking at: " << c.getCalledFunction()->getName());
 
       if constexpr (OmpHelper::WithOmp) {

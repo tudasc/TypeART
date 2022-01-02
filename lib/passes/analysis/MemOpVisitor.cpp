@@ -213,7 +213,7 @@ void MemOpVisitor::visitMallocLike(llvm::CallBase& ci, MemOpKind k) {
   auto primary_cast   = bcasts.empty() ? nullptr : *bcasts.begin();
   auto array_cookie   = handleArrayCookie(geps, bcasts, primary_cast);
   if (primary_cast == nullptr) {
-    LOG_DEBUG("Primay bitcast null: " << ci)
+    LOG_DEBUG("Primary bitcast null: " << ci)
   }
   mallocs.push_back(MallocData{&ci, array_cookie, primary_cast, bcasts, k, isa<InvokeInst>(ci)});
 }
@@ -222,7 +222,7 @@ void MemOpVisitor::visitFreeLike(llvm::CallBase& ci, MemOpKind k) {
   //  LOG_DEBUG(ci.getCalledFunction()->getName());
   MemOpKind kind = k;
 
-  // FIME is that superfluous?
+  // FIXME is that superfluous?
   if (auto f = ci.getCalledFunction()) {
     auto dkind = mem_operations.deallocKind(f->getName());
     if (dkind) {
