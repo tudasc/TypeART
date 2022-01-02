@@ -24,6 +24,8 @@
 #if LLVM_VERSION_MAJOR < 11
 #include "llvm/IR/CallSite.h"
 #else
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
 //===- CallSite.h - Abstract Call & Invoke instrs ---------------*- C++ -*-===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
@@ -320,10 +322,11 @@ class CallSiteBase {
     return isCall() && cast<CallInst>(getInstruction())->isTailCall();
   }
 
-#define CALLSITE_DELEGATE_GETTER(METHOD)       \
-  InstrTy* II = getInstruction();              \
-  return isCall() ? cast<CallInst>(II)->METHOD \
-                  : isCallBr() ? cast<CallBrInst>(II)->METHOD : cast<InvokeInst>(II)->METHOD
+#define CALLSITE_DELEGATE_GETTER(METHOD)             \
+  InstrTy* II = getInstruction();                    \
+  return isCall()     ? cast<CallInst>(II)->METHOD   \
+         : isCallBr() ? cast<CallBrInst>(II)->METHOD \
+                      : cast<InvokeInst>(II)->METHOD
 
 #define CALLSITE_DELEGATE_SETTER(METHOD) \
   InstrTy* II = getInstruction();        \
@@ -752,7 +755,7 @@ class ImmutableCallSite : public CallSiteBase<> {
 };
 
 }  // namespace llvm
-
+#pragma GCC diagnostic pop
 #endif
 
 #endif  // LLVM_IR_CALLSITE_H

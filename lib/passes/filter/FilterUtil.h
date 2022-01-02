@@ -120,8 +120,8 @@ ArgCorrelation correlate(CallSite c, const Path& p, TypeID&& isType) {
   auto [arg, _] = findArg(c, p);
 
   if (!arg) {
-    const auto count_type_ptr = llvm::count_if(c.args(), [&](const auto& arg) {
-      const auto type = arg->getType();
+    const auto count_type_ptr = llvm::count_if(c.args(), [&](const auto& csite_arg) {
+      const auto type = csite_arg->getType();
       return isType(type);
     });
     if (count_type_ptr > 0) {
