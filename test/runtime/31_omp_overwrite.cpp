@@ -47,7 +47,7 @@ int main(int argc, char** argv) {
 
   // CHECK-NOT: Error
 
-  // 3 Threads, using the same 100 pointers, i.e., 200 are overriden:
+  // 3 Threads, using the same 100 pointers, i.e., 200 are overridden:
   // CHECK: Alloc Stats from softcounters
   // CHECK: Addresses re-used          :  200
 

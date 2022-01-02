@@ -1,5 +1,18 @@
-// Compatibility for Clang v10 and higher. In Clang 11 the CallSite.h was removed, therefore we copied the Clang v10
-// version of the header into the TypeART project.
+// TypeART library
+//
+// Copyright (c) 2017-2022 TypeART Authors
+// Distributed under the BSD 3-Clause license.
+// (See accompanying file LICENSE.txt or copy at
+// https://opensource.org/licenses/BSD-3-Clause)
+//
+// Project home: https://github.com/tudasc/TypeART
+//
+// SPDX-License-Identifier: BSD-3-Clause
+//
+
+// Compatibility for Clang v10 and higher.
+// In Clang 11 the CallSite.h was removed, therefore we copied the Clang v10 version of the header into the TypeART
+// project, see https://github.com/llvm/llvm-project
 
 #ifndef COMPAT_LLVM_IR_CALLSITE_H
 #define COMPAT_LLVM_IR_CALLSITE_H
@@ -11,6 +24,8 @@
 #if LLVM_VERSION_MAJOR < 11
 #include "llvm/IR/CallSite.h"
 #else
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
 //===- CallSite.h - Abstract Call & Invoke instrs ---------------*- C++ -*-===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
@@ -501,7 +516,7 @@ class CallSiteBase {
     CALLSITE_DELEGATE_SETTER(setDoesNotReadMemory());
   }
 
-  /// Determine if the call can access memmory only using pointers based
+  /// Determine if the call can access memory only using pointers based
   /// on its arguments.
   bool onlyAccessesArgMemory() const {
     CALLSITE_DELEGATE_GETTER(onlyAccessesArgMemory());
@@ -740,7 +755,7 @@ class ImmutableCallSite : public CallSiteBase<> {
 };
 
 }  // namespace llvm
-
+#pragma GCC diagnostic pop
 #endif
 
 #endif  // LLVM_IR_CALLSITE_H

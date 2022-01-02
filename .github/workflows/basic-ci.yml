@@ -26,11 +26,20 @@ jobs:
             -print0 \
             | xargs -0 clang-format-10 -i
 
-      - name: List newly formatted files
-        run: git status --porcelain --untracked-files=no
+      - name: Format check
+        run: |
+          git status --porcelain --untracked-files=no
+          git status --porcelain --untracked-files=no | xargs -o -I {} test -z \"{}\"
 
-      - name: Check format
-        run: git status --porcelain --untracked-files=no | xargs -o -I {} test -z \"{}\"
+  codespell:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: codespell-project/actions-codespell@master
+        with:
+          path: demo lib test
+          skip: ./.git,*.py,*/lulesh
 
   lit-suite:
     runs-on: ubuntu-20.04

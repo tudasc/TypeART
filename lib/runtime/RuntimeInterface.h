@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2021 TypeART Authors
+// Copyright (c) 2017-2022 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -125,7 +125,7 @@ typeart_status typeart_get_subtype(const void* base_addr, size_t offset, typeart
 typeart_status typeart_get_return_address(const void* addr, const void** return_addr);
 
 /**
- * Tries to return file, function and line of a memory adress from the current process.
+ * Tries to return file, function and line of a memory address from the current process.
  * Needs (1) either llvm-symbolizer or addr2line to be installed, and (2) target code should be compiled debug
  * information for useful output. Note: file, function, line are allocated with malloc. They need to be free'd by the
  * caller.

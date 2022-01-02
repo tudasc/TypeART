@@ -2,7 +2,7 @@
 #
 # TypeART library
 #
-# Copyright (c) 2017-2021 TypeART Authors
+# Copyright (c) 2017-2022 TypeART Authors
 # Distributed under the BSD 3-Clause license.
 # (See accompanying file LICENSE.txt or copy at
 # https://opensource.org/licenses/BSD-3-Clause)
@@ -22,6 +22,7 @@ function parse_cmd_line() {
   skip_typeart=0
   compile_flags=""
   show_ir=0
+  clean_types_file=0
 
   shift # skip over $1
   while (("$#")); do
@@ -77,9 +78,13 @@ function parse_cmd_line() {
           echo "Error: argument for $1 is missing." >&2
           shift
         fi
-        ;;
+      ;;
       --show_ir)
         show_ir=1
+        shift
+      ;;
+      --clean_types)
+        clean_types_file=1
         shift
       ;;
     *) # preserve other arguments
@@ -244,6 +249,12 @@ function main_link() {
 }
 
 function execute() {
+  if [ $clean_types_file == 1 ]; then
+    if [ -e "types.yaml" ]; then
+      rm "types.yaml"
+    fi
+  fi
+
   if [ $with_omp == 1 ]; then
     export TSAN_OPTIONS='ignore_noninstrumented_modules=1'
   fi

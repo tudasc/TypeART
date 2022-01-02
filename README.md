@@ -71,7 +71,7 @@ its [project page](https://itc.rwth-aachen.de/must/).
 
 Making use of TypeART consists of two phases:
 
-1. Compile your code with Clang/LLVM (version 10) using the TypeART LLVM pass plugins to (1) serialize static type
+1. Compile your code with Clang/LLVM (version >= 10) using the TypeART LLVM pass plugins to (1) serialize static type
    information to a file and (2) instrument all relevant allocations. See [Section 1.1](#11-compiling-a-target-code).
 2. Execute the target program with a runtime library (a *client* based on the TypeART runtime) to accept the callbacks
    to do some useful analysis with our interface based on the static type information.
@@ -292,7 +292,7 @@ To compile and run the demo targets:
 
 ## 2. Building TypeART
 
-TypeART requires LLVM version 10 and CMake version >= 3.14.
+TypeART requires LLVM version >= 10 and CMake version >= 3.20.
 
 ### 2.1 Optional software requirements
 

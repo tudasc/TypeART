@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2021 TypeART Authors
+// Copyright (c) 2017-2022 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -87,11 +87,12 @@ RuntimeSystem::RuntimeSystem() : rtScopeInit(), typeResolution(typeDB, recorder)
     }
   } else {
     if (!loadTypes(defaultTypeFileName, error)) {
-      LOG_FATAL("No type file with default name \"" << defaultTypeFileName
-                                                    << "\" in current directory. To specify a different file, edit the "
-                                                       "TYPEART_TYPE_FILE environment variable. Reason: "
-                                                    << error.message());
-      std::exit(EXIT_FAILURE);  // TODO: Error handling
+      LOG_WARNING(
+          "No type file with default name \""
+          << defaultTypeFileName
+          << "\" in current directory. Using default built-in types only. To specify a different file, edit the "
+             "TYPEART_TYPE_FILE environment variable. Reason: "
+          << error.message());
     }
   }
 

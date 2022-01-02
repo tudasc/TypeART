@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2021 TypeART Authors
+// Copyright (c) 2017-2022 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -29,25 +29,25 @@ class TypeDB final : public TypeDatabase {
 
   void registerStruct(const StructTypeInfo& struct_type) override;
 
-  bool isUnknown(int id) const override;
+  bool isUnknown(int type_id) const override;
 
-  bool isValid(int id) const override;
+  bool isValid(int type_id) const override;
 
-  bool isReservedType(int id) const override;
+  bool isReservedType(int type_id) const override;
 
-  bool isBuiltinType(int id) const override;
+  bool isBuiltinType(int type_id) const override;
 
-  bool isStructType(int id) const override;
+  bool isStructType(int type_id) const override;
 
-  bool isUserDefinedType(int id) const override;
+  bool isUserDefinedType(int type_id) const override;
 
-  bool isVectorType(int id) const override;
+  bool isVectorType(int type_id) const override;
 
-  const std::string& getTypeName(int id) const override;
+  const std::string& getTypeName(int type_id) const override;
 
-  const StructTypeInfo* getStructInfo(int id) const override;
+  const StructTypeInfo* getStructInfo(int type_id) const override;
 
-  size_t getTypeSize(int id) const override;
+  size_t getTypeSize(int type_id) const override;
 
   const std::vector<StructTypeInfo>& getStructList() const override;
 

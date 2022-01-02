@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2021 TypeART Authors
+// Copyright (c) 2017-2022 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -203,8 +203,8 @@ TypeResolution::TypeArtStatus TypeResolution::getContainingTypeInfo(const void* 
 
   // Ensure that the given address is in bounds and points to the start of an element
   if (addr >= blockEnd) {
-    const std::ptrdiff_t offset = static_cast<const uint8_t*>(addr) - static_cast<const uint8_t*>(basePtr);
-    const auto oob_index        = (offset / typeSize) - basePtrInfo.count + 1;
+    const std::ptrdiff_t offset2base = static_cast<const uint8_t*>(addr) - static_cast<const uint8_t*>(basePtr);
+    const auto oob_index             = (offset2base / typeSize) - basePtrInfo.count + 1;
     LOG_WARNING("Out of bounds for the lookup: (" << debug::toString(addr, basePtrInfo)
                                                   << ") #Elements too far: " << oob_index);
     return TYPEART_UNKNOWN_ADDRESS;
