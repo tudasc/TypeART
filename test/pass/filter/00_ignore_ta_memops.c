@@ -1,5 +1,5 @@
 // clang-format off
-// RUN: %c-to-llvm %s | %apply-typeart -S | %apply-typeart -typeart-alloca -typeart-no-heap=true -call-filter -S 2>&1 | FileCheck %s
+// RUN: %c-to-llvm %s | %apply-typeart -S | %apply-typeart -typeart-alloca -typeart-no-heap=true -call-filter -S 2>&1 | %filecheck %s
 // clang-format on
 
 #include <stdlib.h>

@@ -1,25 +1,25 @@
-find_package(PythonInterp QUIET)
+find_package(Python3 QUIET)
 
 if(LLVM_EXTERNAL_LIT)
   message(STATUS "External lit path is used")
   get_llvm_lit_path(
-      lit_base_dir
-      lit_file_name
-      ALLOW_EXTERNAL
+    lit_base_dir
+    lit_file_name
+    ALLOW_EXTERNAL
   )
-  set(path_to_lit ${lit_file_name})
+  set(PATH_TO_LIT ${lit_file_name})
   if(lit_base_dir)
-    set(path_to_lit ${lit_base_dir}/${path_to_lit})
+    set(PATH_TO_LIT ${lit_base_dir}/${PATH_TO_LIT})
   endif()
-  set(LIT_COMMAND_I "${PYTHON_EXECUTABLE};${path_to_lit}")
+  set(LIT_COMMAND_I "${Python3_EXECUTABLE};${PATH_TO_LIT}")
 endif()
 
 if(NOT LIT_COMMAND_I)
   find_program(LLVM_LIT_PATH
-      NAME llvm-lit
-      HINTS ${LLVM_TOOLS_BINARY_DIR}
-      PATHS ${LLVM_ROOT_DIR}/bin /usr/bin /usr/local/bin /opt/local/bin /usr/lib
-      )
+    NAME llvm-lit lit lit.py
+    HINTS ${LLVM_TOOLS_BINARY_DIR}
+    PATHS ${LLVM_ROOT_DIR}/bin /usr/bin /usr/local/bin /opt/local/bin /usr/lib
+  )
 
   if(LLVM_LIT_PATH)
     get_filename_component(path_to_llvm_lit ${LLVM_LIT_PATH} ABSOLUTE CACHE)

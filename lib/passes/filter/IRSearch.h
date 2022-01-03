@@ -1,11 +1,20 @@
+// TypeART library
 //
-// Created by ahueck on 06.11.20.
+// Copyright (c) 2017-2022 TypeART Authors
+// Distributed under the BSD 3-Clause license.
+// (See accompanying file LICENSE.txt or copy at
+// https://opensource.org/licenses/BSD-3-Clause)
+//
+// Project home: https://github.com/tudasc/TypeART
+//
+// SPDX-License-Identifier: BSD-3-Clause
 //
 
 #ifndef TYPEART_IRSEARCH_H
 #define TYPEART_IRSEARCH_H
 
-#include "llvm/IR/CallSite.h"
+#include "compat/CallSite.h"
+
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Intrinsics.h"
 
@@ -13,11 +22,9 @@ namespace typeart::filter {
 
 struct DefaultSearch {
   auto search(llvm::Value* val, const Path& p) -> std::vector<llvm::Value*> {
-    using namespace llvm;
-
     std::vector<llvm::Value*> out;
 
-    if (isa<PHINode>(val)) {
+    if (isa<llvm::PHINode>(val)) {
       // FIXME
       //  this mechanism tries to avoid endless recurison in loops, i.e.,
       //  do we bounce around multiple phi nodes (visit counter >1), then
@@ -30,7 +37,7 @@ struct DefaultSearch {
       }
     }
 
-    if (auto store = llvm::dyn_cast<StoreInst>(val)) {
+    if (auto store = llvm::dyn_cast<llvm::StoreInst>(val)) {
       val = store->getPointerOperand();
       if (llvm::isa<AllocaInst>(val) && !store->getValueOperand()->getType()->isPointerTy()) {
         // 1. if we store to an alloca, and the value is not a pointer (i.e., a value) there is no connection to follow
@@ -53,7 +60,7 @@ struct DefaultSearch {
       // passed to func foo_bar
     }
 
-    llvm::transform(val->users(), std::back_inserter(out), [](User* u) { return dyn_cast<Value>(u); });
+    llvm::transform(val->users(), std::back_inserter(out), [](llvm::User* u) { return dyn_cast<llvm::Value>(u); });
     return out;
   }
 };

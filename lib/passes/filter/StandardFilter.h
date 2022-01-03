@@ -1,16 +1,24 @@
+// TypeART library
 //
-// Created by ahueck on 19.10.20.
+// Copyright (c) 2017-2022 TypeART Authors
+// Distributed under the BSD 3-Clause license.
+// (See accompanying file LICENSE.txt or copy at
+// https://opensource.org/licenses/BSD-3-Clause)
+//
+// Project home: https://github.com/tudasc/TypeART
+//
+// SPDX-License-Identifier: BSD-3-Clause
 //
 
 #ifndef TYPEART_STANDARDFILTER_H
 #define TYPEART_STANDARDFILTER_H
 
 #include "Filter.h"
+#include "compat/CallSite.h"
 #include "support/Logger.h"
 #include "support/Util.h"
 
 #include "llvm/ADT/Statistic.h"
-#include "llvm/IR/CallSite.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Intrinsics.h"
 #include "llvm/Support/CommandLine.h"

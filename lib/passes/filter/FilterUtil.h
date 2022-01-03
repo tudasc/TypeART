@@ -1,5 +1,13 @@
+// TypeART library
 //
-// Created by ahueck on 26.10.20.
+// Copyright (c) 2017-2022 TypeART Authors
+// Distributed under the BSD 3-Clause license.
+// (See accompanying file LICENSE.txt or copy at
+// https://opensource.org/licenses/BSD-3-Clause)
+//
+// Project home: https://github.com/tudasc/TypeART
+//
+// SPDX-License-Identifier: BSD-3-Clause
 //
 
 #ifndef TYPEART_FILTERUTIL_H
@@ -7,6 +15,7 @@
 
 #include "IRPath.h"
 #include "OmpUtil.h"
+#include "compat/CallSite.h"
 #include "support/DefUseChain.h"
 #include "support/Logger.h"
 
@@ -16,7 +25,6 @@
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/iterator_range.h"
 #include "llvm/IR/Argument.h"
-#include "llvm/IR/CallSite.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Intrinsics.h"
@@ -112,8 +120,8 @@ ArgCorrelation correlate(CallSite c, const Path& p, TypeID&& isType) {
   auto [arg, _] = findArg(c, p);
 
   if (!arg) {
-    const auto count_type_ptr = llvm::count_if(c.args(), [&](const auto& arg) {
-      const auto type = arg->getType();
+    const auto count_type_ptr = llvm::count_if(c.args(), [&](const auto& csite_arg) {
+      const auto type = csite_arg->getType();
       return isType(type);
     });
     if (count_type_ptr > 0) {

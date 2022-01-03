@@ -6,9 +6,8 @@ on:
   pull_request:
 
 env:
-  CXX: clang++-10
-  CC: clang-10
-  EXTERNAL_LIT: /usr/lib/llvm-10/build/utils/lit/lit.py
+  CXX: clang++
+  CC: clang
   OMP_NUM_THREAD: 2
 
 jobs:
@@ -23,151 +22,117 @@ jobs:
           find demo lib test \
             -type f \
             -a \( -name "*.c" -o -name "*.cpp" -o -name "*.h" \) \
-            -not -path "*/lulesh/*" \
+            -not -path "*/lulesh/*" -not -path "*/CallSite.h" \
             -print0 \
             | xargs -0 clang-format-10 -i
 
-      - name: List newly formatted files
-        run: git status --porcelain --untracked-files=no
+      - name: Format check
+        run: |
+          git status --porcelain --untracked-files=no
+          git status --porcelain --untracked-files=no | xargs -o -I {} test -z \"{}\"
 
-      - name: Check format
-        run: git status --porcelain --untracked-files=no | xargs -o -I {} test -z \"{}\"
+  codespell:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: codespell-project/actions-codespell@master
+        with:
+          path: demo lib test
+          skip: ./.git,*.py,*/lulesh
 
   lit-suite:
     runs-on: ubuntu-20.04
-    if: "!contains(github.event.head_commit.message, '[ci skip]')"
+
     strategy:
       fail-fast: false
       matrix:
-        config:
-          - {
-            name: Thread-safe-safeptr,
-            build_type: Debug,
-            safe_ptr: true,
-            tsan: true,
-          }
-          - {
-            name: Thread-safe,
-            build_type: Debug,
-            safe_ptr: false,
-            tsan: true,
-          }
-          - {
-            name: Thread-unsafe,
-            build_type: Debug,
-            thread_unsafe: true,
-            tsan: false,
-          }
-          - {
-            name: Coverage-thread-safe-safeptr,
-            build_type: Debug,
-            safe_ptr: true,
-            coverage: true,
-            tsan: false,
-          }
-          - {
-            name: Coverage-thread-safe,
-            build_type: Debug,
-            safe_ptr: false,
-            coverage: true,
-            tsan: false,
-          }
-          - {
-            name: Coverage-thread-unsafe,
-            build_type: Debug,
-            thread_unsafe: true,
-            coverage: true,
-            tsan: false,
-          }
-          - {
-            name: Thread-safe-libc++,
-            build_type: Debug,
-            cxxflags: -stdlib=libc++,
-            skip_test: true,
-            tsan: true,
-          }
+        llvm-version: [ 10, 11, 12 ]
+        preset:
+          - name: ci-thread-safe-safeptr
+          - name: ci-thread-safe
+          - name: ci-thread-unsafe
+          - name: ci-cov-thread-safe-safeptr
+            coverage: true
+          - name: ci-cov-thread-safe
+            coverage: true
+          - name: ci-cov-thread-unsafe
+            coverage: true
+          - name: ci-libcxx
+            libcxx: true
+            skip_test: true
 
     steps:
       - uses: actions/checkout@v2
 
+      - name: Update apt
+        run: sudo apt-get update
+
       - name: Install LLVM
-        run: sudo apt-get install libllvm10 llvm-10 llvm-10-dev
+        run: sudo apt-get install libllvm${{ matrix.llvm-version }} llvm-${{ matrix.llvm-version }} llvm-${{ matrix.llvm-version }}-dev
 
       - name: Install LLVM OpenMP runtime
-        run: sudo apt-get install libomp-10-dev libomp5-10
+        run: sudo apt-get install libomp-${{ matrix.llvm-version }}-dev libomp5-${{ matrix.llvm-version }}
 
       - name: Install Clang
-        run: sudo apt-get install clang-10 clang-tidy-10
+        run: sudo apt-get install clang-${{ matrix.llvm-version }} clang-tidy-${{ matrix.llvm-version }}
 
       - name: Install libc++
-        if: contains(matrix.config.cxxflags, '-stdlib=libc++')
-        run: sudo apt-get install --no-install-recommends libc++-10-dev libc++abi-10-dev
+        if: matrix.preset.libcxx
+        run: sudo apt-get install --no-install-recommends libc++-${{ matrix.llvm-version }}-dev libc++abi-${{ matrix.llvm-version }}-dev
 
       - name: Install OpenMPI
         run: sudo apt-get install libopenmpi-dev openmpi-bin
 
       - name: Install lcov
-        if: matrix.config.coverage
+        if: matrix.preset.coverage
         run: sudo apt-get install lcov
 
       - name: Setup env
         run: |
-          sudo ln -f -s /usr/bin/clang-10 /usr/bin/clang
-          sudo ln -f -s /usr/bin/clang++-10 /usr/bin/clang++
-          sudo ln -f -s /usr/bin/opt-10 /usr/bin/opt
-          sudo ln -f -s /usr/bin/FileCheck-10 /usr/bin/FileCheck
-          sudo ln -f -s /usr/bin/llc-10 /usr/bin/llc
-          sudo ln -f -s /usr/bin/clang-tidy-10 /usr/bin/clang-tidy
+          sudo ln -f -s /usr/bin/clang-${{ matrix.llvm-version }} /usr/bin/clang
+          sudo ln -f -s /usr/bin/clang++-${{ matrix.llvm-version }} /usr/bin/clang++
+          echo "LLVM_CMAKE_DIR=/usr/lib/llvm-${{ matrix.llvm-version }}/cmake" >> $GITHUB_ENV
+          echo "EXTERNAL_LIT=/usr/lib/llvm-${{ matrix.llvm-version }}/build/utils/lit/lit.py" >> $GITHUB_ENV
 
       - name: Configure TypeART
-        run: |
-          cmake -B build \
-            -DTEST_CONFIG=ON -DSOFTCOUNTERS=ON \
-            -DENABLE_CODE_COVERAGE=${{ matrix.config.coverage }} \
-            -DENABLE_TSAN=${{ matrix.config.tsan }} \
-            -DENABLE_ASAN=${{ matrix.config.tsan == false }} \
-            -DENABLE_UBSAN=${{ matrix.config.tsan == false }} \
-            -DENABLE_SAFEPTR=${{ matrix.config.safe_ptr }} \
-            -DDISABLE_THREAD_SAFETY=${{ matrix.config.thread_unsafe }} \
-            -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT} \
-            -DCMAKE_CXX_FLAGS="${{ matrix.config.cxxflags }}" \
-            -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }}
+        run: cmake -B build --preset ${{ matrix.preset.name }} -DLLVM_DIR=${LLVM_CMAKE_DIR} -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT}
 
       - name: Build TypeART
         run: cmake --build build --parallel 2
 
       - name: Prepare TypeART coverage
-        if: matrix.config.coverage
+        if: matrix.preset.coverage
         run: cmake --build build --target lcov-clean
 
       - name: Test TypeART lit-suite
-        if: matrix.config.skip_test == false
+        if: matrix.preset.skip_test == false
         run: cmake --build build --target lit-pass-test
 
       - name: Build coverage report
-        if: matrix.config.coverage
+        if: matrix.preset.coverage
         run: cmake --build build --target lcov-html
 
       - name: Prepare coverage artifact
-        if: matrix.config.coverage
+        if: matrix.preset.coverage
         run: |
-          mkdir -p artifact/${{ matrix.config.name }}
-          mv build/profiles/ artifact/${{ matrix.config.name }}
+          mkdir -p artifact/${{ matrix.preset.name }}-${{ matrix.llvm-version }}
+          mv build/profiles/ artifact/${{ matrix.preset.name }}-${{ matrix.llvm-version }}
 
       - name: Upload test coverage artifact
-        if: matrix.config.coverage
+        if: matrix.preset.coverage
         uses: actions/upload-artifact@v2
         with:
           name: typeart-ci-coverage
           path: artifact
 
       - name: Coveralls (parallel)
-        if: matrix.config.coverage
+        if: matrix.preset.coverage
         uses: coverallsapp/github-action@master
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path-to-lcov: build/typeart.coverage
-          flag-name: ${{ matrix.config.name }}
+          flag-name: ${{ matrix.preset.name }}-${{ matrix.llvm-version }}
           parallel: true
 
   finish-coverage:

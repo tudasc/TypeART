@@ -11,16 +11,22 @@ if(ENABLE_LLVM_CODE_COVERAGE)
 endif()
 
 function(target_project_coverage_options target)
+  get_target_property(target_type ${target} TYPE)
+
   if (NOT ENABLE_LLVM_CODE_COVERAGE AND ENABLE_CODE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(${target} PUBLIC
       -O0
       -g
       --coverage
     )
+
     target_link_options(${target} PUBLIC
       --coverage
     )
-    make_lcov_target(${target})
+
+    if(NOT target_type STREQUAL "OBJECT_LIBRARY")
+      make_lcov_target(${target})
+    endif()
   endif ()
   if (ENABLE_LLVM_CODE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     target_compile_options(${target} PUBLIC
@@ -29,10 +35,14 @@ function(target_project_coverage_options target)
       -fprofile-instr-generate
       -fcoverage-mapping
     )
+
     target_link_options(${target} PUBLIC
       -fprofile-instr-generate
     )
-    make_llvm_cov_target(${target})
+
+    if(NOT target_type STREQUAL "OBJECT_LIBRARY")
+      make_llvm_cov_target(${target})
+    endif()
   endif ()
 endfunction()
 

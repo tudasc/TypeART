@@ -1,5 +1,13 @@
+// TypeART library
 //
-// Created by ahueck on 18.11.20.
+// Copyright (c) 2017-2022 TypeART Authors
+// Distributed under the BSD 3-Clause license.
+// (See accompanying file LICENSE.txt or copy at
+// https://opensource.org/licenses/BSD-3-Clause)
+//
+// Project home: https://github.com/tudasc/TypeART
+//
+// SPDX-License-Identifier: BSD-3-Clause
 //
 
 #ifndef TYPEART_MATCHER_H
@@ -7,9 +15,9 @@
 
 #include "../analysis/MemOpData.h"
 #include "../support/Util.h"
+#include "compat/CallSite.h"
 
 #include "llvm/ADT/StringSet.h"
-#include "llvm/IR/CallSite.h"
 
 namespace typeart::filter {
 

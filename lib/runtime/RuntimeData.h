@@ -1,5 +1,13 @@
+// TypeART library
 //
-// Created by ahueck on 12.10.20.
+// Copyright (c) 2017-2022 TypeART Authors
+// Distributed under the BSD 3-Clause license.
+// (See accompanying file LICENSE.txt or copy at
+// https://opensource.org/licenses/BSD-3-Clause)
+//
+// Project home: https://github.com/tudasc/TypeART
+//
+// SPDX-License-Identifier: BSD-3-Clause
 //
 
 #ifndef TYPEART_RUNTIMEDATA_H
@@ -16,7 +24,10 @@
 #ifdef USE_BTREE
 #error TypeART-RT: Set ABSL and BTREE, mutually exclusive.
 #endif
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
 #include "absl/container/btree_map.h"
+#pragma GCC diagnostic pop
 #endif
 
 #if !defined(USE_BTREE) && !defined(USE_ABSL)

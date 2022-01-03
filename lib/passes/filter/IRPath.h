@@ -1,13 +1,22 @@
+// TypeART library
 //
-// Created by ahueck on 03.11.20.
+// Copyright (c) 2017-2022 TypeART Authors
+// Distributed under the BSD 3-Clause license.
+// (See accompanying file LICENSE.txt or copy at
+// https://opensource.org/licenses/BSD-3-Clause)
+//
+// Project home: https://github.com/tudasc/TypeART
+//
+// SPDX-License-Identifier: BSD-3-Clause
 //
 
 #ifndef TYPEART_IRPATH_H
 #define TYPEART_IRPATH_H
 
+#include "compat/CallSite.h"
+
 #include "llvm/ADT/Optional.h"
 #include "llvm/ADT/STLExtras.h"
-#include "llvm/IR/CallSite.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Value.h"
 #include "llvm/Support/raw_ostream.h"
@@ -21,7 +30,7 @@ struct IRPath {
   using Node = llvm::Value*;
   std::vector<llvm::Value*> path;
   // FIXME
-  //  this mechanism tries to avoid endless recurison in loops, i.e.,
+  //  this mechanism tries to avoid endless recursion in loops, i.e.,
   //  do we bounce around multiple phi nodes (visit counter >1), then
   //  we should likely skip search, see IRSearch.h
   std::unordered_map<llvm::Value*, int> phi_cache;
@@ -80,10 +89,10 @@ inline llvm::raw_ostream& operator<<(llvm::raw_ostream& os, const IRPath& p) {
     if (const auto f = llvm::dyn_cast<llvm::Function>(v); f != nullptr && !f->isDeclaration()) {
       // do not print body of defined function, from "define" to "{"
       std::string buf;
-      llvm::raw_string_ostream fo(buf);
-      fo << *f;
+      llvm::raw_string_ostream function_ostream(buf);
+      function_ostream << *f;
 
-      llvm::StringRef fref(fo.str());
+      llvm::StringRef fref(function_ostream.str());
       auto pos_start     = fref.find("define");
       const auto pos_end = fref.find("{");
       if (pos_start == llvm::StringRef::npos || pos_start > pos_end) {

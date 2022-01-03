@@ -1,20 +1,10 @@
-macro(make_executable input output)
-  # Executable permission: In CMAKE 3.19 we can simply use file(CHMOD) instead of file(copy) workaround
-  configure_file(${input} ${CMAKE_CURRENT_BINARY_DIR}/tmp/${output} @ONLY)
-  file(
-    COPY ${CMAKE_CURRENT_BINARY_DIR}/tmp/${output}
-    DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
-    FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-  )
-  file(REMOVE_RECURSE ${CMAKE_CURRENT_BINARY_DIR}/tmp)
-endmacro()
-
 function(configure_typeart_script input output)
-  cmake_parse_arguments(ARG "" "" "INSTALL_MODE" ${ARGN})
+  cmake_parse_arguments(
+    ARG "" "" "INSTALL_MODE;COMPILER;WITH_FILTER;APPLY_MODE" ${ARGN}
+  )
   set(TYPEART_SAN_FLAGS "")
 
   set(TYPEART_PROJECT_DIR ${PROJECT_SOURCE_DIR})
-  set(TYPEART_BINARY_DIR ${CMAKE_BINARY_DIR})
   set(TYPEART_SCRIPT_DIR ${PROJECT_SOURCE_DIR}/scripts)
 
   set(TYPEART_MPI_INTERCEPT_LIB libinterceptor-rt.so)
@@ -22,17 +12,58 @@ function(configure_typeart_script input output)
   set(TYPEART_PLUGIN typeartpass.so)
 
   if(ARG_INSTALL_MODE)
-    set(TYPEART_INCLUDE_DIRS -I${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR})
-    set(TYPEART_MPI_INTERCEPT_DIR ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
+    set(TYPEART_INCLUDE_DIRS
+        -I${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}
+    )
+    set(TYPEART_MPI_INTERCEPT_DIR
+        ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}
+    )
     set(TYPEART_RT_DIR ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
     set(TYPEART_PASS_DIR ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
-    set(TYPEART_ANALYSIS_PASS_DIR ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
+    set(TYPEART_ANALYSIS_PASS_DIR
+        ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}
+    )
+    set(TYPEART_BINARY_DIR -I${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR})
+    set(TYPEART_RELOCATABLE 1)
   else()
-    set(TYPEART_INCLUDE_DIRS -I${PROJECT_SOURCE_DIR}/lib/typelib)
+    set(TYPEART_INCLUDE_DIRS
+        "-I${PROJECT_SOURCE_DIR}/lib/typelib -I${PROJECT_SOURCE_DIR}/lib/runtime -I${PROJECT_SOURCE_DIR}/lib/passes/typegen"
+    )
     set(TYPEART_MPI_INTERCEPT_DIR ${CMAKE_BINARY_DIR}/lib/mpi_interceptor)
     set(TYPEART_RT_DIR ${CMAKE_BINARY_DIR}/lib/runtime)
     set(TYPEART_PASS_DIR ${CMAKE_BINARY_DIR}/lib/passes)
     set(TYPEART_ANALYSIS_PASS_DIR ${TYPEART_PASS_DIR}/analysis)
+    set(TYPEART_BINARY_DIR ${CMAKE_BINARY_DIR})
+    set(TYPEART_RELOCATABLE 0)
+  endif()
+
+  # TODO use generator in the scripts, even if target does not exist. How?
+  set(TYPEART_MPI_TOOL "typeartMPITool.so")
+  if(TARGET typeart::MPITool)
+    set(TYPEART_HAS_MPI_TOOL 1)
+  else()
+    set(TYPEART_HAS_MPI_TOOL 0)
+  endif()
+
+  if(ARG_COMPILER)
+    set(TYPEART_COMPILER ${ARG_COMPILER})
+  endif()
+
+  set(TYPEART_OPT "${TYPEART_OPT_EXEC}")
+  if(${LLVM_VERSION_MAJOR} VERSION_GREATER_EQUAL "13")
+    set(TYPEART_OPT "${TYPEART_OPT} -enable-new-pm=0")
+  endif()
+
+  set(TYPEART_LLC "${TYPEART_LLC_EXEC}")
+
+  if(ARG_APPLY_MODE)
+    set(TYPEART_RUN_SCRIPT 0)
+  else()
+    set(TYPEART_RUN_SCRIPT 1)
+  endif()
+
+  if(ARG_WITH_FILTER)
+    set(TYPEART_CALLFILTER "-call-filter")
   endif()
 
   if(ENABLE_TSAN)
@@ -51,49 +82,102 @@ function(configure_typeart_script input output)
 
   list(JOIN TYPEART_SAN_FLAGS " " TYPEART_SAN_FLAGS)
 
-  if(ARG_INSTALL_MODE)
-    configure_file(${input} ${output} @ONLY)
-  else()
-    # To get execute permission: create run.sh in the binary dir, and copy it to scripts folder with permission
-    make_executable(${input} ${output})
-  endif()
+  target_generate_file(${input} ${output})
 endfunction()
 
 function(configure_typeart_coverage_script input output)
-  find_program(LLVMCOV_COMMAND
+  find_program(
+    LLVMCOV_COMMAND
     NAMES llvm-cov-10 llvm-cov
+    HINTS ${LLVM_TOOLS_BINARY_DIR}
   )
   if(LLVMCOV_COMMAND)
-    set(LLVM_COV_COMMAND ${LLVMCOV_COMMAND})
-    make_executable(${input} ${output})
+    file(
+      GENERATE
+      OUTPUT ${output}
+      CONTENT "#!/usr/bin/env bash\n\n${LLVMCOV_COMMAND} gcov \"$@\"\n"
+      FILE_PERMISSIONS
+        OWNER_READ OWNER_WRITE OWNER_EXECUTE
+        GROUP_READ
+        WORLD_READ
+    )
   else()
     message(WARNING "Need llvm-cov for coverage script")
   endif()
 endfunction()
 
-configure_typeart_script(run.sh.in run.sh)
-configure_typeart_script(apply.sh.in apply.sh)
-
-configure_typeart_script(run.sh.in run-typeart.sh
-  INSTALL_MODE ON)
-configure_typeart_script(apply.sh.in apply-typeart.sh
-  INSTALL_MODE ON)
-
 configure_typeart_coverage_script(llvm-gcov.sh.in llvm-gcov.sh)
 
-#configure_file(clang-typeart.in clang-typeart)
-#configure_file(clang-typeart++.in clang-typeart++)
+configure_typeart_script(typeart-tmpl.sh.in run.sh)
+configure_typeart_script(typeart-tmpl.sh.in apply.sh
+  APPLY_MODE ON
+)
+
+configure_typeart_script(
+  typeart-tmpl.sh.in typeart-run${CMAKE_DEBUG_POSTFIX}.sh
+  INSTALL_MODE ON
+)
+configure_typeart_script(
+  typeart-tmpl.sh.in typeart-apply${CMAKE_DEBUG_POSTFIX}.sh
+  INSTALL_MODE ON
+  APPLY_MODE ON
+)
+
+configure_typeart_script(
+  typeart-wrapper.in typeart-clang${CMAKE_DEBUG_POSTFIX}
+  INSTALL_MODE ON
+  COMPILER ${TYPEART_CLANG_EXEC}
+)
+configure_typeart_script(
+  typeart-wrapper.in typeart-clang++${CMAKE_DEBUG_POSTFIX}
+  INSTALL_MODE ON
+  COMPILER ${TYPEART_CLANGCXX_EXEC}
+)
+
+configure_typeart_script(
+  typeart-wrapper.in typeart-clang-test
+  COMPILER ${TYPEART_CLANG_EXEC}
+)
+configure_typeart_script(
+  typeart-wrapper.in typeart-clang++-test
+  COMPILER ${TYPEART_CLANGCXX_EXEC}
+)
+
+if(${MPI_C_FOUND})
+  configure_typeart_script(
+    typeart-wrapper.in typeart-mpicc${CMAKE_DEBUG_POSTFIX}
+    INSTALL_MODE ON
+    WITH_FILTER ON
+    COMPILER "env OMPI_CC=${TYPEART_CLANG_EXEC} ${MPI_C_COMPILER}"
+  )
+  configure_typeart_script(
+    typeart-wrapper.in typeart-mpicc-test
+    WITH_FILTER ON
+    COMPILER "env OMPI_CC=${TYPEART_CLANG_EXEC} ${MPI_C_COMPILER}"
+  )
+endif()
+
+if(${MPI_CXX_FOUND})
+  configure_typeart_script(
+    typeart-wrapper.in typeart-mpic++${CMAKE_DEBUG_POSTFIX}
+    INSTALL_MODE ON
+    WITH_FILTER ON
+    COMPILER "env OMPI_CXX=${TYPEART_CLANGCXX_EXEC} ${MPI_CXX_COMPILER}"
+  )
+  configure_typeart_script(
+    typeart-wrapper.in typeart-mpic++-test
+    WITH_FILTER ON
+    COMPILER "env OMPI_CXX=${TYPEART_CLANGCXX_EXEC} ${MPI_CXX_COMPILER}"
+  )
+endif()
 
 install(
   PROGRAMS
-    ${CMAKE_CURRENT_BINARY_DIR}/run-typeart.sh
-    ${CMAKE_CURRENT_BINARY_DIR}/apply-typeart.sh
-  DESTINATION bin
+    $<$<BOOL:${INSTALL_UTIL_SCRIPTS}>:${CMAKE_CURRENT_BINARY_DIR}/typeart-run${CMAKE_DEBUG_POSTFIX}.sh>
+    $<$<BOOL:${INSTALL_UTIL_SCRIPTS}>:${CMAKE_CURRENT_BINARY_DIR}/typeart-apply${CMAKE_DEBUG_POSTFIX}.sh>
+    ${CMAKE_CURRENT_BINARY_DIR}/typeart-clang++${CMAKE_DEBUG_POSTFIX}
+    ${CMAKE_CURRENT_BINARY_DIR}/typeart-clang${CMAKE_DEBUG_POSTFIX}
+    $<$<AND:$<BOOL:${MPI_C_FOUND}>,$<BOOL:${ENABLE_MPI_WRAPPER}>>:${CMAKE_CURRENT_BINARY_DIR}/typeart-mpicc${CMAKE_DEBUG_POSTFIX}>
+    $<$<AND:$<BOOL:${MPI_CXX_FOUND}>,$<BOOL:${ENABLE_MPI_WRAPPER}>>:${CMAKE_CURRENT_BINARY_DIR}/typeart-mpic++${CMAKE_DEBUG_POSTFIX}>
+  DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
-
-#install(
-#  PROGRAMS
-#    ${CMAKE_CURRENT_BINARY_DIR}/clang-typeart
-#    ${CMAKE_CURRENT_BINARY_DIR}/clang-typeart++
-#  DESTINATION bin
-#)

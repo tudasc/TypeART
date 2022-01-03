@@ -1,5 +1,13 @@
+// TypeART library
 //
-// Created by sebastian on 07.01.21.
+// Copyright (c) 2017-2022 TypeART Authors
+// Distributed under the BSD 3-Clause license.
+// (See accompanying file LICENSE.txt or copy at
+// https://opensource.org/licenses/BSD-3-Clause)
+//
+// Project home: https://github.com/tudasc/TypeART
+//
+// SPDX-License-Identifier: BSD-3-Clause
 //
 
 #include "AllocationTracking.h"
@@ -150,9 +158,9 @@ AllocState AllocationTracker::doAlloc(const void* addr, int typeId, size_t count
     return status | AllocState::NULL_PTR | AllocState::ADDR_SKIPPED;
   }
 
-  const auto overriden = wrapper.put(addr, PointerInfo{typeId, count, retAddr});
+  const auto overridden = wrapper.put(addr, PointerInfo{typeId, count, retAddr});
 
-  if (unlikely(overriden)) {
+  if (unlikely(overridden)) {
     recorder.incAddrReuse();
     status |= AllocState::ADDR_REUSE;
     LOG_WARNING("Pointer already in map " << toString(addr, typeId, count, retAddr));
@@ -191,7 +199,7 @@ void AllocationTracker::onFreeHeap(const void* addr, const void* retAddr) {
 }
 
 void AllocationTracker::onLeaveScope(int alloca_count, const void* retAddr) {
-  if (unlikely(alloca_count > threadData.stackVars.size())) {
+  if (unlikely(alloca_count > static_cast<int>(threadData.stackVars.size()))) {
     LOG_ERROR("Stack is smaller than requested de-allocation count. alloca_count: " << alloca_count << ". size: "
                                                                                     << threadData.stackVars.size());
     alloca_count = threadData.stackVars.size();

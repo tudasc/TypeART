@@ -1,16 +1,20 @@
-/*
- * MemOpVisitor.h
- *
- *  Created on: Jan 3, 2018
- *      Author: ahueck
- */
+// TypeART library
+//
+// Copyright (c) 2017-2022 TypeART Authors
+// Distributed under the BSD 3-Clause license.
+// (See accompanying file LICENSE.txt or copy at
+// https://opensource.org/licenses/BSD-3-Clause)
+//
+// Project home: https://github.com/tudasc/TypeART
+//
+// SPDX-License-Identifier: BSD-3-Clause
+//
 
 #ifndef LIB_MEMOPVISITOR_H_
 #define LIB_MEMOPVISITOR_H_
 
 #include "MemOpData.h"
 
-#include "llvm/ADT/StringMap.h"
 #include "llvm/IR/InstVisitor.h"
 
 namespace llvm {
@@ -19,7 +23,7 @@ class CallBase;
 class Module;
 }  // namespace llvm
 
-namespace typeart::finder {
+namespace typeart::analysis {
 
 struct MemOpVisitor : public llvm::InstVisitor<MemOpVisitor> {
   GlobalDataList globals;
@@ -45,6 +49,6 @@ struct MemOpVisitor : public llvm::InstVisitor<MemOpVisitor> {
   void visitAllocaInst(llvm::AllocaInst& ai);
 };
 
-}  // namespace typeart::finder
+}  // namespace typeart::analysis
 
 #endif /* LIB_MEMOPVISITOR_H_ */

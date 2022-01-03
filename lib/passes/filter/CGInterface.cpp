@@ -1,3 +1,15 @@
+// TypeART library
+//
+// Copyright (c) 2017-2022 TypeART Authors
+// Distributed under the BSD 3-Clause license.
+// (See accompanying file LICENSE.txt or copy at
+// https://opensource.org/licenses/BSD-3-Clause)
+//
+// Project home: https://github.com/tudasc/TypeART
+//
+// SPDX-License-Identifier: BSD-3-Clause
+//
+
 #include "CGInterface.h"
 
 #include "support/Logger.h"
@@ -32,8 +44,8 @@ CGInterface::ReachabilityResult JSONCG::reachable(const std::string& source, con
     f.push_back(source);
   }
 
-  for (const auto& f : reachables) {
-    matches |= util::regex_matches(target, f, case_sensitive);
+  for (const auto& function_n : reachables) {
+    matches |= util::regex_matches(target, function_n, case_sensitive);
     allBodies = allBodies && hasBodyMap[target];
 
     if (matches && short_circuit) {
@@ -98,14 +110,14 @@ std::unordered_set<std::string> JSONCG::get_directly_called_function_names(const
     }
     return ref->second;
   }
-  return std::unordered_set<std::string>();
+  return {};
 }
 
 JSONCG::JSONCG(const llvm::json::Value& cg) {
   // Expected json format is the following:
-  // A top level object/map Key is the function name, value is a object/map with informations
+  // A top level object/map Key is the function name, value is an object/map with information
   // We only care about "callees"
-  // callees itself ist an array with function names (as strings)
+  // callees itself is an array with function names (as strings)
   assert(cg.kind() == llvm::json::Value::Kind::Object && "Top level json must be an Object");
   const llvm::json::Object* tlobj = cg.getAsObject();
   if (tlobj != nullptr) {
@@ -127,16 +139,16 @@ void JSONCG::construct_call_information(const std::string& entry_caller, const l
         assert(hasBody->kind() == llvm::json::Value::Kind::Boolean && "hasBody must be boolean");
         hasBodyMap[entry_caller] = hasBody->getAsBoolean().getValue();
       }
-      const auto calles = caller->getArray("callees");
-      assert(calles != nullptr && "Json callee information is missing");
-      if (calles != nullptr) {
+      const auto calls = caller->getArray("callees");
+      assert(calls != nullptr && "Json callee information is missing");
+      if (calls != nullptr) {
         // Now iterate over them
-        for (const auto& callee : *calles) {
+        for (const auto& callee : *calls) {
           assert(callee.kind() == llvm::json::Value::Kind::String && "Callees must be strings");
           const auto callee_json_string = callee.getAsString();
           assert(callee_json_string.hasValue() && "Could not get callee as string");
           if (callee_json_string.hasValue()) {
-            const std::string callee_string = callee_json_string.getValue();
+            const std::string callee_string = std::string{callee_json_string.getValue()};
             directly_called_functions[entry_caller].insert(callee_string);
           }
         }
@@ -149,7 +161,7 @@ void JSONCG::construct_call_information(const std::string& entry_caller, const l
           const auto functionStr = function.getAsString();
           assert(functionStr.hasValue() && "Retrieving overriding function as String failed");
           if (functionStr.hasValue()) {
-            const std::string functionName = functionStr.getValue();
+            const std::string functionName = std::string{functionStr.getValue()};
             virtualTargets[entry_caller].insert(functionName);
           }
         }

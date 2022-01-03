@@ -1,4 +1,4 @@
-// RUN: %run %s -alloca-array-only=true 2>&1 | FileCheck %s
+// RUN: %run %s -alloca-array-only=true 2>&1 | %filecheck %s
 
 #include "../struct_defs.h"
 #include "util.h"
@@ -14,7 +14,7 @@ int main(int argc, char** argv) {
   // CHECK: Ok
   check(a, get_struct_id(0), 1, 0);
   // CHECK: Ok
-  check(a, TA_INT32, 1, 1);
+  check(a, TYPEART_INT32, 1, 1);
   // CHECK: Error: Unknown address
   check(a + 1, get_struct_id(0), 1, 1);
   // CHECK: [Trace] Free 0x{{.*}}
@@ -27,17 +27,17 @@ int main(int argc, char** argv) {
   // CHECK: Ok
   check(b, get_struct_id(1), 1, 0);
   // CHECK: Ok
-  check(b, TA_INT32, 1, 1);
+  check(b, TYPEART_INT32, 1, 1);
   // CHECK: Error: Type mismatch
-  check(b, TA_INT8, 1, 1);
+  check(b, TYPEART_INT8, 1, 1);
   // CHECK: Error: Bad alignment
-  check(((uint8_t*)b) + 2, TA_INT32, 1, 1);
+  check(((uint8_t*)b) + 2, TYPEART_INT32, 1, 1);
   // CHECK: Ok
-  check(&b->b, TA_INT8, 1, 1);
+  check(&b->b, TYPEART_INT8, 1, 1);
   // CHECK: Error: Bad alignment
-  check(((uint8_t*)b) + 5, TA_INT64, 1, 1);
+  check(((uint8_t*)b) + 5, TYPEART_INT64, 1, 1);
   // CHECK: Ok
-  check(&b->c, TA_INT64, 1, 1);
+  check(&b->c, TYPEART_INT64, 1, 1);
   // CHECK: Error: Unknown address
   check(b + 1, get_struct_id(1), 1, 0);
   // CHECK: [Trace] Free 0x{{.*}}
@@ -50,19 +50,19 @@ int main(int argc, char** argv) {
   // CHECK: Ok
   check(c, get_struct_id(2), 1, 0);
   // CHECK: Ok
-  check(c, TA_INT32, 3, 1);
+  check(c, TYPEART_INT32, 3, 1);
   // CHECK: Ok
-  check(((uint8_t*)c) + 4, TA_INT32, 2, 1);
+  check(((uint8_t*)c) + 4, TYPEART_INT32, 2, 1);
   // CHECK: Ok
-  check(((uint8_t*)c) + 8, TA_INT32, 1, 1);
+  check(((uint8_t*)c) + 8, TYPEART_INT32, 1, 1);
   // CHECK: Bad alignment
-  check(((uint8_t*)c) + 12, TA_INT64, 2, 1);
+  check(((uint8_t*)c) + 12, TYPEART_INT64, 2, 1);
   // CHECK: Ok
-  check(&c->b, TA_INT64, 2, 1);
+  check(&c->b, TYPEART_INT64, 2, 1);
   // CHECK: Ok
-  check(&c->b[1], TA_INT64, 1, 1);
+  check(&c->b[1], TYPEART_INT64, 1, 1);
   // CHECK: Ok
-  check(&c->e[2], TA_INT8, 3, 1);
+  check(&c->e[2], TYPEART_INT8, 3, 1);
   // CHECK: Error: Unknown address
   check(c + 1, get_struct_id(2), 1, 0);
   // CHECK: [Trace] Free 0x{{.*}}
@@ -75,13 +75,13 @@ int main(int argc, char** argv) {
   // CHECK: Ok
   check(d, get_struct_id(3), 1, 0);
   // CHECK: Ok
-  check(d, TA_INT8, 1, 1);
+  check(d, TYPEART_INT8, 1, 1);
   // CHECK: Ok
-  check(&d->b, TA_PTR, 1, 1);
+  check(&d->b, TYPEART_POINTER, 1, 1);
   // CHECK: Bad alignment
-  check(((uint8_t*)d) + 12, TA_PTR, 1, 1);
+  check(((uint8_t*)d) + 12, TYPEART_POINTER, 1, 1);
   // CHECK: Ok
-  check(&d->d, TA_PTR, 1, 1);
+  check(&d->d, TYPEART_POINTER, 1, 1);
   // CHECK: Error: Unknown address
   check(d + 1, get_struct_id(3), 1, 0);
   // CHECK: [Trace] Free 0x{{.*}}
@@ -94,11 +94,11 @@ int main(int argc, char** argv) {
   // CHECK: Ok
   check(e, get_struct_id(4), 1, 0);
   // CHECK: Ok
-  check(e, TA_INT32, 1, 1);
+  check(e, TYPEART_INT32, 1, 1);
   // CHECK: Ok
-  check(((uint8_t*)e) + 16, TA_DOUBLE, 2, 1);
+  check(((uint8_t*)e) + 16, TYPEART_DOUBLE, 2, 1);
   // CHECK: Ok
-  check(&e->c, TA_PTR, 1, 1);
+  check(&e->c, TYPEART_POINTER, 1, 1);
   // CHECK: Error: Unknown address
   check(e + 1, get_struct_id(4), 1, 0);
   // CHECK: [Trace] Free 0x{{.*}}

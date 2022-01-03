@@ -1,11 +1,19 @@
+// TypeART library
 //
-// Created by sebastian on 22.03.18.
+// Copyright (c) 2017-2022 TypeART Authors
+// Distributed under the BSD 3-Clause license.
+// (See accompanying file LICENSE.txt or copy at
+// https://opensource.org/licenses/BSD-3-Clause)
+//
+// Project home: https://github.com/tudasc/TypeART
+//
+// SPDX-License-Identifier: BSD-3-Clause
 //
 
 #ifndef LLVM_MUST_SUPPORT_TYPECONFIG_H
 #define LLVM_MUST_SUPPORT_TYPECONFIG_H
 
-#include "TypeInterface.h"
+#include "TypeDatabase.h"
 
 #include <array>
 #include <cstddef>
@@ -15,54 +23,41 @@
 
 namespace typeart {
 
-using BuiltinType = typeart_builtin_type;
-
-struct StructTypeInfo {
-  int id;
-  std::string name;
-  size_t extent;
-  size_t numMembers;
-  std::vector<size_t> offsets;
-  std::vector<int> memberTypes;
-  std::vector<size_t> arraySizes;
-  int flags;
-};
-
-class TypeDB {
+class TypeDB final : public TypeDatabase {
  public:
-  TypeDB();
-
   void clear();
 
-  void registerStruct(const StructTypeInfo& structInfo);
+  void registerStruct(const StructTypeInfo& struct_type) override;
 
-  bool isValid(int id) const;
+  bool isUnknown(int type_id) const override;
 
-  bool isReservedType(int id) const;
+  bool isValid(int type_id) const override;
 
-  bool isBuiltinType(int id) const;
+  bool isReservedType(int type_id) const override;
 
-  bool isStructType(int id) const;
+  bool isBuiltinType(int type_id) const override;
 
-  bool isUserDefinedType(int id) const;
+  bool isStructType(int type_id) const override;
 
-  bool isVectorType(int id) const;
+  bool isUserDefinedType(int type_id) const override;
 
-  const std::string& getTypeName(int id) const;
+  bool isVectorType(int type_id) const override;
 
-  const StructTypeInfo* getStructInfo(int id) const;
+  const std::string& getTypeName(int type_id) const override;
 
-  size_t getTypeSize(int id) const;
+  const StructTypeInfo* getStructInfo(int type_id) const override;
 
-  const std::vector<StructTypeInfo>& getStructList() const;
+  size_t getTypeSize(int type_id) const override;
+
+  const std::vector<StructTypeInfo>& getStructList() const override;
 
   static const std::array<std::string, 11> BuiltinNames;
   static const std::array<size_t, 11> BuiltinSizes;
   static const std::string UnknownStructName;
 
  private:
-  std::vector<StructTypeInfo> structInfoList;
-  std::unordered_map<int, int> id2Idx;
+  std::vector<StructTypeInfo> struct_info_vec;
+  std::unordered_map<int, int> typeid_to_list_index;
 };
 
 }  // namespace typeart

@@ -1,5 +1,13 @@
+// TypeART library
 //
-// Created by ahueck on 21.10.20.
+// Copyright (c) 2017-2022 TypeART Authors
+// Distributed under the BSD 3-Clause license.
+// (See accompanying file LICENSE.txt or copy at
+// https://opensource.org/licenses/BSD-3-Clause)
+//
+// Project home: https://github.com/tudasc/TypeART
+//
+// SPDX-License-Identifier: BSD-3-Clause
 //
 
 #ifndef TYPEART_FILTERBASE_H
@@ -10,15 +18,14 @@
 #include "IRPath.h"
 #include "IRSearch.h"
 #include "OmpUtil.h"
+#include "compat/CallSite.h"
 #include "support/Logger.h"
 #include "support/OmpUtil.h"
 #include "support/Util.h"
 
-#include "llvm/IR/CallSite.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Intrinsics.h"
 
-#include <TypeARTPass.h>
 #include <iterator>
 #include <type_traits>
 
@@ -119,7 +126,7 @@ class BaseFilter : public Filter {
         continue;
       }
 
-      // TODO: here we have a definiton OR a omp call, e.g., @__kmpc_fork_call
+      // TODO: here we have a definition OR a omp call, e.g., @__kmpc_fork_call
       LOG_DEBUG("Looking at: " << c.getCalledFunction()->getName());
 
       if constexpr (OmpHelper::WithOmp) {

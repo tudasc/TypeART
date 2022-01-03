@@ -1,5 +1,5 @@
 // Template for alloca.ll.in
-// RUN: FileCheck %s
+// RUN: %filecheck %s
 // XFAIL: *
 
 #include <stdlib.h>

@@ -1,9 +1,18 @@
+// TypeART library
 //
-// Created by ahueck on 19.10.20.
+// Copyright (c) 2017-2022 TypeART Authors
+// Distributed under the BSD 3-Clause license.
+// (See accompanying file LICENSE.txt or copy at
+// https://opensource.org/licenses/BSD-3-Clause)
+//
+// Project home: https://github.com/tudasc/TypeART
+//
+// SPDX-License-Identifier: BSD-3-Clause
 //
 
 #include "StandardFilter.h"
 
+#include "compat/CallSite.h"
 #include "support/Logger.h"
 #include "support/Util.h"
 
@@ -12,7 +21,6 @@
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/IR/Argument.h"
-#include "llvm/IR/CallSite.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Instruction.h"
 #include "llvm/IR/Instructions.h"
@@ -234,6 +242,6 @@ std::string StandardFilter::getName(const Function* f) {
     name = f_name;
   }
 
-  return name;
+  return std::string{name};
 }
 }  // namespace typeart::filter::deprecated

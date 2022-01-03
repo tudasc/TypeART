@@ -1,5 +1,5 @@
 // clang-format off
-// RUN: %c-to-llvm %s | %apply-typeart -S 2>&1 | FileCheck %s
+// RUN: %c-to-llvm %s | %apply-typeart -S 2>&1 | %filecheck %s
 // clang-format on
 #include <stdlib.h>
 
@@ -15,11 +15,11 @@ void foo(double* ptr) {
   ptr = NULL;
 }
 
-// CHECK: [[POINTER:%[0-9]+]] = call noalias i8* @malloc
+// CHECK: [[POINTER:%[0-9a-z]+]] = call noalias{{( align [0-9]+)?}} i8* @malloc
 // CHECK-NEXT: call void @__typeart_alloc(i8* [[POINTER]],
 // CHECK-NEXT: bitcast i8* [[POINTER]] to double*
 
-// CHECK: call void @free(i8* [[POINTER:%[0-9]+]])
+// CHECK: call void @free(i8* [[POINTER:%[0-9a-z]+]])
 // CHECK-NEXT: call void @__typeart_free(i8* [[POINTER]])
 
 // CHECK: TypeArtPass [Heap]

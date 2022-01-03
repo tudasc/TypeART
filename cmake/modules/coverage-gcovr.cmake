@@ -6,7 +6,7 @@ if (ENABLE_CODE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU")
       WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
       COMMENT "Make coverage report"
       USES_TERMINAL
-      )
+    )
   else()
     add_custom_target(gcovr-report
       COMMAND ${CMAKE_COMMAND} -E echo "gcovr-report does nothing, no gcovr executable found.")

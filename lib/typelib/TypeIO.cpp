@@ -1,10 +1,19 @@
+// TypeART library
 //
-// Created by sebastian on 22.03.18.
+// Copyright (c) 2017-2022 TypeART Authors
+// Distributed under the BSD 3-Clause license.
+// (See accompanying file LICENSE.txt or copy at
+// https://opensource.org/licenses/BSD-3-Clause)
+//
+// Project home: https://github.com/tudasc/TypeART
+//
+// SPDX-License-Identifier: BSD-3-Clause
 //
 
 #include "TypeIO.h"
 
 #include "TypeDB.h"
+#include "TypeDatabase.h"
 #include "support/Logger.h"
 
 #include "llvm/ADT/StringRef.h"
@@ -20,80 +29,93 @@
 
 using namespace llvm::yaml;
 
-// template <>
-// struct llvm::yaml::ScalarEnumerationTraits<typeart_type_kind_t> {
-//  static void enumeration(IO& io, typeart_type_kind_t& value) {
-//    io.enumCase(value, "builtin", BUILTIN);
-//    io.enumCase(value, "struct", STRUCT);
-//    io.enumCase(value, "pointer", POINTER);
-//  }
-//};
-//
-// template <>
-// struct llvm::yaml::MappingTraits<typeart_type_info_t> {
-//  static void mapping(IO& io, typeart_type_info_t& info) {
-//    io.mapRequired("id", info.id);
-//    io.mapRequired("kind", info.kind);
-//  }
-//};
-//
-// LLVM_YAML_IS_SEQUENCE_VECTOR(typeart_type_info_t)
+namespace compat {
+auto open_flag() {
+#if LLVM_VERSION_MAJOR < 13
+  return llvm::sys::fs::OpenFlags::F_Text;
+#else
+  return llvm::sys::fs::OpenFlags::OF_Text;
+#endif
+}
+}  // namespace compat
+
+template <>
+struct llvm::yaml::ScalarTraits<typeart::StructTypeFlag> {
+  static void output(const typeart::StructTypeFlag& value, void*, llvm::raw_ostream& out) {
+    out << static_cast<int>(value);
+  }
+
+  static StringRef input(StringRef scalar, void*, typeart::StructTypeFlag& value) {
+    int flag{0};
+    const auto result = scalar.getAsInteger(0, flag);
+    if (result) {
+      // Error result, assume user_defined:
+      value = typeart::StructTypeFlag::USER_DEFINED;
+    } else {
+      value = static_cast<typeart::StructTypeFlag>(flag);
+    }
+    return StringRef();
+  }
+
+  // Determine if this scalar needs quotes.
+  static QuotingType mustQuote(StringRef) {
+    return QuotingType::None;
+  }
+};
 
 template <>
 struct llvm::yaml::MappingTraits<typeart::StructTypeInfo> {
   static void mapping(IO& io, typeart::StructTypeInfo& info) {
-    io.mapRequired("id", info.id);
+    io.mapRequired("id", info.type_id);
     io.mapRequired("name", info.name);
     io.mapRequired("extent", info.extent);
-    io.mapRequired("member_count", info.numMembers);
+    io.mapRequired("member_count", info.num_members);
     io.mapRequired("offsets", info.offsets);
-    io.mapRequired("types", info.memberTypes);
-    io.mapRequired("sizes", info.arraySizes);
-    io.mapRequired("flags", info.flags);
+    io.mapRequired("types", info.member_types);
+    io.mapRequired("sizes", info.array_sizes);
+    io.mapRequired("flags", info.flag);
   }
 };
 
 LLVM_YAML_IS_SEQUENCE_VECTOR(typeart::StructTypeInfo)
 
-namespace typeart {
+namespace typeart::io {
 
-TypeIO::TypeIO(TypeDB& typeDB) : typeDB(typeDB) {
-}
-
-bool TypeIO::load(const std::string& file) {
+llvm::ErrorOr<bool> load(TypeDB* typeDB, const std::string& file) {
   using namespace llvm;
-  auto memBuffer = MemoryBuffer::getFile(file);
+  ErrorOr<std::unique_ptr<MemoryBuffer>> memBuffer = MemoryBuffer::getFile(file);
 
-  if (std::error_code ec = memBuffer.getError()) {
+  if (std::error_code error = memBuffer.getError(); error) {
     // TODO meaningful error handling/message
-    return false;
+    LOG_WARNING("Warning while loading type file to " << file << ". Reason: " << error.message());
+    return error;
   }
 
-  typeDB.clear();
+  typeDB->clear();
 
   yaml::Input in(memBuffer.get()->getMemBufferRef());
   std::vector<StructTypeInfo> structures;
   in >> structures;
 
   for (auto& typeInfo : structures) {
-    typeDB.registerStruct(typeInfo);
+    typeDB->registerStruct(typeInfo);
   }
 
   return !in.error();
 }
 
-bool TypeIO::store(const std::string& file) const {
+llvm::ErrorOr<bool> store(const TypeDB* typeDB, const std::string& file) {
   using namespace llvm;
 
-  std::error_code ec;
-  raw_fd_ostream oss(StringRef(file), ec, sys::fs::OpenFlags::F_Text);
+  std::error_code error;
+  raw_fd_ostream oss(StringRef(file), error, compat::open_flag());
 
   if (oss.has_error()) {
-    LOG_FATAL("Error while storing type file to " << file);
-    return false;
+    LOG_WARNING("Warning while storing type file to " << file << ". Reason: " << error.message());
+    return error;
   }
 
-  auto types = typeDB.getStructList();
+  auto types = typeDB->getStructList();
   yaml::Output out(oss);
   if (!types.empty()) {
     out << types;
@@ -105,4 +127,4 @@ bool TypeIO::store(const std::string& file) const {
   return true;
 }
 
-}  // namespace typeart
+}  // namespace typeart::io

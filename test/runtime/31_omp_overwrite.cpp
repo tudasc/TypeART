@@ -1,14 +1,14 @@
 // clang-format off
-// RUN: OMP_NUM_THREADS=3 %run %s -o -O1 --omp --manual 2>&1 | FileCheck %s --check-prefix=CHECK-TSAN
-// RUN: OMP_NUM_THREADS=3 %run %s -o -O1 --omp --manual 2>&1 | FileCheck %s
+// RUN: OMP_NUM_THREADS=3 %run %s -o -O1 --omp --manual 2>&1 | %filecheck %s --check-prefix=CHECK-TSAN
+// RUN: OMP_NUM_THREADS=3 %run %s -o -O1 --omp --manual 2>&1 | %filecheck %s
 // REQUIRES: openmp && softcounter
 // clang-format on
 
 #include "../../lib/runtime/CallbackInterface.h"
 
+#include <algorithm>
 #include <random>
 #include <vector>
-#include <algorithm>
 
 template <typename S, typename E>
 void repeat_alloc(S s, E e) {
@@ -47,7 +47,7 @@ int main(int argc, char** argv) {
 
   // CHECK-NOT: Error
 
-  // 3 Threads, using the same 100 pointers, i.e., 200 are overriden:
+  // 3 Threads, using the same 100 pointers, i.e., 200 are overridden:
   // CHECK: Alloc Stats from softcounters
   // CHECK: Addresses re-used          :  200
 

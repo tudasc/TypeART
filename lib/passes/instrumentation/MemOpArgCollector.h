@@ -1,5 +1,13 @@
+// TypeART library
 //
-// Created by ahueck on 08.10.20.
+// Copyright (c) 2017-2022 TypeART Authors
+// Distributed under the BSD 3-Clause license.
+// (See accompanying file LICENSE.txt or copy at
+// https://opensource.org/licenses/BSD-3-Clause)
+//
+// Project home: https://github.com/tudasc/TypeART
+//
+// SPDX-License-Identifier: BSD-3-Clause
 //
 
 #ifndef TYPEART_MEMOPARGCOLLECTOR_H
@@ -9,15 +17,15 @@
 #include "analysis/MemOpData.h"
 
 namespace typeart {
-class TypeManager;
+class TypeGenerator;
 class InstrumentationHelper;
 
 class MemOpArgCollector final : public ArgumentCollector {
-  TypeManager* type_m;
+  TypeGenerator* type_m;
   InstrumentationHelper* instr_helper;
 
  public:
-  MemOpArgCollector(TypeManager&, InstrumentationHelper&);
+  MemOpArgCollector(TypeGenerator*, InstrumentationHelper&);
   HeapArgList collectHeap(const MallocDataList& mallocs) override;
   FreeArgList collectFree(const FreeDataList& frees) override;
   StackArgList collectStack(const AllocaDataList& allocs) override;

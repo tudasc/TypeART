@@ -1,18 +1,18 @@
 // clang-format off
-// RUN: %run %s -o -O1 --thread --manual 2>&1 | FileCheck %s --check-prefix=CHECK-TSAN
-// RUN: %run %s -o -O1 --thread --manual 2>&1 | FileCheck %s
+// RUN: %run %s -o -O1 --thread --manual 2>&1 | %filecheck %s --check-prefix=CHECK-TSAN
+// RUN: %run %s -o -O1 --thread --manual 2>&1 | %filecheck %s
 // REQUIRES: thread && softcounter
 // clang-format on
 
 #include "../../lib/runtime/CallbackInterface.h"
 #include "util.h"
 
-#include <vector>
 #include <algorithm>
 #include <atomic>
-#include <thread>
 #include <chrono>
 #include <random>
+#include <thread>
+#include <vector>
 
 std::atomic_bool stop{false};
 const size_t extent{1};
@@ -39,7 +39,7 @@ void repeat_type_check(S s, E e) {
       int id_result{-1};
       size_t count_check{0};
       typeart_status status = typeart_get_type(reinterpret_cast<const void*>(addr), &id_result, &count_check);
-      if (status == TA_OK) {
+      if (status == TYPEART_OK) {
         if (count_check != extent) {
           fprintf(stderr, "[Error]: Length mismatch of %i (%#02x) is: type=%i count=%zu\n", addr, addr, id_result,
                   count_check);

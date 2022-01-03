@@ -1,14 +1,14 @@
 // clang-format off
-// RUN: OMP_NUM_THREADS=3 %run %s -o -O1 --omp --manual 2>&1 | FileCheck %s --check-prefix=CHECK-TSAN
-// RUN: OMP_NUM_THREADS=3 %run %s -o -O1 --omp --manual 2>&1 | FileCheck %s
+// RUN: OMP_NUM_THREADS=3 %run %s -o -O1 --omp --manual 2>&1 | %filecheck %s --check-prefix=CHECK-TSAN
+// RUN: OMP_NUM_THREADS=3 %run %s -o -O1 --omp --manual 2>&1 | %filecheck %s
 // REQUIRES: openmp && softcounter
 // clang-format on
 
 #include "../../lib/runtime/CallbackInterface.h"
 
-#include <vector>
 #include <algorithm>
 #include <random>
+#include <vector>
 
 template <typename S, typename E>
 void repeat_alloc(S s, E e) {

@@ -1,5 +1,13 @@
+// TypeART library
 //
-// Created by ahueck on 30.12.20.
+// Copyright (c) 2017-2022 TypeART Authors
+// Distributed under the BSD 3-Clause license.
+// (See accompanying file LICENSE.txt or copy at
+// https://opensource.org/licenses/BSD-3-Clause)
+//
+// Project home: https://github.com/tudasc/TypeART
+//
+// SPDX-License-Identifier: BSD-3-Clause
 //
 
 #ifndef TYPEART_ACCESSCOUNTPRINTER_H
@@ -42,7 +50,7 @@ inline MemOverhead estimate(Counter stack_max, Counter heap_max, Counter global_
 }  // namespace memory
 
 template <typename Recorder>
-void serialise(const Recorder& r, llvm::raw_ostream& buf) {
+void serialise(const Recorder& r, std::ostringstream& buf) {
   if constexpr (std::is_same_v<Recorder, NoneRecorder>) {
     return;
   } else {
@@ -88,7 +96,7 @@ void serialise(const Recorder& r, llvm::raw_ostream& buf) {
       if (it != map.end()) {
         return it->second;
       }
-      return 0ll;
+      return 0LL;
     };
 
     Table type_table("Allocation type detail (heap, stack, global)");

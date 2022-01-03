@@ -1,4 +1,4 @@
-// RUN: %run %s 2>&1 | FileCheck %s
+// RUN: %run %s 2>&1 | %filecheck %s
 
 template <typename T>
 void new_delete() {
