@@ -18,7 +18,10 @@ target_link_libraries(${TYPEART_PREFIX}_MemInstFinder PUBLIC typeart::MemOpFilte
 
 target_compile_options(${TYPEART_PREFIX}_MemInstFinder PRIVATE "-fno-rtti")
 
-target_compile_definitions(${TYPEART_PREFIX}_MemInstFinder PRIVATE LOG_LEVEL=${LOG_LEVEL})
+target_compile_definitions(
+  ${TYPEART_PREFIX}_MemInstFinder PRIVATE LOG_LEVEL=${LOG_LEVEL}
+                        $<$<BOOL:${SHOW_STATS}>:LLVM_FORCE_ENABLE_STATS=1>
+)
 
 set_target_properties(${TYPEART_PREFIX}_MemInstFinder PROPERTIES POSITION_INDEPENDENT_CODE ON)
 

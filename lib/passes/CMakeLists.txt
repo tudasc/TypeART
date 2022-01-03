@@ -34,7 +34,7 @@ add_library(typeart::TransformPass ALIAS ${TYPEART_PREFIX}_TransformPass)
 
 target_compile_definitions(
   ${TYPEART_PREFIX}_TransformPass PRIVATE LOG_LEVEL=${LOG_LEVEL}
-                        $<$<BOOL:${SHOW_STATS}>:LLVM_ENABLE_STATS>
+                        $<$<BOOL:${SHOW_STATS}>:LLVM_FORCE_ENABLE_STATS=1>
 )
 
 target_project_compile_options(${TYPEART_PREFIX}_TransformPass)

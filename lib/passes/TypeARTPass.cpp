@@ -94,10 +94,10 @@ cl::opt<bool> ClCallFilterDeep("call-filter-deep",
 cl::opt<bool> ClFilterPointerStack("typeart-filter-pointer-alloca", cl::desc("Filter allocas of pointers."), cl::Hidden,
                                    cl::init(true));
 
-STATISTIC(NumInstrumentedMallocs, "Number of instrumented mallocs");
-STATISTIC(NumInstrumentedFrees, "Number of instrumented frees");
-STATISTIC(NumInstrumentedAlloca, "Number of instrumented (stack) allocas");
-STATISTIC(NumInstrumentedGlobal, "Number of instrumented globals");
+ALWAYS_ENABLED_STATISTIC(NumInstrumentedMallocs, "Number of instrumented mallocs");
+ALWAYS_ENABLED_STATISTIC(NumInstrumentedFrees, "Number of instrumented frees");
+ALWAYS_ENABLED_STATISTIC(NumInstrumentedAlloca, "Number of instrumented (stack) allocas");
+ALWAYS_ENABLED_STATISTIC(NumInstrumentedGlobal, "Number of instrumented globals");
 
 namespace typeart::pass {
 
@@ -120,7 +120,7 @@ TypeArtPass::TypeArtPass() : llvm::ModulePass(ID) {
                                                                            ClCallFilterCGFile}};
   meminst_finder = analysis::create_finder(conf);
 
-  EnableStatistics();
+  EnableStatistics(false);
 }
 
 void TypeArtPass::getAnalysisUsage(llvm::AnalysisUsage& info) const {
@@ -228,7 +228,7 @@ bool TypeArtPass::doFinalization(Module&) {
   } else {
     LOG_FATAL("Failed writing type config to " << ClTypeFile.getValue() << ". Reason: " << error.message());
   }
-  if (ClTypeArtStats && AreStatisticsEnabled()) {
+  if (ClTypeArtStats) {
     auto& out = llvm::errs();
     printStats(out);
   }
