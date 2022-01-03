@@ -1,4 +1,4 @@
-find_package(PythonInterp QUIET)
+find_package(Python3 QUIET)
 
 if(LLVM_EXTERNAL_LIT)
   message(STATUS "External lit path is used")
@@ -11,7 +11,7 @@ if(LLVM_EXTERNAL_LIT)
   if(lit_base_dir)
     set(PATH_TO_LIT ${lit_base_dir}/${PATH_TO_LIT})
   endif()
-  set(LIT_COMMAND_I "${PYTHON_EXECUTABLE};${PATH_TO_LIT}")
+  set(LIT_COMMAND_I "${Python3_EXECUTABLE};${PATH_TO_LIT}")
 endif()
 
 if(NOT LIT_COMMAND_I)
