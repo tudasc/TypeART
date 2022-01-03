@@ -129,12 +129,12 @@ set_package_properties(MPI PROPERTIES
 )
 
 if(MPI_INTERCEPT_LIB)
-  find_package(PythonInterp REQUIRED)
+  find_package(Python3 REQUIRED)
 endif()
-set_package_properties(PythonInterp PROPERTIES
+set_package_properties(Python3 PROPERTIES
   TYPE RECOMMENDED
   PURPOSE
-  "The Python interp is used for lit-testing and the MPI interceptor tool code generation."
+  "The Python3 interpreter is used for lit-testing and the MPI interceptor tool code generation."
 )
 
 typeart_find_llvm_progs(TYPEART_CLANG_EXEC "clang;clang-13;clang-12;clang-11;clang-10" "clang")
