@@ -46,16 +46,16 @@
 using namespace llvm;
 
 #define DEBUG_TYPE "MemInstFinder"
-STATISTIC(NumDetectedHeap, "Number of detected heap allocs");
-STATISTIC(NumFilteredDetectedHeap, "Number of filtered heap allocs");
-STATISTIC(NumDetectedAllocs, "Number of detected allocs");
-STATISTIC(NumFilteredPointerAllocs, "Number of filtered pointer allocs");
-STATISTIC(NumCallFilteredAllocs, "Number of call filtered allocs");
-STATISTIC(NumFilteredMallocAllocs, "Number of  filtered  malloc-related allocs");
-STATISTIC(NumFilteredNonArrayAllocs, "Number of filtered non-array allocs");
-STATISTIC(NumDetectedGlobals, "Number of detected globals");
-STATISTIC(NumFilteredGlobals, "Number of filtered globals");
-STATISTIC(NumCallFilteredGlobals, "Number of filtered globals");
+ALWAYS_ENABLED_STATISTIC(NumDetectedHeap, "Number of detected heap allocs");
+ALWAYS_ENABLED_STATISTIC(NumFilteredDetectedHeap, "Number of filtered heap allocs");
+ALWAYS_ENABLED_STATISTIC(NumDetectedAllocs, "Number of detected allocs");
+ALWAYS_ENABLED_STATISTIC(NumFilteredPointerAllocs, "Number of filtered pointer allocs");
+ALWAYS_ENABLED_STATISTIC(NumCallFilteredAllocs, "Number of call filtered allocs");
+ALWAYS_ENABLED_STATISTIC(NumFilteredMallocAllocs, "Number of  filtered  malloc-related allocs");
+ALWAYS_ENABLED_STATISTIC(NumFilteredNonArrayAllocs, "Number of filtered non-array allocs");
+ALWAYS_ENABLED_STATISTIC(NumDetectedGlobals, "Number of detected globals");
+ALWAYS_ENABLED_STATISTIC(NumFilteredGlobals, "Number of filtered globals");
+ALWAYS_ENABLED_STATISTIC(NumCallFilteredGlobals, "Number of filtered globals");
 
 namespace typeart::analysis {
 
