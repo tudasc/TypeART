@@ -3,7 +3,7 @@
 // RUN: %c-to-llvm %s | %opt -load %transform_pass -typeart \
 // RUN: -typeart-stats \
 // RUN: -typeart-heap=true \
-// RUN: -typeart-alloca=true \
+// RUN: -typeart-stack=true \
 // RUN: -typeart-outfile=typeart_types.yaml
 // clang-format on
 

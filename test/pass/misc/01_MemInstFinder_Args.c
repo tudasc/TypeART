@@ -7,7 +7,7 @@
 // RUN: -typeart-call-filter-deep-str=MPI2 \
 // RUN: -typeart-call-filter-cg-file=/foo/file.cg \
 // RUN: -typeart-call-filter-deep=true \
-// RUN: -typeart-alloca-array-only=true \
+// RUN: -typeart-stack-array-only=true \
 // RUN: -typeart-malloc-store-filter=true \
 // RUN: -typeart-filter-globals=true \
 // RUN: -typeart-filter-pointer-alloca=false

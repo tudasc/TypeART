@@ -1,5 +1,5 @@
 // clang-format off
-// RUN: %c-to-llvm %s | %apply-typeart -typeart-alloca -typeart-filter-pointer-alloca=true -S 2>&1 | %filecheck %s
+// RUN: %c-to-llvm %s | %apply-typeart -typeart-stack -typeart-filter-pointer-alloca=true -S 2>&1 | %filecheck %s
 // clang-format on
 
 int main(int argc, char** argv) {

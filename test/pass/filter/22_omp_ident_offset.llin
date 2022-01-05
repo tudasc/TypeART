@@ -1,4 +1,4 @@
-; RUN: cat %s | %apply-typeart -typeart-alloca -typeart-call-filter -S 2>&1 | %filecheck %s
+; RUN: cat %s | %apply-typeart -typeart-stack -typeart-call-filter -S 2>&1 | %filecheck %s
 
 
 %struct.ident_t = type { i32, i32, i32, i32, i8* }

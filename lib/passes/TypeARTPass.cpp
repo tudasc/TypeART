@@ -56,11 +56,11 @@ static cl::opt<bool> ClTypeArtStats("typeart-stats", cl::desc("Show statistics f
 
 static cl::opt<bool> ClInstrumentHeap("typeart-heap", cl::desc("Instrument heap allocation/free instruction."),
                                       cl::Hidden, cl::init(true));
-static cl::opt<bool> ClTypeArtAlloca("typeart-alloca", cl::desc("Instrument stack (alloca) instructions."), cl::Hidden,
-                                     cl::init(false));
+static cl::opt<bool> ClTypeArtAlloca("typeart-stack", cl::desc("Instrument stack (alloca) and global instructions."),
+                                     cl::Hidden, cl::init(false));
 
 // MemInstFinder configuration:
-static cl::opt<bool> ClFilterNonArrayAlloca("typeart-alloca-array-only",
+static cl::opt<bool> ClFilterNonArrayAlloca("typeart-stack-array-only",
                                             cl::desc("Only use alloca instructions of arrays."), cl::Hidden,
                                             cl::init(false));
 

@@ -151,7 +151,7 @@ For modification of the pass behavior, we provide several options.
 | `typeart`                    |      -       | Invoke TypeART pass through LLVM `opt`                                                     |
 | `typeart-outfile`            | `types.yaml` | Serialized type layout information of user-defined types                                   |
 | `typeart-heap`               |    `true`    | Instrument heap allocations                                                                |
-| `typeart-alloca`             |   `false`    | Instrument stack and global allocations                                                    |
+| `typeart-stack`             |   `false`    | Instrument stack and global allocations                                                    |
 | `typeart-stats`              |   `false`    | Show instrumentation statistic counters                                                    |
 | `typeart-call-filter`                |   `false`    | Filter stack and global allocations. See also [Section 1.1.4](#114-filtering-allocations)  |
 | `typeart-call-filter-str`            |   `*MPI_*`   | Filter string target (glob string)                                                         |
@@ -180,19 +180,19 @@ For modification of the pass behavior, we provide several options.
     ```
 - Stack- and global-only instrumentation (*no* stats):
     ```shell
-    opt $(TYPEART_PLUGIN) -typeart -typeart-heap=true -typeart-alloca
+    opt $(TYPEART_PLUGIN) -typeart -typeart-heap=true -typeart-stack
     ```
 - Stack- and global-only instrumentation (with default filtering for MPI):
     ```shell
-    opt $(TYPEART_PLUGIN) -typeart -typeart-heap=false -typeart-alloca -typeart-call-filter
+    opt $(TYPEART_PLUGIN) -typeart -typeart-heap=false -typeart-stack -typeart-call-filter
     ```
 - Filtering w.r.t. non-standard target API:
     ```shell
-    opt $(TYPEART_PLUGIN) -typeart -typeart-heap=false -typeart-alloca -typeart-call-filter -typeart-call-filter-str=MY_API*
+    opt $(TYPEART_PLUGIN) -typeart -typeart-heap=false -typeart-stack -typeart-call-filter -typeart-call-filter-str=MY_API*
     ```
 - Combined instrumentation (with filtering):
     ```shell
-    opt $(TYPEART_PLUGIN) -typeart -typeart-alloca -typeart-call-filter
+    opt $(TYPEART_PLUGIN) -typeart -typeart-stack -typeart-call-filter
     ```
 
 #### 1.1.3 Serialized type information

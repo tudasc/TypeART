@@ -294,7 +294,6 @@ bool MemInstFinderPass::runOnFunction(llvm::Function& function) {
 
   NumDetectedAllocs += mOpsCollector.allocas.size();
 
-  LOG_DEBUG(config.filter.ClFilterNonArrayAlloca);
   if (config.filter.ClFilterNonArrayAlloca) {
     auto& allocs = mOpsCollector.allocas;
     allocs.erase(llvm::remove_if(allocs,
