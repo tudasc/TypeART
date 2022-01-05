@@ -25,7 +25,7 @@ CXXFLAGS = -g -I. -Wall
 LDFLAGS = -g -O3
 
 PASSES=-load ${TYPEART_LIBPATH}/passes/analysis/meminstfinderpass.so -load ${TYPEART_LIBPATH}/passes/typeartpass.so -typeart-stats
-CALL_FILTER=-call-filter -call-filter-impl=default
+CALL_FILTER=-typeart-call-filter -typeart-call-filter-impl=default
 
 ifeq ($(TSAN), yes)
 	CXXFLAGS += -fsanitize=thread

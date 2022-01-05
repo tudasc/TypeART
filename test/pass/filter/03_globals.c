@@ -1,6 +1,6 @@
 // clang-format off
-// RUN: %c-to-llvm %s | %apply-typeart -typeart-alloca -call-filter -call-filter-impl=deprecated::default -S 2>&1 | %filecheck %s
-// RUN: %c-to-llvm %s | %apply-typeart -typeart-alloca -call-filter  -S 2>&1 | %filecheck %s
+// RUN: %c-to-llvm %s | %apply-typeart -typeart-alloca -typeart-call-filter -typeart-call-filter-impl=deprecated::default -S 2>&1 | %filecheck %s
+// RUN: %c-to-llvm %s | %apply-typeart -typeart-alloca -typeart-call-filter  -S 2>&1 | %filecheck %s
 // clang-format on
 
 int a;

@@ -61,33 +61,35 @@ cl::opt<bool> ClIgnoreHeap("typeart-no-heap", cl::desc("Ignore heap allocation/f
 cl::opt<bool> ClTypeArtAlloca("typeart-alloca", cl::desc("Track alloca instructions."), cl::Hidden, cl::init(false));
 
 // MemInstFinderPass:
-cl::opt<bool> ClFilterNonArrayAlloca("alloca-array-only", cl::desc("Only use alloca instructions of arrays."),
+cl::opt<bool> ClFilterNonArrayAlloca("typeart-alloca-array-only", cl::desc("Only use alloca instructions of arrays."),
                                      cl::Hidden, cl::init(false));
 
-cl::opt<bool> ClFilterMallocAllocPair("malloc-store-filter",
+cl::opt<bool> ClFilterMallocAllocPair("typeart-malloc-store-filter",
                                       cl::desc("Filter allocs that get a store from a heap alloc."), cl::Hidden,
                                       cl::init(false));
 
-cl::opt<bool> ClFilterGlobal("filter-globals", cl::desc("Filter globals of a module."), cl::Hidden, cl::init(true));
+cl::opt<bool> ClFilterGlobal("typeart-filter-globals", cl::desc("Filter globals of a module."), cl::Hidden,
+                             cl::init(true));
 
-cl::opt<bool> ClUseCallFilter("call-filter", cl::desc("Filter alloca instructions that are passed to specific calls."),
-                              cl::Hidden, cl::init(false));
+cl::opt<bool> ClUseCallFilter("typeart-call-filter",
+                              cl::desc("Filter alloca instructions that are passed to specific calls."), cl::Hidden,
+                              cl::init(false));
 
-cl::opt<std::string> ClCallFilterImpl("call-filter-impl", cl::desc("Select the filter implementation."), cl::Hidden,
-                                      cl::init("default"));
+cl::opt<std::string> ClCallFilterImpl("typeart-call-filter-impl", cl::desc("Select the filter implementation."),
+                                      cl::Hidden, cl::init("default"));
 
-cl::opt<std::string> ClCallFilterGlob("call-filter-str", cl::desc("Filter values based on string."), cl::Hidden,
+cl::opt<std::string> ClCallFilterGlob("typeart-call-filter-str", cl::desc("Filter values based on string."), cl::Hidden,
                                       cl::init("*MPI_*"));
 
-cl::opt<std::string> ClCallFilterDeepGlob("call-filter-deep-str",
+cl::opt<std::string> ClCallFilterDeepGlob("typeart-call-filter-deep-str",
                                           cl::desc("Filter values based on API, i.e., passed as void*."), cl::Hidden,
                                           cl::init("MPI_*"));
 
-cl::opt<std::string> ClCallFilterCGFile("call-filter-cg-file", cl::desc("Location of CG to use."), cl::Hidden,
+cl::opt<std::string> ClCallFilterCGFile("typeart-call-filter-cg-file", cl::desc("Location of CG to use."), cl::Hidden,
                                         cl::init(""));
 
 // Deprecated, only used with the old std filter:
-cl::opt<bool> ClCallFilterDeep("call-filter-deep",
+cl::opt<bool> ClCallFilterDeep("typeart-call-filter-deep",
                                cl::desc("If the CallFilter matches, we look if the value is passed as a void*."),
                                cl::Hidden, cl::init(false));
 
