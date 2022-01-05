@@ -51,7 +51,7 @@ static llvm::RegisterPass<typeart::pass::TypeArtPass> msp("typeart", "TypeArt ty
 
 static cl::OptionCategory typeart_category("TypeART instrumentation pass", "These control the instrumentation.");
 
-static cl::opt<std::string> ClTypeFile("typeart-outfile", cl::desc("Location of the generated type file."), cl::Hidden,
+static cl::opt<std::string> ClTypeFile("typeart-types", cl::desc("Location of the generated type file."), cl::Hidden,
                                        cl::init("types.yaml"), cl::cat(typeart_category));
 
 static cl::opt<bool> ClTypeArtStats("typeart-stats", cl::desc("Show statistics for TypeArt type pass."), cl::Hidden,

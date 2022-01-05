@@ -4,7 +4,7 @@
 // RUN: -typeart-stats \
 // RUN: -typeart-heap=true \
 // RUN: -typeart-stack=true \
-// RUN: -typeart-outfile=typeart_types.yaml
+// RUN: -typeart-types=typeart_types.yaml
 // clang-format on
 
 void foo() {

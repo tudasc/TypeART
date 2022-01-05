@@ -149,7 +149,7 @@ For modification of the pass behavior, we provide several options.
 | Flag                         |   Default    | Description                                                                                |
 |------------------------------|:------------:|--------------------------------------------------------------------------------------------|
 | `typeart`                    |      -       | Invoke TypeART pass through LLVM `opt`                                                     |
-| `typeart-outfile`            | `types.yaml` | Serialized type layout information of user-defined types                                   |
+| `typeart-types`            | `types.yaml` | Serialized type layout information of user-defined types                                   |
 | `typeart-heap`               |    `true`    | Instrument heap allocations                                                                |
 | `typeart-stack`             |   `false`    | Instrument stack and global allocations                                                    |
 | `typeart-stats`              |   `false`    | Show instrumentation statistic counters                                                    |
