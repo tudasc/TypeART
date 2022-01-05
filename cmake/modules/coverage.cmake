@@ -2,12 +2,12 @@ set(TYPEART_PROFILE_DIR ${CMAKE_BINARY_DIR}/profiles)
 file(MAKE_DIRECTORY ${TYPEART_PROFILE_DIR})
 
 if(NOT TYPEART_LLVM_CODE_COVERAGE AND TYPEART_CODE_COVERAGE)
-  include(coverage-gcovr)
-  include(coverage-lcov)
+  include(modules/coverage-gcovr)
+  include(modules/coverage-lcov)
 endif()
 
 if(TYPEART_LLVM_CODE_COVERAGE)
-  include(coverage-llvm-cov)
+  include(modules/coverage-llvm-cov)
 endif()
 
 function(typeart_target_coverage_options target)
