@@ -19,8 +19,8 @@ target_link_libraries(${TYPEART_PREFIX}_MemInstFinder PUBLIC typeart::MemOpFilte
 target_compile_options(${TYPEART_PREFIX}_MemInstFinder PRIVATE "-fno-rtti")
 
 target_compile_definitions(
-  ${TYPEART_PREFIX}_MemInstFinder PRIVATE LOG_LEVEL=${LOG_LEVEL}
-                        $<$<BOOL:${SHOW_STATS}>:LLVM_FORCE_ENABLE_STATS=1>
+  ${TYPEART_PREFIX}_MemInstFinder PRIVATE TYPEART_LOG_LEVEL=${TYPEART_LOG_LEVEL}
+                        $<$<BOOL:${TYPEART_SHOW_STATS}>:LLVM_FORCE_ENABLE_STATS=1>
 )
 
 set_target_properties(${TYPEART_PREFIX}_MemInstFinder PROPERTIES POSITION_INDEPENDENT_CODE ON)
@@ -37,6 +37,6 @@ target_include_directories(${TYPEART_PREFIX}_MemInstFinder SYSTEM PRIVATE ${LLVM
 
 make_tidy_check(${TYPEART_PREFIX}_MemInstFinder "${MEM_PASS_SOURCES}")
 
-target_project_compile_options(${TYPEART_PREFIX}_MemInstFinder)
-target_define_file_basename(${TYPEART_PREFIX}_MemInstFinder)
-target_project_coverage_options(${TYPEART_PREFIX}_MemInstFinder)
+typeart_target_compile_options(${TYPEART_PREFIX}_MemInstFinder)
+typeart_target_define_file_basename(${TYPEART_PREFIX}_MemInstFinder)
+typeart_target_coverage_options(${TYPEART_PREFIX}_MemInstFinder)

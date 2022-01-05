@@ -15,24 +15,24 @@
 
 #include "llvm/Support/raw_ostream.h"
 
-#ifndef LOG_LEVEL
+#ifndef TYPEART_LOG_LEVEL
 /*
- * Usually set at compile time: -DLOG_LEVEL=<N>, N in [0, 3] for output
+ * Usually set at compile time: -DTYPEART_LOG_LEVEL=<N>, N in [0, 3] for output
  * 3 being most verbose
  */
-#define LOG_LEVEL 3
+#define TYPEART_LOG_LEVEL 3
 #endif
 
 #ifndef LOG_BASENAME_FILE
 #define LOG_BASENAME_FILE __FILE__
 #endif
 
-#ifndef MPI_LOGGER
-#define MPI_LOGGER 0
+#ifndef TYPEART_MPI_LOGGER
+#define TYPEART_MPI_LOGGER 0
 #endif
 
 namespace typeart::detail {
-#if MPI_LOGGER
+#if TYPEART_MPI_LOGGER
 void typeart_log(const std::string& rank);
 #else
 inline void typeart_log(const std::string& msg) {
@@ -43,7 +43,7 @@ inline void typeart_log(const std::string& msg) {
 
 // clang-format off
 #define OO_LOG_LEVEL_MSG(LEVEL_NUM, LEVEL, MSG)                                                                   \
-  if ((LEVEL_NUM) <= LOG_LEVEL) {                                                                                 \
+  if ((LEVEL_NUM) <= TYPEART_LOG_LEVEL) {                                                                                 \
     std::string logging_message;                                                                                  \
     llvm::raw_string_ostream rso(logging_message);                                                                \
     rso << (LEVEL) << LOG_BASENAME_FILE << ":" << __func__ << ":" << __LINE__ << ":" << MSG << "\n"; /* NOLINT */ \
@@ -51,7 +51,7 @@ inline void typeart_log(const std::string& msg) {
   }
 
 #define OO_LOG_LEVEL_MSG_BARE(LEVEL_NUM, LEVEL, MSG)   \
-  if ((LEVEL_NUM) <= LOG_LEVEL) {                      \
+  if ((LEVEL_NUM) <= TYPEART_LOG_LEVEL) {                      \
     std::string logging_message;                       \
     llvm::raw_string_ostream rso(logging_message);     \
     rso << (LEVEL) << " " << MSG << "\n"; /* NOLINT */ \

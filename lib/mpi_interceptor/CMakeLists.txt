@@ -16,7 +16,7 @@ add_library(typeart::MPITool ALIAS MPITool)
 set_property(TARGET MPITool PROPERTY C_STANDARD 11)
 set_property(TARGET MPITool PROPERTY C_STANDARD_REQUIRED TRUE)
 
-target_define_file_basename(MPITool)
+typeart_target_define_file_basename(MPITool)
 
 target_include_directories(MPITool
   PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
@@ -29,8 +29,8 @@ target_include_directories(MPITool
   PRIVATE ${LLVM_INCLUDE_DIRS}
 )
 
-if(ENABLE_TSAN)
-  target_tsan_options(MPITool)
+if(TYPEART_TSAN)
+  typeart_target_tsan_options(MPITool)
 endif()
 
 target_link_libraries(MPITool

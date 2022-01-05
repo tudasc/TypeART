@@ -46,10 +46,10 @@ target_link_libraries(
           LLVMCore
           LLVMSupport
           $<$<BOOL:${MPI_LOGGER}>:MPI::MPI_CXX>
-          $<$<BOOL:${USE_BTREE}>:google::btree>
-          $<$<BOOL:${USE_ABSL}>:absl::btree>
-          $<$<BOOL:${ENABLE_SAFEPTR}>:sf::pointer>
-          $<$<NOT:$<BOOL:${DISABLE_THREAD_SAFETY}>>:Threads::Threads>
+          $<$<BOOL:${TYPEART_BTREE}>:google::btree>
+          $<$<BOOL:${TYPEART_ABSEIL}>:absl::btree>
+          $<$<BOOL:${TYPEART_SAFEPTR}>:sf::pointer>
+          $<$<NOT:$<BOOL:${TYPEART_DISABLE_THREAD_SAFETY}>>:Threads::Threads>
 )
 
 target_include_directories(
@@ -65,29 +65,29 @@ target_include_directories(${TYPEART_PREFIX}_Runtime SYSTEM PRIVATE ${LLVM_INCLU
 
 target_compile_definitions(
   ${TYPEART_PREFIX}_Runtime
-  PRIVATE LOG_LEVEL=${LOG_LEVEL_RT}
+  PRIVATE TYPEART_LOG_LEVEL=${TYPEART_LOG_LEVEL_RT}
           $<$<BOOL:${MPI_LOGGER}>:MPI_LOGGER=1>
-          $<$<BOOL:${SOFTCOUNTERS}>:ENABLE_SOFTCOUNTER=1>
-          $<$<BOOL:${USE_BTREE}>:USE_BTREE>
-          $<$<BOOL:${USE_ABSL}>:USE_ABSL>
-          $<$<BOOL:${ENABLE_SAFEPTR}>:USE_SAFEPTR>
-          $<$<BOOL:${DISABLE_THREAD_SAFETY}>:DISABLE_THREAD_SAFETY>
+          $<$<BOOL:${TYPEART_SOFTCOUNTERS}>:ENABLE_SOFTCOUNTER=1>
+          $<$<BOOL:${TYPEART_BTREE}>:TYPEART_BTREE>
+          $<$<BOOL:${TYPEART_ABSEIL}>:TYPEART_ABSEIL>
+          $<$<BOOL:${TYPEART_SAFEPTR}>:USE_SAFEPTR>
+          $<$<BOOL:${TYPEART_DISABLE_THREAD_SAFETY}>:TYPEART_DISABLE_THREAD_SAFETY>
 )
 
-target_project_compile_options(${TYPEART_PREFIX}_Runtime)
-target_define_file_basename(${TYPEART_PREFIX}_Runtime)
-target_project_coverage_options(${TYPEART_PREFIX}_Runtime)
+typeart_target_compile_options(${TYPEART_PREFIX}_Runtime)
+typeart_target_define_file_basename(${TYPEART_PREFIX}_Runtime)
+typeart_target_coverage_options(${TYPEART_PREFIX}_Runtime)
 
-if(ENABLE_TSAN)
-  target_tsan_options(${TYPEART_PREFIX}_Runtime)
+if(TYPEART_TSAN)
+  typeart_target_tsan_options(${TYPEART_PREFIX}_Runtime)
 endif()
 
-if(ENABLE_ASAN)
-  target_asan_options(${TYPEART_PREFIX}_Runtime)
+if(TYPEART_ASAN)
+  typeart_target_asan_options(${TYPEART_PREFIX}_Runtime)
 endif()
 
-if(ENABLE_UBSAN)
-  target_ubsan_options(${TYPEART_PREFIX}_Runtime)
+if(TYPEART_UBSAN)
+  typeart_target_ubsan_options(${TYPEART_PREFIX}_Runtime)
 endif()
 
 make_tidy_check(${TYPEART_PREFIX}_Runtime "${RUNTIME_LIB_SOURCES}")

@@ -28,7 +28,7 @@
 #include <type_traits>
 #include <vector>
 
-#ifdef USE_BTREE
+#ifdef TYPEART_BTREE
 using namespace btree;
 #endif
 
