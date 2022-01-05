@@ -29,7 +29,7 @@ list(
 
 include(ToolchainOptions)
 
-add_format_target(
+typeart_add_format_target(
   format-sources "Formats project source files"
   TARGETS lib/passes/*.cpp
           lib/passes/*.h

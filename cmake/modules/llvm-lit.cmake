@@ -22,14 +22,14 @@ if(NOT LIT_COMMAND_I)
   )
 
   if(LLVM_LIT_PATH)
-    get_filename_component(path_to_llvm_lit ${LLVM_LIT_PATH} ABSOLUTE CACHE)
-    set(LIT_COMMAND_I ${path_to_llvm_lit})
+    get_filename_component(TYPEART_LLVM_LIT_PATH ${LLVM_LIT_PATH} ABSOLUTE CACHE)
+    set(LIT_COMMAND_I ${TYPEART_LLVM_LIT_PATH})
     set(LLVM_EXTERNAL_LIT ${LLVM_LIT_PATH})
   else()
     message(WARNING "No llvm lit is available")
   endif()
 endif()
 
-mark_as_advanced(path_to_llvm_lit)
+mark_as_advanced(TYPEART_LLVM_LIT_PATH)
 
 message(STATUS "llvm lit command is set to ${LIT_COMMAND_I}")

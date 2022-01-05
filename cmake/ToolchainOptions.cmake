@@ -26,67 +26,67 @@ set_package_properties(OpenMP PROPERTIES
   "OpenMP is optionally used by the test suite to verify that the LLVM passes handle OpenMPk codes."
 )
 
-set(LOG_LEVEL 0 CACHE STRING "Granularity of LLVM pass logger. 3 ist most verbose, 0 is least.")
-set(LOG_LEVEL_RT 0 CACHE STRING "Granularity of runtime logger. 3 ist most verbose, 0 is least.")
+set(TYPEART_LOG_LEVEL 0 CACHE STRING "Granularity of LLVM pass logger. 3 ist most verbose, 0 is least.")
+set(TYPEART_LOG_LEVEL_RT 0 CACHE STRING "Granularity of runtime logger. 3 ist most verbose, 0 is least.")
 
-option(SHOW_STATS "Passes show the statistics vars." ON)
-add_feature_info(SHOW_STATS SHOW_STATS "Show compile time statistics of TypeART's LLVM passes.")
+option(TYPEART_SHOW_STATS "Passes show the statistics vars." ON)
+add_feature_info(SHOW_STATS TYPEART_SHOW_STATS "Show compile time statistics of TypeART's LLVM passes.")
 
-option(MPI_LOGGER "Whether the logger should use MPI." ON)
-add_feature_info(MPI_LOGGER MPI_LOGGER "Logger supports MPI context.")
+option(TYPEART_MPI_LOGGER "Whether the logger should use MPI." ON)
+add_feature_info(MPI_LOGGER TYPEART_MPI_LOGGER "Logger supports MPI context.")
 
-option(MPI_INTERCEPT_LIB "Build MPI interceptor library for prototyping and testing." ON)
-add_feature_info(MPI_INTERCEPT_LIB MPI_INTERCEPT_LIB "Build TypeART's MPI tool, which intercepts MPI calls and applies buffer checks.")
+option(TYPEART_MPI_INTERCEPT_LIB "Build MPI interceptor library for prototyping and testing." ON)
+add_feature_info(MPI_INTERCEPT_LIB TYPEART_MPI_INTERCEPT_LIB "Build TypeART's MPI tool, which intercepts MPI calls and applies buffer checks.")
 
-option(SOFTCOUNTERS "Enable software tracking of #tracked addrs. / #distinct checks / etc." OFF)
-add_feature_info(SOFTCOUNTER SOFTCOUNTERS "Runtime collects various counters of memory ops/check operations.")
+option(TYPEART_SOFTCOUNTERS "Enable software tracking of #tracked addrs. / #distinct checks / etc." OFF)
+add_feature_info(SOFTCOUNTER TYPEART_SOFTCOUNTERS "Runtime collects various counters of memory ops/check operations.")
 
-option(TEST_CONFIG "Set logging levels to appropriate levels for test runner to succeed" OFF)
-add_feature_info(TEST_CONFIG TEST_CONFIG "Test config to support lit test suite with appropriate diagnostic logging levels.")
+option(TYPEART_TEST_CONFIG "Set logging levels to appropriate levels for test runner to succeed" OFF)
+add_feature_info(TEST_CONFIG TYPEART_TEST_CONFIG "Test config to support lit test suite with appropriate diagnostic logging levels.")
 
-option(ENABLE_CODE_COVERAGE "Enable code coverage statistics" OFF)
-add_feature_info(CODE_COVERAGE ENABLE_CODE_COVERAGE "Enable code coverage with lcov.")
+option(TYPEART_CODE_COVERAGE "Enable code coverage statistics" OFF)
+add_feature_info(CODE_COVERAGE TYPEART_CODE_COVERAGE "Enable code coverage with lcov.")
 
-option(ENABLE_LLVM_CODE_COVERAGE "Enable llvm-cov code coverage statistics" OFF)
-add_feature_info(LLVM_CODE_COVERAGE ENABLE_LLVM_CODE_COVERAGE "Enable LLVM code coverage with llvm-cov.")
+option(TYPEART_LLVM_CODE_COVERAGE "Enable llvm-cov code coverage statistics" OFF)
+add_feature_info(LLVM_CODE_COVERAGE TYPEART_LLVM_CODE_COVERAGE "Enable LLVM code coverage with llvm-cov.")
 
-option(ENABLE_SAFEPTR "Use external safe_ptr map wrapper instead of mutex" OFF)
-add_feature_info(SAFEPTR ENABLE_SAFEPTR "External library object_threadsafe provides lock-free runtime pointer map wrapper.")
+option(TYPEART_SAFEPTR "Use external safe_ptr map wrapper instead of mutex" OFF)
+add_feature_info(SAFEPTR TYPEART_SAFEPTR "External library object_threadsafe provides lock-free runtime pointer map wrapper.")
 
-cmake_dependent_option(DISABLE_THREAD_SAFETY "Explicitly make runtime *not* thread-safe." OFF
-  "NOT ENABLE_SAFEPTR" OFF
+cmake_dependent_option(TYPEART_DISABLE_THREAD_SAFETY "Explicitly make runtime *not* thread-safe." OFF
+  "NOT TYPEART_SAFEPTR" OFF
 )
-add_feature_info(DISABLE_THREAD_SAFETY DISABLE_THREAD_SAFETY "Thread-safety features of runtime disabled.")
+add_feature_info(DISABLE_THREAD_SAFETY TYPEART_DISABLE_THREAD_SAFETY "Thread-safety features of runtime disabled.")
 
-option(ENABLE_TSAN "Build runtime lib and tests with fsanitize=thread" OFF)
-add_feature_info(TSAN ENABLE_TSAN "Build with sanitizer \"tsan\".")
+option(TYPEART_TSAN "Build runtime lib and tests with fsanitize=thread" OFF)
+add_feature_info(TSAN TYPEART_TSAN "Build with sanitizer \"tsan\".")
 
-cmake_dependent_option(ENABLE_ASAN "Build runtime lib and tests with fsanitize=address." OFF
-  "NOT ENABLE_TSAN" OFF
+cmake_dependent_option(TYPEART_ASAN "Build runtime lib and tests with fsanitize=address." OFF
+  "NOT TYPEART_TSAN" OFF
 )
-add_feature_info(ASAN ENABLE_ASAN "Build with sanitizer \"asan\".")
+add_feature_info(ASAN TYPEART_ASAN "Build with sanitizer \"asan\".")
 
-cmake_dependent_option(ENABLE_UBSAN "Build runtime lib and tests with fsanitize=undefined." OFF
-  "NOT ENABLE_TSAN" OFF
+cmake_dependent_option(TYPEART_UBSAN "Build runtime lib and tests with fsanitize=undefined." OFF
+  "NOT TYPEART_TSAN" OFF
 )
-add_feature_info(UBSAN ENABLE_UBSAN "Build with sanitizer \"ubsan=undefined\".")
+add_feature_info(UBSAN TYPEART_UBSAN "Build with sanitizer \"ubsan=undefined\".")
 
-option(ENABLE_MPI_WRAPPER "Generate mpicc and mpic++ wrapper for TypeART" ON)
-add_feature_info(MPI_WRAPPER ENABLE_MPI_WRAPPER "Generate TypeART compiler wrapper for mpicc and mpic++.")
+option(TYPEART_MPI_WRAPPER "Generate mpicc and mpic++ wrapper for TypeART" ON)
+add_feature_info(MPI_WRAPPER TYPEART_MPI_WRAPPER "Generate TypeART compiler wrapper for mpicc and mpic++.")
 
-option(USE_ABSL "Enable usage of abseil's btree-backed map instead of std::map for the runtime." ON)
-add_feature_info(ABSL USE_ABSL "External library \"Abseil\" replaces runtime std::map with btree-backed map.")
+option(TYPEART_ABSEIL "Enable usage of abseil's btree-backed map instead of std::map for the runtime." ON)
+add_feature_info(ABSEIL TYPEART_ABSEIL "External library \"Abseil\" replaces runtime std::map with btree-backed map.")
 
-cmake_dependent_option(USE_BTREE "Enable usage of btree-backed map instead of std::map for the runtime." ON
-  "NOT USE_ABSL" OFF
+cmake_dependent_option(TYPEART_BTREE "Enable usage of btree-backed map instead of std::map for the runtime." ON
+  "NOT TYPEART_ABSEIL" OFF
 )
-add_feature_info(BTREE USE_BTREE "*Deprecated* External library replaces runtime std::map with btree-backed map.")
+add_feature_info(BTREE TYPEART_BTREE "*Deprecated* External library replaces runtime std::map with btree-backed map.")
 
-option(INSTALL_UTIL_SCRIPTS "Install single file build and run scripts" OFF)
-mark_as_advanced(INSTALL_UTIL_SCRIPTS)
+option(TYPEART_INSTALL_UTIL_SCRIPTS "Install single file build and run scripts" OFF)
+mark_as_advanced(TYPEART_INSTALL_UTIL_SCRIPTS)
 
-option(TEST_CONFIGURE_IDE "Add targets so the IDE (e.g., Clion) can interpret test files better" ON)
-mark_as_advanced(TEST_CONFIGURE_IDE)
+option(TYPEART_TEST_CONFIGURE_IDE "Add targets so the IDE (e.g., Clion) can interpret test files better" ON)
+mark_as_advanced(TYPEART_TEST_CONFIGURE_IDE)
 
 include(AddLLVM)
 include(llvm-lit)
@@ -98,14 +98,14 @@ include(coverage)
 include(sanitizer-targets)
 include(target-util)
 
-if(TEST_CONFIG)
-  set(LOG_LEVEL 2 CACHE STRING "" FORCE)
-  set(LOG_LEVEL_RT 3 CACHE STRING "" FORCE)
+if(TYPEART_TEST_CONFIG)
+  set(TYPEART_LOG_LEVEL 2 CACHE STRING "" FORCE)
+  set(TYPEART_LOG_LEVEL_RT 3 CACHE STRING "" FORCE)
 endif()
 
 set(THREADS_PREFER_PTHREAD_FLAG 1)
 set(CMAKE_THREAD_PREFER_PTHREAD 1)
-if(NOT DISABLE_THREAD_SAFETY)
+if(NOT TYPEART_DISABLE_THREAD_SAFETY)
   find_package(Threads REQUIRED)
 else()
   find_package(Threads QUIET)
@@ -116,9 +116,9 @@ set_package_properties(Threads PROPERTIES
   "Threads are needed to compile our thread-safe typeart::Runtime due to use of std::mutex etc."
 )
 
-if(MPI_LOGGER
-   OR ENABLE_MPI_WRAPPER
-   OR MPI_INTERCEPT_LIB
+if(TYPEART_MPI_LOGGER
+   OR TYPEART_MPI_WRAPPER
+   OR TYPEART_MPI_INTERCEPT_LIB
 )
   find_package(MPI REQUIRED)
 endif()
@@ -128,7 +128,7 @@ set_package_properties(MPI PROPERTIES
   "The MPI library is needed for several TypeART components: MPI logging, MPI compiler wrapper, and the MPI interceptor tool."
 )
 
-if(MPI_INTERCEPT_LIB)
+if(TYPEART_MPI_INTERCEPT_LIB)
   find_package(Python3 REQUIRED)
 endif()
 set_package_properties(Python3 PROPERTIES

@@ -1,4 +1,4 @@
-function(target_project_compile_options target)
+function(typeart_target_compile_options target)
   cmake_parse_arguments(ARG "" "" "PRIVATE_FLAGS;PUBLIC_FLAGS" ${ARGN})
 
   target_compile_options(${target} PRIVATE
@@ -25,7 +25,7 @@ function(target_project_compile_options target)
   endif ()
 endfunction()
 
-function(target_project_compile_definitions target)
+function(typeart_target_compile_definitions target)
   cmake_parse_arguments(ARG "" "" "PRIVATE_DEFS;PUBLIC_DEFS" ${ARGN})
 
   if (ARG_PRIVATE_DEFS)
@@ -41,7 +41,7 @@ function(target_project_compile_definitions target)
   endif ()
 endfunction()
 
-function (target_generate_file input output)
+function (typeart_target_generate_file input output)
   file(READ ${input} contents)
   string(CONFIGURE "${contents}" contents @ONLY)
   file(GENERATE

@@ -36,7 +36,7 @@ add_custom_target(
   DEPENDS lcov-make
 )
 
-function(make_lcov_target target)
+function(typeart_target_lcov target)
 #  add_custom_target(
 #    lcov-clean-${target}
 #    COMMAND lcov -d ${CMAKE_BINARY_DIR} -z

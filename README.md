@@ -325,7 +325,7 @@ $> cmake --build build --target install --parallel
 <!--- @formatter:off --->
 | Option | Default | Description |
 | --- | :---: | --- |
-| `ENABLE_MPI_WRAPPER` | `ON` | Install TypeART MPI wrapper (mpic, mpic++). Requires MPI. |
+| `TYPEART_MPI_WRAPPER` | `ON` | Install TypeART MPI wrapper (mpic, mpic++). Requires MPI. |
 <!--- @formatter:on --->
 
 ##### Runtime
@@ -334,10 +334,10 @@ $> cmake --build build --target install --parallel
 
 | Option | Default | Description |
 | --- | :---: | --- |
-| `USE_ABSL` | `ON` | Enable usage of btree-backed map of the [Abseil project](https://abseil.io/) instead of `std::map` |
-| `USE_BTREE` | `OFF` | *Deprecated*. Enable usage of a [btree-backed map](https://github.com/ahueck/cpp-btree) (alternative to Abseil) instead of `std::map` |
-| `SOFTCOUNTERS` | `OFF` | Enable runtime tracking of #tracked addrs. / #distinct checks / etc. |
-| `LOG_LEVEL_RT` | `0` | Granularity of runtime logger. 3 ist most verbose, 0 is least |
+| `TYPEART_ABSEIL` | `ON` | Enable usage of btree-backed map of the [Abseil project](https://abseil.io/) instead of `std::map` |
+| `TYPEART_BTREE` | `OFF` | *Deprecated*. Enable usage of a [btree-backed map](https://github.com/ahueck/cpp-btree) (alternative to Abseil) instead of `std::map` |
+| `TYPEART_SOFTCOUNTERS` | `OFF` | Enable runtime tracking of #tracked addrs. / #distinct checks / etc. |
+| `TYPEART_LOG_LEVEL_RT` | `0` | Granularity of runtime logger. 3 ist most verbose, 0 is least |
 
 <!--- @formatter:on --->
 
@@ -349,8 +349,8 @@ Default mode is to protect the global data structure with a (shared) mutex. Two 
 
 | Option | Default | Description |
 | --- | :---: | --- |
-| `DISABLE_THREAD_SAFETY` | `OFF` | Disable thread safety of runtime |
-| `ENABLE_SAFEPTR` | `OFF` | Instead of a mutex, use a special data structure wrapper for concurrency, see [object_threadsafe](https://github.com/AlexeyAB/object_threadsafe) |
+| `TYPEART_DISABLE_THREAD_SAFETY` | `OFF` | Disable thread safety of runtime |
+| `TYPEART_SAFEPTR` | `OFF` | Instead of a mutex, use a special data structure wrapper for concurrency, see [object_threadsafe](https://github.com/AlexeyAB/object_threadsafe) |
 
 <!--- @formatter:on --->
 
@@ -360,10 +360,10 @@ Default mode is to protect the global data structure with a (shared) mutex. Two 
 
 | Option | Default | Description |
 | --- | :---: | --- |
-| `SHOW_STATS` | `ON` | Passes show compile-time summary w.r.t. allocations counts |
-| `MPI_INTERCEPT_LIB` | `ON` | Library to intercept MPI calls by preloading and check whether TypeART tracks the buffer pointer |
-| `MPI_LOGGER` | `ON` | Enable better logging support in MPI execution context |
-| `LOG_LEVEL` | `0` | Granularity of pass logger. 3 ist most verbose, 0 is least |
+| `TYPEART_SHOW_STATS` | `ON` | Passes show compile-time summary w.r.t. allocations counts |
+| `TYPEART_MPI_INTERCEPT_LIB` | `ON` | Library to intercept MPI calls by preloading and check whether TypeART tracks the buffer pointer |
+| `TYPEART_MPI_LOGGER` | `ON` | Enable better logging support in MPI execution context |
+| `TYPEART_LOG_LEVEL` | `0` | Granularity of pass logger. 3 ist most verbose, 0 is least |
 
 <!--- @formatter:on --->
 
@@ -373,10 +373,10 @@ Default mode is to protect the global data structure with a (shared) mutex. Two 
 
 | Option | Default | Description |
 | --- | :---: | --- |
-| `TEST_CONFIG` | `OFF` | Set (force) logging levels to appropriate levels for test runner to succeed |
-| `ENABLE_CODE_COVERAGE` | `OFF` | Enable code coverage statistics using LCOV 1.14 and genhtml (gcovr optional) |
-| `ENABLE_LLVM_CODE_COVERAGE` | `OFF` | Enable llvm-cov code coverage statistics (llvm-cov and llvm-profdata  required) |
-| `ENABLE_ASAN, TSAN, UBSAN` | `OFF` | Enable Clang sanitizers (tsan is mutually exlusive w.r.t. ubsan and  asan as they don't play well together) |
+| `TYPEART_TEST_CONFIG` | `OFF` | Set (force) logging levels to appropriate levels for test runner to succeed |
+| `TYPEART_CODE_COVERAGE` | `OFF` | Enable code coverage statistics using LCOV 1.14 and genhtml (gcovr optional) |
+| `TYPEART_LLVM_CODE_COVERAGE` | `OFF` | Enable llvm-cov code coverage statistics (llvm-cov and llvm-profdata  required) |
+| `TYPEART_ASAN, TSAN, UBSAN` | `OFF` | Enable Clang sanitizers (tsan is mutually exlusive w.r.t. ubsan and  asan as they don't play well together) |
 
 <!--- @formatter:on --->
 

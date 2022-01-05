@@ -1,4 +1,4 @@
-function(make_llvm_module name sources)
+function(typeart_make_llvm_module name sources)
   # TODO default of include_dirs is private
   cmake_parse_arguments(ARG "" "" "INCLUDE_DIRS;DEPENDS;LINK_LIBS" ${ARGN})
 
@@ -38,7 +38,7 @@ function(make_llvm_module name sources)
     )
   endif()
 
-  target_define_file_basename(${name})
+  typeart_target_define_file_basename(${name})
 
   target_compile_definitions(${name}
     PRIVATE

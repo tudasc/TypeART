@@ -1,4 +1,4 @@
-function(add_format_target target comment)
+function(typeart_add_format_target target comment)
   macro(filter_dir dir_name_)
     foreach (source_file ${ALL_CXX_FILES})
       string(FIND ${source_file} ${dir_name_} EXCLUDE_FOUND)

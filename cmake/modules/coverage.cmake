@@ -1,19 +1,19 @@
 set(TYPEART_PROFILE_DIR ${CMAKE_BINARY_DIR}/profiles)
 file(MAKE_DIRECTORY ${TYPEART_PROFILE_DIR})
 
-if(NOT ENABLE_LLVM_CODE_COVERAGE AND ENABLE_CODE_COVERAGE)
+if(NOT TYPEART_LLVM_CODE_COVERAGE AND TYPEART_CODE_COVERAGE)
   include(coverage-gcovr)
   include(coverage-lcov)
 endif()
 
-if(ENABLE_LLVM_CODE_COVERAGE)
+if(TYPEART_LLVM_CODE_COVERAGE)
   include(coverage-llvm-cov)
 endif()
 
-function(target_project_coverage_options target)
+function(typeart_target_coverage_options target)
   get_target_property(target_type ${target} TYPE)
 
-  if (NOT ENABLE_LLVM_CODE_COVERAGE AND ENABLE_CODE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+  if (NOT TYPEART_LLVM_CODE_COVERAGE AND TYPEART_CODE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(${target} PUBLIC
       -O0
       -g
@@ -25,10 +25,10 @@ function(target_project_coverage_options target)
     )
 
     if(NOT target_type STREQUAL "OBJECT_LIBRARY")
-      make_lcov_target(${target})
+      typeart_target_lcov(${target})
     endif()
   endif ()
-  if (ENABLE_LLVM_CODE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  if (TYPEART_LLVM_CODE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     target_compile_options(${target} PUBLIC
       -O0
       -g
@@ -41,7 +41,7 @@ function(target_project_coverage_options target)
     )
 
     if(NOT target_type STREQUAL "OBJECT_LIBRARY")
-      make_llvm_cov_target(${target})
+      typeart_target_llvm_cov(${target})
     endif()
   endif ()
 endfunction()
