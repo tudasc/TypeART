@@ -51,61 +51,65 @@ static llvm::RegisterPass<typeart::pass::TypeArtPass> msp("typeart", "TypeArt ty
 
 static cl::OptionCategory typeart_category("TypeART instrumentation pass", "These control the instrumentation.");
 
-static cl::opt<std::string> ClTypeFile("typeart-types", cl::desc("Location of the generated type file."), cl::Hidden,
-                                       cl::init("types.yaml"), cl::cat(typeart_category));
+static cl::opt<std::string> cl_typeart_type_file("typeart-types", cl::desc("Location of the generated type file."),
+                                                 cl::Hidden, cl::init("types.yaml"), cl::cat(typeart_category));
 
-static cl::opt<bool> ClTypeArtStats("typeart-stats", cl::desc("Show statistics for TypeArt type pass."), cl::Hidden,
-                                    cl::init(false), cl::cat(typeart_category));
+static cl::opt<bool> cl_typeart_stats("typeart-stats", cl::desc("Show statistics for TypeArt type pass."), cl::Hidden,
+                                      cl::init(false), cl::cat(typeart_category));
 
-static cl::opt<bool> ClInstrumentHeap("typeart-heap", cl::desc("Instrument heap allocation/free instructions."),
-                                      cl::init(true), cl::cat(typeart_category));
-static cl::opt<bool> ClTypeArtAlloca("typeart-stack", cl::desc("Instrument stack (alloca) and global instructions."),
-                                     cl::init(false), cl::cat(typeart_category));
+static cl::opt<bool> cl_typeart_instrument_heap("typeart-heap",
+                                                cl::desc("Instrument heap allocation/free instructions."),
+                                                cl::init(true), cl::cat(typeart_category));
+static cl::opt<bool> cl_typeart_instrument_stack("typeart-stack",
+                                                 cl::desc("Instrument stack (alloca) and global instructions."),
+                                                 cl::init(false), cl::cat(typeart_category));
 
 // MemInstFinder configuration:
 
 static cl::OptionCategory typeart_meminstfinder_category(
     "TypeART memory instruction finder", "These options control which memory instructions are collected/filtered.");
 
-static cl::opt<bool> ClFilterNonArrayAlloca("typeart-stack-array-only",
-                                            cl::desc("Only find stack (alloca) instructions of arrays."), cl::Hidden,
-                                            cl::init(false), cl::cat(typeart_meminstfinder_category));
+static cl::opt<bool> cl_typeart_filter_stack_non_array("typeart-stack-array-only",
+                                                       cl::desc("Only find stack (alloca) instructions of arrays."),
+                                                       cl::Hidden, cl::init(false),
+                                                       cl::cat(typeart_meminstfinder_category));
 
-static cl::opt<bool> ClFilterMallocAllocPair(
+static cl::opt<bool> cl_typeart_filter_heap_alloc(
     "typeart-malloc-store-filter", cl::desc("Filter alloca instructions that have a store from a heap allocation."),
     cl::Hidden, cl::init(false), cl::cat(typeart_meminstfinder_category));
 
-static cl::opt<bool> ClFilterGlobal("typeart-filter-globals", cl::desc("Filter globals of a module."), cl::Hidden,
-                                    cl::init(true), cl::cat(typeart_meminstfinder_category));
+static cl::opt<bool> cl_typeart_filter_global("typeart-filter-globals", cl::desc("Filter globals of a module."),
+                                              cl::Hidden, cl::init(true), cl::cat(typeart_meminstfinder_category));
 
-static cl::opt<bool> ClUseCallFilter(
+static cl::opt<bool> cl_typeart_call_filter(
     "typeart-call-filter",
     cl::desc("Filter (stack/global) alloca instructions that are passed to specific function calls."), cl::Hidden,
     cl::init(false), cl::cat(typeart_meminstfinder_category));
 
-static cl::opt<std::string> ClCallFilterImpl("typeart-call-filter-impl",
-                                             cl::desc("Select the call filter implementation."), cl::Hidden,
-                                             cl::init("default"), cl::cat(typeart_meminstfinder_category));
+static cl::opt<std::string> cl_typeart_call_filter_impl("typeart-call-filter-impl",
+                                                        cl::desc("Select the call filter implementation."), cl::Hidden,
+                                                        cl::init("default"), cl::cat(typeart_meminstfinder_category));
 
-static cl::opt<std::string> ClCallFilterGlob("typeart-call-filter-str",
-                                             cl::desc("Filter allocas based on the function name (glob) <string>."),
-                                             cl::Hidden, cl::init("*MPI_*"), cl::cat(typeart_meminstfinder_category));
+static cl::opt<std::string> cl_typeart_call_filter_glob(
+    "typeart-call-filter-str", cl::desc("Filter allocas based on the function name (glob) <string>."), cl::Hidden,
+    cl::init("*MPI_*"), cl::cat(typeart_meminstfinder_category));
 
-static cl::opt<std::string> ClCallFilterDeepGlob(
+static cl::opt<std::string> cl_typeart_call_filter_glob_deep(
     "typeart-call-filter-deep-str",
     cl::desc("Filter allocas based on specific API, i.e., value passed as void* are correlated when string matched and "
              "possibly kept."),
     cl::Hidden, cl::init("MPI_*"), cl::cat(typeart_meminstfinder_category));
 
-static cl::opt<std::string> ClCallFilterCGFile("typeart-call-filter-cg-file",
-                                               cl::desc("Location of call-graph file to use."), cl::Hidden,
-                                               cl::init(""), cl::cat(typeart_meminstfinder_category));
+static cl::opt<std::string> cl_typeart_call_filter_cg_file("typeart-call-filter-cg-file",
+                                                           cl::desc("Location of call-graph file to use."), cl::Hidden,
+                                                           cl::init(""), cl::cat(typeart_meminstfinder_category));
 
-static cl::opt<bool> ClFilterPointerStack("typeart-filter-pointer-alloca", cl::desc("Filter allocas of pointer types."),
-                                          cl::Hidden, cl::init(true), cl::cat(typeart_meminstfinder_category));
+static cl::opt<bool> cl_typeart_filter_pointer_alloca("typeart-filter-pointer-alloca",
+                                                      cl::desc("Filter allocas of pointer types."), cl::Hidden,
+                                                      cl::init(true), cl::cat(typeart_meminstfinder_category));
 
 // Deprecated, only used with the old std filter:
-cl::opt<bool> ClCallFilterDeep(
+static cl::opt<bool> cl_typeart_call_filter_deep(
     "typeart-call-filter-deep",
     cl::desc("Deprecated: If the CallFilter matches, we look if the value is passed as a void*, and keep it if true."),
     cl::Hidden, cl::init(false), cl::cat(typeart_meminstfinder_category));
@@ -121,19 +125,19 @@ namespace typeart::pass {
 char TypeArtPass::ID = 0;
 
 TypeArtPass::TypeArtPass() : llvm::ModulePass(ID) {
-  assert(!ClTypeFile.empty() && "Default type file not set");
-  analysis::MemInstFinderConfig conf{!ClInstrumentHeap,                                              //
-                                     ClTypeArtAlloca,                                                //
-                                     analysis::MemInstFinderConfig::Filter{ClFilterNonArrayAlloca,   //
-                                                                           ClFilterMallocAllocPair,  //
-                                                                           ClFilterGlobal,           //
-                                                                           ClUseCallFilter,          //
-                                                                           ClCallFilterDeep,         //
-                                                                           ClFilterPointerStack,     //
-                                                                           ClCallFilterImpl,         //
-                                                                           ClCallFilterGlob,         //
-                                                                           ClCallFilterDeepGlob,     //
-                                                                           ClCallFilterCGFile}};
+  assert(!cl_typeart_type_file.empty() && "Default type file not set");
+  analysis::MemInstFinderConfig conf{!cl_typeart_instrument_heap,                                              //
+                                     cl_typeart_instrument_stack,                                              //
+                                     analysis::MemInstFinderConfig::Filter{cl_typeart_filter_stack_non_array,  //
+                                                                           cl_typeart_filter_heap_alloc,       //
+                                                                           cl_typeart_filter_global,           //
+                                                                           cl_typeart_call_filter,             //
+                                                                           cl_typeart_call_filter_deep,        //
+                                                                           cl_typeart_filter_pointer_alloca,   //
+                                                                           cl_typeart_call_filter_impl,        //
+                                                                           cl_typeart_call_filter_glob,        //
+                                                                           cl_typeart_call_filter_glob_deep,   //
+                                                                           cl_typeart_call_filter_cg_file}};
   meminst_finder = analysis::create_finder(conf);
 
   EnableStatistics(false);
@@ -144,14 +148,14 @@ void TypeArtPass::getAnalysisUsage(llvm::AnalysisUsage& info) const {
 }
 
 bool TypeArtPass::doInitialization(Module& m) {
-  typeManager = make_typegen(ClTypeFile.getValue());
+  typeManager = make_typegen(cl_typeart_type_file.getValue());
 
   LOG_DEBUG("Propagating type infos.");
   const auto [loaded, error] = typeManager->load();
   if (loaded) {
-    LOG_DEBUG("Existing type configuration successfully loaded from " << ClTypeFile.getValue());
+    LOG_DEBUG("Existing type configuration successfully loaded from " << cl_typeart_type_file.getValue());
   } else {
-    LOG_DEBUG("No valid existing type configuration found: " << ClTypeFile.getValue()
+    LOG_DEBUG("No valid existing type configuration found: " << cl_typeart_type_file.getValue()
                                                              << ". Reason: " << error.message());
   }
 
@@ -169,7 +173,7 @@ bool TypeArtPass::runOnModule(Module& m) {
   meminst_finder->runOnModule(m);
 
   bool instrumented_global{false};
-  if (ClTypeArtAlloca) {
+  if (cl_typeart_instrument_stack) {
     declareInstrumentationFunctions(m);
 
     const auto& globalsList = meminst_finder->getModuleGlobals();
@@ -213,7 +217,7 @@ bool TypeArtPass::runOnFunc(Function& f) {
   const auto& allocas = fData.allocas;
   const auto& frees   = fData.frees;
 
-  if (ClInstrumentHeap) {
+  if (cl_typeart_instrument_heap) {
     // instrument collected calls of bb:
     const auto heap_count = instrumentation_context->handleHeap(mallocs);
     const auto free_count = instrumentation_context->handleFree(frees);
@@ -223,7 +227,7 @@ bool TypeArtPass::runOnFunc(Function& f) {
 
     mod |= heap_count > 0 || free_count > 0;
   }
-  if (ClTypeArtAlloca) {
+  if (cl_typeart_instrument_stack) {
     const auto stack_count = instrumentation_context->handleStack(allocas);
     NumInstrumentedAlloca += stack_count;
     mod |= stack_count > 0;
@@ -236,15 +240,15 @@ bool TypeArtPass::doFinalization(Module&) {
   /*
    * Persist the accumulated type definition information for this module.
    */
-  LOG_DEBUG("Writing type file to " << ClTypeFile.getValue());
+  LOG_DEBUG("Writing type file to " << cl_typeart_type_file.getValue());
 
   const auto [stored, error] = typeManager->store();
   if (stored) {
     LOG_DEBUG("Success!");
   } else {
-    LOG_FATAL("Failed writing type config to " << ClTypeFile.getValue() << ". Reason: " << error.message());
+    LOG_FATAL("Failed writing type config to " << cl_typeart_type_file.getValue() << ". Reason: " << error.message());
   }
-  if (ClTypeArtStats) {
+  if (cl_typeart_stats) {
     auto& out = llvm::errs();
     printStats(out);
   }
@@ -282,8 +286,8 @@ void TypeArtPass::printStats(llvm::raw_ostream& out) {
   meminst_finder->printStats(out);
 
   const auto get_ta_mode = [&]() {
-    const bool heap  = ClInstrumentHeap.getValue();
-    const bool stack = ClTypeArtAlloca.getValue();
+    const bool heap  = cl_typeart_instrument_heap.getValue();
+    const bool stack = cl_typeart_instrument_stack.getValue();
 
     if (heap) {
       if (stack) {
