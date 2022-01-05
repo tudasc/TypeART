@@ -46,7 +46,8 @@ using namespace llvm;
 
 #define DEBUG_TYPE "typeart"
 
-static llvm::RegisterPass<typeart::pass::TypeArtPass> msp("typeart", "TypeArt type information", false, false);
+static llvm::RegisterPass<typeart::pass::TypeArtPass> msp("typeart", "TypeArt type instrumentation sanitizer", false,
+                                                          false);
 
 static cl::OptionCategory typeart_category("TypeART instrumentation pass", "These control the instrumentation.");
 
@@ -56,7 +57,7 @@ static cl::opt<std::string> ClTypeFile("typeart-outfile", cl::desc("Location of 
 static cl::opt<bool> ClTypeArtStats("typeart-stats", cl::desc("Show statistics for TypeArt type pass."), cl::Hidden,
                                     cl::init(false), cl::cat(typeart_category));
 
-static cl::opt<bool> ClInstrumentHeap("typeart-heap", cl::desc("Instrument heap allocation/free instruction."),
+static cl::opt<bool> ClInstrumentHeap("typeart-heap", cl::desc("Instrument heap allocation/free instructions."),
                                       cl::init(true), cl::cat(typeart_category));
 static cl::opt<bool> ClTypeArtAlloca("typeart-stack", cl::desc("Instrument stack (alloca) and global instructions."),
                                      cl::init(false), cl::cat(typeart_category));
@@ -67,41 +68,47 @@ static cl::OptionCategory typeart_meminstfinder_category(
     "TypeART memory instruction finder", "These options control which memory instructions are collected/filtered.");
 
 static cl::opt<bool> ClFilterNonArrayAlloca("typeart-stack-array-only",
-                                            cl::desc("Only use alloca instructions of arrays."), cl::Hidden,
+                                            cl::desc("Only find stack (alloca) instructions of arrays."), cl::Hidden,
                                             cl::init(false), cl::cat(typeart_meminstfinder_category));
 
-static cl::opt<bool> ClFilterMallocAllocPair("typeart-malloc-store-filter",
-                                             cl::desc("Filter allocs that get a store from a heap alloc."), cl::Hidden,
-                                             cl::init(false), cl::cat(typeart_meminstfinder_category));
+static cl::opt<bool> ClFilterMallocAllocPair(
+    "typeart-malloc-store-filter", cl::desc("Filter alloca instructions that have a store from a heap allocation."),
+    cl::Hidden, cl::init(false), cl::cat(typeart_meminstfinder_category));
 
 static cl::opt<bool> ClFilterGlobal("typeart-filter-globals", cl::desc("Filter globals of a module."), cl::Hidden,
                                     cl::init(true), cl::cat(typeart_meminstfinder_category));
 
-static cl::opt<bool> ClUseCallFilter("typeart-call-filter",
-                                     cl::desc("Filter alloca instructions that are passed to specific calls."),
-                                     cl::Hidden, cl::init(false), cl::cat(typeart_meminstfinder_category));
+static cl::opt<bool> ClUseCallFilter(
+    "typeart-call-filter",
+    cl::desc("Filter (stack/global) alloca instructions that are passed to specific function calls."), cl::Hidden,
+    cl::init(false), cl::cat(typeart_meminstfinder_category));
 
-static cl::opt<std::string> ClCallFilterImpl("typeart-call-filter-impl", cl::desc("Select the filter implementation."),
-                                             cl::Hidden, cl::init("default"), cl::cat(typeart_meminstfinder_category));
+static cl::opt<std::string> ClCallFilterImpl("typeart-call-filter-impl",
+                                             cl::desc("Select the call filter implementation."), cl::Hidden,
+                                             cl::init("default"), cl::cat(typeart_meminstfinder_category));
 
-static cl::opt<std::string> ClCallFilterGlob("typeart-call-filter-str", cl::desc("Filter values based on string."),
+static cl::opt<std::string> ClCallFilterGlob("typeart-call-filter-str",
+                                             cl::desc("Filter allocas based on the function name (glob) <string>."),
                                              cl::Hidden, cl::init("*MPI_*"), cl::cat(typeart_meminstfinder_category));
 
-static cl::opt<std::string> ClCallFilterDeepGlob("typeart-call-filter-deep-str",
-                                                 cl::desc("Filter values based on API, i.e., passed as void*."),
-                                                 cl::Hidden, cl::init("MPI_*"),
-                                                 cl::cat(typeart_meminstfinder_category));
+static cl::opt<std::string> ClCallFilterDeepGlob(
+    "typeart-call-filter-deep-str",
+    cl::desc("Filter allocas based on specific API, i.e., value passed as void* are correlated when string matched and "
+             "possibly kept."),
+    cl::Hidden, cl::init("MPI_*"), cl::cat(typeart_meminstfinder_category));
 
-static cl::opt<std::string> ClCallFilterCGFile("typeart-call-filter-cg-file", cl::desc("Location of CG to use."),
-                                               cl::Hidden, cl::init(""), cl::cat(typeart_meminstfinder_category));
+static cl::opt<std::string> ClCallFilterCGFile("typeart-call-filter-cg-file",
+                                               cl::desc("Location of call-graph file to use."), cl::Hidden,
+                                               cl::init(""), cl::cat(typeart_meminstfinder_category));
 
-static cl::opt<bool> ClFilterPointerStack("typeart-filter-pointer-alloca", cl::desc("Filter allocas of pointers."),
+static cl::opt<bool> ClFilterPointerStack("typeart-filter-pointer-alloca", cl::desc("Filter allocas of pointer types."),
                                           cl::Hidden, cl::init(true), cl::cat(typeart_meminstfinder_category));
 
 // Deprecated, only used with the old std filter:
-cl::opt<bool> ClCallFilterDeep("typeart-call-filter-deep",
-                               cl::desc("If the CallFilter matches, we look if the value is passed as a void*."),
-                               cl::Hidden, cl::init(false), cl::cat(typeart_meminstfinder_category));
+cl::opt<bool> ClCallFilterDeep(
+    "typeart-call-filter-deep",
+    cl::desc("Deprecated: If the CallFilter matches, we look if the value is passed as a void*, and keep it if true."),
+    cl::Hidden, cl::init(false), cl::cat(typeart_meminstfinder_category));
 
 ALWAYS_ENABLED_STATISTIC(NumInstrumentedMallocs, "Number of instrumented mallocs");
 ALWAYS_ENABLED_STATISTIC(NumInstrumentedFrees, "Number of instrumented frees");
