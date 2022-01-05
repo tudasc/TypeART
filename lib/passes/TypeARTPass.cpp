@@ -46,55 +46,55 @@ using namespace llvm;
 
 #define DEBUG_TYPE "typeart"
 
-namespace {
 static llvm::RegisterPass<typeart::pass::TypeArtPass> msp("typeart", "TypeArt type information", false, false);
-}  // namespace
-
-static cl::opt<bool> ClTypeArtStats("typeart-stats", cl::desc("Show statistics for TypeArt type pass."), cl::Hidden,
-                                    cl::init(false));
 
 static cl::opt<std::string> ClTypeFile("typeart-outfile", cl::desc("Location of the generated type file."), cl::Hidden,
                                        cl::init("types.yaml"));
 
-cl::opt<bool> ClIgnoreHeap("typeart-no-heap", cl::desc("Ignore heap allocation/free instruction."), cl::Hidden,
-                           cl::init(false));
-cl::opt<bool> ClTypeArtAlloca("typeart-alloca", cl::desc("Track alloca instructions."), cl::Hidden, cl::init(false));
+static cl::opt<bool> ClTypeArtStats("typeart-stats", cl::desc("Show statistics for TypeArt type pass."), cl::Hidden,
+                                    cl::init(false));
 
-// MemInstFinderPass:
-cl::opt<bool> ClFilterNonArrayAlloca("typeart-alloca-array-only", cl::desc("Only use alloca instructions of arrays."),
+static cl::opt<bool> ClInstrumentHeap("typeart-heap", cl::desc("Instrument heap allocation/free instruction."),
+                                      cl::Hidden, cl::init(true));
+static cl::opt<bool> ClTypeArtAlloca("typeart-alloca", cl::desc("Instrument stack (alloca) instructions."), cl::Hidden,
+                                     cl::init(false));
+
+// MemInstFinder configuration:
+static cl::opt<bool> ClFilterNonArrayAlloca("typeart-alloca-array-only",
+                                            cl::desc("Only use alloca instructions of arrays."), cl::Hidden,
+                                            cl::init(false));
+
+static cl::opt<bool> ClFilterMallocAllocPair("typeart-malloc-store-filter",
+                                             cl::desc("Filter allocs that get a store from a heap alloc."), cl::Hidden,
+                                             cl::init(false));
+
+static cl::opt<bool> ClFilterGlobal("typeart-filter-globals", cl::desc("Filter globals of a module."), cl::Hidden,
+                                    cl::init(true));
+
+static cl::opt<bool> ClUseCallFilter("typeart-call-filter",
+                                     cl::desc("Filter alloca instructions that are passed to specific calls."),
                                      cl::Hidden, cl::init(false));
 
-cl::opt<bool> ClFilterMallocAllocPair("typeart-malloc-store-filter",
-                                      cl::desc("Filter allocs that get a store from a heap alloc."), cl::Hidden,
-                                      cl::init(false));
+static cl::opt<std::string> ClCallFilterImpl("typeart-call-filter-impl", cl::desc("Select the filter implementation."),
+                                             cl::Hidden, cl::init("default"));
 
-cl::opt<bool> ClFilterGlobal("typeart-filter-globals", cl::desc("Filter globals of a module."), cl::Hidden,
-                             cl::init(true));
+static cl::opt<std::string> ClCallFilterGlob("typeart-call-filter-str", cl::desc("Filter values based on string."),
+                                             cl::Hidden, cl::init("*MPI_*"));
 
-cl::opt<bool> ClUseCallFilter("typeart-call-filter",
-                              cl::desc("Filter alloca instructions that are passed to specific calls."), cl::Hidden,
-                              cl::init(false));
+static cl::opt<std::string> ClCallFilterDeepGlob("typeart-call-filter-deep-str",
+                                                 cl::desc("Filter values based on API, i.e., passed as void*."),
+                                                 cl::Hidden, cl::init("MPI_*"));
 
-cl::opt<std::string> ClCallFilterImpl("typeart-call-filter-impl", cl::desc("Select the filter implementation."),
-                                      cl::Hidden, cl::init("default"));
+static cl::opt<std::string> ClCallFilterCGFile("typeart-call-filter-cg-file", cl::desc("Location of CG to use."),
+                                               cl::Hidden, cl::init(""));
 
-cl::opt<std::string> ClCallFilterGlob("typeart-call-filter-str", cl::desc("Filter values based on string."), cl::Hidden,
-                                      cl::init("*MPI_*"));
-
-cl::opt<std::string> ClCallFilterDeepGlob("typeart-call-filter-deep-str",
-                                          cl::desc("Filter values based on API, i.e., passed as void*."), cl::Hidden,
-                                          cl::init("MPI_*"));
-
-cl::opt<std::string> ClCallFilterCGFile("typeart-call-filter-cg-file", cl::desc("Location of CG to use."), cl::Hidden,
-                                        cl::init(""));
+static cl::opt<bool> ClFilterPointerStack("typeart-filter-pointer-alloca", cl::desc("Filter allocas of pointers."),
+                                          cl::Hidden, cl::init(true));
 
 // Deprecated, only used with the old std filter:
 cl::opt<bool> ClCallFilterDeep("typeart-call-filter-deep",
                                cl::desc("If the CallFilter matches, we look if the value is passed as a void*."),
                                cl::Hidden, cl::init(false));
-
-cl::opt<bool> ClFilterPointerStack("typeart-filter-pointer-alloca", cl::desc("Filter allocas of pointers."), cl::Hidden,
-                                   cl::init(true));
 
 ALWAYS_ENABLED_STATISTIC(NumInstrumentedMallocs, "Number of instrumented mallocs");
 ALWAYS_ENABLED_STATISTIC(NumInstrumentedFrees, "Number of instrumented frees");
@@ -108,7 +108,7 @@ char TypeArtPass::ID = 0;
 
 TypeArtPass::TypeArtPass() : llvm::ModulePass(ID) {
   assert(!ClTypeFile.empty() && "Default type file not set");
-  analysis::MemInstFinderConfig conf{ClIgnoreHeap,                                                   //
+  analysis::MemInstFinderConfig conf{!ClInstrumentHeap,                                              //
                                      ClTypeArtAlloca,                                                //
                                      analysis::MemInstFinderConfig::Filter{ClFilterNonArrayAlloca,   //
                                                                            ClFilterMallocAllocPair,  //
@@ -199,7 +199,7 @@ bool TypeArtPass::runOnFunc(Function& f) {
   const auto& allocas = fData.allocas;
   const auto& frees   = fData.frees;
 
-  if (!ClIgnoreHeap) {
+  if (ClInstrumentHeap) {
     // instrument collected calls of bb:
     const auto heap_count = instrumentation_context->handleHeap(mallocs);
     const auto free_count = instrumentation_context->handleFree(frees);
@@ -268,7 +268,7 @@ void TypeArtPass::printStats(llvm::raw_ostream& out) {
   meminst_finder->printStats(out);
 
   const auto get_ta_mode = [&]() {
-    const bool heap  = !ClIgnoreHeap.getValue();
+    const bool heap  = ClInstrumentHeap.getValue();
     const bool stack = ClTypeArtAlloca.getValue();
 
     if (heap) {
