@@ -21,7 +21,7 @@ typeart_target_define_file_basename(${TYPEART_PREFIX}_SystemStatic)
 typeart_target_coverage_options(${TYPEART_PREFIX}_SystemStatic)
 
 if(TYPEART_TSAN)
-  typeart_target_asan_options(${TYPEART_PREFIX}_SystemStatic)
+  typeart_target_tsan_options(${TYPEART_PREFIX}_SystemStatic)
 endif()
 
 if(TYPEART_ASAN)

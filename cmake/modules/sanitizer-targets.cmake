@@ -48,7 +48,7 @@ function(typeart_target_ubsan_options target)
   )
 endfunction()
 
-function(typeart_target_asan_options target)
+function(typeart_target_tsan_options target)
   typeart_target_tsan_flags(tsan_f)
   typeart_target_sanitizer_options(${target}
     SAN_FLAGS

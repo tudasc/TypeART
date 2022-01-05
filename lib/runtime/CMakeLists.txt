@@ -79,7 +79,7 @@ typeart_target_define_file_basename(${TYPEART_PREFIX}_Runtime)
 typeart_target_coverage_options(${TYPEART_PREFIX}_Runtime)
 
 if(TYPEART_TSAN)
-  typeart_target_asan_options(${TYPEART_PREFIX}_Runtime)
+  typeart_target_tsan_options(${TYPEART_PREFIX}_Runtime)
 endif()
 
 if(TYPEART_ASAN)

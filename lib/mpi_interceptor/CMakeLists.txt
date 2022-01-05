@@ -30,7 +30,7 @@ target_include_directories(MPITool
 )
 
 if(TYPEART_TSAN)
-  typeart_target_asan_options(MPITool)
+  typeart_target_tsan_options(MPITool)
 endif()
 
 target_link_libraries(MPITool
