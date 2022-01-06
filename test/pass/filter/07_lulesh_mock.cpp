@@ -1,6 +1,4 @@
 // clang-format off
-// RUN: %c-to-llvm -fno-discard-value-names %s | %apply-typeart -typeart-stack -typeart-call-filter -typeart-call-filter-impl=deprecated::default -typeart-filter-pointer-alloca=false -S 2>&1 | %filecheck %s
-// RUN: %c-to-llvm -fno-discard-value-names %s | %opt -O3 -S | %apply-typeart -typeart-stack -typeart-call-filter -typeart-call-filter-impl=deprecated::default -typeart-filter-pointer-alloca=false -S 2>&1 | %filecheck %s --check-prefix=CHECK-opt
 // RUN: %c-to-llvm -fno-discard-value-names %s | %apply-typeart -typeart-stack -typeart-call-filter -typeart-filter-pointer-alloca=false -S 2>&1 | %filecheck %s --check-prefix=CHECK-exp-default
 // RUN: %c-to-llvm -fno-discard-value-names %s | %opt -O3 -S | %apply-typeart -typeart-stack -typeart-call-filter -typeart-filter-pointer-alloca=false -S 2>&1 | %filecheck %s --check-prefix=CHECK-exp-default-opt
 // clang-format on
@@ -81,16 +79,6 @@ void TimeIncrement(Domain& domain) {
 
   ++domain.cycle();
 }
-
-// Standard filter
-// CHECK: > Stack Memory
-// CHECK-NEXT: Alloca                 :  16.00
-// CHECK-NEXT: Stack call filtered %  :  81.25
-
-// Standard filter with -O3
-// CHECK-opt: > Stack Memory
-// CHECK-opt-NEXT: Alloca                 :  2.00
-// CHECK-opt-NEXT: Stack call filtered %  :  0.00
 
 // Standard experimental filter
 // CHECK-exp-default: > Stack Memory

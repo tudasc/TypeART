@@ -81,18 +81,13 @@ namespace filter {
 namespace detail {
 static std::unique_ptr<typeart::filter::Filter> make_filter(const MemInstFinderConfig& config) {
   using namespace typeart::filter;
-  const bool deep        = config.filter.ClCallFilterDeep;
-  const std::string id   = config.filter.ClCallFilterImpl;
+  const auto filter_id   = config.filter.implementation;
   const std::string glob = config.filter.ClCallFilterGlob;
 
-  if (id == "empty" || !config.filter.ClUseCallFilter) {
+  if (filter_id == FilterImplementation::none || !config.filter.ClUseCallFilter) {
     LOG_DEBUG("Return no-op filter")
     return std::make_unique<NoOpFilter>();
-  } else if (id == "deprecated::default") {
-    // default
-    LOG_DEBUG("Return deprecated default filter")
-    return std::make_unique<deprecated::StandardFilter>(glob, deep);
-  } else if (id == "cg" || id == "experimental::cg") {
+  } else if (filter_id == FilterImplementation::cg) {
     if (config.filter.ClCallFilterCGFile.empty()) {
       LOG_FATAL("CG File not set!");
       std::exit(1);

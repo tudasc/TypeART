@@ -26,16 +26,18 @@ class raw_ostream;
 
 namespace typeart::analysis {
 
+enum class FilterImplementation { none, standard, cg };
+
 struct MemInstFinderConfig {
   struct Filter {
     bool ClFilterNonArrayAlloca{false};
     bool ClFilterMallocAllocPair{false};
     bool ClFilterGlobal{true};
     bool ClUseCallFilter{false};
-    bool ClCallFilterDeep{false};
     bool ClFilterPointerAlloca{false};
 
-    std::string ClCallFilterImpl{"default"};
+    // std::string ClCallFilterImpl{"default"};
+    FilterImplementation implementation{FilterImplementation::standard};
     std::string ClCallFilterGlob{"*MPI_*"};
     std::string ClCallFilterDeepGlob{"MPI_*"};
     std::string ClCallFilterCGFile{};

@@ -52,7 +52,7 @@ static llvm::RegisterPass<typeart::pass::TypeArtPass> msp("typeart", "TypeArt ty
 static cl::OptionCategory typeart_category("TypeART instrumentation pass", "These control the instrumentation.");
 
 static cl::opt<std::string> cl_typeart_type_file("typeart-types", cl::desc("Location of the generated type file."),
-                                                 cl::Hidden, cl::init("types.yaml"), cl::cat(typeart_category));
+                                                 cl::init("types.yaml"), cl::cat(typeart_category));
 
 static cl::opt<bool> cl_typeart_stats("typeart-stats", cl::desc("Show statistics for TypeArt type pass."), cl::Hidden,
                                       cl::init(false), cl::cat(typeart_category));
@@ -62,11 +62,11 @@ static cl::opt<bool> cl_typeart_instrument_heap("typeart-heap",
                                                 cl::init(true), cl::cat(typeart_category));
 
 static cl::opt<bool> cl_typeart_instrument_global("typeart-global", cl::desc("Instrument global allocations."),
-                                                  cl::init(false));
+                                                  cl::init(false), cl::cat(typeart_category));
 
 static cl::opt<bool> cl_typeart_instrument_stack(
     "typeart-stack", cl::desc("Instrument stack (alloca) allocations. Turns on global instrumentation."),
-    cl::init(false), cl::cat(typeart_category), cl::cat(typeart_category), cl::callback([](const bool& opt) {
+    cl::init(false), cl::cat(typeart_category), cl::callback([](const bool& opt) {
       if (opt) {
         ::cl_typeart_instrument_global = true;
       }
@@ -92,9 +92,13 @@ static cl::opt<bool> cl_typeart_call_filter(
     cl::desc("Filter (stack/global) alloca instructions that are passed to specific function calls."), cl::Hidden,
     cl::init(false), cl::cat(typeart_meminstfinder_category));
 
-static cl::opt<std::string> cl_typeart_call_filter_impl("typeart-call-filter-impl",
-                                                        cl::desc("Select the call filter implementation."), cl::Hidden,
-                                                        cl::init("default"), cl::cat(typeart_meminstfinder_category));
+static cl::opt<typeart::analysis::FilterImplementation> cl_typeart_call_filter_implementation(
+    "typeart-call-filter-impl", cl::desc("Select the call filter implementation."),
+    cl::values(clEnumValN(typeart::analysis::FilterImplementation::none, "none", "No filter"),
+               clEnumValN(typeart::analysis::FilterImplementation::standard, "std",
+                          "Standard forward filter (default)"),
+               clEnumValN(typeart::analysis::FilterImplementation::cg, "cg", "Call-graph-based filter")),
+    cl::Hidden, cl::init(typeart::analysis::FilterImplementation::standard), cl::cat(typeart_meminstfinder_category));
 
 static cl::opt<std::string> cl_typeart_call_filter_glob(
     "typeart-call-filter-str", cl::desc("Filter allocas based on the function name (glob) <string>."), cl::Hidden,
@@ -114,12 +118,6 @@ static cl::opt<bool> cl_typeart_filter_pointer_alloca("typeart-filter-pointer-al
                                                       cl::desc("Filter allocas of pointer types."), cl::Hidden,
                                                       cl::init(true), cl::cat(typeart_meminstfinder_category));
 
-// Deprecated, only used with the old std filter:
-static cl::opt<bool> cl_typeart_call_filter_deep(
-    "typeart-call-filter-deep",
-    cl::desc("Deprecated: If the CallFilter matches, we look if the value is passed as a void*, and keep it if true."),
-    cl::Hidden, cl::init(false), cl::cat(typeart_meminstfinder_category));
-
 ALWAYS_ENABLED_STATISTIC(NumInstrumentedMallocs, "Number of instrumented mallocs");
 ALWAYS_ENABLED_STATISTIC(NumInstrumentedFrees, "Number of instrumented frees");
 ALWAYS_ENABLED_STATISTIC(NumInstrumentedAlloca, "Number of instrumented (stack) allocas");
@@ -132,18 +130,17 @@ char TypeArtPass::ID = 0;
 
 TypeArtPass::TypeArtPass() : llvm::ModulePass(ID) {
   assert(!cl_typeart_type_file.empty() && "Default type file not set");
-  analysis::MemInstFinderConfig conf{cl_typeart_instrument_heap,                                               //
-                                     cl_typeart_instrument_stack,                                              //
-                                     cl_typeart_instrument_global,                                             //
-                                     analysis::MemInstFinderConfig::Filter{cl_typeart_filter_stack_non_array,  //
-                                                                           cl_typeart_filter_heap_alloc,       //
-                                                                           cl_typeart_filter_global,           //
-                                                                           cl_typeart_call_filter,             //
-                                                                           cl_typeart_call_filter_deep,        //
-                                                                           cl_typeart_filter_pointer_alloca,   //
-                                                                           cl_typeart_call_filter_impl,        //
-                                                                           cl_typeart_call_filter_glob,        //
-                                                                           cl_typeart_call_filter_glob_deep,   //
+  analysis::MemInstFinderConfig conf{cl_typeart_instrument_heap,                                                   //
+                                     cl_typeart_instrument_stack,                                                  //
+                                     cl_typeart_instrument_global,                                                 //
+                                     analysis::MemInstFinderConfig::Filter{cl_typeart_filter_stack_non_array,      //
+                                                                           cl_typeart_filter_heap_alloc,           //
+                                                                           cl_typeart_filter_global,               //
+                                                                           cl_typeart_call_filter,                 //
+                                                                           cl_typeart_filter_pointer_alloca,       //
+                                                                           cl_typeart_call_filter_implementation,  //
+                                                                           cl_typeart_call_filter_glob,            //
+                                                                           cl_typeart_call_filter_glob_deep,       //
                                                                            cl_typeart_call_filter_cg_file}};
   meminst_finder = analysis::create_finder(conf);
 

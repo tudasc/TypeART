@@ -1,5 +1,4 @@
 // clang-format off
-// RUN: %c-to-llvm %s | %apply-typeart -typeart-stack -typeart-call-filter -typeart-call-filter-impl=deprecated::default -S 2>&1 | %filecheck %s
 // RUN: %c-to-llvm %s | %apply-typeart -typeart-stack -typeart-call-filter  -S 2>&1 | %filecheck %s
 // clang-format on
 
@@ -12,7 +11,7 @@ void foo() {
 }
 
 // CHECK: MemInstFinderPass
-// Global                 :     2
-// Global filter total    :     1
-// Global call filtered % : 50.00
-// Global filtered %      : 50.00
+// CHECK: Global                 :     2
+// CHECK: Global filter total    :     1
+// CHECK: Global call filtered % : 50.00
+// CHECK: Global filtered %      : 50.00

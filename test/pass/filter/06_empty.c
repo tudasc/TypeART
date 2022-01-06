@@ -1,5 +1,4 @@
 // clang-format off
-// RUN: %c-to-llvm %s | %apply-typeart -typeart-stack -typeart-call-filter -typeart-call-filter-impl=deprecated::default -S 2>&1 | %filecheck %s
 // RUN: %c-to-llvm %s | %apply-typeart -typeart-stack -typeart-call-filter  -S 2>&1 | %filecheck %s
 // clang-format on
 
