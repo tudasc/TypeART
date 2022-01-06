@@ -64,6 +64,10 @@ static cl::opt<bool> cl_typeart_instrument_stack("typeart-stack",
                                                  cl::desc("Instrument stack (alloca) and global instructions."),
                                                  cl::init(false), cl::cat(typeart_category));
 
+static cl::opt<bool> cl_typeart_skip_instrument_global(
+    "typeart-disable-global", cl::desc("Disable instrumenting global instructions explicitly (see --typeart-stack)."),
+    cl::init(false), cl::cat(typeart_category));
+
 // MemInstFinder configuration:
 
 static cl::OptionCategory typeart_meminstfinder_category(
@@ -173,7 +177,7 @@ bool TypeArtPass::runOnModule(Module& m) {
   meminst_finder->runOnModule(m);
 
   bool instrumented_global{false};
-  if (cl_typeart_instrument_stack) {
+  if (cl_typeart_instrument_stack && !cl_typeart_skip_instrument_global) {
     declareInstrumentationFunctions(m);
 
     const auto& globalsList = meminst_finder->getModuleGlobals();

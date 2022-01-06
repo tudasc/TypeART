@@ -10,7 +10,8 @@
 // RUN: -typeart-stack-array-only=true \
 // RUN: -typeart-malloc-store-filter=true \
 // RUN: -typeart-filter-globals=true \
-// RUN: -typeart-filter-pointer-alloca=false
+// RUN: -typeart-filter-pointer-alloca=false \
+// RUN: -typeart-disable-global=false
 // clang-format on
 
 void foo() {
