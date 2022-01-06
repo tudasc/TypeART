@@ -1,6 +1,6 @@
-// RUN: %c-to-llvm %s | %apply-typeart -typeart-stack -S 2>&1 | %filecheck %s
+// RUN: %c-to-llvm %s | %apply-typeart -typeart-global -S 2>&1 | %filecheck %s
 
-// RUN: %c-to-llvm %s | %apply-typeart -typeart-stack -typeart-disable-global -S 2>&1 \
+// RUN: %c-to-llvm %s | %apply-typeart -typeart-stack -typeart-global=false -S 2>&1 \
 // RUN: | %filecheck %s --check-prefix CHECK-SKIP
 
 int global;
@@ -13,6 +13,7 @@ static int global_6 = 0;
 extern void bar(int*);
 
 void foo() {
+  int non_glob_x = 1;
   bar(&global);
   bar(&global_2);
   bar(&global_3);

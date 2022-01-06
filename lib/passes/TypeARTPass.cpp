@@ -60,15 +60,17 @@ static cl::opt<bool> cl_typeart_stats("typeart-stats", cl::desc("Show statistics
 static cl::opt<bool> cl_typeart_instrument_heap("typeart-heap",
                                                 cl::desc("Instrument heap allocation/free instructions."),
                                                 cl::init(true), cl::cat(typeart_category));
-static cl::opt<bool> cl_typeart_instrument_stack("typeart-stack",
-                                                 cl::desc("Instrument stack (alloca) and global instructions."),
-                                                 cl::init(false), cl::cat(typeart_category));
 
-static cl::opt<bool> cl_typeart_skip_instrument_global(
-    "typeart-disable-global", cl::desc("Disable instrumenting global instructions explicitly (see --typeart-stack)."),
-    cl::init(false), cl::cat(typeart_category));
+static cl::opt<bool> cl_typeart_instrument_global("typeart-global", cl::desc("Instrument global allocations."),
+                                                  cl::init(false));
 
-// MemInstFinder configuration:
+static cl::opt<bool> cl_typeart_instrument_stack(
+    "typeart-stack", cl::desc("Instrument stack (alloca) allocations. Turns on global instrumentation."),
+    cl::init(false), cl::cat(typeart_category), cl::cat(typeart_category), cl::callback([](const bool& opt) {
+      if (opt) {
+        ::cl_typeart_instrument_global = true;
+      }
+    }));
 
 static cl::OptionCategory typeart_meminstfinder_category(
     "TypeART memory instruction finder", "These options control which memory instructions are collected/filtered.");
@@ -130,8 +132,9 @@ char TypeArtPass::ID = 0;
 
 TypeArtPass::TypeArtPass() : llvm::ModulePass(ID) {
   assert(!cl_typeart_type_file.empty() && "Default type file not set");
-  analysis::MemInstFinderConfig conf{!cl_typeart_instrument_heap,                                              //
+  analysis::MemInstFinderConfig conf{cl_typeart_instrument_heap,                                               //
                                      cl_typeart_instrument_stack,                                              //
+                                     cl_typeart_instrument_global,                                             //
                                      analysis::MemInstFinderConfig::Filter{cl_typeart_filter_stack_non_array,  //
                                                                            cl_typeart_filter_heap_alloc,       //
                                                                            cl_typeart_filter_global,           //
@@ -148,7 +151,6 @@ TypeArtPass::TypeArtPass() : llvm::ModulePass(ID) {
 }
 
 void TypeArtPass::getAnalysisUsage(llvm::AnalysisUsage& info) const {
-  // info.addRequired<typeart::MemInstFinder>();
 }
 
 bool TypeArtPass::doInitialization(Module& m) {
@@ -177,7 +179,7 @@ bool TypeArtPass::runOnModule(Module& m) {
   meminst_finder->runOnModule(m);
 
   bool instrumented_global{false};
-  if (cl_typeart_instrument_stack && !cl_typeart_skip_instrument_global) {
+  if (cl_typeart_instrument_global) {
     declareInstrumentationFunctions(m);
 
     const auto& globalsList = meminst_finder->getModuleGlobals();
@@ -231,6 +233,7 @@ bool TypeArtPass::runOnFunc(Function& f) {
 
     mod |= heap_count > 0 || free_count > 0;
   }
+
   if (cl_typeart_instrument_stack) {
     const auto stack_count = instrumentation_context->handleStack(allocas);
     NumInstrumentedAlloca += stack_count;

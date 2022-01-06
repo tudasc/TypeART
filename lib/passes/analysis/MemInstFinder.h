@@ -41,8 +41,9 @@ struct MemInstFinderConfig {
     std::string ClCallFilterCGFile{};
   };
 
-  bool ClIgnoreHeap{false};
-  bool ClTypeArtAlloca{false};
+  bool collect_heap{false};
+  bool collect_alloca{false};
+  bool collect_global{false};
   Filter filter;
 };
 

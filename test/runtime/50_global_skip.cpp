@@ -1,5 +1,5 @@
 // RUN: %run %s 2>&1 | %filecheck %s
-// RUN: %run %s -typeart-disable-global 2>&1 | %filecheck %s --check-prefix CHECK-SKIP
+// RUN: %run %s -typeart-global=false 2>&1 | %filecheck %s --check-prefix CHECK-SKIP
 
 double global_d;
 

@@ -168,7 +168,7 @@ class MemInstFinderPass : public MemInstFinder {
 };
 
 MemInstFinderPass::MemInstFinderPass(const MemInstFinderConfig& config)
-    : mOpsCollector(config.ClTypeArtAlloca, !config.ClIgnoreHeap), filter(config), config(config) {
+    : mOpsCollector(config.collect_alloca, config.collect_heap), filter(config), config(config) {
 }
 
 bool MemInstFinderPass::runOnModule(Module& module) {

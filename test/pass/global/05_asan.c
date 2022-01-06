@@ -1,4 +1,4 @@
-// RUN: %c-to-llvm %s -fsanitize=address | %apply-typeart -typeart-stack -S 2>&1 | %filecheck %s
+// RUN: %c-to-llvm %s -fsanitize=address | %apply-typeart -typeart-global -S 2>&1 | %filecheck %s
 
 // REQUIRES: asan
 
