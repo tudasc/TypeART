@@ -18,7 +18,6 @@
 #include "filter/CGInterface.h"
 #include "filter/Filter.h"
 #include "filter/Matcher.h"
-#include "filter/StandardFilter.h"
 #include "filter/StdForwardFilter.h"
 #include "support/Logger.h"
 #include "support/Table.h"
