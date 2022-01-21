@@ -41,8 +41,8 @@ function global_init() {
 
   # shellcheck disable=SC2027
   readonly typeart_plugin="-load "${typeart_pass}" -typeart"
-  readonly typeart_stack_mode_args="-typeart-no-heap -typeart-alloca -typeart-stats @TYPEART_CALLFILTER@"
-  readonly typeart_heap_mode_args="-typeart-no-heap=false -typeart-stats"
+  readonly typeart_stack_mode_args="-typeart-heap=false -typeart-stack -typeart-stats @TYPEART_CALLFILTER@"
+  readonly typeart_heap_mode_args="-typeart-heap=true -typeart-stats"
 }
 
 function is_wrapper_disabled() {

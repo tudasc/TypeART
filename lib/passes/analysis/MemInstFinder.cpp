@@ -18,7 +18,6 @@
 #include "filter/CGInterface.h"
 #include "filter/Filter.h"
 #include "filter/Matcher.h"
-#include "filter/StandardFilter.h"
 #include "filter/StdForwardFilter.h"
 #include "support/Logger.h"
 #include "support/Table.h"
@@ -81,18 +80,13 @@ namespace filter {
 namespace detail {
 static std::unique_ptr<typeart::filter::Filter> make_filter(const MemInstFinderConfig& config) {
   using namespace typeart::filter;
-  const bool deep        = config.filter.ClCallFilterDeep;
-  const std::string id   = config.filter.ClCallFilterImpl;
+  const auto filter_id   = config.filter.implementation;
   const std::string glob = config.filter.ClCallFilterGlob;
 
-  if (id == "empty" || !config.filter.ClUseCallFilter) {
+  if (filter_id == FilterImplementation::none || !config.filter.ClUseCallFilter) {
     LOG_DEBUG("Return no-op filter")
     return std::make_unique<NoOpFilter>();
-  } else if (id == "deprecated::default") {
-    // default
-    LOG_DEBUG("Return deprecated default filter")
-    return std::make_unique<deprecated::StandardFilter>(glob, deep);
-  } else if (id == "cg" || id == "experimental::cg") {
+  } else if (filter_id == FilterImplementation::cg) {
     if (config.filter.ClCallFilterCGFile.empty()) {
       LOG_FATAL("CG File not set!");
       std::exit(1);
@@ -168,7 +162,7 @@ class MemInstFinderPass : public MemInstFinder {
 };
 
 MemInstFinderPass::MemInstFinderPass(const MemInstFinderConfig& config)
-    : mOpsCollector(config.ClTypeArtAlloca, !config.ClIgnoreHeap), filter(config), config(config) {
+    : mOpsCollector(config.collect_alloca, config.collect_heap), filter(config), config(config) {
 }
 
 bool MemInstFinderPass::runOnModule(Module& module) {
@@ -294,7 +288,6 @@ bool MemInstFinderPass::runOnFunction(llvm::Function& function) {
 
   NumDetectedAllocs += mOpsCollector.allocas.size();
 
-  LOG_DEBUG(config.filter.ClFilterNonArrayAlloca);
   if (config.filter.ClFilterNonArrayAlloca) {
     auto& allocs = mOpsCollector.allocas;
     allocs.erase(llvm::remove_if(allocs,

@@ -1,9 +1,9 @@
 // clang-format off
-// RUN: %run %s --omp --call-filter 2>&1 | %filecheck %s --check-prefix=CHECK-TSAN
-// RUN: %run %s -o -O2 --omp --call-filter 2>&1 | %filecheck %s --check-prefix=CHECK-TSAN
+// RUN: %run %s --omp -typeart-call-filter 2>&1 | %filecheck %s --check-prefix=CHECK-TSAN
+// RUN: %run %s -o -O2 --omp -typeart-call-filter 2>&1 | %filecheck %s --check-prefix=CHECK-TSAN
 
-// RUN: %run %s -o -O2 --omp --call-filter 2>&1 | %filecheck %s
-// RUN: %run %s --omp --call-filter 2>&1 | %filecheck %s
+// RUN: %run %s -o -O2 --omp -typeart-call-filter 2>&1 | %filecheck %s
+// RUN: %run %s --omp -typeart-call-filter 2>&1 | %filecheck %s
 // REQUIRES: openmp && softcounter
 // clang-format on
 

@@ -1,6 +1,4 @@
 set(FILTER_SOURCES
-  StandardFilter.cpp
-  StandardFilter.h
   CGInterface.cpp
   CGInterface.h
   Filter.h

@@ -1,4 +1,4 @@
-// RUN: %run %s -alloca-array-only=true 2>&1 | %filecheck %s
+// RUN: %run %s -typeart-stack-array-only=true 2>&1 | %filecheck %s
 
 #include "../struct_defs.h"
 #include "util.h"
