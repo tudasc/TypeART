@@ -159,9 +159,17 @@ function parse_cmd_line() {
       optimize=$1
       shift
       ;;
-    -c | -MMD | -S)
+    -MT)
+      if [ -n "$2" ]; then
+        ta_more_args+=" $1 $2"
+        shift 2
+      else
+        ta_more_args+=" $1"
+        shift 1
+      fi
+      ;;
+    -c | -S)
       # -S compile to asm
-      # -MMD list file dep and compile
       if [ "$1" == "-S" ]; then
         typeart_to_asm=1
       fi
@@ -265,10 +273,18 @@ function main_in() {
   fi
 
   is_linking "$@"
-  if [ "$?" == 1 ]; then
+  local -r linking=$?
+  parse_cmd_line "$@"
+
+  if [ "$linking" == 1 ] && [ -n "${source_file}" ]; then
+    main_compile "$@"
+    if [ -n "${exe_file}" ]; then
+      ta_more_args+=" -o ${exe_file}"
+    fi
+    main_link "$ta_more_args" "${object_file}"
+  elif [ "$linking" == 1 ]; then
     main_link "$@"
   else
-    parse_cmd_line "$@"
     main_compile "$@"
   fi
 }
