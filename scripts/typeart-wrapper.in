@@ -58,12 +58,24 @@ function is_wrapper_disabled() {
 function is_linking() {
   for arg in "$@"; do
     case "$arg" in
-    -c | -S | -E | -M | -MM | -MMD)
+    -c | -S | -E)
       return 0
-      ;;
+    ;;
     esac
   done
   return 1
+}
+
+function has_source() {
+  for arg in "$@"; do
+    local extension_of_arg="${arg##*.}"
+    case "$extension_of_arg" in
+    cpp | cxx | cc | c)
+      return 1
+    ;;
+    esac
+  done
+  return 0
 }
 
 function skip_typeart_compile() {
@@ -72,7 +84,7 @@ function skip_typeart_compile() {
     case "$arg" in
     -E | -M | -MM)
       return 1
-      ;;
+    ;;
     esac
   done
   return 0
@@ -274,17 +286,22 @@ function main_in() {
 
   is_linking "$@"
   local -r linking=$?
-  parse_cmd_line "$@"
+  has_source "$@"
+  local -r with_source=$?
 
-  if [ "$linking" == 1 ] && [ -n "${source_file}" ]; then
+  if [ "$linking" == 1 ] && [ "$with_source" == 1 ]; then
+    echo "Compile and link:"
+    parse_cmd_line "$@"
     main_compile "$@"
-    if [ -n "${exe_file}" ]; then
+    if [ "$found_exe_file" == 1 ]; then
       ta_more_args+=" -o ${exe_file}"
     fi
     main_link "$ta_more_args" "${object_file}"
   elif [ "$linking" == 1 ]; then
+    echo "Link:"
     main_link "$@"
   else
+    parse_cmd_line "$@"
     main_compile "$@"
   fi
 }
