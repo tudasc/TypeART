@@ -15,6 +15,9 @@
 // RUN: %wrapper-cc %s.o
 // RUN: %p/a.out 2>&1 | %filecheck %s
 
+// RUN: TYPEART_WRAPPER=OFF %wrapper-cc %s
+// RUN: %p/a.out 2>&1 | %filecheck %s --allow-empty
+
 int main(int argc, char** argv) {
   int a = 0;
   return a;
