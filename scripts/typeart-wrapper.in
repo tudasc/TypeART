@@ -290,7 +290,6 @@ function main_in() {
   local -r with_source=$?
 
   if [ "$linking" == 1 ] && [ "$with_source" == 1 ]; then
-    echo "Compile and link:"
     parse_cmd_line "$@"
     main_compile "$@"
     if [ "$found_exe_file" == 1 ]; then
@@ -298,7 +297,6 @@ function main_in() {
     fi
     main_link "$ta_more_args" "${object_file}"
   elif [ "$linking" == 1 ]; then
-    echo "Link:"
     main_link "$@"
   else
     parse_cmd_line "$@"

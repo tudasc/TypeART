@@ -11,6 +11,10 @@
 // RUN: %wrapper-cc -MD -MT %s.o -MF %s.o.d  %s
 // RUN: %p/a.out 2>&1 | %filecheck %s
 
+// RUN: %wrapper-cc -MD -MT %s.o -MF %s.o.d  -c %s -o %s.o
+// RUN: %wrapper-cc %s.o
+// RUN: %p/a.out 2>&1 | %filecheck %s
+
 int main(int argc, char** argv) {
   int a = 0;
   return a;
