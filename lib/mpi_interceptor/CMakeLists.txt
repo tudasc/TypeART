@@ -55,7 +55,7 @@ target_link_libraries(MPITool
 
 target_compile_definitions(
   MPITool
-  PRIVATE LOG_LEVEL=${LOG_LEVEL_RT}
+  PRIVATE TYPEART_LOG_LEVEL=${TYPEART_LOG_LEVEL_RT}
 )
 
 set(CONFIG_NAME ${PROJECT_NAME}MPITool)
