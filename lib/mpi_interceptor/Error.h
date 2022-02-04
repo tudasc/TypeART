@@ -31,7 +31,7 @@ struct [[nodiscard]] VariantError {
 
  public:
   template <class... Param>
-  VariantError(Param&&... param) : data(std::forward<Param>(param)...) {
+  VariantError(Param && ... param) : data(std::forward<Param>(param)...) {
   }
 
   template <class T>
@@ -45,12 +45,12 @@ struct [[nodiscard]] VariantError {
   }
 
   template <class T>
-  [[nodiscard]] T get() && {
+  [[nodiscard]] T get()&& {
     return std::get<T>(std::move(data));
   }
 
   template <class Visitor>
-  auto visit(Visitor&& visitor) const -> decltype(auto) {
+  auto visit(Visitor && visitor) const->decltype(auto) {
     return std::visit(std::forward<Visitor>(visitor), data);
   }
 };
@@ -72,7 +72,7 @@ struct UnsupportedCombinerArgs {
   std::string message;
 };
 struct [[nodiscard]] InternalError
-    : public VariantError<MPIError, TypeARTError, InvalidArgument, UnsupportedCombiner, UnsupportedCombinerArgs> {};
+    : public VariantError<MPIError, TypeARTError, InvalidArgument, UnsupportedCombiner, UnsupportedCombinerArgs>{};
 
 struct TypeError;
 struct InsufficientBufferSize {
@@ -119,7 +119,7 @@ struct StructSubtypeErrors {
 };
 struct [[nodiscard]] TypeError
     : public VariantError<StructSubtypeErrors, InsufficientBufferSize, BuiltinTypeMismatch, BufferNotOfStructType,
-                          MemberCountMismatch, MemberOffsetMismatch, MemberTypeMismatch, MemberElementCountMismatch> {};
+                          MemberCountMismatch, MemberOffsetMismatch, MemberTypeMismatch, MemberElementCountMismatch>{};
 
 struct [[nodiscard]] Error : public VariantError<InternalError, TypeError> {
   std::optional<Stacktrace> stacktrace =

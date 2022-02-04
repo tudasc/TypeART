@@ -24,7 +24,6 @@ class Config {
   enum class SourceLocation { None, Error, All };
   SourceLocation source_location;
 
-
  public:
   static const Config& get() {
     static Config instance;

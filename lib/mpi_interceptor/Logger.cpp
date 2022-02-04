@@ -143,7 +143,7 @@ struct TypeErrorVisitor {
                        err.mpi_offset, err.member, type_name, err.struct_offset);
   }
   std::string operator()(const MemberTypeMismatch& err) {
-    return fmt::format("the typechek for member {} failed ({})", err.member, (*err.error).visit(*this));
+    return fmt::format("the typecheck for member {} failed ({})", err.member, (*err.error).visit(*this));
   }
   std::string operator()(const MemberElementCountMismatch& err) {
     auto type_name = typeart_get_type_name(err.type_id);

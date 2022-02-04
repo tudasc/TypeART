@@ -71,8 +71,8 @@ int main(int argc, char** argv) {
 
   // 3: Check wrong types
   // clang-format off
-  // RANK0: R[0][Error]T[{{[0-9]*}}] at 0x{{.*}}: MPI_Send: type error while checking send-buffer 0x{{.*}} of type [1 x struct.S1] against 1 element of MPI type "test_type": the typechek for member 3 failed (expected a type matching MPI type "MPI_INT", but found type "double"). Tried the first member [2 x double] of struct type "struct.S1" with error: expected a struct type, but found type "double" ]
-  // RANK1: R[1][Error]T[{{[0-9]*}}] at 0x{{.*}}: MPI_Recv: type error while checking recv-buffer 0x{{.*}} of type [1 x struct.S1] against 1 element of MPI type "test_type": the typechek for member 3 failed (expected a type matching MPI type "MPI_INT", but found type "double"). Tried the first member [2 x double] of struct type "struct.S1" with error: expected a struct type, but found type "double" ]
+  // RANK0: R[0][Error]T[{{[0-9]*}}] at 0x{{.*}}: MPI_Send: type error while checking send-buffer 0x{{.*}} of type [1 x struct.S1] against 1 element of MPI type "test_type": the typecheck for member 3 failed (expected a type matching MPI type "MPI_INT", but found type "double"). Tried the first member [2 x double] of struct type "struct.S1" with error: expected a struct type, but found type "double" ]
+  // RANK1: R[1][Error]T[{{[0-9]*}}] at 0x{{.*}}: MPI_Recv: type error while checking recv-buffer 0x{{.*}} of type [1 x struct.S1] against 1 element of MPI type "test_type": the typecheck for member 3 failed (expected a type matching MPI type "MPI_INT", but found type "double"). Tried the first member [2 x double] of struct type "struct.S1" with error: expected a struct type, but found type "double" ]
   // clang-format on
   run_test(&s1, 3, counts, offsets, (MPI_Datatype[3]){MPI_DOUBLE, MPI_INT, MPI_INT});
 
