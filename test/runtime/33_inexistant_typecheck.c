@@ -1,4 +1,4 @@
-// RUN: %run %s --manual 2>&1 | FileCheck %s
+// RUN: %run %s --manual 2>&1 | %filecheck %s
 
 #include "../../lib/runtime/CallbackInterface.h"
 #include "util.h"
@@ -30,7 +30,7 @@ int main(int argc, char** argv) {
   return 0;
 }
 
-// TODO the runtime continues, even if type is unkown.
+// TODO the runtime continues, even if type is unknown.
 
 // CHECK: [Error]{{.*}}Allocation of unknown type 0x2 -1 typeart_unknown_struct 0 2
 // CHECK: [Trace] Alloc 0x2 -1 typeart_unknown_struct 0 2

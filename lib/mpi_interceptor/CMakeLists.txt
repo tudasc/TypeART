@@ -2,7 +2,7 @@ set(LIB_SOURCE ${CMAKE_CURRENT_BINARY_DIR}/mpi_interceptor_rt.c)
 
 add_custom_command(
   OUTPUT ${LIB_SOURCE}
-  COMMAND ${PYTHON_EXECUTABLE} wrap.py mpi_interceptor_tmpl.impl -o
+  COMMAND ${Python3_EXECUTABLE} wrap.py mpi_interceptor_tmpl.impl -o
           ${LIB_SOURCE}
   MAIN_DEPENDENCY mpi_interceptor_tmpl.impl
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
@@ -27,7 +27,7 @@ set_property(TARGET MPITool PROPERTY CXX_STANDARD 17)
 set_property(TARGET MPITool PROPERTY CXX_STANDARD_REQUIRED TRUE)
 
 
-target_define_file_basename(MPITool)
+typeart_target_define_file_basename(MPITool)
 
 target_include_directories(MPITool
   PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
@@ -41,8 +41,8 @@ target_include_directories(MPITool
   PRIVATE ${LLVM_INCLUDE_DIRS}
 )
 
-if(ENABLE_TSAN)
-  target_tsan_options(MPITool)
+if(TYPEART_TSAN)
+  typeart_target_tsan_options(MPITool)
 endif()
 
 target_link_libraries(MPITool

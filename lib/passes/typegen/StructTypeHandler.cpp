@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2021 TypeART Authors
+// Copyright (c) 2017-2022 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -29,7 +29,7 @@ std::string StructTypeHandler::getName(llvm::StructType* type) {
   if (type->isLiteral()) {
     return "LiteralS" + std::to_string(reinterpret_cast<long int>(type));
   }
-  return type->getStructName();
+  return std::string{type->getStructName()};
 }
 
 std::string StructTypeHandler::getName() const {

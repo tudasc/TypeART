@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2021 TypeART Authors
+// Copyright (c) 2017-2022 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -213,23 +213,24 @@ InstrCount MemOpInstrumentation::instrumentGlobal(const GlobalArgList& globals) 
     }
   };
 
-  const auto makeCtorFuncBody = [&]() -> IRBuilder<> {
-    auto m                = instr_helper->getModule();
-    auto& c               = m->getContext();
-    auto ctorFunctionName = "__typeart_init_module_" + m->getSourceFileName();  // needed -- will not work with piping?
+  const auto makeCtorFuncBody = [&]() -> BasicBlock* {
+    auto m  = instr_helper->getModule();
+    auto& c = m->getContext();
+    auto ctorFunctionName =
+        "__typeart_init_module_globals";  // + m->getSourceFileName();  // needed -- will not work with piping?
 
     FunctionType* ctorType = FunctionType::get(llvm::Type::getVoidTy(c), false);
-    Function* ctorFunction = Function::Create(ctorType, Function::PrivateLinkage, ctorFunctionName, m);
+    Function* ctorFunction = Function::Create(ctorType, Function::InternalLinkage, ctorFunctionName, m);
 
     BasicBlock* entry = BasicBlock::Create(c, "entry", ctorFunction);
 
     llvm::appendToGlobalCtors(*m, ctorFunction, 0, nullptr);
 
-    IRBuilder<> IRB(entry);
-    return IRB;
+    return entry;
   };
 
-  auto IRB = makeCtorFuncBody();
+  auto* entry = makeCtorFuncBody();
+  IRBuilder<> IRB(entry);
   instrumentGlobalsInCtor(IRB);
   IRB.CreateRetVoid();
 

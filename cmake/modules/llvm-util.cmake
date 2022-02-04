@@ -1,4 +1,4 @@
-function(make_llvm_module name sources)
+function(typeart_make_llvm_module name sources)
   # TODO default of include_dirs is private
   cmake_parse_arguments(ARG "" "" "INCLUDE_DIRS;DEPENDS;LINK_LIBS" ${ARGN})
 
@@ -11,7 +11,7 @@ function(make_llvm_module name sources)
     )
     target_compile_definitions(${name}
       PRIVATE
-        LLVM_VERSION=10
+        LLVM_VERSION_MAJOR=${LLVM_VERSION_MAJOR}
     )
   elseif(${LLVM_PACKAGE_VERSION} VERSION_EQUAL "6.0")
     add_llvm_loadable_module(${name}
@@ -38,7 +38,7 @@ function(make_llvm_module name sources)
     )
   endif()
 
-  target_define_file_basename(${name})
+  typeart_target_define_file_basename(${name})
 
   target_compile_definitions(${name}
     PRIVATE
@@ -48,4 +48,30 @@ function(make_llvm_module name sources)
   make_tidy_check(${name}
     ${sources}
   )
+endfunction()
+
+function(typeart_find_llvm_progs target names default)
+  find_program(
+    target-prog
+    NAMES ${names}
+    HINTS ${LLVM_TOOLS_BINARY_DIR}
+    NO_DEFAULT_PATH
+  )
+
+  if(NOT target-prog)
+    set(${target}
+        ${default}
+        PARENT_SCOPE
+    )
+    message(
+      STATUS
+        "Did not find clang program ${names} in ${LLVM_TOOLS_BINARY_DIR}. Using def. value: ${default}"
+    )
+  else()
+    set(${target}
+        ${target-prog}
+        PARENT_SCOPE
+    )
+  endif()
+  unset(target-prog CACHE)
 endfunction()

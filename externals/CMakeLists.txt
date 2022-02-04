@@ -12,14 +12,14 @@ add_subdirectory(result)
 add_subdirectory(fmt)
 add_subdirectory(spdlog)
 
-if(USE_BTREE)
+if(TYPEART_BTREE)
   add_subdirectory(btree)
 endif()
 
-if(USE_ABSL)
+if(TYPEART_ABSEIL)
   add_subdirectory(abseil)
 endif()
 
-if (ENABLE_SAFEPTR)
+if (TYPEART_SAFEPTR)
   add_subdirectory(safe_ptr)
 endif()

@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2021 TypeART Authors
+// Copyright (c) 2017-2022 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -28,6 +28,16 @@
 #include <vector>
 
 using namespace llvm::yaml;
+
+namespace compat {
+auto open_flag() {
+#if LLVM_VERSION_MAJOR < 13
+  return llvm::sys::fs::OpenFlags::F_Text;
+#else
+  return llvm::sys::fs::OpenFlags::OF_Text;
+#endif
+}
+}  // namespace compat
 
 template <>
 struct llvm::yaml::ScalarTraits<typeart::StructTypeFlag> {
@@ -98,7 +108,7 @@ llvm::ErrorOr<bool> store(const TypeDB* typeDB, const std::string& file) {
   using namespace llvm;
 
   std::error_code error;
-  raw_fd_ostream oss(StringRef(file), error, sys::fs::OpenFlags::F_Text);
+  raw_fd_ostream oss(StringRef(file), error, compat::open_flag());
 
   if (oss.has_error()) {
     LOG_WARNING("Warning while storing type file to " << file << ". Reason: " << error.message());

@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2021 TypeART Authors
+// Copyright (c) 2017-2022 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -23,7 +23,7 @@ namespace typeart {
 
 enum class StructTypeFlag : int { USER_DEFINED = 1, LLVM_VECTOR = 2 };
 
-struct StructTypeInfo final {
+struct StructTypeInfo {
   int type_id;
   std::string name;
   size_t extent;

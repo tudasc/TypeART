@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2021 TypeART Authors
+// Copyright (c) 2017-2022 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -111,7 +111,7 @@ HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
         break;
       case MemOpKind::CallocLike: {
         if (mdata.primary == nullptr) {
-          // we need the second arg when the calloc type is identified as void* to calculcate total bytes allocated
+          // we need the second arg when the calloc type is identified as void* to calculate total bytes allocated
           typeSizeConst = malloc_call->getOperand(1);
         }
         elementCount = malloc_call->getOperand(0);

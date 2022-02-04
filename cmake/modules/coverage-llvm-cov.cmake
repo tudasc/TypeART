@@ -39,7 +39,7 @@ add_custom_target(
   WORKING_DIRECTORY ${TYPEART_PROFILE_DIR}
 )
 
-function(make_llvm_cov_target target)
+function(typeart_target_llvm_cov target)
   add_custom_target(
     cov-binary-list-${target}
     COMMAND ${CMAKE_COMMAND} -E echo "-object $<TARGET_FILE:${target}>" >> ta-binaries.txt

@@ -6,17 +6,17 @@ on:
   pull_request:
 
 env:
-  CXX: clang++-10
-  CC: clang-10
-  EXTERNAL_LIT: /usr/lib/llvm-10/build/utils/lit/lit.py
+  CXX: clang++
+  CC: clang
 
 jobs:
   run-testbench:
     runs-on: ubuntu-20.04
-    if: "!contains(github.event.head_commit.message, '[ci skip]')"
+
     strategy:
       fail-fast: false
       matrix:
+        llvm-version: [ 10, 12 ]
         preset:
           - name: release-counter
           - name: release-safeptr-counter
@@ -36,24 +36,23 @@ jobs:
         run: sudo apt-get update
 
       - name: Install LLVM
-        run: sudo apt-get install libllvm10 llvm-10 llvm-10-dev
+        run: sudo apt-get install libllvm${{ matrix.llvm-version }} llvm-${{ matrix.llvm-version }} llvm-${{ matrix.llvm-version }}-dev
 
       - name: Install Clang
-        run: sudo apt-get install clang-10 clang-tidy-10
+        run: sudo apt-get install clang-${{ matrix.llvm-version }} clang-tidy-${{ matrix.llvm-version }}
 
       - name: Install OpenMPI
         run: sudo apt-get install libopenmpi-dev openmpi-bin
 
       - name: Setup env
         run: |
-          sudo ln -f -s /usr/bin/clang-10 /usr/bin/clang
-          sudo ln -f -s /usr/bin/clang++-10 /usr/bin/clang++
-          sudo ln -f -s /usr/bin/opt-10 /usr/bin/opt
-          sudo ln -f -s /usr/bin/llc-10 /usr/bin/llc
-          sudo ln -f -s /usr/bin/clang-tidy-10 /usr/bin/clang-tidy
+          sudo ln -f -s /usr/bin/clang-${{ matrix.llvm-version }} /usr/bin/clang
+          sudo ln -f -s /usr/bin/clang++-${{ matrix.llvm-version }} /usr/bin/clang++
+          echo "LLVM_CMAKE_DIR=/usr/lib/llvm-${{ matrix.llvm-version }}/cmake" >> $GITHUB_ENV
+          echo "EXTERNAL_LIT=/usr/lib/llvm-${{ matrix.llvm-version }}/build/utils/lit/lit.py" >> $GITHUB_ENV
 
       - name: Configure TypeART
-        run: cmake -B build --preset ${{ matrix.preset.name }} -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT}
+        run: cmake -B build --preset ${{ matrix.preset.name }} -DLLVM_DIR=${LLVM_CMAKE_DIR} -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT}
 
       - name: Build & install TypeART
         run: |
@@ -62,30 +61,30 @@ jobs:
 
       - name: Setup tests
         working-directory: test-bench
-        run: cmake -B build -DLOG_PATH=${GITHUB_WORKSPACE}/test-bench/artifact -DUSE_WRAPPER=ON -DLOG_FILTER="R\[[0-9]\]\[Trace\]ID\[[0-9]+\] expected a type matching MPI type \\\"MPI_FLOAT\\\", but found type \\\"int64\\\""
+        run: cmake -B build -DLOG_PATH=${GITHUB_WORKSPACE}/test-bench/artifact-${{ matrix.llvm-version }} -DUSE_WRAPPER=ON -DLOG_FILTER="R\[[0-9]\]\[Trace\]ID\[[0-9]+\] expected a type matching MPI type \\\"MPI_FLOAT\\\", but found type \\\"int64\\\""
 
       - name: Run lulesh
         working-directory: test-bench/build
-        run: ctest -V -R lulesh -O lulesh2.0_build.log
+        run: ctest -V -R lulesh -O lulesh2.0_${{ matrix.llvm-version }}_build.log
 
       - name: Run 104.milc
         working-directory: test-bench/build
-        run: ctest -V -R 104.milc -O 104.milc_build.log
+        run: ctest -V -R 104.milc -O 104.milc_${{ matrix.llvm-version }}_build.log
 
       - name: Run 122.tachyon
         working-directory: test-bench/build
-        run: ctest -V -R 122.tachyon -O 122.tachyon_build.log
+        run: ctest -V -R 122.tachyon -O 122.tachyon_${{ matrix.llvm-version }}_build.log
 
       - name: Run amg2013
         working-directory: test-bench/build
-        run: ctest -V -R amg2013 -O amg2013_build.log
+        run: ctest -V -R amg2013 -O amg2013_${{ matrix.llvm-version }}_build.log
 
       - name: Prepare artifact
         if: ${{ always() }}
         run: |
           mkdir -p artifact/$GITHUB_JOB/${{ matrix.preset.name }}/
-          mv -v test-bench/build/*_build.log artifact/$GITHUB_JOB/${{ matrix.preset.name }}/
-          mv -v test-bench/artifact/* artifact/$GITHUB_JOB/${{ matrix.preset.name }}/
+          mv -v test-bench/build/*_build.log artifact/$GITHUB_JOB/${{ matrix.preset.name }}-llvm-${{ matrix.llvm-version }}/
+          mv -v test-bench/artifact-${{ matrix.llvm-version }}/* artifact/$GITHUB_JOB/${{ matrix.preset.name }}-llvm-${{ matrix.llvm-version }}/
 
       - name: Upload test-bench artifact
         if: ${{ always() }}
@@ -96,10 +95,11 @@ jobs:
 
   run-AD-testbench:
     runs-on: ubuntu-20.04
-    if: "!contains(github.event.head_commit.message, '[ci skip]')"
+
     strategy:
       fail-fast: false
       matrix:
+        llvm-version: [ 10, 12 ]
         preset:
           - name: release-counter
           - name: release-unsafe-counter
@@ -119,24 +119,23 @@ jobs:
         run: sudo apt-get update
 
       - name: Install LLVM
-        run: sudo apt-get install libllvm10 llvm-10 llvm-10-dev
+        run: sudo apt-get install libllvm${{ matrix.llvm-version }} llvm-${{ matrix.llvm-version }} llvm-${{ matrix.llvm-version }}-dev
 
       - name: Install Clang
-        run: sudo apt-get install clang-10 clang-tidy-10
+        run: sudo apt-get install clang-${{ matrix.llvm-version }} clang-tidy-${{ matrix.llvm-version }}
 
       - name: Install OpenMPI
         run: sudo apt-get install libopenmpi-dev openmpi-bin
 
       - name: Setup env
         run: |
-          sudo ln -f -s /usr/bin/clang-10 /usr/bin/clang
-          sudo ln -f -s /usr/bin/clang++-10 /usr/bin/clang++
-          sudo ln -f -s /usr/bin/opt-10 /usr/bin/opt
-          sudo ln -f -s /usr/bin/llc-10 /usr/bin/llc
-          sudo ln -f -s /usr/bin/clang-tidy-10 /usr/bin/clang-tidy
+          sudo ln -f -s /usr/bin/clang-${{ matrix.llvm-version }} /usr/bin/clang
+          sudo ln -f -s /usr/bin/clang++-${{ matrix.llvm-version }} /usr/bin/clang++
+          echo "LLVM_CMAKE_DIR=/usr/lib/llvm-${{ matrix.llvm-version }}/cmake" >> $GITHUB_ENV
+          echo "EXTERNAL_LIT=/usr/lib/llvm-${{ matrix.llvm-version }}/build/utils/lit/lit.py" >> $GITHUB_ENV
 
       - name: Configure TypeART
-        run: cmake -B build --preset ${{ matrix.preset.name }} -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT}
+        run: cmake -B build --preset ${{ matrix.preset.name }} -DLLVM_DIR=${LLVM_CMAKE_DIR} -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT}
 
       - name: Build & install TypeART
         run: |
@@ -145,18 +144,18 @@ jobs:
 
       - name: Setup AD tests
         working-directory: ad-test-bench
-        run: cmake -B build -DLOG_PATH=${GITHUB_WORKSPACE}/ad-test-bench/artifact -DUSE_WRAPPER=ON
+        run: cmake -B build -DLOG_PATH=${GITHUB_WORKSPACE}/ad-test-bench/artifact-${{ matrix.llvm-version }} -DUSE_WRAPPER=ON
 
       - name: Run AD lulesh
         working-directory: ad-test-bench/build
-        run: ctest -V -R lulesh -O ad-lulesh2.0_build.log
+        run: ctest -V -R lulesh -O ad-lulesh2.0_${{ matrix.llvm-version }}_build.log
 
       - name: Prepare artifact
         if: ${{ always() }}
         run: |
           mkdir -p artifact/$GITHUB_JOB/${{ matrix.preset.name }}/
-          mv -v ad-test-bench/build/*_build.log artifact/$GITHUB_JOB/${{ matrix.preset.name }}/
-          mv -v ad-test-bench/artifact/* artifact/$GITHUB_JOB/${{ matrix.preset.name }}/
+          mv -v ad-test-bench/build/*_build.log artifact/$GITHUB_JOB/${{ matrix.preset.name }}-llvm-${{ matrix.llvm-version }}/
+          mv -v ad-test-bench/artifact-${{ matrix.llvm-version }}/* artifact/$GITHUB_JOB/${{ matrix.preset.name }}-llvm-${{ matrix.llvm-version }}/
 
       - name: Upload AD test-bench artifact
         if: ${{ always() }}
@@ -167,7 +166,6 @@ jobs:
 
   run-OMP-testbench:
     runs-on: ubuntu-20.04
-    if: "!contains(github.event.head_commit.message, '[ci skip]')"
 
     env:
       OMP_NUM_THREAD: 2
@@ -175,6 +173,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        llvm-version: [ 10, 12 ]
         preset:
           - name: release-counter
           - name: release-safeptr-counter
@@ -194,27 +193,26 @@ jobs:
         run: sudo apt-get update
 
       - name: Install LLVM
-        run: sudo apt-get install libllvm10 llvm-10 llvm-10-dev
+        run: sudo apt-get install libllvm${{ matrix.llvm-version }} llvm-${{ matrix.llvm-version }} llvm-${{ matrix.llvm-version }}-dev
 
       - name: Install Clang
-        run: sudo apt-get install clang-10 clang-tidy-10
+        run: sudo apt-get install clang-${{ matrix.llvm-version }} clang-tidy-${{ matrix.llvm-version }}
 
       - name: Install OpenMPI
         run: sudo apt-get install libopenmpi-dev openmpi-bin
 
       - name: Install LLVM OpenMP runtime
-        run: sudo apt-get install libomp-10-dev libomp5-10
+        run: sudo apt-get install libomp-${{ matrix.llvm-version }}-dev libomp5-${{ matrix.llvm-version }}
 
       - name: Setup env
         run: |
-          sudo ln -f -s /usr/bin/clang-10 /usr/bin/clang
-          sudo ln -f -s /usr/bin/clang++-10 /usr/bin/clang++
-          sudo ln -f -s /usr/bin/opt-10 /usr/bin/opt
-          sudo ln -f -s /usr/bin/llc-10 /usr/bin/llc
-          sudo ln -f -s /usr/bin/clang-tidy-10 /usr/bin/clang-tidy
+          sudo ln -f -s /usr/bin/clang-${{ matrix.llvm-version }} /usr/bin/clang
+          sudo ln -f -s /usr/bin/clang++-${{ matrix.llvm-version }} /usr/bin/clang++
+          echo "LLVM_CMAKE_DIR=/usr/lib/llvm-${{ matrix.llvm-version }}/cmake" >> $GITHUB_ENV
+          echo "EXTERNAL_LIT=/usr/lib/llvm-${{ matrix.llvm-version }}/build/utils/lit/lit.py" >> $GITHUB_ENV
 
       - name: Configure TypeART
-        run: cmake -B build --preset ${{ matrix.preset.name }} -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT}
+        run: cmake -B build --preset ${{ matrix.preset.name }} -DLLVM_DIR=${LLVM_CMAKE_DIR} -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT}
 
       - name: Build & install TypeART
         run: |
@@ -223,22 +221,22 @@ jobs:
 
       - name: Setup tests
         working-directory: omp-test-bench
-        run: cmake -B build -DLOG_PATH=${GITHUB_WORKSPACE}/omp-test-bench/artifact -DUSE_WRAPPER=ON
+        run: cmake -B build -DLOG_PATH=${GITHUB_WORKSPACE}/omp-test-bench/artifact-${{ matrix.llvm-version }} -DUSE_WRAPPER=ON
 
       - name: Run lulesh
         working-directory: omp-test-bench/build
-        run: ctest -V -R lulesh -O lulesh2.0_build.log
+        run: ctest -V -R lulesh -O lulesh2.0_${{ matrix.llvm-version }}_build.log
 
       - name: Run amg2013
         working-directory: omp-test-bench/build
-        run: ctest -V -R amg2013 -O amg2013_build.log
+        run: ctest -V -R amg2013 -O amg2013_${{ matrix.llvm-version }}_build.log
 
       - name: Prepare artifact
         if: ${{ always() }}
         run: |
           mkdir -p artifact/$GITHUB_JOB/${{ matrix.preset.name }}/
-          mv -v omp-test-bench/build/*_build.log artifact/$GITHUB_JOB/${{ matrix.preset.name }}/
-          mv -v omp-test-bench/artifact/* artifact/$GITHUB_JOB/${{ matrix.preset.name }}/
+          mv -v omp-test-bench/build/*_build.log artifact/$GITHUB_JOB/${{ matrix.preset.name }}-llvm-${{ matrix.llvm-version }}/
+          mv -v omp-test-bench/artifact-${{ matrix.llvm-version }}/* artifact/$GITHUB_JOB/${{ matrix.preset.name }}-llvm-${{ matrix.llvm-version }}/
 
       - name: Upload omp-test-bench artifact
         if: ${{ always() }}

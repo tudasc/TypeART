@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2021 TypeART Authors
+// Copyright (c) 2017-2022 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -13,15 +13,15 @@
 #ifndef TYPEART_RUNTIMEDATA_H
 #define TYPEART_RUNTIMEDATA_H
 
-#ifdef USE_BTREE
-#ifdef USE_ABSL
+#ifdef TYPEART_BTREE
+#ifdef TYPEART_ABSEIL
 #error TypeART-RT: Set BTREE and ABSL, mutually exclusive.
 #endif
 #include "btree_map.h"
 #endif
 
-#ifdef USE_ABSL
-#ifdef USE_BTREE
+#ifdef TYPEART_ABSEIL
+#ifdef TYPEART_BTREE
 #error TypeART-RT: Set ABSL and BTREE, mutually exclusive.
 #endif
 #pragma GCC diagnostic push
@@ -30,12 +30,12 @@
 #pragma GCC diagnostic pop
 #endif
 
-#if !defined(USE_BTREE) && !defined(USE_ABSL)
+#if !defined(TYPEART_BTREE) && !defined(TYPEART_ABSEIL)
 #include <map>
 #endif
 
 #ifdef USE_SAFEPTR
-#ifdef DISABLE_THREAD_SAFETY
+#ifdef TYPEART_DISABLE_THREAD_SAFETY
 #error TypeART-RT: Safe_ptr and disabled thread safety illegal
 #endif
 #include "safe_ptr.h"
@@ -58,15 +58,15 @@ struct RuntimeT {
   using Stack = std::vector<MemAddr>;
   static constexpr auto StackReserve{512U};
   static constexpr char StackName[] = "std::vector";
-#ifdef USE_BTREE
+#ifdef TYPEART_BTREE
   using PointerMapBaseT           = btree::btree_map<MemAddr, PointerInfo>;
   static constexpr char MapName[] = "btree::btree_map";
 #endif
-#ifdef USE_ABSL
+#ifdef TYPEART_ABSEIL
   using PointerMapBaseT           = absl::btree_map<MemAddr, PointerInfo>;
   static constexpr char MapName[] = "absl::btree_map";
 #endif
-#if !defined(USE_BTREE) && !defined(USE_ABSL)
+#if !defined(TYPEART_BTREE) && !defined(TYPEART_ABSEIL)
   using PointerMapBaseT           = std::map<MemAddr, PointerInfo>;
   static constexpr char MapName[] = "std::map";
 #endif

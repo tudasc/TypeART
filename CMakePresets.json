@@ -19,39 +19,39 @@
       "name": "tsan",
       "hidden": true,
       "cacheVariables": {
-        "ENABLE_ASAN": "OFF",
-        "ENABLE_UBSAN": "OFF",
-        "ENABLE_TSAN": "ON"
+        "TYPEART_ASAN": "OFF",
+        "TYPEART_UBSAN": "OFF",
+        "TYPEART_TSAN": "ON"
       }
     },
     {
       "name": "san",
       "hidden": true,
       "cacheVariables": {
-        "ENABLE_ASAN": "ON",
-        "ENABLE_UBSAN": "ON",
-        "ENABLE_TSAN": "OFF"
+        "TYPEART_ASAN": "ON",
+        "TYPEART_UBSAN": "ON",
+        "TYPEART_TSAN": "OFF"
       }
     },
     {
       "name": "thread-unsafe",
       "hidden": true,
       "cacheVariables": {
-        "DISABLE_THREAD_SAFETY": "ON"
+        "TYPEART_DISABLE_THREAD_SAFETY": "ON"
       }
     },
     {
       "name": "safe-ptr",
       "hidden": true,
       "cacheVariables": {
-        "ENABLE_SAFEPTR": "ON"
+        "TYPEART_SAFEPTR": "ON"
       }
     },
     {
       "name": "coverage",
       "hidden": true,
       "cacheVariables": {
-        "ENABLE_CODE_COVERAGE": "ON"
+        "TYPEART_CODE_COVERAGE": "ON"
       }
     },
     {
@@ -65,8 +65,8 @@
       ],
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "TEST_CONFIG": "ON",
-        "SOFTCOUNTERS": "ON"
+        "TYPEART_TEST_CONFIG": "ON",
+        "TYPEART_SOFTCOUNTERS": "ON"
       }
     },
     {
@@ -89,7 +89,7 @@
         "release"
       ],
       "cacheVariables": {
-        "SOFTCOUNTERS": "ON"
+        "TYPEART_SOFTCOUNTERS": "ON"
       }
     },
     {
@@ -137,8 +137,8 @@
         "develop"
       ],
       "cacheVariables": {
-        "ENABLE_ASAN": "OFF",
-        "ENABLE_UBSAN": "OFF"
+        "TYPEART_ASAN": "OFF",
+        "TYPEART_UBSAN": "OFF"
       }
     },
     {

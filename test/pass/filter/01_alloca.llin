@@ -1,6 +1,5 @@
-; RUN: cat %s | %apply-typeart -typeart-alloca -S 2>&1 | FileCheck %s
-; RUN: cat %s | %apply-typeart -typeart-alloca -call-filter -call-filter-impl=deprecated::default -S 2>&1 | FileCheck %s -check-prefix=CHECK-FILTER
-; RUN: cat %s | %apply-typeart -typeart-alloca -call-filter -S 2>&1 | FileCheck %s -check-prefix=CHECK-FILTER-EXP
+; RUN: cat %s | %apply-typeart -typeart-stack -typeart-filter-pointer-alloca=false -S 2>&1 | %filecheck %s
+; RUN: cat %s | %apply-typeart -typeart-stack -typeart-call-filter -typeart-filter-pointer-alloca=false -S 2>&1 | %filecheck %s -check-prefix=CHECK-FILTER-EXP
 
 ; ModuleID = '01_alloca.c'
 source_filename = "01_alloca.c"
@@ -60,21 +59,6 @@ entry:
 
 ; Function Attrs: nounwind
 declare dso_local noalias i8* @malloc(i64) #1
-
-; Deprecated standard filter:
-; CHECK-FILTER: define dso_local void @foo()
-; CHECK-FILTER: %__ta_alloca_counter = alloca i{{(64|32)}}
-; CHECK-FILTER-NEXT: store i{{(64|32)}} 0, i{{(64|32)}}* %__ta_alloca_counter
-; CHECK-FILTER: %0 = bitcast i32** %c to i8*
-; CHECK-FILTER-NEXT  call void @__typeart_alloc_stack(i8* %0, i32 10, i64 1)
-; CHECK-FILTER: %1 = bitcast i32* %d to i8*
-; CHECK-FILTER-NEXT  call void @__typeart_alloc_stack(i8* %1, i32 2, i64 1)
-; CHECK-FILTER: %2 = bitcast i32* %x to i8*
-; CHECK-FILTER-NEXT  call void @__typeart_alloc_stack(i8* %2, i32 2, i64 1)
-; CHECK-FILTER: %9 = load i{{(64|32)}}, i{{(64|32)}}* %__ta_alloca_counter
-; CHECK-FILTER-NEXT: %10 = add i{{(64|32)}} 3, %9
-; CHECK-FILTER: call void @__typeart_leave_scope(i{{(64|32)}} %__ta_counter_load)
-
 
 ; New filter, TODO: %0 = bitcast should be filterable with proper data-flow tracking
 ; CHECK-FILTER-EXP: define dso_local void @foo()

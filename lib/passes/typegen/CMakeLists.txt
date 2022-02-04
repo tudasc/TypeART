@@ -11,7 +11,7 @@ set(TYPEGEN_SOURCES
 
 add_library(${TYPEART_PREFIX}_TypeGenObj OBJECT ${TYPEGEN_SOURCES})
 
-target_compile_definitions(${TYPEART_PREFIX}_TypeGenObj PRIVATE LOG_LEVEL=${LOG_LEVEL})
+target_compile_definitions(${TYPEART_PREFIX}_TypeGenObj PRIVATE TYPEART_LOG_LEVEL=${TYPEART_LOG_LEVEL})
 
 set_target_properties(${TYPEART_PREFIX}_TypeGenObj PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
@@ -27,9 +27,9 @@ target_include_directories(${TYPEART_PREFIX}_TypeGenObj SYSTEM PRIVATE ${LLVM_IN
 
 make_tidy_check(${TYPEART_PREFIX}_TypeGenObj "${TypeGen_SOURCES}")
 
-target_project_compile_options(${TYPEART_PREFIX}_TypeGenObj)
-target_define_file_basename(${TYPEART_PREFIX}_TypeGenObj)
-target_project_coverage_options(${TYPEART_PREFIX}_TypeGenObj)
+typeart_target_compile_options(${TYPEART_PREFIX}_TypeGenObj)
+typeart_target_define_file_basename(${TYPEART_PREFIX}_TypeGenObj)
+typeart_target_coverage_options(${TYPEART_PREFIX}_TypeGenObj)
 
 # Need to link LLVMCore to work for consumer
 add_library(${TYPEART_PREFIX}_TypeGenStatic STATIC $<TARGET_OBJECTS:${TYPEART_PREFIX}_TypeGenObj>)
@@ -41,6 +41,8 @@ set_target_properties(
   OUTPUT_NAME "${TYPEART_PREFIX}TypeGen"
   EXPORT_NAME "TypeGenStatic"
 )
+
+typeart_target_coverage_options(${TYPEART_PREFIX}_TypeGenStatic)
 
 target_link_libraries(${TYPEART_PREFIX}_TypeGenStatic typeart::TypesStatic)
 

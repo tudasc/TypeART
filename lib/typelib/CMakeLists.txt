@@ -12,10 +12,11 @@ target_include_directories(
   PRIVATE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
 )
 
-target_compile_definitions(${TYPEART_PREFIX}_TypesObj PRIVATE LOG_LEVEL=${LOG_LEVEL})
+target_compile_definitions(${TYPEART_PREFIX}_TypesObj PRIVATE TYPEART_LOG_LEVEL=${TYPEART_LOG_LEVEL})
 
-target_project_compile_options(${TYPEART_PREFIX}_TypesObj)
-target_project_coverage_options(${TYPEART_PREFIX}_TypesObj)
+typeart_target_compile_options(${TYPEART_PREFIX}_TypesObj)
+
+typeart_target_coverage_options(${TYPEART_PREFIX}_TypesObj)
 
 make_tidy_check(${TYPEART_PREFIX}_TypesObj "${TYPE_LIB_SOURCES}")
 
@@ -36,6 +37,8 @@ target_include_directories(
 
 target_link_libraries(${TYPEART_PREFIX}_Types PRIVATE LLVMCore LLVMSupport)
 
+typeart_target_coverage_options(${TYPEART_PREFIX}_Types)
+
 add_library(${TYPEART_PREFIX}_TypesStatic STATIC $<TARGET_OBJECTS:${TYPEART_PREFIX}_TypesObj>)
 add_library(typeart::TypesStatic ALIAS ${TYPEART_PREFIX}_TypesStatic)
 set_target_properties(
@@ -50,6 +53,8 @@ target_include_directories(
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
   PRIVATE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
 )
+
+typeart_target_coverage_options(${TYPEART_PREFIX}_TypesStatic)
 
 set(CONFIG_NAME ${PROJECT_NAME}Types)
 set(TARGETS_EXPORT_NAME ${CONFIG_NAME}Targets)

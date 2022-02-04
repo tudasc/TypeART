@@ -1,4 +1,4 @@
-// RUN: %run %s 2>&1 | FileCheck %s
+// RUN: %run %s 2>&1 | %filecheck %s
 
 #include "../../lib/runtime/RuntimeInterface.h"
 #include "../../lib/typelib/TypeDatabase.h"

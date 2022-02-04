@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2021 TypeART Authors
+// Copyright (c) 2017-2022 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -193,7 +193,7 @@ struct SafePtrdMap : protected BaseOp {
 #ifdef USE_SAFEPTR
 using PointerMap = mixin::SafePtrdMap<mixin::MapOp>;
 #else
-#ifdef DISABLE_THREAD_SAFETY
+#ifdef TYPEART_DISABLE_THREAD_SAFETY
 using PointerMap = mixin::StandardMapBase<mixin::MapOp>;
 #else
 using PointerMap = mixin::SharedMutexMap<mixin::StandardMapBase<mixin::MapOp>>;

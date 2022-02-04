@@ -1,18 +1,18 @@
 // clang-format off
-// RUN: %run %s -o -O1 --thread --manual 2>&1 | FileCheck %s --check-prefix=CHECK-TSAN
-// RUN: %run %s -o -O1 --thread --manual 2>&1 | FileCheck %s
+// RUN: %run %s -o -O1 --thread --manual 2>&1 | %filecheck %s --check-prefix=CHECK-TSAN
+// RUN: %run %s -o -O1 --thread --manual 2>&1 | %filecheck %s
 // REQUIRES: thread && softcounter
 // clang-format on
 
 #include "../../lib/runtime/CallbackInterface.h"
 #include "util.h"
 
-#include <vector>
 #include <algorithm>
 #include <atomic>
-#include <thread>
 #include <chrono>
 #include <random>
+#include <thread>
+#include <vector>
 
 std::atomic_bool stop{false};
 const size_t extent{1};

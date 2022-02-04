@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2021 TypeART Authors
+// Copyright (c) 2017-2022 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -32,8 +32,29 @@ namespace typeart {
 
 using namespace llvm;
 
+namespace compat {
+auto num_elements(llvm::VectorType* type) {
+#if LLVM_VERSION_MAJOR < 11
+  return type->getVectorNumElements();
+#else
+  auto* fixed_vec = dyn_cast<llvm::FixedVectorType>(type);
+  assert(fixed_vec);
+  return fixed_vec->getNumElements();
+#endif
+}
+auto type_elements(llvm::VectorType* type) {
+#if LLVM_VERSION_MAJOR < 11
+  return type->getVectorElementType();
+#else
+  auto* fixed_vec = dyn_cast<llvm::FixedVectorType>(type);
+  assert(fixed_vec);
+  return fixed_vec->getElementType();
+#endif
+}
+}  // namespace compat
+
 Type* VectorTypeHandler::getElementType(llvm::VectorType* type) {
-  auto element_type = type->getVectorElementType();
+  auto element_type = compat::type_elements(type);
 
   // Should never happen, as vectors are first class types.
   assert(!element_type->isAggregateType() && "Unexpected vector type encountered: vector of aggregate type.");
@@ -43,8 +64,9 @@ Type* VectorTypeHandler::getElementType(llvm::VectorType* type) {
 
 llvm::Optional<VectorTypeHandler::VectorData> VectorTypeHandler::getVectorData() const {
   size_t vectorBytes = dl.getTypeAllocSize(type);
-  size_t vectorSize  = type->getVectorNumElements();
-  auto element_data  = getElementData();
+
+  size_t vectorSize = compat::num_elements(type);
+  auto element_data = getElementData();
 
   if (!element_data) {
     LOG_DEBUG("Element data empty for: " << util::dump(*type))
@@ -81,7 +103,7 @@ llvm::Optional<int> VectorTypeHandler::getElementID() const {
 }
 
 std::string VectorTypeHandler::getName(const ElementData& data) const {
-  size_t vectorSize = type->getVectorNumElements();
+  size_t vectorSize = compat::num_elements(type);
   auto name         = "vec" + std::to_string(vectorSize) + ":" + data.element_name;
 
   return name;

@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2021 TypeART Authors
+// Copyright (c) 2017-2022 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -12,8 +12,6 @@
 
 #ifndef TYPEART_DEFUSECHAIN_H
 #define TYPEART_DEFUSECHAIN_H
-
-using namespace llvm;
 
 #include "support/Logger.h"
 #include "support/Util.h"
@@ -30,10 +28,10 @@ struct DefUseChain {
   enum MatchResult { no_match = 0, match, cancel, skip };
 
  private:
-  llvm::SmallVector<Value*, 16> working_set;
-  llvm::SmallPtrSet<Value*, 16> seen_set;
+  llvm::SmallVector<llvm::Value*, 16> working_set;
+  llvm::SmallPtrSet<llvm::Value*, 16> seen_set;
 
-  void addToWorkS(Value* v) {
+  void addToWorkS(llvm::Value* v) {
     if (v != nullptr && seen_set.find(v) == seen_set.end()) {
       working_set.push_back(v);
       seen_set.insert(v);
@@ -47,7 +45,7 @@ struct DefUseChain {
     }
   }
 
-  auto peek() -> Value* {
+  auto peek() -> llvm::Value* {
     if (working_set.empty()) {
       return nullptr;
     }
@@ -57,9 +55,11 @@ struct DefUseChain {
   }
 
   template <typename AllowedTy, typename SDirection, typename CallBackF>
-  void do_traverse(SDirection&& search, Value* start, CallBackF match) {
-    const auto should_search = [](auto user) { return isa<AllowedTy>(user) && !isa<ConstantData>(user); };
-    const auto apply_search  = [&](auto val) {
+  void do_traverse(SDirection&& search, llvm::Value* start, CallBackF match) {
+    const auto should_search = [](auto user) {
+      return llvm::isa<AllowedTy>(user) && !llvm::isa<llvm::ConstantData>(user);
+    };
+    const auto apply_search = [&](auto val) {
       auto value = search(val);
       if (value) {
         addToWork(value.getValue());
@@ -93,25 +93,25 @@ struct DefUseChain {
 
  public:
   template <typename CallBackF>
-  void traverse(Value* start, CallBackF&& match) {
+  void traverse(llvm::Value* start, CallBackF&& match) {
     LOG_DEBUG("Start traversal for value: " << util::dump(*start));
-    do_traverse<Value>([](auto val) -> Optional<decltype(val->users())> { return val->users(); }, start,
-                       std::forward<CallBackF>(match));
+    do_traverse<llvm::Value>([](auto val) -> llvm::Optional<decltype(val->users())> { return val->users(); }, start,
+                             std::forward<CallBackF>(match));
     LOG_DEBUG("Finished traversal");
   }
 
   template <typename Search, typename CallBackF>
-  void traverse_custom(Value* start, Search&& s, CallBackF&& match) {
+  void traverse_custom(llvm::Value* start, Search&& s, CallBackF&& match) {
     LOG_DEBUG("Start traversal for value: " << util::dump(*start));
-    do_traverse<Value>(std::forward<Search>(s), start, std::forward<CallBackF>(match));
+    do_traverse<llvm::Value>(std::forward<Search>(s), start, std::forward<CallBackF>(match));
     LOG_DEBUG("Finished traversal");
   }
 
   template <typename CallBackF>
-  void traverse_with_store(Value* start, CallBackF&& match) {
+  void traverse_with_store(llvm::Value* start, CallBackF&& match) {
     LOG_DEBUG("Start traversal for value: " << util::dump(*start));
-    do_traverse<Value>(
-        [](auto val) -> Optional<decltype(val->users())> {
+    do_traverse<llvm::Value>(
+        [](auto val) -> llvm::Optional<decltype(val->users())> {
           if (auto cinst = llvm::dyn_cast<llvm::StoreInst>(val)) {
             return cinst->getPointerOperand()->users();
           }

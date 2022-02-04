@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2021 TypeART Authors
+// Copyright (c) 2017-2022 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -15,10 +15,9 @@
 
 #include "FilterBase.h"
 #include "Matcher.h"
+#include "compat/CallSite.h"
 #include "filter/CGInterface.h"
 #include "filter/IRPath.h"
-
-#include "llvm/IR/CallSite.h"
 
 #include <memory>
 #include <string>

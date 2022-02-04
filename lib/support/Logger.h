@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2021 TypeART Authors
+// Copyright (c) 2017-2022 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -15,27 +15,27 @@
 
 #include "llvm/Support/raw_ostream.h"
 
-#ifndef LOG_LEVEL
+#ifndef TYPEART_LOG_LEVEL
 /*
- * Usually set at compile time: -DLOG_LEVEL=<N>, N in [0, 3] for output
+ * Usually set at compile time: -DTYPEART_LOG_LEVEL=<N>, N in [0, 3] for output
  * 3 being most verbose
  */
-#define LOG_LEVEL 3
+#define TYPEART_LOG_LEVEL 3
 #endif
 
 #ifndef LOG_BASENAME_FILE
 #define LOG_BASENAME_FILE __FILE__
 #endif
 
-#ifndef MPI_LOGGER
-#define MPI_LOGGER 0
+#ifndef TYPEART_MPI_LOGGER
+#define TYPEART_MPI_LOGGER 0
 #endif
 
 namespace typeart::detail {
-#if MPI_LOGGER
-void mpi_log(const std::string& msg);
+#if TYPEART_MPI_LOGGER
+void typeart_log(const std::string& rank);
 #else
-inline void mpi_log(const std::string& msg) {
+inline void typeart_log(const std::string& msg) {
   llvm::errs() << msg;
 }
 #endif
@@ -43,19 +43,19 @@ inline void mpi_log(const std::string& msg) {
 
 // clang-format off
 #define OO_LOG_LEVEL_MSG(LEVEL_NUM, LEVEL, MSG)                                                                   \
-  if ((LEVEL_NUM) <= LOG_LEVEL) {                                                                                 \
-    std::string s;                                                                                                \
-    llvm::raw_string_ostream rso(s);                                                                              \
+  if ((LEVEL_NUM) <= TYPEART_LOG_LEVEL) {                                                                                 \
+    std::string logging_message;                                                                                  \
+    llvm::raw_string_ostream rso(logging_message);                                                                \
     rso << (LEVEL) << LOG_BASENAME_FILE << ":" << __func__ << ":" << __LINE__ << ":" << MSG << "\n"; /* NOLINT */ \
-    typeart::detail::mpi_log(rso.str());                                                                                   \
+    typeart::detail::typeart_log(rso.str());                                                                      \
   }
 
 #define OO_LOG_LEVEL_MSG_BARE(LEVEL_NUM, LEVEL, MSG)   \
-  if ((LEVEL_NUM) <= LOG_LEVEL) {                      \
-    std::string s;                                     \
-    llvm::raw_string_ostream rso(s);                   \
+  if ((LEVEL_NUM) <= TYPEART_LOG_LEVEL) {                      \
+    std::string logging_message;                       \
+    llvm::raw_string_ostream rso(logging_message);     \
     rso << (LEVEL) << " " << MSG << "\n"; /* NOLINT */ \
-    typeart::detail::mpi_log(rso.str());               \
+    typeart::detail::typeart_log(rso.str());           \
   }
 // clang-format on
 

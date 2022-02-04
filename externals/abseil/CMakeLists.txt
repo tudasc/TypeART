@@ -1,3 +1,5 @@
+set(ABSL_PROPAGATE_CXX_STD ON)
+
 FetchContent_Declare(
   cpp-abseil
   GIT_REPOSITORY https://github.com/abseil/abseil-cpp.git
@@ -14,6 +16,7 @@ mark_as_advanced(
   ABSL_USE_EXTERNAL_GOOGLETEST
   ABSL_USE_GOOGLETEST_HEAD
   ABSL_PROPAGATE_CXX_STD
+  ABSL_BUILD_TESTING
   BUILD_TESTING
 )
 

@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2021 TypeART Authors
+// Copyright (c) 2017-2022 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -15,8 +15,9 @@
 
 //#include "Logger.h"
 
+#include "compat/CallSite.h"
+
 #include "llvm/Demangle/Demangle.h"
-#include "llvm/IR/CallSite.h"
 #include "llvm/Support/Regex.h"
 #include "llvm/Support/raw_ostream.h"
 
@@ -83,10 +84,10 @@ inline std::string dump(const Val& s) {
 
 template <typename String>
 inline std::string demangle(String&& s) {
-  std::string name = s;
+  std::string name = std::string{s};
   auto demangle    = llvm::itaniumDemangle(name.data(), nullptr, nullptr, nullptr);
   if (demangle && !std::string(demangle).empty()) {
-    return std::string(demangle);
+    return {demangle};
   }
   return name;
 }

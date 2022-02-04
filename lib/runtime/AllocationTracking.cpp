@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2021 TypeART Authors
+// Copyright (c) 2017-2022 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -28,7 +28,7 @@
 #include <type_traits>
 #include <vector>
 
-#ifdef USE_BTREE
+#ifdef TYPEART_BTREE
 using namespace btree;
 #endif
 
@@ -158,9 +158,9 @@ AllocState AllocationTracker::doAlloc(const void* addr, int typeId, size_t count
     return status | AllocState::NULL_PTR | AllocState::ADDR_SKIPPED;
   }
 
-  const auto overriden = wrapper.put(addr, PointerInfo{typeId, count, retAddr});
+  const auto overridden = wrapper.put(addr, PointerInfo{typeId, count, retAddr});
 
-  if (unlikely(overriden)) {
+  if (unlikely(overridden)) {
     recorder.incAddrReuse();
     status |= AllocState::ADDR_REUSE;
     LOG_WARNING("Pointer already in map " << toString(addr, typeId, count, retAddr));

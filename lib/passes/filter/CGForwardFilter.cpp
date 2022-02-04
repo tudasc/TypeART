@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2021 TypeART Authors
+// Copyright (c) 2017-2022 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -99,7 +99,7 @@ FilterAnalysis CGFilterImpl::decl(CallSite current, const Path& p) {
 
   const auto searchCG = [&](auto from) {
     if (call_graph) {
-      return call_graph->reachable(from->getName(), filter);
+      return call_graph->reachable(std::string{from->getName()}, filter);
     }
     return CGInterface::ReachabilityResult::unknown;
   };

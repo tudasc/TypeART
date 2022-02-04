@@ -2,7 +2,7 @@
 #
 # TypeART library
 #
-# Copyright (c) 2017-2021 TypeART Authors
+# Copyright (c) 2017-2022 TypeART Authors
 # Distributed under the BSD 3-Clause license.
 # (See accompanying file LICENSE.txt or copy at
 # https://opensource.org/licenses/BSD-3-Clause)
@@ -18,7 +18,6 @@ function global_init() {
     local -r typeart_bin_dir="@TYPEART_BINARY_DIR@"
     local -r typeart_lib_dir="@TYPEART_RT_DIR@"
     local -r typeart_include_dir="@TYPEART_INCLUDE_DIRS@"
-    local -r typeart_analysis_pass="@TYPEART_ANALYSIS_PASS_DIR@/$<TARGET_FILE_NAME:typeart::MemOpFinderPass>"
     local -r typeart_pass="@TYPEART_PASS_DIR@/$<TARGET_FILE_NAME:typeart::TransformPass>"
   else
     # shellcheck disable=SC2155
@@ -27,7 +26,6 @@ function global_init() {
     local -r typeart_install_dir="$(dirname "${typeart_bin_dir}")"
     local -r typeart_lib_dir="${typeart_install_dir}/@CMAKE_INSTALL_LIBDIR@"
     local -r typeart_include_dir="-I${typeart_install_dir}/@CMAKE_INSTALL_INCLUDEDIR@"
-    local -r typeart_analysis_pass="${typeart_lib_dir}/$<TARGET_FILE_NAME:typeart::MemOpFinderPass>"
     local -r typeart_pass="${typeart_lib_dir}/$<TARGET_FILE_NAME:typeart::TransformPass>"
   fi
 
@@ -42,10 +40,9 @@ function global_init() {
   readonly typeart_san_flags="@TYPEART_SAN_FLAGS@"
 
   # shellcheck disable=SC2027
-  readonly typeart_plugin="-load "${typeart_analysis_pass}" \
-                          -load "${typeart_pass}" -typeart"
-  readonly typeart_stack_mode_args="-typeart-no-heap -typeart-alloca -typeart-stats @TYPEART_CALLFILTER@"
-  readonly typeart_heap_mode_args="-typeart-no-heap=false -typeart-stats"
+  readonly typeart_plugin="-load "${typeart_pass}" -typeart"
+  readonly typeart_stack_mode_args="-typeart-heap=false -typeart-stack -typeart-stats @TYPEART_CALLFILTER@"
+  readonly typeart_heap_mode_args="-typeart-heap=true -typeart-stats"
 }
 
 function is_wrapper_disabled() {
@@ -61,12 +58,24 @@ function is_wrapper_disabled() {
 function is_linking() {
   for arg in "$@"; do
     case "$arg" in
-    -c | -S | -E | -M | -MM | -MMD)
+    -c | -S | -E)
       return 0
-      ;;
+    ;;
     esac
   done
   return 1
+}
+
+function has_source() {
+  for arg in "$@"; do
+    local extension_of_arg="${arg##*.}"
+    case "$extension_of_arg" in
+    cpp | cxx | cc | c)
+      return 1
+    ;;
+    esac
+  done
+  return 0
 }
 
 function skip_typeart_compile() {
@@ -75,7 +84,7 @@ function skip_typeart_compile() {
     case "$arg" in
     -E | -M | -MM)
       return 1
-      ;;
+    ;;
     esac
   done
   return 0
@@ -162,9 +171,17 @@ function parse_cmd_line() {
       optimize=$1
       shift
       ;;
-    -c | -MMD | -S)
+    -MT)
+      if [ -n "$2" ]; then
+        ta_more_args+=" $1 $2"
+        shift 2
+      else
+        ta_more_args+=" $1"
+        shift 1
+      fi
+      ;;
+    -c | -S)
       # -S compile to asm
-      # -MMD list file dep and compile
       if [ "$1" == "-S" ]; then
         typeart_to_asm=1
       fi
@@ -268,7 +285,18 @@ function main_in() {
   fi
 
   is_linking "$@"
-  if [ "$?" == 1 ]; then
+  local -r linking=$?
+  has_source "$@"
+  local -r with_source=$?
+
+  if [ "$linking" == 1 ] && [ "$with_source" == 1 ]; then
+    parse_cmd_line "$@"
+    main_compile "$@"
+    if [ "$found_exe_file" == 1 ]; then
+      ta_more_args+=" -o ${exe_file}"
+    fi
+    main_link "$ta_more_args" "${object_file}"
+  elif [ "$linking" == 1 ]; then
     main_link "$@"
   else
     parse_cmd_line "$@"

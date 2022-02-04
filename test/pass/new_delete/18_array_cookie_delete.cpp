@@ -1,5 +1,5 @@
 // clang-format off
-// RUN: %cpp-to-llvm %s | %apply-typeart -S 2>&1 | FileCheck %s
+// RUN: %cpp-to-llvm %s | %apply-typeart -S 2>&1 | %filecheck %s
 // clang-format on
 
 struct S1 {
@@ -7,7 +7,7 @@ struct S1 {
   ~S1(){};
 };
 
-// CHECK: [[MEM:%[0-9]+]] = getelementptr inbounds i8, i8* [[ARR:%[0-9]+]], i64 -8
+// CHECK: [[MEM:%[0-9a-z]+]] = getelementptr inbounds i8, i8* [[ARR:%[0-9a-z]+]], i64 -8
 // CHECK: call void @_ZdaPv(i8* [[MEM]])
 // CHECK: call void @__typeart_free(i8* [[ARR]])
 int main() {

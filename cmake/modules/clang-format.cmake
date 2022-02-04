@@ -1,4 +1,4 @@
-function(add_format_target target comment)
+function(typeart_add_format_target target comment)
   macro(filter_dir dir_name_)
     foreach (source_file ${ALL_CXX_FILES})
       string(FIND ${source_file} ${dir_name_} EXCLUDE_FOUND)
@@ -21,7 +21,7 @@ function(add_format_target target comment)
   endforeach()
 
   find_program(FORMAT_COMMAND
-               NAMES clang-format clang-format-12 clang-format-11 clang-format-10)
+               NAMES clang-format clang-format-13 clang-format-12 clang-format-11 clang-format-10)
   if(FORMAT_COMMAND)
     add_custom_target(${target}
       COMMAND ${FORMAT_COMMAND} -i -style=file ${ARG_OTHER} ${ARG_UNPARSED_ARGUMENTS}

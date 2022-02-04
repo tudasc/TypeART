@@ -1,4 +1,4 @@
-function(add_tidy_target target comment)
+function(typeart_add_tidy_target target comment)
   macro(filter_dir dir_name_)
     foreach(source_file ${ARG_SOURCES})
       string(FIND ${source_file} ${dir_name_} EXCLUDE_FOUND)
@@ -15,7 +15,7 @@ function(add_tidy_target target comment)
   endforeach()
 
   find_program(TIDY_COMMAND
-    NAMES clang-tidy clang-tidy-12 clang-tidy-11 clang-tidy-10
+    NAMES clang-tidy clang-tidy-13 clang-tidy-12 clang-tidy-11 clang-tidy-10
     HINTS ${LLVM_TOOLS_BINARY_DIR}
   )
   if(TIDY_COMMAND)
@@ -38,7 +38,7 @@ endfunction()
 
 function(add_tidy_fix_target target comment)
   cmake_parse_arguments(ARG "" "" "SOURCES;EXCLUDES;OTHER" ${ARGN})
-  add_tidy_target(${target} "${comment}"
+  typeart_add_tidy_target(${target} "${comment}"
     SOURCES ${ARG_SOURCES}
     EXCLUDES ${ARG_EXCLUDES}
     OTHER ${ARG_OTHER} -fix
@@ -46,7 +46,7 @@ function(add_tidy_fix_target target comment)
 endfunction()
 
 function(make_tidy_check name sources)
-  add_tidy_target(tidy-run-on-${name}
+  typeart_add_tidy_target(tidy-run-on-${name}
     "Clang-tidy run on ${name} translation units"
     SOURCES ${sources}
     OTHER --header-filter=${CMAKE_CURRENT_SOURCE_DIR}

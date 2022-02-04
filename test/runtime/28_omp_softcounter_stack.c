@@ -1,6 +1,6 @@
 // clang-format off
-// RUN: %run %s -o -O0 --omp 2>&1 | FileCheck %s --check-prefix=CHECK-TSAN
-// RUN: %run %s -o -O0 --omp 2>&1 | FileCheck %s
+// RUN: %run %s -o -O0 --omp -typeart-filter-pointer-alloca=false 2>&1 | %filecheck %s --check-prefix=CHECK-TSAN
+// RUN: %run %s -o -O0 --omp -typeart-filter-pointer-alloca=false 2>&1 | %filecheck %s
 // REQUIRES: openmp && softcounter
 // clang-format on
 
@@ -36,7 +36,7 @@ int main(int argc, char** argv) {
   // CHECK: Alloc Stats from softcounters
   // CHECK-NEXT: Total heap                 :   0 ,    0 ,    -
   // CHECK: Total stack                     :   {{[0-9]+}} ,   400 ,    -
-  // CHECK-NEXT: Total global               :   0 ,    0 ,    -
+  // CHECK-NEXT: Total global               :   {{[0-9]+}} ,    {{[0-9]+}} ,    -
   // CHECK-NEXT: Max. Heap Allocs           :   0 ,    - ,    -
   // CHECK-NEXT: Max. Stack Allocs          :  17 ,    - ,    -
   // CHECK-NEXT: Addresses checked          :   0 ,    - ,    -

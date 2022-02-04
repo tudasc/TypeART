@@ -1,4 +1,4 @@
-// RUN: %run %s -o -O3 2>&1 | FileCheck %s
+// RUN: %run %s -o -O3 2>&1 | %filecheck %s
 // REQUIRES: softcounter
 
 #include <stdlib.h>

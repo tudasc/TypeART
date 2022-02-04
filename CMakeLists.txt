@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 
 project(typeart
-  VERSION 1.6
+  VERSION 1.7
   HOMEPAGE_URL https://github.com/tudasc/TypeART
   DESCRIPTION "LLVM-based type and memory allocation tracking sanitizer"
 )
@@ -24,12 +24,11 @@ list(
   APPEND
   CMAKE_MODULE_PATH
   ${CMAKE_CURRENT_SOURCE_DIR}/cmake
-  ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules
 )
 
-include(ToolchainOptions)
+include(typeartToolchainOptions)
 
-add_format_target(
+typeart_add_format_target(
   format-sources "Formats project source files"
   TARGETS lib/passes/*.cpp
           lib/passes/*.h
@@ -59,7 +58,7 @@ set(BINARY_INSTALL_DIR ${CMAKE_INSTALL_BINDIR})
 set(CMAKE_INSTALL_DIR ${TYPEART_INSTALL_CONFIGDIR})
 
 configure_package_config_file(
-  ${PROJECT_SOURCE_DIR}/cmake/Config.cmake.in
+  ${PROJECT_SOURCE_DIR}/cmake/typeartConfig.cmake.in
   ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
   INSTALL_DESTINATION ${TYPEART_INSTALL_CONFIGDIR}
   PATH_VARS INCLUDE_INSTALL_DIR

@@ -12,11 +12,11 @@ set(PASS_SOURCES
   instrumentation/Instrumentation.cpp
 )
 
-make_llvm_module(
+typeart_make_llvm_module(
   ${TYPEART_PREFIX}_TransformPass "${PASS_SOURCES}"
-  LINK_LIBS typeart::TypesStatic
+  LINK_LIBS typeart::MemInstFinder
+            typeart::TypesStatic
             typeart::TypeGenStatic
-  DEPENDS typeart::MemOpFinderPass
   INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}
                ${PROJECT_SOURCE_DIR}/lib/
                ${PROJECT_SOURCE_DIR}/lib/passes/
@@ -33,12 +33,12 @@ set_target_properties(
 add_library(typeart::TransformPass ALIAS ${TYPEART_PREFIX}_TransformPass)
 
 target_compile_definitions(
-  ${TYPEART_PREFIX}_TransformPass PRIVATE LOG_LEVEL=${LOG_LEVEL}
-                        $<$<BOOL:${SHOW_STATS}>:LLVM_ENABLE_STATS>
+  ${TYPEART_PREFIX}_TransformPass PRIVATE TYPEART_LOG_LEVEL=${TYPEART_LOG_LEVEL}
+                        $<$<BOOL:${TYPEART_SHOW_STATS}>:LLVM_FORCE_ENABLE_STATS=1>
 )
 
-target_project_compile_options(${TYPEART_PREFIX}_TransformPass)
-target_project_coverage_options(${TYPEART_PREFIX}_TransformPass)
+typeart_target_compile_options(${TYPEART_PREFIX}_TransformPass)
+typeart_target_coverage_options(${TYPEART_PREFIX}_TransformPass)
 
 set(CONFIG_NAME ${PROJECT_NAME}TransformPass)
 set(TARGETS_EXPORT_NAME ${CONFIG_NAME}Targets)

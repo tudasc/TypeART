@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2021 TypeART Authors
+// Copyright (c) 2017-2022 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -45,7 +45,7 @@ struct StackCounter {
     // In each basic block: counter =+ num_alloca (in BB)
     for (auto data : allocCounts) {
       IRBuilder<> IRB(data.first->getTerminator());
-      auto* load_counter = IRB.CreateLoad(counter);
+      auto* load_counter = IRB.CreateLoad(instr_helper->getTypeFor(IType::stack_count), counter);
       Value* increment_counter =
           IRB.CreateAdd(instr_helper->getConstantFor(IType::stack_count, data.second), load_counter);
       IRB.CreateStore(increment_counter, counter);
@@ -59,7 +59,7 @@ struct StackCounter {
     while (IRBuilder<>* irb = ee.Next()) {
       auto* I = &(*irb->GetInsertPoint());
 
-      auto* counter_load = irb->CreateLoad(counter, "__ta_counter_load");
+      auto* counter_load = irb->CreateLoad(instr_helper->getTypeFor(IType::stack_count), counter, "__ta_counter_load");
       auto* cond      = irb->CreateICmpNE(counter_load, instr_helper->getConstantFor(IType::stack_count), "__ta_cond");
       auto* then_term = SplitBlockAndInsertIfThen(cond, I, false);
       irb->SetInsertPoint(then_term);

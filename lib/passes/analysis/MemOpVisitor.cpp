@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2021 TypeART Authors
+// Copyright (c) 2017-2022 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -13,6 +13,7 @@
 #include "MemOpVisitor.h"
 
 #include "analysis/MemOpData.h"
+#include "compat/CallSite.h"
 #include "support/Error.h"
 #include "support/Logger.h"
 #include "support/TypeUtil.h"
@@ -22,7 +23,6 @@
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/StringRef.h"
-#include "llvm/IR/CallSite.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/InstrTypes.h"
@@ -34,7 +34,7 @@
 
 #include <cstddef>
 
-namespace typeart::finder {
+namespace typeart::analysis {
 
 using namespace llvm;
 
@@ -71,10 +71,10 @@ void MemOpVisitor::visitCallBase(llvm::CallBase& cb) {
     return None;
   };
 
-  if (auto val = isInSet(mem_operations.allocs())) {
-    visitMallocLike(cb, val.getValue());
-  } else if (auto val = isInSet(mem_operations.deallocs())) {
-    visitFreeLike(cb, val.getValue());
+  if (auto alloc_val = isInSet(mem_operations.allocs())) {
+    visitMallocLike(cb, alloc_val.getValue());
+  } else if (auto dealloc_val = isInSet(mem_operations.deallocs())) {
+    visitFreeLike(cb, dealloc_val.getValue());
   }
 }
 
@@ -213,7 +213,7 @@ void MemOpVisitor::visitMallocLike(llvm::CallBase& ci, MemOpKind k) {
   auto primary_cast   = bcasts.empty() ? nullptr : *bcasts.begin();
   auto array_cookie   = handleArrayCookie(geps, bcasts, primary_cast);
   if (primary_cast == nullptr) {
-    LOG_DEBUG("Primay bitcast null: " << ci)
+    LOG_DEBUG("Primary bitcast null: " << ci)
   }
   mallocs.push_back(MallocData{&ci, array_cookie, primary_cast, bcasts, k, isa<InvokeInst>(ci)});
 }
@@ -222,7 +222,7 @@ void MemOpVisitor::visitFreeLike(llvm::CallBase& ci, MemOpKind k) {
   //  LOG_DEBUG(ci.getCalledFunction()->getName());
   MemOpKind kind = k;
 
-  // FIME is that superfluous?
+  // FIXME is that superfluous?
   if (auto f = ci.getCalledFunction()) {
     auto dkind = mem_operations.deallocKind(f->getName());
     if (dkind) {
@@ -263,4 +263,4 @@ void MemOpVisitor::clear() {
   frees.clear();
 }
 
-}  // namespace typeart::finder
+}  // namespace typeart::analysis

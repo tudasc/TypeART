@@ -24,8 +24,8 @@ OBJECTS2.0 = $(SOURCES2.0:.cc=.o)
 CXXFLAGS = -g -I. -Wall
 LDFLAGS = -g -O3
 
-PASSES=-load ${TYPEART_LIBPATH}/passes/analysis/typeartMemOpFinderPass-d.so -load ${TYPEART_LIBPATH}/passes/typeartTransformPass-d.so -typeart-stats
-CALL_FILTER=-call-filter -call-filter-impl=default
+PASSES=-load ${TYPEART_LIBPATH}/passes/analysis/meminstfinderpass-d.so -load ${TYPEART_LIBPATH}/passes/typeartpass-d.so -typeart-stats
+CALL_FILTER=-typeart-call-filter -typeart-call-filter-impl=default
 
 ifeq ($(TSAN), yes)
 	CXXFLAGS += -fsanitize=thread
@@ -34,7 +34,7 @@ endif
 
 .cc.o: lulesh.h
 ifeq ($(TYPEART), yes)
-	$(CXX) ${CXXFLAGS} -O1 -Xclang -disable-llvm-passes -S -emit-llvm $< -o - | opt $(PASSES) -typeart -S | opt -O3 -S | opt $(PASSES) -typeart -typeart-alloca $(CALL_FILTER) -typeart-no-heap=true | llc -x=ir -filetype=obj -o $@
+	$(CXX) ${CXXFLAGS} -O1 -Xclang -disable-llvm-passes -S -emit-llvm $< -o - | opt $(PASSES) -typeart -S | opt -O3 -S | opt $(PASSES) -typeart -typeart-stack $(CALL_FILTER) -typeart-heap=false | llc -x=ir -filetype=obj -o $@
 else
 	$(CXX) $(CXXFLAGS) -O3 -c -o $@ $<
 endif
