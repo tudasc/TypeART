@@ -82,7 +82,7 @@ jobs:
       - name: Prepare artifact
         if: ${{ always() }}
         run: |
-          mkdir -p artifact/$GITHUB_JOB/${{ matrix.preset.name }}/
+          mkdir -p artifact/$GITHUB_JOB/${{ matrix.preset.name }}-llvm-${{ matrix.llvm-version }}/
           mv -v test-bench/build/*_build.log artifact/$GITHUB_JOB/${{ matrix.preset.name }}-llvm-${{ matrix.llvm-version }}/
           mv -v test-bench/artifact-${{ matrix.llvm-version }}/* artifact/$GITHUB_JOB/${{ matrix.preset.name }}-llvm-${{ matrix.llvm-version }}/
 
@@ -153,7 +153,7 @@ jobs:
       - name: Prepare artifact
         if: ${{ always() }}
         run: |
-          mkdir -p artifact/$GITHUB_JOB/${{ matrix.preset.name }}/
+          mkdir -p artifact/$GITHUB_JOB/${{ matrix.preset.name }}-llvm-${{ matrix.llvm-version }}/
           mv -v ad-test-bench/build/*_build.log artifact/$GITHUB_JOB/${{ matrix.preset.name }}-llvm-${{ matrix.llvm-version }}/
           mv -v ad-test-bench/artifact-${{ matrix.llvm-version }}/* artifact/$GITHUB_JOB/${{ matrix.preset.name }}-llvm-${{ matrix.llvm-version }}/
 
@@ -234,7 +234,7 @@ jobs:
       - name: Prepare artifact
         if: ${{ always() }}
         run: |
-          mkdir -p artifact/$GITHUB_JOB/${{ matrix.preset.name }}/
+          mkdir -p artifact/$GITHUB_JOB/${{ matrix.preset.name }}-llvm-${{ matrix.llvm-version }}/
           mv -v omp-test-bench/build/*_build.log artifact/$GITHUB_JOB/${{ matrix.preset.name }}-llvm-${{ matrix.llvm-version }}/
           mv -v omp-test-bench/artifact-${{ matrix.llvm-version }}/* artifact/$GITHUB_JOB/${{ matrix.preset.name }}-llvm-${{ matrix.llvm-version }}/
 
