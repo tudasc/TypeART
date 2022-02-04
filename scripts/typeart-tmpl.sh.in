@@ -166,8 +166,8 @@ function global_init() {
 
   # shellcheck disable=SC2027
   readonly typeart_plugin="-load "${typeart_pass}" -typeart"
-  readonly typeart_stack_mode_args="-typeart-heap=false -typeart-stack -typeart-stats -typeart-outfile ${types_yaml}"
-  readonly typeart_heap_mode_args="-typeart-heap=true -typeart-stats -typeart-outfile ${types_yaml}"
+  readonly typeart_stack_mode_args="-typeart-heap=false -typeart-stack -typeart-stats -typeart-types ${types_yaml}"
+  readonly typeart_heap_mode_args="-typeart-heap=true -typeart-stats -typeart-types ${types_yaml}"
   readonly typeart_combined_mode_args="${typeart_heap_mode_args} -typeart-stack"
 }
 
