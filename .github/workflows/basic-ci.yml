@@ -62,6 +62,7 @@ jobs:
             libcxx: true
             skip_test: true
           - name: ci-mpi
+          - name: ci-cov-mpi
             coverage: true
 
     steps:

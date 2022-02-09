@@ -210,6 +210,14 @@
       "inherits": [
         "ci-base"
       ]
+    },
+    {
+      "name": "ci-cov-mpi",
+      "displayName": "CI build: MPI w/ coverage (lcov)",
+      "inherits": [
+        "coverage",
+        "ci-mpi"
+      ]
     }
   ]
 }
