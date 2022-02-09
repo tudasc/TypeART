@@ -72,14 +72,14 @@ RuntimeSystem::RuntimeSystem() : rtScopeInit(), typeResolution(typeDB, recorder)
   // Try to load types from specified file first.
   // Then look at default location.
   const char* type_file = std::getenv("TYPEART_TYPE_FILE");
-  if (type_file == nullptr) {
+  if (type_file == nullptr || strcmp(type_file, "") == 0) {
     // FIXME Deprecated name
     type_file = std::getenv("TA_TYPE_FILE");
     if (type_file != nullptr) {
       LOG_WARNING("Use of deprecated env var TA_TYPE_FILE.");
     }
   }
-  if (type_file != nullptr) {
+  if (type_file != nullptr && strcmp(type_file, "") != 0) {
     if (!loadTypes(type_file, error)) {
       LOG_FATAL("Failed to load recorded types from TYPEART_TYPE_FILE=" << type_file
                                                                         << ". Reason: " << error.message());

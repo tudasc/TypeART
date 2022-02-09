@@ -79,9 +79,9 @@ function parse_cmd_line() {
         shift
       fi
       ;;
-    --types_yaml)
+    --types_file)
       if [ -n "$2" ]; then
-        types_yaml="$2"
+        types_file="$2"
         shift 2
       else
         echo "Error: types.yaml filepath for $1 is missing." >&2
@@ -126,8 +126,8 @@ function parse_cmd_line() {
     command="${exe_file}"
   fi
 
-  if [ -z "${types_yaml}" ]; then
-    types_yaml="${source_file%.*}".types.yaml
+  if [ -z "${types_file}" ]; then
+    types_file="${source_file%.*}".types.yaml
   fi
 
   if [ $show_ir == 1 ]; then
@@ -166,8 +166,8 @@ function global_init() {
 
   # shellcheck disable=SC2027
   readonly typeart_plugin="-load "${typeart_pass}" -typeart"
-  readonly typeart_stack_mode_args="-typeart-heap=false -typeart-stack -typeart-stats -typeart-types ${types_yaml}"
-  readonly typeart_heap_mode_args="-typeart-heap=true -typeart-stats -typeart-types ${types_yaml}"
+  readonly typeart_stack_mode_args="-typeart-heap=false -typeart-stack -typeart-stats -typeart-types ${types_file}"
+  readonly typeart_heap_mode_args="-typeart-heap=true -typeart-stats -typeart-types ${types_file}"
   readonly typeart_combined_mode_args="${typeart_heap_mode_args} -typeart-stack"
 }
 
@@ -201,10 +201,10 @@ function toolchain_init() {
 
   readonly typeart_san_flags="@TYPEART_SAN_FLAGS@"
 
-  if [ -e ${types_yaml} ]; then
-    rm ${types_yaml}
+  if [ -e ${types_file} ]; then
+    rm ${types_file}
   fi
-  touch ${types_yaml}
+  touch ${types_file}
 }
 
 function source_to_llvm() {
@@ -279,6 +279,7 @@ function main_link() {
 
 function execute() {
   if [ $clean_types_file == 1 ]; then
+    types_file=""
     if [ -e "types.yaml" ]; then
       rm "types.yaml"
     fi
@@ -291,14 +292,14 @@ function execute() {
   if [ $with_intercept == 1 ]; then
     if [ $typeart_has_interceptor == 1 ]; then
       echo -e Executing with runtime and interceptor lib
-      LD_LIBRARY_PATH="$LD_LIBRARY_PATH:${typeart_lib_dir}" LD_PRELOAD="${typeart_interceptor}" TYPEART_TYPE_FILE=${types_yaml} ${command}
+      LD_LIBRARY_PATH="$LD_LIBRARY_PATH:${typeart_lib_dir}" LD_PRELOAD="${typeart_interceptor}" TYPEART_TYPE_FILE=${types_file} ${command}
     else
       echo -e Interceptor lib not compiled with TypeART, exiting!
       exit 1
     fi
   else
     echo -e Executing with runtime lib
-    LD_LIBRARY_PATH="$LD_LIBRARY_PATH:${typeart_lib_dir}" TYPEART_TYPE_FILE=${types_yaml} ${command}
+    LD_LIBRARY_PATH="$LD_LIBRARY_PATH:${typeart_lib_dir}" TYPEART_TYPE_FILE=${types_file} ${command}
   fi
 }
 
