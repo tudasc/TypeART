@@ -47,7 +47,7 @@ endif()
 
 target_link_libraries(MPITool
   PRIVATE typeart::Runtime
-          MPI::MPI_C
+          MPI::MPI_CXX
           result
           fmt
           spdlog
