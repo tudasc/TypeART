@@ -2,7 +2,7 @@ name: TypeART-CI-ext
 
 on:
   push:
-    branches: [ master, devel ]
+    branches: [master, devel]
   pull_request:
 
 env:
@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        llvm-version: [ 10, 12 ]
+        llvm-version: [10, 12]
         preset:
           - name: release-counter
           - name: release-safeptr-counter
@@ -61,7 +61,7 @@ jobs:
 
       - name: Setup tests
         working-directory: test-bench
-        run: cmake -B build -DLOG_PATH=${GITHUB_WORKSPACE}/test-bench/artifact-${{ matrix.llvm-version }} -DUSE_WRAPPER=ON -DLOG_FILTER="R\[[0-9]\]\[Trace\]ID\[[0-9]+\] expected a type matching MPI type \\\"MPI_FLOAT\\\", but found type \\\"int64\\\""
+        run: cmake -B build -DLOG_PATH=${GITHUB_WORKSPACE}/test-bench/artifact-${{ matrix.llvm-version }} -DUSE_WRAPPER=ON -DLOG_FILTER="$${{ format("/R\[[0-9]\]\[Error\]T\[[0-9]\+\] at 0x[0-9a-f]\+{0} MPI_Allreduce{0} type error while checking recv-buffer 0x[0-9a-f]\+ of type \[1 x int64\] against 2 elements of MPI type \\\"MPI_FLOAT\\\"{0} expected a type matching MPI type \\\"MPI_FLOAT\\\", but found type \\\"int64\\\"/d", ":")}}"
 
       - name: Run lulesh
         working-directory: test-bench/build
@@ -99,7 +99,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        llvm-version: [ 10, 12 ]
+        llvm-version: [10, 12]
         preset:
           - name: release-counter
           - name: release-unsafe-counter
@@ -173,7 +173,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        llvm-version: [ 10, 12 ]
+        llvm-version: [10, 12]
         preset:
           - name: release-counter
           - name: release-safeptr-counter
