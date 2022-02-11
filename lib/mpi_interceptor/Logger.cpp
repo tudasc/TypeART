@@ -80,9 +80,6 @@ class MPIRankFlag : public spdlog::custom_flag_formatter {
   }
 };
 
-auto create_logger() {
-}
-
 namespace typeart {
 
 Logger::Logger() {
