@@ -16,10 +16,12 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <cxxabi.h>
 #include <dlfcn.h>
 #include <execinfo.h>
 #include <filesystem>
 #include <memory>
+#include <ostream>
 #include <sys/resource.h>
 
 namespace typeart {
@@ -131,8 +133,6 @@ class SourceLocHelper {
 
 }  // namespace system
 
-#include <cxxabi.h>
-
 std::optional<BinaryLocation> BinaryLocation::create(const void* addr) {
   const auto demangle = [](auto symbol_name) {
     using demangle_result = std::unique_ptr<char, decltype(&std::free)>;
@@ -204,7 +204,8 @@ std::ostream& operator<<(std::ostream& os, const StacktraceEntry& entry) {
     os << binary.file << " (";
 
     if (binary.function.has_value()) {
-      os << binary.function.value() << "+" << ((char*)entry.addr - (char*)binary.function_addr);
+      os << binary.function.value() << "+"
+         << (static_cast<char*>(entry.addr) - static_cast<char*>(binary.function_addr));
     } else {
       if (entry.source.has_value()) {
         os << entry.source->function;
@@ -233,6 +234,7 @@ Stacktrace::Stacktrace(std::vector<StacktraceEntry> entries) : entries(std::move
 }
 
 Stacktrace Stacktrace::current() {
+  // TODO Document dladdr needs -rdynamic as linker option.
   void* buffer[MAX_STACKTRACE_SIZE];
   const auto size = backtrace(buffer, MAX_STACKTRACE_SIZE);
 
