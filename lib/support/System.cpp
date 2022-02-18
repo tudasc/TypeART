@@ -12,8 +12,6 @@
 
 #include "System.h"
 
-#include "iostream"
-
 #include <algorithm>
 #include <cstdio>
 #include <cxxabi.h>
@@ -21,7 +19,7 @@
 #include <execinfo.h>
 #include <filesystem>
 #include <memory>
-#include <ostream>
+#include <sstream>
 #include <sys/resource.h>
 
 namespace typeart {
