@@ -14,3 +14,8 @@ endif()
 
 add_library(result INTERFACE)
 target_include_directories(result INTERFACE ${result_SOURCE_DIR}/include)
+
+mark_as_advanced(
+  FETCHCONTENT_SOURCE_DIR_RESULT
+  FETCHCONTENT_UPDATES_DISCONNECTED_RESULT
+)
