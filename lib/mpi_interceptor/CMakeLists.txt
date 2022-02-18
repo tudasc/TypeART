@@ -48,9 +48,9 @@ endif()
 target_link_libraries(MPITool
   PRIVATE typeart::Runtime
           MPI::MPI_CXX
-          result
-          fmt
-          spdlog
+          result::result
+          fmt::fmt
+          spdlog::spdlog
 )
 
 target_compile_definitions(
