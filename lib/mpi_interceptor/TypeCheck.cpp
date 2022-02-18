@@ -18,7 +18,6 @@
 
 #include <algorithm>
 #include <fmt/core.h>
-#include <fmt/format.h>
 #include <functional>
 #include <memory>
 #include <numeric>
@@ -30,9 +29,11 @@ Result<Buffer> Buffer::create(const void* ptr) {
   int type_id;
   size_t count          = 0;
   auto typeart_status_v = typeart_get_type(ptr, &type_id, &count);
+
   if (typeart_status_v != TYPEART_OK) {
     return make_internal_error<TypeARTError>(error_message_for(typeart_status_v));
   }
+
   return Buffer{0, ptr, count, type_id};
 }
 
@@ -41,12 +42,14 @@ Buffer Buffer::create(ptrdiff_t offset, const void* ptr, size_t count, int type_
 }
 
 std::string error_message_for(int mpierr) {
-  int len;
-  std::string mpierrstr;
-  mpierrstr.resize(MPI_MAX_ERROR_STRING);
-  MPI_Error_string(mpierr, &mpierrstr[0], &len);
-  mpierrstr.resize(strlen(mpierrstr.c_str()));
-  return mpierrstr;
+  int str_length;
+  std::string mpierr_str;
+
+  mpierr_str.resize(MPI_MAX_ERROR_STRING);
+  MPI_Error_string(mpierr, mpierr_str.data(), &str_length);
+  mpierr_str.resize(str_length);
+
+  return mpierr_str;
 }
 
 Result<MPICombiner> MPICombiner::create(MPI_Datatype type) {
@@ -78,9 +81,11 @@ Result<MPICombiner> MPICombiner::create(MPI_Datatype type) {
 
     for (auto i = size_t{0}; i < num_datatypes; ++i) {
       auto type_arg = MPIType::create(type_args[i]);
+
       if (!type_arg) {
         return std::move(type_arg).error();
       }
+
       result.type_args.push_back(std::move(type_arg).value());
     }
   }
@@ -90,6 +95,7 @@ Result<MPICombiner> MPICombiner::create(MPI_Datatype type) {
 
 Result<MPIType> MPIType::create(MPI_Datatype type) {
   auto combiner = MPICombiner::create(type);
+
   if (!combiner) {
     return std::move(combiner).error();
   }
@@ -117,9 +123,11 @@ Result<Multipliers> check_combiner_subarray(const Buffer& buffer, const MPIType&
 // hold `args.count` elements of the MPI type.
 Result<void> check_buffer(const Buffer& buffer, const MPIType& type, int count) {
   auto result = check_type_and_count(buffer, type, count);
+
   if (result.has_value()) {
     return result;
   }
+
   if (result.error()->is<InternalError>()) {
     return result;
   }
@@ -128,6 +136,7 @@ Result<void> check_buffer(const Buffer& buffer, const MPIType& type, int count) 
   // recursively check against the type of the first member.
   typeart_struct_layout struct_layout;
   auto status = typeart_resolve_type_id(buffer.type_id, &struct_layout);
+
   if (status == TYPEART_INVALID_ID) {
     auto message = fmt::format("Buffer::create received an invalid type_id {}", buffer.type_id);
     return make_internal_error<InvalidArgument>(message);
@@ -139,45 +148,53 @@ Result<void> check_buffer(const Buffer& buffer, const MPIType& type, int count) 
 
   std::vector<StructSubtypeMismatch> subtype_errors;
   int struct_type_id = buffer.type_id;
+
   while (status == TYPEART_OK && struct_layout.offsets[0] == 0) {
     auto first_member =
         Buffer::create(static_cast<ptrdiff_t>(struct_layout.offsets[0]), (char*)buffer.ptr + struct_layout.offsets[0],
                        struct_layout.count[0], struct_layout.member_types[0]);
     auto subtype_result = check_type_and_count(first_member, type, count);
+
     if (subtype_result.has_value()) {
       return subtype_result;
     }
 
     if (subtype_result.error()->is<InternalError>()) {
       return subtype_result;
-    } else {
-      subtype_errors.push_back(
-          StructSubtypeMismatch{struct_type_id, first_member.type_id, first_member.count,
-                                std::make_unique<TypeError>(std::move(*subtype_result.error()).get<TypeError>())});
     }
+    subtype_errors.push_back(
+        StructSubtypeMismatch{struct_type_id, first_member.type_id, first_member.count,
+                              std::make_unique<TypeError>(std::move(*subtype_result.error()).get<TypeError>())});
 
     status = typeart_resolve_type_id(first_member.type_id, &struct_layout);
+
     if (status == TYPEART_INVALID_ID) {
       auto message = fmt::format("Buffer::create received an invalid type_id {}", buffer.type_id);
       return make_internal_error<InvalidArgument>(message);
     }
+
     struct_type_id = first_member.type_id;
   }
+
   auto primary_error = std::make_unique<TypeError>(std::move(*result.error()).get<TypeError>());
   return make_type_error<StructSubtypeErrors>(std::move(primary_error), std::move(subtype_errors));
 }
 
 Result<void> check_type_and_count(const Buffer& buffer, const MPIType& type, int count) {
   auto result = check_type(buffer, type);
+
   if (result.has_error()) {
     return std::move(result).error();
   }
+
   auto multipliers  = std::move(result).value();
   auto type_count   = static_cast<size_t>(count * multipliers.type);
   auto buffer_count = buffer.count * multipliers.buffer;
+
   if (type_count > buffer_count) {
     return make_type_error<InsufficientBufferSize>(buffer_count, type_count);
   }
+
   return {};
 }
 
@@ -230,6 +247,7 @@ Result<Multipliers> check_combiner_named(const Buffer& buffer, const MPIType& ty
   if (buffer.type_id != type.type_id && !(buffer.type_id == TYPEART_PPC_FP128 && type.type_id == TYPEART_FP128)) {
     return make_type_error<BuiltinTypeMismatch>(buffer.type_id, type.mpi_type);
   }
+
   return Multipliers{1, 1};
 }
 
@@ -319,16 +337,21 @@ Result<Multipliers> check_combiner_struct(const Buffer& buffer, const MPIType& t
   // First, check that the buffer's type is a struct type...
   typeart_struct_layout struct_layout;
   typeart_status status = typeart_resolve_type_id(buffer.type_id, &struct_layout);
+
   if (status == TYPEART_INVALID_ID) {
     auto message = fmt::format("Buffer::create received an invalid type_id {}", buffer.type_id);
     return make_internal_error<InvalidArgument>(message);
   }
+
   if (status == TYPEART_WRONG_KIND) {
     return make_type_error<BufferNotOfStructType>(buffer.type_id);
   }
+
   std::vector<Buffer> type_layout = {};
+
   if (status == TYPEART_OK) {
     type_layout.reserve(struct_layout.num_members);
+
     for (size_t i = 0; i < struct_layout.num_members; ++i) {
       auto subtype_buffer =
           Buffer::create(static_cast<ptrdiff_t>(struct_layout.offsets[i]), (char*)buffer.ptr + struct_layout.offsets[i],
@@ -357,14 +380,15 @@ Result<Multipliers> check_combiner_struct(const Buffer& buffer, const MPIType& t
     // ... the type of the member matches the respective MPI type in the
     // `array_of_types` type combiner argument.
     auto result = check_type(type_layout[i], type.combiner.type_args[i]);
+
     if (result.has_error()) {
       auto error = std::move(result).error();
+
       if (error->is<InternalError>()) {
         return std::move(error);
-      } else {
-        return make_type_error<MemberTypeMismatch>(i + 1,
-                                                   std::make_unique<TypeError>(std::move(*error).get<TypeError>()));
       }
+      return make_type_error<MemberTypeMismatch>(i + 1,
+                                                 std::make_unique<TypeError>(std::move(*error).get<TypeError>()));
     }
 
     // ... the count of elements in the buffer of the member matches the count
@@ -372,10 +396,12 @@ Result<Multipliers> check_combiner_struct(const Buffer& buffer, const MPIType& t
     const auto multipliers  = std::move(result).value();
     const auto type_count   = static_cast<size_t>(array_of_blocklenghts[i]) * multipliers.type;
     const auto buffer_count = type_layout[i].count * multipliers.buffer;
+
     if (type_count != buffer_count) {
       return make_type_error<MemberElementCountMismatch>(buffer.type_id, i + 1, type_count, buffer_count);
     }
   }
+
   return Multipliers{1, 1};
 }
 

@@ -88,12 +88,15 @@ void check_buffer(const char* name, const void* called_from, bool is_send, const
   }
 
   auto buffer = Buffer::create(ptr);
+
   if (buffer.has_error()) {
     ++mpi_counter.error;
     logger.log(name, called_from, is_send, ptr, *std::move(buffer).error());
     return;
   }
+
   auto mpi_type = MPIType::create(type);
+
   if (mpi_type.has_error()) {
     ++mpi_counter.error;
     logger.log(name, called_from, is_send, ptr, *std::move(mpi_type).error());
@@ -101,6 +104,7 @@ void check_buffer(const char* name, const void* called_from, bool is_send, const
   }
 
   auto result = check_buffer(*buffer, *mpi_type, count);
+
   if (result.has_error()) {
     if (result.error()->is<InternalError>()) {
       ++mpi_counter.error;
@@ -108,6 +112,7 @@ void check_buffer(const char* name, const void* called_from, bool is_send, const
       ++mpi_counter.type_error;
     }
   }
+
   logger.log(name, called_from, is_send, *buffer, *mpi_type, count, result);
 }
 

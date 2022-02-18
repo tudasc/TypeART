@@ -29,6 +29,7 @@ class LogLevelFlag : public spdlog::custom_flag_formatter {
  public:
   void format(const spdlog::details::log_msg& msg, const std::tm&, spdlog::memory_buf_t& dest) override {
     std::string level;
+
     switch (msg.level) {
       case spdlog::level::trace:
         level = "Trace";
@@ -67,11 +68,13 @@ class MPIRankFlag : public spdlog::custom_flag_formatter {
   void format(const spdlog::details::log_msg&, const std::tm&, spdlog::memory_buf_t& dest) override {
     int initialized;
     MPI_Initialized(&initialized);
-    if (initialized) {
+
+    if (initialized != 0) {
       int mpi_rank;
       MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
       rank = std::to_string(mpi_rank);
     }
+
     dest.append(rank.data(), rank.data() + rank.size());
   }
 
@@ -123,7 +126,7 @@ struct TypeErrorVisitor {
   std::string operator()(const BuiltinTypeMismatch& err) {
     auto type_name     = typeart_get_type_name(err.buffer_type_id);
     auto mpi_type_name = name_for(err.mpi_type);
-    return fmt::format("expected a type matching MPI type \"{}\", but found type \"{}\"", mpi_type_name, type_name);
+    return fmt::format(R"(expected a type matching MPI type "{}", but found type "{}")", mpi_type_name, type_name);
   }
   std::string operator()(const BufferNotOfStructType& err) {
     auto type_name = typeart_get_type_name(err.buffer_type_id);
@@ -170,7 +173,7 @@ struct ErrorVisitor {
 };
 
 bool use_source_location_for(spdlog::level::level_enum level) {
-  auto source_location_config = Config::get().source_location;
+  const auto source_location_config = Config::get().getSourceLocation();
   return source_location_config == Config::SourceLocation::None ||
          (source_location_config == Config::SourceLocation::Error && level < spdlog::level::err);
 }
@@ -178,19 +181,20 @@ bool use_source_location_for(spdlog::level::level_enum level) {
 std::string format_source_location(spdlog::level::level_enum level, const void* addr) {
   auto source_location =
       use_source_location_for(level) ? std::optional<SourceLocation>{} : SourceLocation::create(addr);
+
   if (source_location.has_value()) {
     return fmt::format("{}[{}] at {}:{}: ", source_location->function, addr, source_location->file,
                        source_location->line);
-  } else {
-    return fmt::format("at {}: ", addr);
   }
+  return fmt::format("at {}: ", addr);
 }
 
-void Logger::log(const void* called_from, std::string prefix, const Error& error) {
+void Logger::log(const void* called_from, const std::string& prefix, const Error& error) {
   auto source_location = error.stacktrace.has_value() ? "" : format_source_location(spdlog::level::err, called_from);
   logger->error("{}{}{}", source_location, prefix, error.visit(ErrorVisitor{}));
+
   if (error.stacktrace.has_value()) {
-    for (auto& entry : error.stacktrace.value()) {
+    for (const auto& entry : error.stacktrace.value()) {
       logger->error("\tin {}", entry);
     }
   }

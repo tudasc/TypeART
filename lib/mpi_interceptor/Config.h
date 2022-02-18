@@ -16,18 +16,27 @@
 namespace typeart {
 
 class Config {
-  Config();
-
  public:
-  bool with_backtraces;
-
   enum class SourceLocation { None, Error, All };
+
+ private:
+  bool with_backtraces;
   SourceLocation source_location;
+
+  Config();
 
  public:
   static const Config& get() {
     static Config instance;
     return instance;
+  }
+
+  bool isWithBacktraces() const {
+    return with_backtraces;
+  }
+
+  SourceLocation getSourceLocation() const {
+    return source_location;
   }
 };
 

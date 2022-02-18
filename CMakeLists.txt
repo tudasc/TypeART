@@ -38,6 +38,8 @@ typeart_add_format_target(
           lib/typelib/*.h
           lib/support/*.cpp
           lib/support/*.h
+          lib/mpi_interceptor/*.cpp
+          lib/mpi_interceptor/*.h
           demo/*.c
           demo/*.h
 )

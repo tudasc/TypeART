@@ -24,6 +24,9 @@
 #include <vector>
 
 namespace typeart {
+
+namespace detail {
+
 template <class... Ts>
 struct [[nodiscard]] VariantError {
  private:
@@ -31,7 +34,7 @@ struct [[nodiscard]] VariantError {
 
  public:
   template <class... Param>
-  VariantError(Param && ... param) : data(std::forward<Param>(param)...) {
+  VariantError(Param&&... param) : data(std::forward<Param>(param)...) {
   }
 
   template <class T>
@@ -45,85 +48,102 @@ struct [[nodiscard]] VariantError {
   }
 
   template <class T>
-  [[nodiscard]] T get()&& {
+  [[nodiscard]] T get() && {
     return std::get<T>(std::move(data));
   }
 
   template <class Visitor>
-  auto visit(Visitor && visitor) const->decltype(auto) {
+  auto visit(Visitor&& visitor) const -> decltype(auto) {
     return std::visit(std::forward<Visitor>(visitor), data);
   }
 };
+
+}  // namespace detail
 
 struct MPIError {
   std::string function_name;
   std::string message;
 };
+
 struct TypeARTError {
   std::string message;
 };
+
 struct InvalidArgument {
   std::string message;
 };
+
 struct UnsupportedCombiner {
   std::string combiner_name;
 };
+
 struct UnsupportedCombinerArgs {
   std::string message;
 };
-struct [[nodiscard]] InternalError
-    : public VariantError<MPIError, TypeARTError, InvalidArgument, UnsupportedCombiner, UnsupportedCombinerArgs>{};
+
+struct [[nodiscard]] InternalError : public detail::VariantError<MPIError, TypeARTError, InvalidArgument,
+                                                                 UnsupportedCombiner, UnsupportedCombinerArgs> {};
 
 struct TypeError;
 struct InsufficientBufferSize {
   size_t actual;
   size_t required;
 };
+
 struct BuiltinTypeMismatch {
   int buffer_type_id;
   MPI_Datatype mpi_type;
 };
+
 struct BufferNotOfStructType {
   int buffer_type_id;
 };
+
 struct MemberCountMismatch {
   int buffer_type_id;
   size_t buffer_count;
   int mpi_count;
 };
+
 struct MemberOffsetMismatch {
   int type_id;
   size_t member;
   ptrdiff_t struct_offset;
   MPI_Aint mpi_offset;
 };
+
 struct MemberTypeMismatch {
   size_t member;
   std::unique_ptr<TypeError> error;
 };
+
 struct MemberElementCountMismatch {
   int type_id;
   size_t member;
   size_t count;
   size_t mpi_count;
 };
+
 struct StructSubtypeMismatch {
   int struct_type_id;
   int subtype_id;
   size_t subtype_count;
   std::unique_ptr<TypeError> error;
 };
+
 struct StructSubtypeErrors {
   std::unique_ptr<TypeError> primary_error;
   std::vector<StructSubtypeMismatch> subtype_errors;
 };
-struct [[nodiscard]] TypeError
-    : public VariantError<StructSubtypeErrors, InsufficientBufferSize, BuiltinTypeMismatch, BufferNotOfStructType,
-                          MemberCountMismatch, MemberOffsetMismatch, MemberTypeMismatch, MemberElementCountMismatch>{};
 
-struct [[nodiscard]] Error : public VariantError<InternalError, TypeError> {
+struct [[nodiscard]] TypeError
+    : public detail::VariantError<StructSubtypeErrors, InsufficientBufferSize, BuiltinTypeMismatch,
+                                  BufferNotOfStructType, MemberCountMismatch, MemberOffsetMismatch, MemberTypeMismatch,
+                                  MemberElementCountMismatch> {};
+
+struct [[nodiscard]] Error : public detail::VariantError<InternalError, TypeError> {
   std::optional<Stacktrace> stacktrace =
-      Config::get().with_backtraces ? std::optional{Stacktrace::current()} : std::optional<Stacktrace>{};
+      Config::get().isWithBacktraces() ? std::optional{Stacktrace::current()} : std::optional<Stacktrace>{};
 };
 
 template <class T>
