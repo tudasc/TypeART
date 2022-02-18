@@ -43,7 +43,7 @@ struct BinaryLocation {
   std::optional<std::string> function;
   void* function_addr;
 
-  static std::optional<BinaryLocation> create(const void* addr);
+  static std::optional<BinaryLocation> create(const void* symbol_name);
 };
 
 struct SourceLocation {

@@ -12,13 +12,14 @@
 
 #include "System.h"
 
+#include "iostream"
+
 #include <algorithm>
 #include <cstdio>
 #include <dlfcn.h>
 #include <execinfo.h>
 #include <filesystem>
 #include <memory>
-#include <sstream>
 #include <sys/resource.h>
 
 namespace typeart {
@@ -130,17 +131,21 @@ class SourceLocHelper {
 
 }  // namespace system
 
+#include <cxxabi.h>
+
 std::optional<BinaryLocation> BinaryLocation::create(const void* addr) {
-  const auto demangle = [](auto sname) {
-    std::ostringstream command;
-    command << "c++filt " << sname;
-    auto pipe = system::CommandPipe::create(command.str());
-    return pipe.has_value() ? pipe->nextLine() : std::string{sname};
+  const auto demangle = [](auto symbol_name) {
+    using demangle_result = std::unique_ptr<char, decltype(&std::free)>;
+    int status{0};
+    demangle_result result{abi::__cxa_demangle(symbol_name, NULL, NULL, &status), &std::free};
+
+    return result ? std::string{result.get()} : std::string{symbol_name};
   };
+
   Dl_info info;
-  if (dladdr(addr, &info)) {
-    auto sname = info.dli_sname != nullptr ? std::optional{demangle(info.dli_sname)} : std::nullopt;
-    return {BinaryLocation{std::string{info.dli_fname}, info.dli_fbase, sname, info.dli_saddr}};
+  if (dladdr(addr, &info) != 0) {
+    auto symbol_name = info.dli_sname != nullptr ? std::optional{demangle(info.dli_sname)} : std::nullopt;
+    return {BinaryLocation{std::string{info.dli_fname}, info.dli_fbase, symbol_name, info.dli_saddr}};
   }
 
   return {};
@@ -195,7 +200,9 @@ StacktraceEntry StacktraceEntry::create(void* addr) {
 std::ostream& operator<<(std::ostream& os, const StacktraceEntry& entry) {
   if (entry.binary.has_value()) {
     const auto& binary = entry.binary.value();
+
     os << binary.file << " (";
+
     if (binary.function.has_value()) {
       os << binary.function.value() << "+" << ((char*)entry.addr - (char*)binary.function_addr);
     } else {
@@ -209,13 +216,16 @@ std::ostream& operator<<(std::ostream& os, const StacktraceEntry& entry) {
       os << entry.source->function;
     }
   }
+
   os << ") at ";
+
   if (entry.source.has_value()) {
     const auto& source = entry.source.value();
     os << source.file << ":" << source.line;
   } else {
     os << "??:0";
   }
+
   return os;
 }
 
@@ -224,9 +234,11 @@ Stacktrace::Stacktrace(std::vector<StacktraceEntry> entries) : entries(std::move
 
 Stacktrace Stacktrace::current() {
   void* buffer[MAX_STACKTRACE_SIZE];
-  auto size    = backtrace(buffer, MAX_STACKTRACE_SIZE);
-  auto entries = std::vector<StacktraceEntry>{};
+  const auto size = backtrace(buffer, MAX_STACKTRACE_SIZE);
+
+  std::vector<StacktraceEntry> entries;
   std::transform(buffer, buffer + size, std::back_inserter(entries), &StacktraceEntry::create);
+
   return {entries};
 }
 
