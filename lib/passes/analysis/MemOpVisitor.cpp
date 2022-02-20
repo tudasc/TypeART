@@ -23,6 +23,11 @@
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/StringRef.h"
+#if LLVM_VERSION_MAJOR >= 12
+#include "llvm/Analysis/ValueTracking.h"
+#else
+#include "llvm/Transforms/Utils/Local.h"
+#endif
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/InstrTypes.h"
@@ -255,7 +260,24 @@ void MemOpVisitor::visitAllocaInst(llvm::AllocaInst& ai) {
 
   allocas.push_back({&ai, arraySize, is_vla});
   //  LOG_DEBUG("Alloca: " << util::dump(ai) << " -> lifetime marker: " << util::dump(lifetimes));
-}  // namespace typeart
+}
+
+void MemOpVisitor::visitIntrinsicInst(llvm::IntrinsicInst& inst) {
+  if (inst.getIntrinsicID() == Intrinsic::lifetime_start) {
+#if LLVM_VERSION_MAJOR >= 12
+    auto alloca = llvm::findAllocaForValue(inst.getOperand(1));
+#else
+    DenseMap<Value*, AllocaInst*> alloca_for_value;
+    auto* alloca = llvm::findAllocaForValue(inst.getOperand(1), alloca_for_value);
+#endif
+    if (alloca != nullptr) {
+      auto* data = llvm::find_if(allocas, [&alloca](const AllocaData& data) { return data.alloca == alloca; });
+      if (data != std::end(allocas)) {
+        data->lifetime_start.insert(&inst);
+      }
+    }
+  }
+}
 
 void MemOpVisitor::clear() {
   allocas.clear();
