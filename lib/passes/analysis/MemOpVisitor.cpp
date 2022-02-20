@@ -24,9 +24,9 @@
 #include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/StringRef.h"
 #if LLVM_VERSION_MAJOR >= 12
-#include "llvm/Analysis/ValueTracking.h"
+#include "llvm/Analysis/ValueTracking.h"  // llvm::findAllocaForValue
 #else
-#include "llvm/Transforms/Utils/Local.h"
+#include "llvm/Transforms/Utils/Local.h"  // llvm::findAllocaForValue
 #endif
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Function.h"
@@ -46,18 +46,30 @@ using namespace llvm;
 MemOpVisitor::MemOpVisitor() : MemOpVisitor(true, true) {
 }
 
-MemOpVisitor::MemOpVisitor(bool collectAllocas, bool collectHeap)
-    : collectAllocas(collectAllocas), collectHeap(collectHeap) {
+MemOpVisitor::MemOpVisitor(bool collect_allocas, bool collect_heap)
+    : collect_allocas(collect_allocas), collect_heap(collect_heap) {
 }
 
-void MemOpVisitor::visitModuleGlobals(Module& m) {
-  for (auto& g : m.globals()) {
+void MemOpVisitor::collect(llvm::Function& function) {
+  visit(function);
+
+  for (auto& [lifetime, alloc] : lifetime_starts) {
+    auto* data =
+        llvm::find_if(allocas, [alloc = std::ref(alloc)](const AllocaData& data) { return data.alloca == alloc; });
+    if (data != std::end(allocas)) {
+      data->lifetime_start.insert(lifetime);
+    }
+  }
+}
+
+void MemOpVisitor::collectGlobals(Module& module) {
+  for (auto& g : module.globals()) {
     globals.emplace_back(GlobalData{&g});
   }
 }
 
 void MemOpVisitor::visitCallBase(llvm::CallBase& cb) {
-  if (!collectHeap) {
+  if (!collect_heap) {
     return;
   }
   const auto isInSet = [&](const auto& fMap) -> llvm::Optional<MemOpKind> {
@@ -245,7 +257,7 @@ void MemOpVisitor::visitFreeLike(llvm::CallBase& ci, MemOpKind k) {
 //}
 
 void MemOpVisitor::visitAllocaInst(llvm::AllocaInst& ai) {
-  if (!collectAllocas) {
+  if (!collect_allocas) {
     return;
   }
   //  LOG_DEBUG("Found alloca " << ai);
@@ -271,10 +283,7 @@ void MemOpVisitor::visitIntrinsicInst(llvm::IntrinsicInst& inst) {
     auto* alloca = llvm::findAllocaForValue(inst.getOperand(1), alloca_for_value);
 #endif
     if (alloca != nullptr) {
-      auto* data = llvm::find_if(allocas, [&alloca](const AllocaData& data) { return data.alloca == alloca; });
-      if (data != std::end(allocas)) {
-        data->lifetime_start.insert(&inst);
-      }
+      lifetime_starts.emplace_back(&inst, alloca);
     }
   }
 }
