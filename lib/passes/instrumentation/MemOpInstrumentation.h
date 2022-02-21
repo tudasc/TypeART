@@ -23,9 +23,11 @@ class InstrumentationHelper;
 class MemOpInstrumentation final : public MemoryInstrument {
   TAFunctionQuery* fquery;
   InstrumentationHelper* instr_helper;
+  bool instrument_lifetime{false};
 
  public:
   MemOpInstrumentation(TAFunctionQuery& fquery, InstrumentationHelper& instr);
+  MemOpInstrumentation(TAFunctionQuery& fquery, InstrumentationHelper& instr, bool lifetime_instrument);
   InstrCount instrumentHeap(const HeapArgList& heap) override;
   InstrCount instrumentFree(const FreeArgList& frees) override;
   InstrCount instrumentStack(const StackArgList& stack) override;

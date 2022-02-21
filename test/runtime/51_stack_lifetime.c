@@ -1,4 +1,4 @@
-// RUN: %run %s 2>&1 | %filecheck %s
+// RUN: %run %s -typeart-stack-lifetime=true 2>&1 | %filecheck %s
 
 #include "../../lib/runtime/RuntimeInterface.h"
 

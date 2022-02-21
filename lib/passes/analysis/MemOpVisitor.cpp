@@ -60,6 +60,16 @@ void MemOpVisitor::collect(llvm::Function& function) {
       data->lifetime_start.insert(lifetime);
     }
   }
+  
+  for (const auto& alloc : allocas) {
+    if (alloc.lifetime_start.size() > 1) {
+      LOG_DEBUG("Lifetime: " << alloc.lifetime_start.size());
+      LOG_DEBUG(*alloc.alloca);
+      for (auto* lifetime : alloc.lifetime_start) {
+        LOG_DEBUG(*lifetime);
+      }
+    }
+  }
 }
 
 void MemOpVisitor::collectGlobals(Module& module) {

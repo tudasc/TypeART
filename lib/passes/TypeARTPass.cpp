@@ -72,6 +72,10 @@ static cl::opt<bool> cl_typeart_instrument_stack(
       }
     }));
 
+static cl::opt<bool> cl_typeart_instrument_stack_lifetime(
+    "typeart-stack-lifetime", cl::desc("Instrument lifetime.start intrinsic instead of alloca."), cl::init(false),
+    cl::cat(typeart_category));
+
 static cl::OptionCategory typeart_meminstfinder_category(
     "TypeART memory instruction finder", "These options control which memory instructions are collected/filtered.");
 
@@ -164,8 +168,9 @@ bool TypeArtPass::doInitialization(Module& m) {
 
   instrumentation_helper.setModule(m);
 
-  auto arg_collector  = std::make_unique<MemOpArgCollector>(typeManager.get(), instrumentation_helper);
-  auto mem_instrument = std::make_unique<MemOpInstrumentation>(functions, instrumentation_helper);
+  auto arg_collector = std::make_unique<MemOpArgCollector>(typeManager.get(), instrumentation_helper);
+  auto mem_instrument =
+      std::make_unique<MemOpInstrumentation>(functions, instrumentation_helper, cl_typeart_instrument_stack_lifetime);
   instrumentation_context =
       std::make_unique<InstrumentationContext>(std::move(arg_collector), std::move(mem_instrument));
 
