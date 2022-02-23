@@ -50,10 +50,6 @@ MemOpInstrumentation::MemOpInstrumentation(TAFunctionQuery& fquery, Instrumentat
     : MemoryInstrument(), fquery(&fquery), instr_helper(&instr), instrument_lifetime(lifetime_instrument) {
 }
 
-MemOpInstrumentation::MemOpInstrumentation(TAFunctionQuery& fquery, InstrumentationHelper& instr)
-    : MemOpInstrumentation(fquery, instr, false) {
-}
-
 InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
   InstrCount counter{0};
   for (const auto& [malloc, args] : heap) {
