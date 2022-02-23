@@ -177,10 +177,9 @@ InstrCount MemOpInstrumentation::instrumentStack(const StackArgList& stack) {
     auto* typeIdConst    = args.get_value(ArgMap::ID::type_id);
     auto* numElementsVal = args.get_value(ArgMap::ID::element_count);
 
-    const auto instrument_stack = [&](IRBuilder<>& IRB, Instruction* anchor) {
-      auto* arrayPtr         = IRB.CreateBitOrPointerCast(alloca, instr_helper->getTypeFor(IType::ptr));
+    const auto instrument_stack = [&](IRBuilder<>& IRB, Value* data_ptr, Instruction* anchor) {
       const auto callback_id = util::omp::isOmpContext(anchor->getFunction()) ? IFunc::stack_omp : IFunc::stack;
-      IRB.CreateCall(fquery->getFunctionFor(callback_id), ArrayRef<Value*>{arrayPtr, typeIdConst, numElementsVal});
+      IRB.CreateCall(fquery->getFunctionFor(callback_id), ArrayRef<Value*>{data_ptr, typeIdConst, numElementsVal});
       ++counter;
 
       auto* bblock = anchor->getParent();
@@ -193,11 +192,12 @@ InstrCount MemOpInstrumentation::instrumentStack(const StackArgList& stack) {
     const auto& lifetime_starts = sdata.lifetime_start;
     if (lifetime_starts.empty() || !instrument_lifetime) {
       IRBuilder<> IRB(alloca->getNextNode());
-      instrument_stack(IRB, alloca);
+      auto* data_ptr = IRB.CreateBitOrPointerCast(alloca, instr_helper->getTypeFor(IType::ptr));
+      instrument_stack(IRB, data_ptr, alloca);
     } else {
       for (auto* lifetime_s : lifetime_starts) {
         IRBuilder<> IRB(lifetime_s->getNextNode());
-        instrument_stack(IRB, lifetime_s->getNextNode());
+        instrument_stack(IRB, lifetime_s->getOperand(1), lifetime_s->getNextNode());
       }
     }
   }

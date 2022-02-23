@@ -19,7 +19,7 @@ void func(int* x, int* e) {
   // , and "int x=1;" is thus not tracked.
   // check-inst: define {{.*}} @func
   // check-inst: define {{.*}} @.omp_outlined
-  // check-inst: call void @__typeart_alloc_stack_omp(i8* %0, i32 10, i64 1)
+  // check-inst: call void @__typeart_alloc_stack_omp(i8* %{{[0-9]}}, i32 10, i64 1)
 #pragma omp parallel for lastprivate(x), shared(e)
   for (int i = 0; i < 10; ++i) {
     // Analysis should not filter x, but e...
@@ -40,7 +40,7 @@ void func_other(int* x, int* e) {
   // lastprivate - addr(!) value of x is copied to "private_val" (which is tracked) in outlined region
   // check-inst: define {{.*}} @func_other
   // check-inst: define {{.*}} @.omp_outlined
-  // check-inst: call void @__typeart_alloc_stack_omp(i8* %0, i32 10, i64 1)
+  // check-inst: call void @__typeart_alloc_stack_omp(i8* %{{[0-9]}}, i32 10, i64 1)
 #pragma omp parallel for lastprivate(x), shared(e)
   for (int i = 0; i < 10; ++i) {
     // Analysis should not filter x, but e...
@@ -51,7 +51,7 @@ void func_other(int* x, int* e) {
 
 void bar(int x_other) {
   // check-inst: define {{.*}} @bar
-  // check-inst: call void @__typeart_alloc_stack(i8* %0, i32 2, i64 1)
+  // check-inst: call void @__typeart_alloc_stack(i8* %{{[0-9]}}, i32 2, i64 1)
   int x = x_other;
   int y = 2;
 #pragma omp parallel

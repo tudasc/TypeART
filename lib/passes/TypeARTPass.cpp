@@ -73,7 +73,7 @@ static cl::opt<bool> cl_typeart_instrument_stack(
     }));
 
 static cl::opt<bool> cl_typeart_instrument_stack_lifetime(
-    "typeart-stack-lifetime", cl::desc("Instrument lifetime.start intrinsic instead of alloca."), cl::init(false),
+    "typeart-stack-lifetime", cl::desc("Instrument lifetime.start intrinsic instead of alloca."), cl::init(true),
     cl::cat(typeart_category));
 
 static cl::OptionCategory typeart_meminstfinder_category(
