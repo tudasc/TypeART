@@ -56,8 +56,7 @@ int main(int argc, char** argv) {
   free(f2);
 
   // CHECK-TSAN-NOT: ThreadSanitizer
-
-  // CHECK-NOT: Error
+  
   // CHECK: Allocation type detail (heap, stack, global)
   // CHECK: 6   : 3000 ,    0 ,    0 , double
   // CHECK: Free allocation type detail (heap, stack)
