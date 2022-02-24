@@ -75,6 +75,7 @@ llvm::Function* TAFunctionDeclarator::make_function(IFunc id, llvm::StringRef ba
       if (arg.getType()->isPointerTy()) {
         arg.addAttr(Attribute::NoCapture);
         arg.addAttr(Attribute::ReadOnly);
+        arg.addAttr(Attribute::NoFree);
       }
     }
   };
