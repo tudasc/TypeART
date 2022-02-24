@@ -69,6 +69,7 @@ llvm::Function* TAFunctionDeclarator::make_function(IFunc id, llvm::StringRef ba
     function->setDoesNotThrow();
     function->setWillReturn();
     function->setDoesNotFreeMemory();
+    function->setDoesNotRecurse();
 
     for (Argument& arg : function->args()) {
       if (arg.getType()->isPointerTy()) {
