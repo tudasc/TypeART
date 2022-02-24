@@ -67,10 +67,11 @@ llvm::Function* TAFunctionDeclarator::make_function(IFunc id, llvm::StringRef ba
   auto& c                           = m.getContext();
   const auto addOptimizerAttributes = [&](llvm::Function* function) {
     function->setDoesNotThrow();
-    function->setWillReturn();
     function->setDoesNotFreeMemory();
     function->setDoesNotRecurse();
-
+#if LLVM_VERSION_MAJOR >= 12
+    function->setWillReturn();
+#endif
     for (Argument& arg : function->args()) {
       if (arg.getType()->isPointerTy()) {
         arg.addAttr(Attribute::NoCapture);
