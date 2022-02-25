@@ -114,15 +114,15 @@ const char* combiner_name_for(int combiner) {
     case MPI_COMBINER_VECTOR:
       return "MPI_Type_vector";
     case MPI_COMBINER_HVECTOR:
-      return "MPI_Type_hvector";
+      return "MPI_Type_create_hvector";
     case MPI_COMBINER_INDEXED:
       return "MPI_Type_indexed";
     case MPI_COMBINER_HINDEXED:
-      return "MPI_Type_hindexed";
+      return "MPI_Type_create_hindexed";
     case MPI_COMBINER_INDEXED_BLOCK:
       return "MPI_Type_create_indexed_block";
     case MPI_COMBINER_STRUCT:
-      return "MPI_Type_struct";
+      return "MPI_Type_create_struct";
     case MPI_COMBINER_SUBARRAY:
       return "MPI_Type_create_subarray";
     case MPI_COMBINER_DARRAY:
@@ -135,6 +135,8 @@ const char* combiner_name_for(int combiner) {
       return "MPI_Type_create_f90_integer";
     case MPI_COMBINER_RESIZED:
       return "MPI_Type_create_resized";
+    case MPI_COMBINER_HINDEXED_BLOCK:
+      return "MPI_Type_create_hindexed_block";
     default:
       return "invalid combiner id";
   }

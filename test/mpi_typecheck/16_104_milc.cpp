@@ -29,7 +29,7 @@ int main(int argc, char** argv) {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
   // CHECK-NOT: R[{{0|1}}][Error]{{.*}}
-  complex c{1.0, 2.0};
+  complex c{1.0, 2.0};  // This allocation becomes an int64 with a bit-mask store
   g_complexsum(&c);
 
   MPI_Finalize();
