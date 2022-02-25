@@ -166,7 +166,7 @@ MemInstFinderPass::MemInstFinderPass(const MemInstFinderConfig& config)
 }
 
 bool MemInstFinderPass::runOnModule(Module& module) {
-  mOpsCollector.visitModuleGlobals(module);
+  mOpsCollector.collectGlobals(module);
   auto& globals = mOpsCollector.globals;
   NumDetectedGlobals += globals.size();
   if (config.filter.ClFilterGlobal) {
@@ -264,7 +264,7 @@ bool MemInstFinderPass::runOnFunction(llvm::Function& function) {
 
   LOG_DEBUG("Running on function: " << function.getName())
 
-  mOpsCollector.visit(function);
+  mOpsCollector.collect(function);
 
   const auto checkAmbigiousMalloc = [&function](const MallocData& mallocData) {
     using namespace typeart::util::type;

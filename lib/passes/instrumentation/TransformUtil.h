@@ -57,12 +57,16 @@ struct StackCounter {
 
     EscapeEnumerator ee(*f);
     while (IRBuilder<>* irb = ee.Next()) {
-      auto* I = &(*irb->GetInsertPoint());
-
+      auto* I            = &(*irb->GetInsertPoint());
       auto* counter_load = irb->CreateLoad(instr_helper->getTypeFor(IType::stack_count), counter, "__ta_counter_load");
-      auto* cond      = irb->CreateICmpNE(counter_load, instr_helper->getConstantFor(IType::stack_count), "__ta_cond");
-      auto* then_term = SplitBlockAndInsertIfThen(cond, I, false);
-      irb->SetInsertPoint(then_term);
+
+      const auto all_preds_have_counter = llvm::all_of(
+          llvm::predecessors(I->getParent()), [&allocCounts](const auto* bb) { return allocCounts.count(bb) > 0; });
+      if (all_preds_have_counter) {
+        auto* cond = irb->CreateICmpNE(counter_load, instr_helper->getConstantFor(IType::stack_count), "__ta_cond");
+        auto* then_term = SplitBlockAndInsertIfThen(cond, I, false);
+        irb->SetInsertPoint(then_term);
+      }
 
       irb->CreateCall(fquery->getFunctionFor(callback_id), ArrayRef<Value*>{counter_load});
     }

@@ -65,32 +65,40 @@ llvm::Function* TAFunctionDeclarator::make_function(IFunc id, llvm::StringRef ba
   }
 
   auto& c                           = m.getContext();
-  const auto addOptimizerAttributes = [&](llvm::Function* f) {
-    for (Argument& arg : f->args()) {
+  const auto addOptimizerAttributes = [&](llvm::Function* function) {
+    function->setDoesNotThrow();
+    function->setDoesNotFreeMemory();
+    function->setDoesNotRecurse();
+#if LLVM_VERSION_MAJOR >= 12
+    function->setWillReturn();
+#endif
+    for (Argument& arg : function->args()) {
       if (arg.getType()->isPointerTy()) {
         arg.addAttr(Attribute::NoCapture);
         arg.addAttr(Attribute::ReadOnly);
+        arg.addAttr(Attribute::NoFree);
       }
     }
   };
-  const auto setFunctionLinkageExternal = [](llvm::Function* f) {
-    f->setLinkage(GlobalValue::ExternalLinkage);
+  const auto setFunctionLinkageExternal = [](llvm::Function* function) {
+    function->setLinkage(GlobalValue::ExternalLinkage);
     //     f->setLinkage(GlobalValue::ExternalWeakLinkage);
   };
   const auto do_make = [&](auto& name, auto f_type) {
-    const bool has_f = m.getFunction(name) != nullptr;
-    auto fc          = m.getOrInsertFunction(name, f_type);
+    const bool has_func_declared = m.getFunction(name) != nullptr;
+    auto func_in_module          = m.getOrInsertFunction(name, f_type);
 
-    Function* f{nullptr};
-    if (has_f) {
+    Function* function{nullptr};
+    if (has_func_declared) {
       LOG_WARNING("Function " << name << " is already declared in the module.")
-      f = dyn_cast<Function>(fc.getCallee()->stripPointerCasts());
+      function = dyn_cast<Function>(func_in_module.getCallee()->stripPointerCasts());
     } else {
-      f = dyn_cast<Function>(fc.getCallee());
-      setFunctionLinkageExternal(f);
+      function = dyn_cast<Function>(func_in_module.getCallee());
+      setFunctionLinkageExternal(function);
     }
-    addOptimizerAttributes(f);
-    return f;
+
+    addOptimizerAttributes(function);
+    return function;
   };
 
   auto f = do_make(name, FunctionType::get(Type::getVoidTy(c), args, false));
