@@ -23,6 +23,11 @@
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/StringRef.h"
+#if LLVM_VERSION_MAJOR >= 12
+#include "llvm/Analysis/ValueTracking.h"  // llvm::findAllocaForValue
+#else
+#include "llvm/Transforms/Utils/Local.h"  // llvm::findAllocaForValue
+#endif
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/InstrTypes.h"
@@ -41,18 +46,40 @@ using namespace llvm;
 MemOpVisitor::MemOpVisitor() : MemOpVisitor(true, true) {
 }
 
-MemOpVisitor::MemOpVisitor(bool collectAllocas, bool collectHeap)
-    : collectAllocas(collectAllocas), collectHeap(collectHeap) {
+MemOpVisitor::MemOpVisitor(bool collect_allocas, bool collect_heap)
+    : collect_allocas(collect_allocas), collect_heap(collect_heap) {
 }
 
-void MemOpVisitor::visitModuleGlobals(Module& m) {
-  for (auto& g : m.globals()) {
+void MemOpVisitor::collect(llvm::Function& function) {
+  visit(function);
+
+  for (auto& [lifetime, alloc] : lifetime_starts) {
+    auto* data =
+        llvm::find_if(allocas, [alloc = std::ref(alloc)](const AllocaData& data) { return data.alloca == alloc; });
+    if (data != std::end(allocas)) {
+      data->lifetime_start.insert(lifetime);
+    }
+  }
+
+  for (const auto& alloc : allocas) {
+    if (alloc.lifetime_start.size() > 1) {
+      LOG_DEBUG("Lifetime: " << alloc.lifetime_start.size());
+      LOG_DEBUG(*alloc.alloca);
+      for (auto* lifetime : alloc.lifetime_start) {
+        LOG_DEBUG(*lifetime);
+      }
+    }
+  }
+}
+
+void MemOpVisitor::collectGlobals(Module& module) {
+  for (auto& g : module.globals()) {
     globals.emplace_back(GlobalData{&g});
   }
 }
 
 void MemOpVisitor::visitCallBase(llvm::CallBase& cb) {
-  if (!collectHeap) {
+  if (!collect_heap) {
     return;
   }
   const auto isInSet = [&](const auto& fMap) -> llvm::Optional<MemOpKind> {
@@ -240,7 +267,7 @@ void MemOpVisitor::visitFreeLike(llvm::CallBase& ci, MemOpKind k) {
 //}
 
 void MemOpVisitor::visitAllocaInst(llvm::AllocaInst& ai) {
-  if (!collectAllocas) {
+  if (!collect_allocas) {
     return;
   }
   //  LOG_DEBUG("Found alloca " << ai);
@@ -255,7 +282,21 @@ void MemOpVisitor::visitAllocaInst(llvm::AllocaInst& ai) {
 
   allocas.push_back({&ai, arraySize, is_vla});
   //  LOG_DEBUG("Alloca: " << util::dump(ai) << " -> lifetime marker: " << util::dump(lifetimes));
-}  // namespace typeart
+}
+
+void MemOpVisitor::visitIntrinsicInst(llvm::IntrinsicInst& inst) {
+  if (inst.getIntrinsicID() == Intrinsic::lifetime_start) {
+#if LLVM_VERSION_MAJOR >= 12
+    auto alloca = llvm::findAllocaForValue(inst.getOperand(1));
+#else
+    DenseMap<Value*, AllocaInst*> alloca_for_value;
+    auto* alloca = llvm::findAllocaForValue(inst.getOperand(1), alloca_for_value);
+#endif
+    if (alloca != nullptr) {
+      lifetime_starts.emplace_back(&inst, alloca);
+    }
+  }
+}
 
 void MemOpVisitor::clear() {
   allocas.clear();

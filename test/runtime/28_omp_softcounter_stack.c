@@ -1,6 +1,6 @@
 // clang-format off
 // RUN: %run %s -o -O0 --omp -typeart-filter-pointer-alloca=false 2>&1 | %filecheck %s --check-prefix=CHECK-TSAN
-// RUN: %run %s -o -O0 --omp -typeart-filter-pointer-alloca=false 2>&1 | %filecheck %s
+// RUN: %run %s -o -O0 --omp -typeart-filter-pointer-alloca=false 2>&1 | %filecheck %s --check-prefixes=CHECK,ERROR
 // REQUIRES: openmp && softcounter
 // clang-format on
 
@@ -30,18 +30,18 @@ int main(int argc, char** argv) {
 
   ptr(n);
   // CHECK-TSAN-NOT: ThreadSanitizer
+  // ERROR-NOT: [Error]
 
   // CHECK: [Trace] TypeART Runtime Trace
-  // TODO: CHECK-NOT: [Error] - Currently we get 'Pointer already in map' followed by 'Free on unregistered address'
   // CHECK: Alloc Stats from softcounters
   // CHECK-NEXT: Total heap                 :   0 ,    0 ,    -
   // CHECK: Total stack                     :   {{[0-9]+}} ,   400 ,    -
   // CHECK-NEXT: Total global               :   {{[0-9]+}} ,    {{[0-9]+}} ,    -
   // CHECK-NEXT: Max. Heap Allocs           :   0 ,    - ,    -
-  // CHECK-NEXT: Max. Stack Allocs          :  17 ,    - ,    -
+  // CHECK-NEXT: Max. Stack Allocs          :  16 ,    - ,    -
   // CHECK-NEXT: Addresses checked          :   0 ,    - ,    -
   // CHECK-NEXT: Distinct Addresses checked :   0 ,    - ,    -
-  // CHECK-NEXT: Addresses re-used          :   2 ,    - ,    -
+  // CHECK-NEXT: Addresses re-used          :   0 ,    - ,    -
   // CHECK-NEXT: Addresses missed           :   0 ,    - ,    -
   // CHECK-NEXT: Distinct Addresses missed  :   0 ,    - ,    -
   // CHECK-NEXT: Total free heap            :   0 ,    0 ,    -

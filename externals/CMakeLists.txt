@@ -23,6 +23,7 @@ if(TYPEART_BTREE)
 endif()
 
 if(TYPEART_ABSEIL)
+  set(CMAKE_POSITION_INDEPENDENT_CODE ON)
   add_subdirectory(abseil)
 endif()
 
