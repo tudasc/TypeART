@@ -41,10 +41,6 @@ target_include_directories(MPITool
   PRIVATE ${LLVM_INCLUDE_DIRS}
 )
 
-if(TYPEART_TSAN)
-  typeart_target_tsan_options(MPITool)
-endif()
-
 target_link_libraries(MPITool
   PRIVATE typeart::Runtime
           MPI::MPI_CXX

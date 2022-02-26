@@ -292,14 +292,14 @@ function execute() {
   if [ $with_intercept == 1 ]; then
     if [ $typeart_has_interceptor == 1 ]; then
       echo -e Executing with runtime and interceptor lib
-      LD_LIBRARY_PATH="$LD_LIBRARY_PATH:${typeart_lib_dir}" LD_PRELOAD="${typeart_interceptor}" TYPEART_TYPE_FILE=${types_file} ${command}
+      LD_PRELOAD="${typeart_interceptor}" TYPEART_TYPE_FILE=${types_file} ${command}
     else
       echo -e Interceptor lib not compiled with TypeART, exiting!
       exit 1
     fi
   else
     echo -e Executing with runtime lib
-    LD_LIBRARY_PATH="$LD_LIBRARY_PATH:${typeart_lib_dir}" TYPEART_TYPE_FILE=${types_file} ${command}
+    TYPEART_TYPE_FILE=${types_file} ${command}
   fi
 }
 
