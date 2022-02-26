@@ -38,6 +38,17 @@ const char* error_message_for(typeart_status status) {
   }
 }
 
+std::string mpi_error_message_for(int mpierr) {
+  int str_length;
+  std::string mpierr_str;
+
+  mpierr_str.resize(MPI_MAX_ERROR_STRING);
+  MPI_Error_string(mpierr, mpierr_str.data(), &str_length);
+  mpierr_str.resize(str_length);
+
+  return mpierr_str;
+}
+
 template <class T>
 int type_of() {
   static_assert(std::is_integral_v<T>);

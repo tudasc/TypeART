@@ -41,17 +41,6 @@ Buffer Buffer::create(ptrdiff_t offset, const void* ptr, size_t count, int type_
   return Buffer{offset, ptr, count, type_id};
 }
 
-std::string error_message_for(int mpierr) {
-  int str_length;
-  std::string mpierr_str;
-
-  mpierr_str.resize(MPI_MAX_ERROR_STRING);
-  MPI_Error_string(mpierr, mpierr_str.data(), &str_length);
-  mpierr_str.resize(str_length);
-
-  return mpierr_str;
-}
-
 Result<MPICombiner> MPICombiner::create(MPI_Datatype type) {
   MPICombiner result;
   int num_integers;
@@ -61,7 +50,7 @@ Result<MPICombiner> MPICombiner::create(MPI_Datatype type) {
   auto mpierr = MPI_Type_get_envelope(type, &num_integers, &num_addresses, &num_datatypes, &combiner);
 
   if (mpierr != MPI_SUCCESS) {
-    return make_internal_error<MPIError>("MPI_Type_get_envelope", error_message_for(mpierr));
+    return make_internal_error<MPIError>("MPI_Type_get_envelope", mpi_error_message_for(mpierr));
   }
 
   result.id = combiner;
@@ -74,7 +63,7 @@ Result<MPICombiner> MPICombiner::create(MPI_Datatype type) {
                                    result.address_args.data(), type_args.data());
 
     if (mpierr != MPI_SUCCESS) {
-      return make_internal_error<MPIError>("MPI_Type_get_contents", error_message_for(mpierr));
+      return make_internal_error<MPIError>("MPI_Type_get_contents", mpi_error_message_for(mpierr));
     }
 
     result.type_args.reserve(num_datatypes);

@@ -181,7 +181,7 @@ function toolchain_init() {
       readonly omp_flags="@OpenMP_C_FLAGS@" # -I@OpenMP_C_INCLUDE_DIRS@
     fi
     if [ $with_intercept == 1 ]; then
-      compiler="env OMPI_CC=clang mpicc"
+      compiler="env OMPI_CC=@TYPEART_CLANG_EXEC@ mpicc"
     fi
     ;;
   cc | cxx | cpp)
@@ -190,7 +190,7 @@ function toolchain_init() {
       readonly omp_flags="@OpenMP_CXX_FLAGS@" # -I@OpenMP_CXX_INCLUDE_DIRS@
     fi
     if [ $with_intercept == 1 ]; then
-      compiler="env OMPI_CXX=clang++ mpic++"
+      compiler="env OMPI_CXX=@TYPEART_CLANGCXX_EXEC@ mpic++"
     fi
     ;;
   esac

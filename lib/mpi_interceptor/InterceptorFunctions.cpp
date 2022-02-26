@@ -58,11 +58,8 @@ void typeart_unsupported_mpi_call(const char* name, const void* /*called_from*/)
 
 void typeart_exit() {
   // Called at MPI_Finalize time
-  int rank = 0;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  struct rusage end;
-  getrusage(RUSAGE_SELF, &end);
-  typeart::logger.log(typeart::call_counter, end.ru_maxrss);
+  const auto rss = typeart::system::Process::getMaxRSS();
+  typeart::logger.log(typeart::call_counter, rss);
   typeart::logger.log(typeart::mpi_counter);
 }
 

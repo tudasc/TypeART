@@ -21,7 +21,7 @@ namespace typeart {
 
 const char* error_message_for(typeart_status status);
 
-std::string error_message_for(int mpierr);
+std::string mpi_error_message_for(int mpierr);
 
 // Given a builtin MPI type, returns the corresponding TypeArt type.
 // If the MPI type is a custom type, -1 is returned.

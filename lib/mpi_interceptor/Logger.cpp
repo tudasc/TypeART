@@ -25,6 +25,8 @@
 #include <spdlog/sinks/stdout_sinks.h>
 #include <spdlog/spdlog.h>
 
+namespace typeart::logging {
+
 class LogLevelFlag : public spdlog::custom_flag_formatter {
  public:
   void format(const spdlog::details::log_msg& msg, const std::tm&, spdlog::memory_buf_t& dest) override {
@@ -82,22 +84,28 @@ class MPIRankFlag : public spdlog::custom_flag_formatter {
     return spdlog::details::make_unique<MPIRankFlag>();
   }
 };
+}  // namespace typeart::logging
 
 namespace typeart {
 
 Logger::Logger() {
+  using namespace logging;
   logger         = spdlog::stderr_logger_mt("typeart_mpi_interceptor_logger");
   auto formatter = std::make_unique<spdlog::pattern_formatter>();
   formatter->add_flag<MPIRankFlag>('M').add_flag<LogLevelFlag>('L').set_pattern("R[%M][%L]T[%t] %v");
   logger->set_formatter(std::move(formatter));
 }
 
-Logger::~Logger(){};
+Logger::~Logger() = default;
 
-std::string name_for(MPI_Datatype datatype) {
-  int len;
-  char mpi_type_name[MPI_MAX_OBJECT_NAME];
-  int mpierr = MPI_Type_get_name(datatype, &mpi_type_name[0], &len);
+std::string mpi_name_for(MPI_Datatype datatype) {
+  int str_length;
+  std::string mpi_type_name;
+
+  mpi_type_name.resize(MPI_MAX_OBJECT_NAME);
+  MPI_Type_get_name(datatype, mpi_type_name.data(), &str_length);
+  mpi_type_name.resize(str_length);
+
   return mpi_type_name;
 }
 
@@ -125,7 +133,7 @@ struct TypeErrorVisitor {
   }
   std::string operator()(const BuiltinTypeMismatch& err) {
     auto type_name     = typeart_get_type_name(err.buffer_type_id);
-    auto mpi_type_name = name_for(err.mpi_type);
+    auto mpi_type_name = mpi_name_for(err.mpi_type);
     return fmt::format(R"(expected a type matching MPI type "{}", but found type "{}")", mpi_type_name, type_name);
   }
   std::string operator()(const BufferNotOfStructType& err) {
@@ -189,7 +197,7 @@ std::string format_source_location(spdlog::level::level_enum level, const void* 
   return fmt::format("at {}: ", addr);
 }
 
-void Logger::log(const void* called_from, const std::string& prefix, const Error& error) {
+void Logger::log(const void* called_from, std::string_view prefix, const Error& error) {
   auto source_location = error.stacktrace.has_value() ? "" : format_source_location(spdlog::level::err, called_from);
   logger->error("{}{}{}", source_location, prefix, error.visit(ErrorVisitor{}));
 
@@ -207,7 +215,7 @@ void Logger::log(const char* name, const void* called_from, bool is_send, const 
                        "{}{}: successfully checked {}-buffer {} of type [{} x {}] against {} {} of MPI type \"{}\"",
                        format_source_location(spdlog::level::info, called_from), name, is_send ? "send" : "recv",
                        buffer.ptr, buffer.count, typeart_get_type_name(buffer.type_id), count,
-                       count == 1 ? "element" : "elements", name_for(type.mpi_type));
+                       count == 1 ? "element" : "elements", mpi_name_for(type.mpi_type));
   } else {
     auto error                 = result.error();
     auto internal_error_prefix = error->is<TypeError>() ? "type error " : "internal error ";
@@ -215,7 +223,7 @@ void Logger::log(const char* name, const void* called_from, bool is_send, const 
         fmt::format("{}: {}while checking {}-buffer {} of type [{} x {}] against {} {} of MPI type \"{}\": ", name,
                     internal_error_prefix, is_send ? "send" : "recv", buffer.ptr, buffer.count,
                     typeart_get_type_name(buffer.type_id), count, count == 1 ? "element" : "elements",
-                    name_for(type.mpi_type)),
+                    mpi_name_for(type.mpi_type)),
         *error);
   }
 }
