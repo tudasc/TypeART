@@ -106,6 +106,7 @@ Result<Multipliers> check_combiner_vector(const Buffer& buffer, const MPIType& t
 Result<Multipliers> check_combiner_indexed_block(const Buffer& buffer, const MPIType& type);
 Result<Multipliers> check_combiner_struct(const Buffer& buffer, const MPIType& type);
 Result<Multipliers> check_combiner_subarray(const Buffer& buffer, const MPIType& type);
+Result<Multipliers> check_combiner_hvector(const Buffer& buffer, const MPIType& type);
 
 // For a given Buffer checks that the type of the buffer fits the MPI type
 // `args.type` of this MPICall instance and that the buffer is large enough to
@@ -209,6 +210,8 @@ Result<Multipliers> check_type(const Buffer& buffer, const MPIType& type) {
       return check_combiner_contiguous(buffer, type);
     case MPI_COMBINER_VECTOR:
       return check_combiner_vector(buffer, type);
+    case MPI_COMBINER_HVECTOR:
+      return check_combiner_hvector(buffer, type);
     case MPI_COMBINER_INDEXED_BLOCK:
       return check_combiner_indexed_block(buffer, type);
     case MPI_COMBINER_STRUCT:
@@ -281,6 +284,29 @@ Result<Multipliers> check_combiner_vector(const Buffer& buffer, const MPIType& t
   // resulting count by `(count - 1) * stride + blocklength`.
   return check_type(buffer, type.combiner.type_args[0]).map([&](auto multipliers) {
     return Multipliers{multipliers.type * ((count - 1) * stride + blocklength), multipliers.buffer};
+  });
+}
+
+Result<Multipliers> check_combiner_hvector(const Buffer& buffer, const MPIType& type) {
+  const auto count       = type.combiner.integer_args[0];
+  const auto blocklength = type.combiner.integer_args[1];
+  const auto stride      = type.combiner.address_args[0];
+
+  if (stride < 0) {
+    return make_internal_error<UnsupportedCombinerArgs>(
+        "negative strides for MPI_Type_create_hvector are currently not supported");
+  }
+
+  const auto type_size         = typeart_get_type_size(buffer.type_id);
+  const auto stride_resolution = stride % type_size;
+
+  if (stride_resolution > 0) {
+    // return illegal mem offset error...
+    fprintf(stderr, "Error stride does not fit buffer type.\n");
+  }
+
+  return check_type(buffer, type.combiner.type_args[0]).map([&](auto multipliers) {
+    return Multipliers{static_cast<size_t>((count - 1) * (stride / type_size) + blocklength), multipliers.buffer};
   });
 }
 

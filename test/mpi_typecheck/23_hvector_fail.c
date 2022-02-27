@@ -1,7 +1,5 @@
 // clang-format off
-// RUN: %run %s --mpi_intercept --compile_flags "-g" --executable %s.exe --command "%mpi-exec -n 2 --output-filename %s.log %s.exe"
-// RUN: cat "%s.log/1/rank.0/stderr" | %filecheck --check-prefixes CHECK,RANK0 %s
-// RUN: cat "%s.log/1/rank.1/stderr" | %filecheck --check-prefixes CHECK,RANK1 %s
+// RUN: %run %s --mpi_intercept --compile_flags "-g" --executable %s.exe --command "%mpi-exec -n 2 %s.exe" 2>&1 | %filecheck %s
 // clang-format on
 
 // REQUIRES: mpi
@@ -13,11 +11,12 @@
 #include <stdlib.h>
 
 void run(int rank) {
-  // RANK0:  MPI_Send: successfully{{.*}} type [8 x int32] against 1 element of MPI type "MPI_Type_create_hvector"
-  // RANK1: [Test] Received: 1, 4, 7.
+  // clang-format off
+  // CHECK: MPI_Send: type error{{.*}} type [8 x int32] against 1 element of MPI type "MPI_Type_create_hvector": buffer too small (8 elements, 13 required)
+  // clang-format on
   if (rank == 0) {
     MPI_Datatype hvec_type;
-    MPI_Type_create_hvector(3, 1, 3 * sizeof(int), MPI_INT, &hvec_type);
+    MPI_Type_create_hvector(3, 1, 3 * sizeof(double), MPI_INT, &hvec_type);
     MPI_Type_commit(&hvec_type);
 
     int buffer[3][3] = {0, 1, 2, 3, 4, 5, 6, 7, 8};
