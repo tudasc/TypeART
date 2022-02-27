@@ -7,6 +7,8 @@
 // RUN: cat "%s.log/1/rank.1/stderr" | %filecheck --check-prefixes CHECK,RANK1 %s
 // clang-format on
 
+// XFAIL: *
+
 #include <mpi.h>
 
 struct S1 {

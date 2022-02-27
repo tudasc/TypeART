@@ -377,21 +377,31 @@ Result<Multipliers> check_combiner_struct(const Buffer& buffer, const MPIType& t
 
   // ... and that the number of members of the struct matches the argument
   // `count` of the type combiner.
-  if (type_layout.size() != count) {
+  if (type_layout.size() < count) {
     return make_type_error<MemberCountMismatch>(buffer.type_id, type_layout.size(), count);
   }
 
   // Then, for each member check that...
-  for (size_t i = 0; i < type_layout.size(); ++i) {
+  for (size_t i = 0; i < count; ++i) {
     // ... the byte offset of the member matches the respective element in
     // the `array_of_displacements` type combiner argument.
-    if (type_layout[i].offset != type.combiner.address_args[i]) {
-      return make_type_error<MemberOffsetMismatch>(buffer.type_id, i + 1, type_layout[i].offset,
+    const auto combiner_offset = type.combiner.address_args[i];
+
+    bool found_matching_offset{false};
+    size_t j = 0;
+    for (j = 0; j < type_layout.size(); ++j) {
+      if (type_layout[j].offset == combiner_offset) {
+        found_matching_offset = true;
+      }
+    }
+
+    if (!found_matching_offset) {
+      return make_type_error<MemberOffsetMismatch>(buffer.type_id, j + 1, type_layout[j].offset,
                                                    type.combiner.address_args[i]);
     }
   }
 
-  for (size_t i = 0; i < type_layout.size(); ++i) {
+  for (size_t i = 0; i < count; ++i) {
     // ... the type of the member matches the respective MPI type in the
     // `array_of_types` type combiner argument.
     auto result = check_type(type_layout[i], type.combiner.type_args[i]);
