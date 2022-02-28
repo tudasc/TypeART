@@ -67,7 +67,7 @@ void bar2(int count) {
 }
 
 void foo_bar(int count) {
-  // private: d, e are "randomly" initialised values inside outlined region (outer d,e are not passed)
+  // private: d, e are "randomly" initialized values inside outlined region (outer d,e are not passed)
   // check-inst: define {{.*}} @foo_bar
   // check-inst-NOT: call void @__typeart_alloc_stack
   int d = 3;
