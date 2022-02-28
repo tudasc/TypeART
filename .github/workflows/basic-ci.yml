@@ -37,9 +37,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: codespell-project/actions-codespell@master
-        with:
-          path: demo lib test
-          skip: ./.git,*.py,*/lulesh
 
   lit-suite:
     runs-on: ubuntu-20.04
