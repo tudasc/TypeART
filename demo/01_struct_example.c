@@ -58,7 +58,7 @@ int main(int argc, char** argv) {
   MPI_Status status;
   MPI_Request request;
 
-  /* Get process and neighbour info. */
+  /* Get process and neighbor info. */
   MPI_Init(&argc, &argv);
 
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);

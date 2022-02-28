@@ -26,8 +26,8 @@ set_package_properties(OpenMP PROPERTIES
   "OpenMP is optionally used by the test suite to verify that the LLVM passes handle OpenMPk codes."
 )
 
-set(TYPEART_LOG_LEVEL 0 CACHE STRING "Granularity of LLVM pass logger. 3 ist most verbose, 0 is least.")
-set(TYPEART_LOG_LEVEL_RT 0 CACHE STRING "Granularity of runtime logger. 3 ist most verbose, 0 is least.")
+set(TYPEART_LOG_LEVEL 0 CACHE STRING "Granularity of LLVM pass logger. 3 is most verbose, 0 is least.")
+set(TYPEART_LOG_LEVEL_RT 0 CACHE STRING "Granularity of runtime logger. 3 is most verbose, 0 is least.")
 
 option(TYPEART_SHOW_STATS "Passes show the statistics vars." ON)
 add_feature_info(SHOW_STATS TYPEART_SHOW_STATS "Show compile time statistics of TypeART's LLVM passes.")

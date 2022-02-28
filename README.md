@@ -338,7 +338,7 @@ $> cmake --build build --target install --parallel
 | `TYPEART_ABSEIL` | `ON` | Enable usage of btree-backed map of the [Abseil project](https://abseil.io/) instead of `std::map` |
 | `TYPEART_BTREE` | `OFF` | *Deprecated*. Enable usage of a [btree-backed map](https://github.com/ahueck/cpp-btree) (alternative to Abseil) instead of `std::map` |
 | `TYPEART_SOFTCOUNTERS` | `OFF` | Enable runtime tracking of #tracked addrs. / #distinct checks / etc. |
-| `TYPEART_LOG_LEVEL_RT` | `0` | Granularity of runtime logger. 3 ist most verbose, 0 is least |
+| `TYPEART_LOG_LEVEL_RT` | `0` | Granularity of runtime logger. 3 is most verbose, 0 is least |
 
 <!--- @formatter:on --->
 
@@ -364,7 +364,7 @@ Default mode is to protect the global data structure with a (shared) mutex. Two 
 | `TYPEART_SHOW_STATS` | `ON` | Passes show compile-time summary w.r.t. allocations counts |
 | `TYPEART_MPI_INTERCEPT_LIB` | `ON` | Library to intercept MPI calls by preloading and check whether TypeART tracks the buffer pointer |
 | `TYPEART_MPI_LOGGER` | `ON` | Enable better logging support in MPI execution context |
-| `TYPEART_LOG_LEVEL` | `0` | Granularity of pass logger. 3 ist most verbose, 0 is least |
+| `TYPEART_LOG_LEVEL` | `0` | Granularity of pass logger. 3 is most verbose, 0 is least |
 
 <!--- @formatter:on --->
 
@@ -377,7 +377,7 @@ Default mode is to protect the global data structure with a (shared) mutex. Two 
 | `TYPEART_TEST_CONFIG` | `OFF` | Set (force) logging levels to appropriate levels for test runner to succeed |
 | `TYPEART_CODE_COVERAGE` | `OFF` | Enable code coverage statistics using LCOV 1.14 and genhtml (gcovr optional) |
 | `TYPEART_LLVM_CODE_COVERAGE` | `OFF` | Enable llvm-cov code coverage statistics (llvm-cov and llvm-profdata  required) |
-| `TYPEART_ASAN, TSAN, UBSAN` | `OFF` | Enable Clang sanitizers (tsan is mutually exlusive w.r.t. ubsan and  asan as they don't play well together) |
+| `TYPEART_ASAN, TSAN, UBSAN` | `OFF` | Enable Clang sanitizers (tsan is mutually exclusive w.r.t. ubsan and  asan as they don't play well together) |
 
 <!--- @formatter:on --->
 
