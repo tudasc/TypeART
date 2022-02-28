@@ -1,0 +1,8 @@
+[codespell]
+builtin = clear,rare,en-GB_to_en-US,names,informal,code
+check-filenames =
+check-hidden =
+skip = */.git,*/build*,*/.codespellrc,*/install,*/lulesh,wrap.py
+quiet-level = 2
+ignore-regex = ^#include <(?:stdio)\.h>$|DEPENDEES|\\endcode
+ignore-words-list = uint
