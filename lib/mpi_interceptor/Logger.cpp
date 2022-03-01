@@ -139,33 +139,40 @@ struct TypeErrorVisitor {
   std::string operator()(const InsufficientBufferSize& err) {
     return fmt::format("buffer too small ({} elements, {} required)", err.actual, err.required);
   }
+
   std::string operator()(const BuiltinTypeMismatch& err) {
     const auto* type_name = typeart_get_type_name(err.buffer_type_id);
     auto mpi_type_name    = mpi_name_for(err.mpi_type);
     return fmt::format(R"(expected a type matching MPI type "{}", but found type "{}")", mpi_type_name, type_name);
   }
+
   std::string operator()(const BufferNotOfStructType& err) {
     const auto* type_name = typeart_get_type_name(err.buffer_type_id);
     return fmt::format("expected a struct type, but found type \"{}\"", type_name);
   }
+
   std::string operator()(const MemberCountMismatch& err) {
     const auto* type_name = typeart_get_type_name(err.buffer_type_id);
     return fmt::format("expected {} members, but the type \"{}\" has {} members", err.mpi_count, type_name,
                        err.buffer_count);
   }
+
   std::string operator()(const MemberOffsetMismatch& err) {
     const auto* type_name = typeart_get_type_name(err.type_id);
     return fmt::format("expected a byte offset of {} for member {}, but the type \"{}\" has an offset of {}",
                        err.mpi_offset, err.member, type_name, err.struct_offset);
   }
+
   std::string operator()(const MemberTypeMismatch& err) {
-    return fmt::format("the typecheck for member {} failed ({})", err.member, (*err.error).visit(*this));
+    return fmt::format("the type check for member {} failed ({})", err.member, (*err.error).visit(*this));
   }
+
   std::string operator()(const MemberElementCountMismatch& err) {
     const auto* type_name = typeart_get_type_name(err.type_id);
     return fmt::format("expected element count of {} for member {}, but the type \"{}\" has a count of {}",
                        err.mpi_count, err.member, type_name, err.count);
   }
+
   std::string operator()(const StructSubtypeErrors& err) {
     std::vector<std::string> subtype_errors;
     std::transform(err.subtype_errors.begin(), err.subtype_errors.end(), std::back_inserter(subtype_errors),

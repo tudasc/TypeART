@@ -114,6 +114,7 @@ Result<Multipliers> check_combiner_hvector(const Buffer& buffer, const MPIType& 
 Result<void> check_buffer(const Buffer& buffer, const MPIType& type, int count) {
   auto result = check_type_and_count(buffer, type, count);
 
+  return result;
   if (result.has_value()) {
     return result;
   }
@@ -237,6 +238,7 @@ Result<Multipliers> check_combiner_named(const Buffer& buffer, const MPIType& ty
   // As a special case, if the types do not match, but both represent a 128bit
   // floating point type, they are also considered to match.
   if (buffer.type_id != type.type_id && !(buffer.type_id == TYPEART_PPC_FP128 && type.type_id == TYPEART_FP128)) {
+    printf("Error here starts here.. %i, %i \n", buffer.type_id, type.type_id);
     return make_type_error<BuiltinTypeMismatch>(buffer.type_id, type.mpi_type);
   }
 
@@ -381,30 +383,33 @@ Result<Multipliers> check_combiner_struct(const Buffer& buffer, const MPIType& t
     return make_type_error<MemberCountMismatch>(buffer.type_id, type_layout.size(), count);
   }
 
+  using combiner2struct = std::pair<size_t, size_t>;
+  std::vector<combiner2struct> index_list;
   // Then, for each member check that...
-  for (size_t i = 0; i < count; ++i) {
+  for (size_t combiner_index = 0; combiner_index < count; ++combiner_index) {
     // ... the byte offset of the member matches the respective element in
     // the `array_of_displacements` type combiner argument.
-    const auto combiner_offset = type.combiner.address_args[i];
+    const auto combiner_offset = type.combiner.address_args[combiner_index];
 
     bool found_matching_offset{false};
-    size_t j = 0;
-    for (j = 0; j < type_layout.size(); ++j) {
-      if (type_layout[j].offset == combiner_offset) {
+    size_t ta_member_index = 0;
+    for (ta_member_index = 0; ta_member_index < type_layout.size(); ++ta_member_index) {
+      if (type_layout[ta_member_index].offset == combiner_offset) {
         found_matching_offset = true;
+        index_list.emplace_back(combiner_index, ta_member_index);
       }
     }
 
     if (!found_matching_offset) {
-      return make_type_error<MemberOffsetMismatch>(buffer.type_id, j + 1, type_layout[j].offset,
-                                                   type.combiner.address_args[i]);
+      return make_type_error<MemberOffsetMismatch>(buffer.type_id, ta_member_index + 1,
+                                                   type_layout[ta_member_index].offset,
+                                                   type.combiner.address_args[combiner_index]);
     }
   }
 
-  for (size_t i = 0; i < count; ++i) {
-    // ... the type of the member matches the respective MPI type in the
-    // `array_of_types` type combiner argument.
-    auto result = check_type(type_layout[i], type.combiner.type_args[i]);
+  for (auto [combiner_index, ta_struct_index] : index_list) {
+    printf("Checking: [%i %i]: type_is(%i)\n", combiner_index, ta_struct_index, type_layout[ta_struct_index].type_id);
+    auto result = check_type(type_layout[ta_struct_index], type.combiner.type_args[combiner_index]);
 
     if (result.has_error()) {
       auto error = std::move(result).error();
@@ -412,20 +417,52 @@ Result<Multipliers> check_combiner_struct(const Buffer& buffer, const MPIType& t
       if (error->is<InternalError>()) {
         return std::move(error);
       }
-      return make_type_error<MemberTypeMismatch>(i + 1,
+
+      printf("Error here: [%i %i]: type_is(%i)\n", combiner_index, ta_struct_index,
+             type_layout[ta_struct_index].type_id);
+      return make_type_error<MemberTypeMismatch>(ta_struct_index + 1,
                                                  std::make_unique<TypeError>(std::move(*error).get<TypeError>()));
     }
 
     // ... the count of elements in the buffer of the member matches the count
     // required to represent `blocklength` elements of the MPI type.
     const auto multipliers  = std::move(result).value();
-    const auto type_count   = static_cast<size_t>(array_of_blocklenghts[i]) * multipliers.type;
-    const auto buffer_count = type_layout[i].count * multipliers.buffer;
+    const auto type_count   = static_cast<size_t>(array_of_blocklenghts[combiner_index]) * multipliers.type;
+    const auto buffer_count = type_layout[ta_struct_index].count * multipliers.buffer;
 
     if (type_count != buffer_count) {
-      return make_type_error<MemberElementCountMismatch>(buffer.type_id, i + 1, type_count, buffer_count);
+      return make_type_error<MemberElementCountMismatch>(buffer.type_id, combiner_index + 1, type_count, buffer_count);
     }
   }
+
+  //  for (size_t combiner_index = 0; combiner_index < count; ++combiner_index) {
+  //    // ... the type of the member matches the respective MPI type in the
+  //    // `array_of_types` type combiner argument.
+  //    const auto combiner2structmember = index_list[combiner_index].second;
+  //    auto result                      = check_type(type_layout[combiner_index],
+  //    type.combiner.type_args[combiner_index]);
+  //
+  //    if (result.has_error()) {
+  //      auto error = std::move(result).error();
+  //
+  //      if (error->is<InternalError>()) {
+  //        return std::move(error);
+  //      }
+  //      return make_type_error<MemberTypeMismatch>(combiner_index + 1,
+  //                                                 std::make_unique<TypeError>(std::move(*error).get<TypeError>()));
+  //    }
+  //
+  //    // ... the count of elements in the buffer of the member matches the count
+  //    // required to represent `blocklength` elements of the MPI type.
+  //    const auto multipliers  = std::move(result).value();
+  //    const auto type_count   = static_cast<size_t>(array_of_blocklenghts[combiner_index]) * multipliers.type;
+  //    const auto buffer_count = type_layout[combiner_index].count * multipliers.buffer;
+  //
+  //    if (type_count != buffer_count) {
+  //      return make_type_error<MemberElementCountMismatch>(buffer.type_id, combiner_index + 1, type_count,
+  //      buffer_count);
+  //    }
+  //  }
 
   return Multipliers{1, 1};
 }

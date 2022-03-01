@@ -1,5 +1,5 @@
 // clang-format off
-// RUN: %run %s --manual --mpi_intercept --compile_flags "-g" --executable %s.exe --command "%mpi-exec -n 2 --output-filename %s.log %s.exe"
+// RUN: %run %s --manual --mpi_intercept --compile_flags "-g" --executable %s.exe --command "%mpi-exec -n 2 --output-filename %s.log %s.exe" -typeart-call-filter
 // RUN: cat "%s.log/1/rank.0/stderr" | %filecheck %s
 // RUN: cat "%s.log/1/rank.1/stderr" | %filecheck %s
 // clang-format on
