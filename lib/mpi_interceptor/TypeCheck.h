@@ -55,12 +55,13 @@ struct MPIType {
   MPI_Datatype mpi_type;
   int type_id;
   MPICombiner combiner;
+  size_t count;
 
  public:
-  static Result<MPIType> create(MPI_Datatype type);
+  static Result<MPIType> create(MPI_Datatype type, size_t count);
 };
 
-Result<void> check_buffer(const Buffer& buffer, const MPIType& type, int count);
+Result<void> check_buffer(const Buffer& buffer, const MPIType& type, int mpi_count);
 
 }  // namespace typeart
 

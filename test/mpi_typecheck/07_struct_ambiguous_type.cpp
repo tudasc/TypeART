@@ -7,8 +7,6 @@
 // RUN: cat "%s.log/1/rank.1/stderr" | %filecheck --check-prefixes CHECK,RANK1 %s
 // clang-format on
 
-// XFAIL: *
-
 #include "Util.hpp"
 
 #include <mpi.h>
@@ -16,7 +14,7 @@
 constexpr auto n = 16;
 
 struct A {
-  double arr[16];
+  double arr[n];
 };
 
 struct B {

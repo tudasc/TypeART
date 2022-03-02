@@ -23,7 +23,7 @@
 
 namespace typeart {
 
-void check_buffer(const char* name, const void* called_from, bool is_send, const void* ptr, int count,
+void check_buffer(const char* name, const void* called_from, bool is_send, const void* ptr, int mpi_count,
                   MPI_Datatype type);
 
 static CallCounter call_counter;
@@ -67,9 +67,9 @@ void typeart_exit() {
 
 namespace typeart {
 
-void check_buffer(const char* name, const void* called_from, bool is_send, const void* ptr, int count,
+void check_buffer(const char* name, const void* called_from, bool is_send, const void* ptr, int mpi_count,
                   MPI_Datatype type) {
-  const bool count_is_zero     = count <= 0;
+  const bool count_is_zero     = mpi_count <= 0;
   const bool buffer_is_nullptr = ptr == nullptr;
 
   if (buffer_is_nullptr) {
@@ -92,7 +92,7 @@ void check_buffer(const char* name, const void* called_from, bool is_send, const
     return;
   }
 
-  auto mpi_type = MPIType::create(type);
+  auto mpi_type = MPIType::create(type, mpi_count);
 
   if (mpi_type.has_error()) {
     ++mpi_counter.error;
@@ -100,7 +100,7 @@ void check_buffer(const char* name, const void* called_from, bool is_send, const
     return;
   }
 
-  auto result = check_buffer(*buffer, *mpi_type, count);
+  auto result = check_buffer(*buffer, *mpi_type, mpi_count);
 
   if (result.has_error()) {
     if (result.error()->is<InternalError>()) {
@@ -110,7 +110,7 @@ void check_buffer(const char* name, const void* called_from, bool is_send, const
     }
   }
 
-  logger.log(name, called_from, is_send, *buffer, *mpi_type, count, result);
+  logger.log(name, called_from, is_send, *buffer, *mpi_type, mpi_count, result);
 }
 
 }  // namespace typeart

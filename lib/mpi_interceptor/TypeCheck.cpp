@@ -21,6 +21,7 @@
 #include <functional>
 #include <memory>
 #include <numeric>
+#include <spdlog/spdlog.h>
 #include <utility>
 
 namespace typeart {
@@ -69,7 +70,7 @@ Result<MPICombiner> MPICombiner::create(MPI_Datatype type) {
     result.type_args.reserve(num_datatypes);
 
     for (auto i = size_t{0}; i < num_datatypes; ++i) {
-      auto type_arg = MPIType::create(type_args[i]);
+      auto type_arg = MPIType::create(type_args[i], 1);
 
       if (!type_arg) {
         return std::move(type_arg).error();
@@ -82,7 +83,7 @@ Result<MPICombiner> MPICombiner::create(MPI_Datatype type) {
   return {result};
 }
 
-Result<MPIType> MPIType::create(MPI_Datatype type) {
+Result<MPIType> MPIType::create(MPI_Datatype type, size_t count) {
   auto combiner = MPICombiner::create(type);
 
   if (!combiner) {
@@ -90,7 +91,7 @@ Result<MPIType> MPIType::create(MPI_Datatype type) {
   }
 
   const auto type_id = type_id_for(type);
-  return MPIType{type, type_id, *combiner};
+  return MPIType{type, type_id, *combiner, count};
 }
 
 struct Multipliers {
@@ -98,7 +99,7 @@ struct Multipliers {
   size_t buffer;
 };
 
-Result<void> check_type_and_count(const Buffer& buffer, const MPIType& type, int count);
+Result<void> check_type_and_count(const Buffer& buffer, const MPIType& type, int mpi_count);
 Result<Multipliers> check_type(const Buffer& buffer, const MPIType& type);
 Result<Multipliers> check_combiner_named(const Buffer& buffer, const MPIType& type);
 Result<Multipliers> check_combiner_contiguous(const Buffer& buffer, const MPIType& type);
@@ -111,79 +112,104 @@ Result<Multipliers> check_combiner_hvector(const Buffer& buffer, const MPIType& 
 // For a given Buffer checks that the type of the buffer fits the MPI type
 // `args.type` of this MPICall instance and that the buffer is large enough to
 // hold `args.count` elements of the MPI type.
-Result<void> check_buffer(const Buffer& buffer, const MPIType& type, int count) {
-  auto result = check_type_and_count(buffer, type, count);
+Result<void> check_buffer(const Buffer& buffer, const MPIType& type, int mpi_count) {
+  auto result = check_type_and_count(buffer, type, mpi_count);
 
   return result;
-  if (result.has_value()) {
-    return result;
-  }
-
-  if (result.error()->is<InternalError>()) {
-    return result;
-  }
-
-  // If the type is a struct type and has a member with offset 0,
-  // recursively check against the type of the first member.
-  typeart_struct_layout struct_layout;
-  auto status = typeart_resolve_type_id(buffer.type_id, &struct_layout);
-
-  if (status == TYPEART_INVALID_ID) {
-    auto message = fmt::format("Buffer::create received an invalid type_id {}", buffer.type_id);
-    return make_internal_error<InvalidArgument>(message);
-  }
-
-  if (status == TYPEART_WRONG_KIND) {
-    return result;
-  }
-
-  std::vector<StructSubtypeMismatch> subtype_errors;
-  int struct_type_id = buffer.type_id;
-
-  while (status == TYPEART_OK && struct_layout.offsets[0] == 0) {
-    auto first_member =
-        Buffer::create(static_cast<ptrdiff_t>(struct_layout.offsets[0]), (char*)buffer.ptr + struct_layout.offsets[0],
-                       struct_layout.count[0], struct_layout.member_types[0]);
-    auto subtype_result = check_type_and_count(first_member, type, count);
-
-    if (subtype_result.has_value()) {
-      return subtype_result;
-    }
-
-    if (subtype_result.error()->is<InternalError>()) {
-      return subtype_result;
-    }
-    subtype_errors.push_back(
-        StructSubtypeMismatch{struct_type_id, first_member.type_id, first_member.count,
-                              std::make_unique<TypeError>(std::move(*subtype_result.error()).get<TypeError>())});
-
-    status = typeart_resolve_type_id(first_member.type_id, &struct_layout);
-
-    if (status == TYPEART_INVALID_ID) {
-      auto message = fmt::format("Buffer::create received an invalid type_id {}", buffer.type_id);
-      return make_internal_error<InvalidArgument>(message);
-    }
-
-    struct_type_id = first_member.type_id;
-  }
-
-  auto primary_error = std::make_unique<TypeError>(std::move(*result.error()).get<TypeError>());
-  return make_type_error<StructSubtypeErrors>(std::move(primary_error), std::move(subtype_errors));
 }
 
-Result<void> check_type_and_count(const Buffer& buffer, const MPIType& type, int count) {
+Result<void> check_struct_submember(const Buffer& buffer, const MPIType& type, int mpi_count);
+
+Result<void> check_type_and_count(const Buffer& buffer, const MPIType& type, int mpi_count) {
+  const bool struct_buffer_with_builtinmpi =
+      !typeart_is_builtin_type(buffer.type_id) && type.combiner.id == MPI_COMBINER_NAMED;
+
   auto result = check_type(buffer, type);
 
   if (result.has_error()) {
-    return std::move(result).error();
+    if (!struct_buffer_with_builtinmpi) {
+      return std::move(result).error();
+    }
+    return check_struct_submember(buffer, type, mpi_count);
   }
 
   auto multipliers  = std::move(result).value();
-  auto type_count   = static_cast<size_t>(count * multipliers.type);
+  auto type_count   = static_cast<size_t>(mpi_count * multipliers.type);
   auto buffer_count = buffer.count * multipliers.buffer;
 
   if (type_count > buffer_count) {
     return make_type_error<InsufficientBufferSize>(buffer_count, type_count);
+  }
+
+  return {};
+}
+
+Result<void> check_struct_submember(const Buffer& buffer, const MPIType& type, int mpi_count) {
+  auto mpi_type_id    = type.type_id;
+  auto buffer_type_id = buffer.type_id;
+
+  if (!typeart_is_builtin_type(buffer_type_id)) {
+    // If the type is a struct type and has a member with offset 0,
+    // recursively check against the type of the first member.
+    typeart_struct_layout current_struct_layout;
+    auto status = typeart_resolve_type_id(buffer_type_id, &current_struct_layout);
+
+    if (status == TYPEART_INVALID_ID) {
+      auto message = fmt::format("Buffer type has an invalid type_id \"{}\"", buffer.type_id);
+      return make_internal_error<InvalidArgument>(message);
+    }
+
+    if (status == TYPEART_WRONG_KIND) {
+      auto message = fmt::format("Buffer type is not a struct type \"{}\"", buffer.type_id);
+      return make_internal_error<InvalidArgument>(message);
+    }
+
+    if (current_struct_layout.num_members < 1) {
+      // TODO makes this a type error:
+      auto message = fmt::format("Buffer struct type has no member to recurse \"{}\"", buffer.type_id);
+      return make_internal_error<InvalidArgument>(message);
+    }
+
+    buffer_type_id = current_struct_layout.member_types[0];
+
+    while (status == TYPEART_OK && current_struct_layout.offsets[0] == 0) {
+      auto first_member = Buffer::create(0, (char*)buffer.ptr, current_struct_layout.count[0], buffer_type_id);
+
+      auto subtype_result = check_type(first_member, type);
+
+      if (subtype_result.has_value()) {
+        auto multipliers  = std::move(subtype_result).value();
+        auto type_count   = static_cast<size_t>(mpi_count * multipliers.type);
+        auto buffer_count = first_member.count * multipliers.buffer;
+
+        if (type_count > buffer_count) {
+          return make_type_error<InsufficientBufferSize>(buffer_count, type_count);
+
+          // TODO make more useful
+          //          auto pme =
+          //              std::make_unique<TypeError>(TypeError{TypeError{InsufficientBufferSize{buffer_count,
+          //              type_count}}});
+          //          return make_type_error<StructSubtypeErrors>(std::move(pme), std::move(subtype_errors));
+        }
+        break;
+      }
+
+      if (subtype_result.error()->is<InternalError>()) {
+        return subtype_result.error();
+      }
+
+      status = typeart_resolve_type_id(first_member.type_id, &current_struct_layout);
+
+      if (status == TYPEART_INVALID_ID) {
+        auto message = fmt::format("Buffer::create received an invalid type_id {}", buffer_type_id);
+        return make_internal_error<InvalidArgument>(message);
+      }
+
+      if (status == TYPEART_OK) {
+        // Resolved one level down from struct at member offset 0:
+        buffer_type_id = current_struct_layout.member_types[0];
+      }
+    }
   }
 
   return {};
@@ -226,9 +252,13 @@ Result<Multipliers> check_type(const Buffer& buffer, const MPIType& type) {
 
 // See MPICall::check_type(const Buffer&, const MPIType&)
 Result<Multipliers> check_combiner_named(const Buffer& buffer, const MPIType& type) {
+  auto* mpi_type_dtype = type.mpi_type;
+  auto mpi_type_id     = type.type_id;
+  auto buffer_type_id  = buffer.type_id;
+
   // We assume MPI_BYTE to be the MPI equivalent of void*.
-  if (type.mpi_type == MPI_BYTE) {
-    const auto type_size = typeart_get_type_size(buffer.type_id);
+  if (mpi_type_dtype == MPI_BYTE) {
+    const auto type_size = typeart_get_type_size(buffer_type_id);
     return Multipliers{1, type_size};
   }
 
@@ -237,9 +267,8 @@ Result<Multipliers> check_combiner_named(const Buffer& buffer, const MPIType& ty
   // function from Util.h.
   // As a special case, if the types do not match, but both represent a 128bit
   // floating point type, they are also considered to match.
-  if (buffer.type_id != type.type_id && !(buffer.type_id == TYPEART_PPC_FP128 && type.type_id == TYPEART_FP128)) {
-    printf("Error here starts here.. %i, %i \n", buffer.type_id, type.type_id);
-    return make_type_error<BuiltinTypeMismatch>(buffer.type_id, type.mpi_type);
+  if (buffer_type_id != type.type_id && !(buffer_type_id == TYPEART_PPC_FP128 && mpi_type_id == TYPEART_FP128)) {
+    return make_type_error<BuiltinTypeMismatch>(buffer_type_id, mpi_type_dtype);
   }
 
   return Multipliers{1, 1};
@@ -408,7 +437,6 @@ Result<Multipliers> check_combiner_struct(const Buffer& buffer, const MPIType& t
   }
 
   for (auto [combiner_index, ta_struct_index] : index_list) {
-    printf("Checking: [%i %i]: type_is(%i)\n", combiner_index, ta_struct_index, type_layout[ta_struct_index].type_id);
     auto result = check_type(type_layout[ta_struct_index], type.combiner.type_args[combiner_index]);
 
     if (result.has_error()) {
@@ -418,9 +446,7 @@ Result<Multipliers> check_combiner_struct(const Buffer& buffer, const MPIType& t
         return std::move(error);
       }
 
-      printf("Error here: [%i %i]: type_is(%i)\n", combiner_index, ta_struct_index,
-             type_layout[ta_struct_index].type_id);
-      return make_type_error<MemberTypeMismatch>(ta_struct_index + 1,
+      return make_type_error<MemberTypeMismatch>(combiner_index + 1,
                                                  std::make_unique<TypeError>(std::move(*error).get<TypeError>()));
     }
 
@@ -434,35 +460,6 @@ Result<Multipliers> check_combiner_struct(const Buffer& buffer, const MPIType& t
       return make_type_error<MemberElementCountMismatch>(buffer.type_id, combiner_index + 1, type_count, buffer_count);
     }
   }
-
-  //  for (size_t combiner_index = 0; combiner_index < count; ++combiner_index) {
-  //    // ... the type of the member matches the respective MPI type in the
-  //    // `array_of_types` type combiner argument.
-  //    const auto combiner2structmember = index_list[combiner_index].second;
-  //    auto result                      = check_type(type_layout[combiner_index],
-  //    type.combiner.type_args[combiner_index]);
-  //
-  //    if (result.has_error()) {
-  //      auto error = std::move(result).error();
-  //
-  //      if (error->is<InternalError>()) {
-  //        return std::move(error);
-  //      }
-  //      return make_type_error<MemberTypeMismatch>(combiner_index + 1,
-  //                                                 std::make_unique<TypeError>(std::move(*error).get<TypeError>()));
-  //    }
-  //
-  //    // ... the count of elements in the buffer of the member matches the count
-  //    // required to represent `blocklength` elements of the MPI type.
-  //    const auto multipliers  = std::move(result).value();
-  //    const auto type_count   = static_cast<size_t>(array_of_blocklenghts[combiner_index]) * multipliers.type;
-  //    const auto buffer_count = type_layout[combiner_index].count * multipliers.buffer;
-  //
-  //    if (type_count != buffer_count) {
-  //      return make_type_error<MemberElementCountMismatch>(buffer.type_id, combiner_index + 1, type_count,
-  //      buffer_count);
-  //    }
-  //  }
 
   return Multipliers{1, 1};
 }
