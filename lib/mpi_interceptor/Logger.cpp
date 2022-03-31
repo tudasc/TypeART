@@ -136,6 +136,10 @@ struct InternalErrorVisitor {
 };
 
 struct TypeErrorVisitor {
+  std::string operator()(const ExtentMismatch& err) {
+    return fmt::format("the extent is insufficient, expected {} but got {}.", err.extent_expected, err.extent_actual);
+  }
+
   std::string operator()(const InsufficientBufferSize& err) {
     return fmt::format("buffer too small ({} elements, {} required)", err.actual, err.required);
   }
