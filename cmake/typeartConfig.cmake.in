@@ -41,3 +41,15 @@ else()
   endforeach()
   check_components("${@PROJECT_NAME@_FIND_COMPONENTS}")
 endif()
+
+file(GLOB
+    @PROJECT_NAME@-script-file
+    LIST_DIRECTORIES false
+    "@PACKAGE_BINARY_INSTALL_DIR@/@PROJECT_NAME@-*"
+  )
+foreach(script_file ${@PROJECT_NAME@-script-file})
+    string(REGEX MATCH "@PACKAGE_BINARY_INSTALL_DIR@/@PROJECT_NAME@-(.*)" S_NAME ${script_file})
+    string(REPLACE "@CMAKE_DEBUG_POSTFIX@" "_DEBUG" script_file_name ${CMAKE_MATCH_1})
+    string(TOUPPER "${script_file_name}" script_file_name)
+    set_and_check(TYPEART_${script_file_name} ${script_file})
+endforeach()
