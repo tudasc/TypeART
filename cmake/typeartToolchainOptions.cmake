@@ -88,6 +88,9 @@ mark_as_advanced(TYPEART_INSTALL_UTIL_SCRIPTS)
 option(TYPEART_TEST_CONFIGURE_IDE "Add targets so the IDE (e.g., Clion) can interpret test files better" ON)
 mark_as_advanced(TYPEART_TEST_CONFIGURE_IDE)
 
+option(TYPEART_CONFIG_DIR_IS_SHARE "Install to \"share/cmake\" instead of \"lib/cmake/\"" OFF)
+mark_as_advanced(TYPEART_CONFIG_DIR_IS_SHARE)
+
 set(warning_guard "")
 if(NOT TYPEART_IS_TOP_LEVEL)
   option(
@@ -157,25 +160,33 @@ typeart_find_llvm_progs(TYPEART_LLC_EXEC "llc;llc-13;llc-12;llc-11;llc-10" "llc"
 typeart_find_llvm_progs(TYPEART_OPT_EXEC "opt;opt-13;opt-12;opt-11;opt-10" "opt")
 typeart_find_llvm_progs(TYPEART_FILECHECK_EXEC "FileCheck;FileCheck-13;FileCheck-12;FileCheck-11;FileCheck-10" "FileCheck")
 
-if(NOT CMAKE_BUILD_TYPE)
-  # set default build type
-  set(CMAKE_BUILD_TYPE Debug CACHE STRING "" FORCE)
-  message(STATUS "Building as debug (default)")
+
+if(TYPEART_IS_TOP_LEVEL)
+  if(NOT CMAKE_BUILD_TYPE)
+    # set default build type
+    set(CMAKE_BUILD_TYPE Debug CACHE STRING "" FORCE)
+    message(STATUS "Building as debug (default)")
+  endif()
+
+  if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    # set default install path
+    set(CMAKE_INSTALL_PREFIX
+        "${typeart_SOURCE_DIR}/install/typeart"
+        CACHE PATH "Default install path" FORCE
+    )
+    message(STATUS "Installing to (default): ${CMAKE_INSTALL_PREFIX}")
+  endif()
 endif()
 
 if(NOT CMAKE_DEBUG_POSTFIX AND CMAKE_BUILD_TYPE STREQUAL "Debug")
   set(CMAKE_DEBUG_POSTFIX "-d")
 endif()
 
-if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-  # set default install path
-  set(CMAKE_INSTALL_PREFIX
-      "${typeart_SOURCE_DIR}/install/typeart"
-      CACHE PATH "Default install path" FORCE
-  )
-  message(STATUS "Installing to (default): ${CMAKE_INSTALL_PREFIX}")
-endif()
-
 set(TYPEART_PREFIX ${PROJECT_NAME})
 set(TARGETS_EXPORT_NAME ${TYPEART_PREFIX}Targets)
-set(TYPEART_INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
+
+if(TYPEART_CONFIG_DIR_IS_SHARE)
+  set(TYPEART_INSTALL_CONFIGDIR ${CMAKE_INSTALL_DATAROOTDIR}/cmake/${PROJECT_NAME})
+else()
+  set(TYPEART_INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
+endif()
