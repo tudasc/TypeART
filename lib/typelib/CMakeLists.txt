@@ -7,7 +7,7 @@ set_target_properties(${TYPEART_PREFIX}_TypesObj PROPERTIES POSITION_INDEPENDENT
 target_include_directories(${TYPEART_PREFIX}_TypesObj SYSTEM PRIVATE ${LLVM_INCLUDE_DIRS})
 
 target_include_directories(
-  ${TYPEART_PREFIX}_TypesObj
+  ${TYPEART_PREFIX}_TypesObj ${warning_guard}
   PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   PRIVATE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
 )
@@ -29,7 +29,7 @@ set_target_properties(
   EXPORT_NAME "Types"
 )
 target_include_directories(
-  ${TYPEART_PREFIX}_Types
+  ${TYPEART_PREFIX}_Types ${warning_guard}
   PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
   PRIVATE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
@@ -48,7 +48,7 @@ set_target_properties(
   EXPORT_NAME "TypesStatic"
 )
 target_include_directories(
-  ${TYPEART_PREFIX}_TypesStatic
+  ${TYPEART_PREFIX}_TypesStatic ${warning_guard}
   PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
   PRIVATE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>

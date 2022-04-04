@@ -11,7 +11,7 @@ set_target_properties(
 )
 
 target_include_directories(
-  ${TYPEART_PREFIX}_SystemStatic
+  ${TYPEART_PREFIX}_SystemStatic ${warning_guard}
   PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )

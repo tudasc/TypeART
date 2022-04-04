@@ -88,6 +88,20 @@ mark_as_advanced(TYPEART_INSTALL_UTIL_SCRIPTS)
 option(TYPEART_TEST_CONFIGURE_IDE "Add targets so the IDE (e.g., Clion) can interpret test files better" ON)
 mark_as_advanced(TYPEART_TEST_CONFIGURE_IDE)
 
+set(warning_guard "")
+if(NOT TYPEART_IS_TOP_LEVEL)
+  option(
+      TYPEART_INCLUDES_WITH_SYSTEM
+      "Use SYSTEM modifier for TypeART includes to disable warnings."
+      ON
+  )
+  mark_as_advanced(TYPEART_INCLUDES_WITH_SYSTEM)
+
+  if(TYPEART_INCLUDES_WITH_SYSTEM)
+    set(warning_guard SYSTEM)
+  endif()
+endif()
+
 include(AddLLVM)
 include(modules/llvm-lit)
 include(modules/clang-tidy)

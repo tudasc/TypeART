@@ -18,7 +18,7 @@ set_property(TARGET MPITool PROPERTY C_STANDARD_REQUIRED TRUE)
 
 typeart_target_define_file_basename(MPITool)
 
-target_include_directories(MPITool
+target_include_directories(MPITool ${warning_guard}
   PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
          $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
          $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>

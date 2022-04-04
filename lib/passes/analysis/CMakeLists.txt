@@ -26,7 +26,7 @@ target_compile_definitions(
 set_target_properties(${TYPEART_PREFIX}_MemInstFinder PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 target_include_directories(
-  ${TYPEART_PREFIX}_MemInstFinder
+  ${TYPEART_PREFIX}_MemInstFinder ${warning_guard}
   PUBLIC $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
          $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
          $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>

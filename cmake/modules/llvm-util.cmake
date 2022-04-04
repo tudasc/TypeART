@@ -32,7 +32,7 @@ function(typeart_make_llvm_module name sources)
   )
 
   if(ARG_INCLUDE_DIRS)
-    target_include_directories(${name}
+    target_include_directories(${name} ${warning_guard}
       PRIVATE
       ${ARG_INCLUDE_DIRS}
     )

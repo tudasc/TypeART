@@ -30,7 +30,7 @@ target_compile_definitions(${TYPEART_PREFIX}_MemOpFilter PRIVATE TYPEART_LOG_LEV
 set_target_properties(${TYPEART_PREFIX}_MemOpFilter PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 target_include_directories(
-  ${TYPEART_PREFIX}_MemOpFilter
+  ${TYPEART_PREFIX}_MemOpFilter ${warning_guard}
   PUBLIC $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
          $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
          $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/passes>

@@ -53,8 +53,8 @@ target_link_libraries(
 )
 
 target_include_directories(
-  ${TYPEART_PREFIX}_Runtime
-  PUBLIC $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+  ${TYPEART_PREFIX}_Runtime ${warning_guard}
+  PUBLIC $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}>
          $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/runtime>
          $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/typelib>
   PRIVATE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/passes/support>

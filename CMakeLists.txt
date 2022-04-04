@@ -77,10 +77,10 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
 if(TYPEART_IS_TOP_LEVEL)
   enable_testing()
   add_subdirectory(test)
-endif()
 
-feature_summary(WHAT ENABLED_FEATURES PACKAGES_FOUND PACKAGES_NOT_FOUND
-  DESCRIPTION "TypeART ${PROJECT_VERSION} package and feature info:"
-  INCLUDE_QUIET_PACKAGES
-  QUIET_ON_EMPTY
-)
+  feature_summary(WHAT ENABLED_FEATURES PACKAGES_FOUND PACKAGES_NOT_FOUND
+    DESCRIPTION "TypeART ${PROJECT_VERSION} package and feature info:"
+    INCLUDE_QUIET_PACKAGES
+    QUIET_ON_EMPTY
+  )
+endif()
