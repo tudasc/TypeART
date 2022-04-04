@@ -9,7 +9,7 @@ macro (check_components comps_list)
   set(@PROJECT_NAME@_FOUND true)
 
   foreach(component ${comps_list})
-    if(NOT TARGET @PROJECT_NAME@::${component} AND NOT TARGET typeart::${component}Static)
+    if(NOT TARGET @PROJECT_NAME@::${component} AND NOT TARGET @PROJECT_NAME@::${component}Static)
       set(@PROJECT_NAME@_${component}_FOUND false)
       if(@PROJECT_NAME@_FIND_REQUIRED_${component})
         message(WARNING "Could not find component ${component}")
@@ -30,11 +30,14 @@ if (@PROJECT_NAME@_FIND_COMPONENTS)
   check_components("${@PROJECT_NAME@_FIND_COMPONENTS}")
 else()
   file(GLOB
-    target-file
+    @PROJECT_NAME@-target-file
     LIST_DIRECTORIES false
     "${CMAKE_CURRENT_LIST_DIR}/@PROJECT_NAME@*Targets.cmake"
   )
-  foreach(component ${target-file})
-    include(${component})
+  foreach(component_file ${@PROJECT_NAME@-target-file})
+    include(${component_file})
+    string(REGEX MATCH "${CMAKE_CURRENT_LIST_DIR}/@PROJECT_NAME@(.*)Targets.cmake" COMP_NAME ${component_file})
+    list(APPEND @PROJECT_NAME@_FIND_COMPONENTS "${CMAKE_MATCH_1}")
   endforeach()
+  check_components("${@PROJECT_NAME@_FIND_COMPONENTS}")
 endif()
