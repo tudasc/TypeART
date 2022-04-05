@@ -95,16 +95,12 @@ function(typeart_configure_script input output)
 endfunction()
 
 function(typeart_configure_coverage_script input output)
-  find_program(
-    LLVMCOV_COMMAND
-    NAMES llvm-cov-10 llvm-cov
-    HINTS ${LLVM_TOOLS_BINARY_DIR}
-  )
-  if(LLVMCOV_COMMAND)
+  typeart_find_llvm_progs(TYPEART_LLVMCOV_COMMAND "llvm-cov-${LLVM_VERSION_MAJOR};llvm-cov" false)
+  if(TYPEART_LLVMCOV_COMMAND)
     file(
       GENERATE
       OUTPUT ${output}
-      CONTENT "#!/usr/bin/env bash\n\n${LLVMCOV_COMMAND} gcov \"$@\"\n"
+      CONTENT "#!/usr/bin/env bash\n\n${TYPEART_LLVMCOV_COMMAND} gcov \"$@\"\n"
       FILE_PERMISSIONS
         OWNER_READ OWNER_WRITE OWNER_EXECUTE
         GROUP_READ

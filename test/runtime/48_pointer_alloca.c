@@ -3,6 +3,8 @@
 // RUN: %run %s -typeart-filter-pointer-alloca=false 2>&1 | %filecheck %s --check-prefix CHECK-pointer
 // clang-format on
 
+// REQUIRES: softcounter
+
 int main(int argc, char** argv) {
   int n = argc * 2;
   int* x;

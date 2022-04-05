@@ -3,10 +3,10 @@ include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)
 include(FeatureSummary)
 
-find_package(LLVM CONFIG HINTS "${LLVM_DIR}" NO_DEFAULT_PATH)
+find_package(LLVM CONFIG HINTS "${LLVM_DIR}")
 if(NOT LLVM_FOUND)
   message(STATUS "LLVM not found at: ${LLVM_DIR}.")
-  find_package(LLVM 10 REQUIRED CONFIG)
+  find_package(LLVM REQUIRED CONFIG)
 endif()
 set_package_properties(LLVM PROPERTIES
   URL https://llvm.org/
@@ -88,7 +88,7 @@ mark_as_advanced(TYPEART_INSTALL_UTIL_SCRIPTS)
 option(TYPEART_TEST_CONFIGURE_IDE "Add targets so the IDE (e.g., Clion) can interpret test files better" ON)
 mark_as_advanced(TYPEART_TEST_CONFIGURE_IDE)
 
-option(TYPEART_CONFIG_DIR_IS_SHARE "Install to \"share/cmake\" instead of \"lib/cmake/\"" OFF)
+option(TYPEART_CONFIG_DIR_IS_SHARE "Install to \"share/cmake/\" instead of \"lib/cmake/\"" OFF)
 mark_as_advanced(TYPEART_CONFIG_DIR_IS_SHARE)
 
 set(warning_guard "")
@@ -154,11 +154,11 @@ set_package_properties(Python3 PROPERTIES
   "The Python3 interpreter is used for lit-testing and the MPI interceptor tool code generation."
 )
 
-typeart_find_llvm_progs(TYPEART_CLANG_EXEC "clang;clang-13;clang-12;clang-11;clang-10" "clang")
-typeart_find_llvm_progs(TYPEART_CLANGCXX_EXEC "clang++;clang-13;clang-12;clang-11;clang++-10" "clang++")
-typeart_find_llvm_progs(TYPEART_LLC_EXEC "llc;llc-13;llc-12;llc-11;llc-10" "llc")
-typeart_find_llvm_progs(TYPEART_OPT_EXEC "opt;opt-13;opt-12;opt-11;opt-10" "opt")
-typeart_find_llvm_progs(TYPEART_FILECHECK_EXEC "FileCheck;FileCheck-13;FileCheck-12;FileCheck-11;FileCheck-10" "FileCheck")
+typeart_find_llvm_progs(TYPEART_CLANG_EXEC "clang-${LLVM_VERSION_MAJOR};clang" "clang")
+typeart_find_llvm_progs(TYPEART_CLANGCXX_EXEC "clang++-${LLVM_VERSION_MAJOR};clang++" "clang++")
+typeart_find_llvm_progs(TYPEART_LLC_EXEC "llc-${LLVM_VERSION_MAJOR};llc" "llc")
+typeart_find_llvm_progs(TYPEART_OPT_EXEC "opt-${LLVM_VERSION_MAJOR};opt" "opt")
+typeart_find_llvm_progs(TYPEART_FILECHECK_EXEC "FileCheck-${LLVM_VERSION_MAJOR};FileCheck" "FileCheck")
 
 
 if(TYPEART_IS_TOP_LEVEL)

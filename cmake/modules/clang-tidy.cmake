@@ -14,13 +14,14 @@ function(typeart_add_tidy_target target comment)
     filter_dir(${exclude})
   endforeach()
 
-  find_program(TIDY_COMMAND
-    NAMES clang-tidy clang-tidy-13 clang-tidy-12 clang-tidy-11 clang-tidy-10
-    HINTS ${LLVM_TOOLS_BINARY_DIR}
+  typeart_find_llvm_progs(TYPEART_CLANG_TIDY_COMMAND
+    "clang-tidy-${LLVM_VERSION_MAJOR};clang-tidy"
+    "clang-tidy"
   )
-  if(TIDY_COMMAND)
+
+  if(TYPEART_CLANG_TIDY_COMMAND)
     add_custom_target(${target}
-      COMMAND ${TIDY_COMMAND} -p ${CMAKE_BINARY_DIR}
+      COMMAND ${TYPEART_CLANG_TIDY_COMMAND} -p ${CMAKE_BINARY_DIR}
       ${ARG_OTHER}
       ${ARG_UNPARSED_ARGUMENTS}
       ${ARG_SOURCES}

@@ -52,26 +52,29 @@ endfunction()
 
 function(typeart_find_llvm_progs target names default)
   find_program(
-    target-prog
+    ${target}
     NAMES ${names}
-    HINTS ${LLVM_TOOLS_BINARY_DIR}
+    PATHS ${LLVM_TOOLS_BINARY_DIR}
     NO_DEFAULT_PATH
   )
+  if(NOT ${target})
+    find_program(
+      ${target}
+      NAMES ${names}
+      HINT ${LLVM_TOOLS_BINARY_DIR}
+    )
+  endif()
 
-  if(NOT target-prog)
+  if(NOT ${target})
+    unset(${target} CACHE)
     set(${target}
         ${default}
         PARENT_SCOPE
     )
     message(
       STATUS
-        "Did not find clang program ${names} in ${LLVM_TOOLS_BINARY_DIR}. Using def. value: ${default}"
-    )
-  else()
-    set(${target}
-        ${target-prog}
-        PARENT_SCOPE
+        "Did not find clang program ${names} in ${LLVM_TOOLS_BINARY_DIR} "
+        "or on system. Using def. value: ${default}"
     )
   endif()
-  unset(target-prog CACHE)
 endfunction()

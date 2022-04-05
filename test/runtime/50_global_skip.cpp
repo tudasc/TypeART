@@ -1,6 +1,8 @@
 // RUN: %run %s 2>&1 | %filecheck %s
 // RUN: %run %s -typeart-global=false 2>&1 | %filecheck %s --check-prefix CHECK-SKIP
 
+// REQUIRES: softcounter
+
 double global_d;
 
 void f() {
