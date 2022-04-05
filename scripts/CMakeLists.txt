@@ -180,6 +180,17 @@ if(${MPI_CXX_FOUND})
   )
 endif()
 
+set(TYPEART_INSTALL_SCRIPT_CANDIDATE
+  typeart-mpicc
+  typeart-mpic++
+  typeart-clang++
+  typeart-clang
+  typeart-run
+  typeart-apply
+  CACHE INTERNAL
+  "Names of TypeART scripts which can be installed."
+)
+
 install(
   PROGRAMS
     $<$<BOOL:${TYPEART_INSTALL_UTIL_SCRIPTS}>:${CMAKE_CURRENT_BINARY_DIR}/typeart-run${CMAKE_DEBUG_POSTFIX}.sh>

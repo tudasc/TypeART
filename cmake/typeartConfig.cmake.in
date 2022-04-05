@@ -42,14 +42,20 @@ else()
   check_components("${@PROJECT_NAME@_FIND_COMPONENTS}")
 endif()
 
-file(GLOB
-    @PROJECT_NAME@-script-file
-    LIST_DIRECTORIES false
-    "@PACKAGE_BINARY_INSTALL_DIR@/@PROJECT_NAME@-*"
-  )
-foreach(script_file ${@PROJECT_NAME@-script-file})
-    string(REGEX MATCH "@PACKAGE_BINARY_INSTALL_DIR@/@PROJECT_NAME@-(.*)" S_NAME ${script_file})
-    string(REPLACE "@CMAKE_DEBUG_POSTFIX@" "_DEBUG" script_file_name ${CMAKE_MATCH_1})
-    string(TOUPPER "${script_file_name}" script_file_name)
-    set_and_check(TYPEART_${script_file_name} ${script_file})
+macro(find_@PROJECT_NAME@_script _prog_name _name)
+  if(NOT ${_prog_name})
+    find_program(${_prog_name} ${_name}
+      PATHS @PACKAGE_BINARY_INSTALL_DIR@
+      DOC "TypeART wrapper script \"${_name}\""
+      NO_DEFAULT_PATH
+    )
+    mark_as_advanced(${_prog_name})
+  endif()
+endmacro()
+
+foreach(script_file @TYPEART_INSTALL_SCRIPT_CANDIDATE@)
+  string(REPLACE "-" "_" script_file_name ${script_file})
+  string(TOUPPER "${script_file_name}" script_file_name)
+  find_typeart_script(${script_file_name}_CMD ${script_file})
+  find_typeart_script(${script_file_name}_CMD_DEBUG ${script_file}@TYPEART_DEBUG_POSTFIX@)
 endforeach()
