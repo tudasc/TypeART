@@ -51,6 +51,9 @@ function(typeart_make_llvm_module name sources)
 endfunction()
 
 function(typeart_find_llvm_progs target names default)
+  cmake_parse_arguments(ARG "" "" "SHOW_VAR" ${ARGN})
+  set(TARGET_TMP ${target})
+
   find_program(
     ${target}
     NAMES ${names}
@@ -69,12 +72,20 @@ function(typeart_find_llvm_progs target names default)
     unset(${target} CACHE)
     set(${target}
         ${default}
-        PARENT_SCOPE
+        CACHE
+        STRING
+        "Default value for ${TARGET_TMP}."
     )
     message(
       STATUS
         "Did not find clang program ${names} in ${LLVM_TOOLS_BINARY_DIR} "
         "or on system. Using def. value: ${default}"
     )
+  endif()
+
+  if(ARG_SHOW_VAR)
+    mark_as_advanced(CLEAR ${target})
+  else()
+    mark_as_advanced(${target})
   endif()
 endfunction()

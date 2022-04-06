@@ -160,7 +160,6 @@ typeart_find_llvm_progs(TYPEART_LLC_EXEC "llc-${LLVM_VERSION_MAJOR};llc" "llc")
 typeart_find_llvm_progs(TYPEART_OPT_EXEC "opt-${LLVM_VERSION_MAJOR};opt" "opt")
 typeart_find_llvm_progs(TYPEART_FILECHECK_EXEC "FileCheck-${LLVM_VERSION_MAJOR};FileCheck" "FileCheck")
 
-
 if(TYPEART_IS_TOP_LEVEL)
   if(NOT CMAKE_BUILD_TYPE)
     # set default build type
