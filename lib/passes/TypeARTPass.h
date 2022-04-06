@@ -43,6 +43,8 @@ namespace typeart::pass {
 
 class TypeArtPass : public llvm::ModulePass {
  private:
+  const std::string default_types_file{"types.yaml"};
+
   struct TypeArtFunc {
     const std::string name;
     llvm::Value* f{nullptr};
