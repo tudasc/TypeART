@@ -38,17 +38,24 @@ inline const void* addByteOffset(const void* addr, T offset) {
 TypeResolution::TypeResolution(const TypeDB& db, Recorder& recorder) : typeDB{db}, recorder{recorder} {
 }
 
-size_t TypeResolution::getMemberIndex(typeart_struct_layout structInfo, size_t offset) const {
-  size_t n = structInfo.num_members;
-  if (offset > structInfo.offsets[n - 1]) {
-    return n - 1;
+size_t TypeResolution::getMemberIndex(typeart_struct_layout structInfo, size_t offset) {
+  const size_t num_members = structInfo.num_members;
+
+  if (num_members == 0) {
+    return 0;
   }
 
-  size_t i = 0;
-  while (i < n - 1 && offset >= structInfo.offsets[i + 1]) {
-    ++i;
+  const auto* struct_offsets = structInfo.offsets;
+
+  if (offset > struct_offsets[num_members - 1]) {
+    return num_members - 1;
   }
-  return i;
+
+  size_t member_index{0};
+  while (member_index < (num_members - 1) && offset >= struct_offsets[member_index + 1]) {
+    ++member_index;
+  }
+  return member_index;
 }
 
 TypeResolution::TypeArtStatus TypeResolution::getSubTypeInfo(const void* baseAddr, size_t offset,
@@ -60,7 +67,7 @@ TypeResolution::TypeArtStatus TypeResolution::getSubTypeInfo(const void* baseAdd
   }
 
   // Get index of the struct member at the address
-  size_t memberIndex = getMemberIndex(containerInfo, offset);
+  const size_t memberIndex = getMemberIndex(containerInfo, offset);
 
   int memberType = containerInfo.member_types[memberIndex];
 
@@ -151,12 +158,12 @@ TypeResolution::TypeArtStatus TypeResolution::getTypeInfoInternal(const void* ba
 
 TypeResolution::TypeArtStatus TypeResolution::getTypeInfo(const void* addr, const void* basePtr,
                                                           const PointerInfo& ptrInfo, int* type, size_t* count) const {
-  int containingType = ptrInfo.typeId;
-  size_t containingTypeCount{0};
-  size_t internalOffset{0};
+  const int containing_type = ptrInfo.typeId;
+  size_t containing_type_count{0};
+  size_t internal_byte_offset{0};
 
   // First, retrieve the containing type
-  TypeArtStatus status = getContainingTypeInfo(addr, basePtr, ptrInfo, &containingTypeCount, &internalOffset);
+  TypeArtStatus status = getContainingTypeInfo(addr, basePtr, ptrInfo, &containing_type_count, &internal_byte_offset);
   if (status != TYPEART_OK) {
     if (status == TYPEART_UNKNOWN_ADDRESS) {
       recorder.incAddrMissing(addr);
@@ -165,23 +172,24 @@ TypeResolution::TypeArtStatus TypeResolution::getTypeInfo(const void* addr, cons
   }
 
   // Check for exact address match
-  if (internalOffset == 0) {
-    *type  = containingType;
-    *count = containingTypeCount;
+  if (internal_byte_offset == 0) {
+    *type  = containing_type;
+    *count = containing_type_count;
     return TYPEART_OK;
   }
 
-  if (typeDB.isBuiltinType(containingType)) {
+  if (typeDB.isBuiltinType(containing_type)) {
     // Address points to the middle of a builtin type
     return TYPEART_BAD_ALIGNMENT;
   }
 
   // Resolve struct recursively
-  const auto* structInfo = typeDB.getStructInfo(containingType);
+  const auto* structInfo = typeDB.getStructInfo(containing_type);
   if (structInfo != nullptr) {
-    const void* containingTypeAddr = addByteOffset(addr, -std::ptrdiff_t(internalOffset));
-    return getTypeInfoInternal(containingTypeAddr, internalOffset, *structInfo, type, count);
+    const void* containingTypeAddr = addByteOffset(addr, -std::ptrdiff_t(internal_byte_offset));
+    return getTypeInfoInternal(containingTypeAddr, internal_byte_offset, *structInfo, type, count);
   }
+
   return TYPEART_INVALID_ID;
 }
 
@@ -330,7 +338,7 @@ typeart_status typeart_get_type_id(const void* addr, int* type_id) {
 }
 
 typeart_status typeart_get_containing_type(const void* addr, int* type, size_t* count, const void** base_address,
-                                           size_t* offset) {
+                                           size_t* byte_offset) {
   typeart::RTGuard guard;
   auto alloc = typeart::RuntimeSystem::get().allocTracker.findBaseAlloc(addr);
   if (alloc) {
@@ -338,17 +346,17 @@ typeart_status typeart_get_containing_type(const void* addr, int* type, size_t* 
     *type         = alloc->second.typeId;
     *base_address = alloc->first;
     return typeart::RuntimeSystem::get().typeResolution.getContainingTypeInfo(addr, alloc->first, alloc->second, count,
-                                                                              offset);
+                                                                              byte_offset);
   }
   return TYPEART_UNKNOWN_ADDRESS;
 }
 
 typeart_status typeart_get_subtype(const void* base_addr, size_t offset, typeart_struct_layout container_layout,
-                                   int* subtype_id, const void** subtype_base_addr, size_t* subtype_offset,
+                                   int* subtype_id, const void** subtype_base_addr, size_t* subtype_byte_offset,
                                    size_t* subtype_count) {
   typeart::RTGuard guard;
-  return typeart::RuntimeSystem::get().typeResolution.getSubTypeInfo(base_addr, offset, container_layout, subtype_id,
-                                                                     subtype_base_addr, subtype_offset, subtype_count);
+  return typeart::RuntimeSystem::get().typeResolution.getSubTypeInfo(
+      base_addr, offset, container_layout, subtype_id, subtype_base_addr, subtype_byte_offset, subtype_count);
 }
 
 typeart_status typeart_resolve_type_addr(const void* addr, typeart_struct_layout* struct_layout) {

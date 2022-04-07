@@ -82,13 +82,13 @@ typeart_status typeart_get_type_id(const void* addr, int* type_id);
  * \param[in] addr The address.
  * \param[out] count Number of elements in the containing buffer, not counting elements before the given address.
  * \param[out] base_address Address of the containing buffer.
- * \param[out] offset The byte offset within that buffer element.
+ * \param[out] byte_offset The byte offset within that buffer element.
  *
  * \return A status code. For an explanation of errors, refer to typeart_get_type().
  *
  */
 typeart_status typeart_get_containing_type(const void* addr, int* type_id, size_t* count, const void** base_address,
-                                           size_t* offset);
+                                           size_t* byte_offset);
 
 /**
  * Determines the subtype at the given offset w.r.t. a base address and a corresponding containing type.
@@ -100,7 +100,7 @@ typeart_status typeart_get_containing_type(const void* addr, int* type_id, size_
  * \param[in] container_layout typeart_struct_layout corresponding to the containing type
  * \param[out] subtype_id The type ID corresponding to the subtype.
  * \param[out] subtype_base_addr Pointer to the start of the subtype.
- * \param[out] subtype_offset Byte offset within the subtype.
+ * \param[out] subtype_byte_offset Byte offset within the subtype.
  * \param[out] subtype_count Number of elements in subarray.
  *
  * \return One of the following status codes:
@@ -109,7 +109,7 @@ typeart_status typeart_get_containing_type(const void* addr, int* type_id, size_
  *  - TYPEART_BAD_OFFSET: The provided offset is invalid.
  */
 typeart_status typeart_get_subtype(const void* base_addr, size_t offset, typeart_struct_layout container_layout,
-                                   int* subtype_id, const void** subtype_base_addr, size_t* subtype_offset,
+                                   int* subtype_id, const void** subtype_base_addr, size_t* subtype_byte_offset,
                                    size_t* subtype_count);
 
 /**
