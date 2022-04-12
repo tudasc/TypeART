@@ -24,8 +24,6 @@
 
 namespace typeart {
 
-using BuiltinType = typeart_builtin_type;
-
 struct PointerInfo;
 
 class TypeResolution {
@@ -35,18 +33,14 @@ class TypeResolution {
  public:
   using TypeArtStatus = typeart_status;
 
-  TypeResolution(const TypeDB& db, Recorder& recorder);
+  TypeResolution(const TypeDB& type_db, Recorder& recorder);
 
-  static size_t getMemberIndex(typeart_struct_layout structInfo, size_t offset);
+  TypeArtStatus getSubTypeInfo(const void* baseAddr, size_t offset, const typeart_struct_layout& containerInfo,
+                               int* subType, const void** subTypeBaseAddr, size_t* subTypeOffset,
+                               size_t* subTypeCount) const;
 
-  TypeArtStatus getSubTypeInfo(const void* baseAddr, size_t offset, typeart_struct_layout containerInfo, int* subType,
-                               const void** subTypeBaseAddr, size_t* subTypeOffset, size_t* subTypeCount) const;
-
-  TypeArtStatus getSubTypeInfo(const void* baseAddr, size_t offset, const StructTypeInfo& containerInfo, int* subType,
-                               const void** subTypeBaseAddr, size_t* subTypeOffset, size_t* subTypeCount) const;
-
-  TypeArtStatus getTypeInfoInternal(const void* baseAddr, size_t offset, const StructTypeInfo& containerInfo, int* type,
-                                    size_t* count) const;
+  TypeArtStatus getTypeInfoInternal(const void* struct_type_info, size_t offset, const StructTypeInfo& containerInfo,
+                                    int* type, size_t* count) const;
 
   TypeArtStatus getTypeInfo(const void* addr, const void* basePtr, const PointerInfo& ptrInfo, int* type,
                             size_t* count) const;
@@ -54,9 +48,7 @@ class TypeResolution {
   TypeArtStatus getContainingTypeInfo(const void* addr, const void* basePtr, const PointerInfo& ptrInfo, size_t* count,
                                       size_t* offset) const;
 
-  TypeArtStatus getBuiltinInfo(const void* addr, const PointerInfo& ptrInfo, typeart::BuiltinType* type) const;
-
-  TypeArtStatus getStructInfo(int id, const StructTypeInfo** structInfo) const;
+  TypeArtStatus getStructInfo(int type_id, const StructTypeInfo** structInfo) const;
 
   [[nodiscard]] const TypeDB& db() const;
 };

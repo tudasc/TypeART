@@ -10,10 +10,10 @@ struct Datastruct {
   float end;
 };
 
-int main(int argc, char** argv) {
+int main() {
   Datastruct d;
 
-  const auto rss = typeart::system::Process::get().getMaxRSS();
+  const auto rss = typeart::system::Process::getMaxRSS();
   printf("Max RSS: %ld\n", rss);
 
   return 0;

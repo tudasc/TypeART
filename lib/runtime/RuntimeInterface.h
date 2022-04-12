@@ -56,6 +56,17 @@ typedef struct typeart_struct_layout_t {  // NOLINT
  * Given a pointer to the start of a struct, the returned type will therefore be that of the struct, not of the first
  * member.
  *
+ * Code example:
+ * {
+ *   struct DataStruct { int a; double b; float c[2]; }; // sizeof(DataStruct) == 24 byte
+ *   DataStruct data[5];
+ *   We pass the address of the first element of the float array inside the struct:
+ *   typeart_get_type(&data[1].c[0], &type_id, &count);
+ *   returns:
+ *   -> type_id: 5 (i.e., TYPEART_FLOAT)
+ *   -> count: 2 (c[0] to end(c))
+ * }
+ *
  * \param[in] addr The address.
  * \param[out] type_id Type ID
  * \param[out] count Allocation size
@@ -78,14 +89,43 @@ typeart_status typeart_get_type_id(const void* addr, int* type_id);
  * Instead, additional information about the position of the address within the containing type is returned.
  *
  * The starting address of the referenced array element can be deduced by computing `(size_t) addr - offset`.
+ * Note: The addr may point to an illegal memory location inside the containing type. This is not automatically
+ * resolved, see code example below.
+ *
+ * Code example:
+ * {
+ *   Struct with implicit padding for correct alignment:
+ *   struct DataStruct { int a; {4xbyte pad}; double b; float c[2]; }; // sizeof(DataStruct) == 24 byte
+ *   DataStruct data[5];
+ *   We pass the address of the first element of the float array inside the struct (containing type):
+ *   typeart_get_containing_type(&data[1].c[0], &type_id, &count, base_address, &byte_offset);
+ *   returns:
+ *   -> type_id: 257 (or higher for struct types)
+ *   -> count: 4 (including data[1] to data[4])
+ *   -> base_addr: &data[0]
+ *   -> byte_offset: 16 (counted from the containing type &data[1].c[0] to &data[1])
+ *   Hence:
+ *   ((addr - offset) - base_addr) == number of bytes to start of allocation "data" from data[1]
+ *
+ *   Example 2, illegal memory address is not explicitly caught by return state:
+ *   typeart_get_containing_type(&data[0].a + sizeof(int), ...);
+ *   returns:
+ *   -> type_id: 257 (or higher for struct types)
+ *   -> count: 5 (including data[0] to data[4])
+ *   -> base_addr: &data[0]
+ *   -> byte_offset: 4 (points to padding, counted from the containing type (&data[0].a + sizeof(int))
+ *      to &data[0])
+ * }
  *
  * \param[in] addr The address.
+ * \param[out] type_id Type ID of the containing type
  * \param[out] count Number of elements in the containing buffer, not counting elements before the given address.
  * \param[out] base_address Address of the containing buffer.
  * \param[out] byte_offset The byte offset within that buffer element.
  *
- * \return A status code. For an explanation of errors, refer to typeart_get_type().
- *
+ * \return A status code.
+ *  - TYPEART_OK: The query was successful.
+ *  - TYPEART_UNKNOWN_ADDRESS: The given address is either not allocated, or was not correctly recorded by the runtime.
  */
 typeart_status typeart_get_containing_type(const void* addr, int* type_id, size_t* count, const void** base_address,
                                            size_t* byte_offset);
@@ -94,6 +134,27 @@ typeart_status typeart_get_containing_type(const void* addr, int* type_id, size_
  * Determines the subtype at the given offset w.r.t. a base address and a corresponding containing type.
  * Note that if the subtype is itself a struct, you may have to call this function again.
  * If it returns with *subTypeOffset == 0, the address has been fully resolved.
+ *
+ * Code example:
+ * {
+ *   struct DataStruct { int a; double b; float c[2]; }; // sizeof(DataStruct) == 24 byte
+ *   DataStruct data[5];
+ *   typeart_struct_layout layout_data;
+ *   Determine layout of data:
+ *   {
+ *     int type_id;
+ *     typeart_get_type_id(&data[0], &type_id);
+ *     typeart_resolve_type_id(type_id, &layout_data);
+ *   }
+ *   We pass the address of the first element of the data array:
+ *   status = typeart_get_subtype(&data[1], 20, layout_data, &subtype_id, &subtype_base_addr, &subtype_byte_offset,
+ *                                &subtype_count);
+ *   returns:
+ *   -> subtype_id: 5 (TYPEART_FLOAT)
+ *   -> subtype_base_addr: &data[1].c[0]
+ *   -> subtype_byte_offset: 0
+ *   -> subtype_count: 1 (length of member float[2] at offset 20)
+ * }
  *
  * \param[in] baseAddr Pointer to the start of the containing type.
  * \param[in] offset Byte offset within the containing type.
@@ -107,6 +168,7 @@ typeart_status typeart_get_containing_type(const void* addr, int* type_id, size_
  *  - TYPEART_OK: Success.
  *  - TYPEART_BAD_ALIGNMENT: Address corresponds to location inside an atomic type or padding.
  *  - TYPEART_BAD_OFFSET: The provided offset is invalid.
+ *  - TYPEART_ERROR: The typeart_struct_layout is invalid.
  */
 typeart_status typeart_get_subtype(const void* base_addr, size_t offset, typeart_struct_layout container_layout,
                                    int* subtype_id, const void** subtype_base_addr, size_t* subtype_byte_offset,
