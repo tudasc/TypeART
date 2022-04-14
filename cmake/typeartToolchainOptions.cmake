@@ -1,6 +1,5 @@
 include(CMakeDependentOption)
 include(CMakePackageConfigHelpers)
-include(GNUInstallDirs)
 include(FeatureSummary)
 
 find_package(LLVM CONFIG HINTS "${LLVM_DIR}" NO_DEFAULT_PATH)
@@ -161,6 +160,8 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   )
   message(STATUS "Installing to (default): ${CMAKE_INSTALL_PREFIX}")
 endif()
+
+include(GNUInstallDirs)
 
 set(TYPEART_PREFIX ${PROJECT_NAME})
 set(TARGETS_EXPORT_NAME ${TYPEART_PREFIX}Targets)
