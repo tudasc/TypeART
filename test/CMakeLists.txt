@@ -24,7 +24,7 @@ function(typeart_configure_lit_site input output)
   pythonize_bool(TYPEART_SOFTCOUNTERS TYPEARTPASS_SOFTCOUNTER)
 
   pythonize_bool(OPENMP_FOUND TYPEARTPASS_OPENMP)
-  pythonize_bool(CMAKE_THREAD_LIBS_INIT TYPEARTPASS_THREADS)
+  pythonize_bool(Threads_FOUND TYPEARTPASS_THREADS)
   pythonize_bool(TYPEART_DISABLE_THREAD_SAFETY TYPEARTPASS_THREAD_UNSAFE)
 
   pythonize_bool(MPI_C_FOUND TYPEARTPASS_MPI_C)
