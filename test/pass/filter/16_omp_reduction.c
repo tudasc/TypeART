@@ -26,7 +26,7 @@ void foo() {
   // check-inst: [[POINTER:%[0-9a-z]+]] = bitcast float* %loc to i8*
   // check-inst: call void @__typeart_alloc_stack(i8* [[POINTER]], i32 5, i64 1)
   // check-inst-not: __typeart_alloc_stack_omp
-  float loc = sum(array, n);
+  float loc      = sum(array, n);
   MPI_send((void*)&loc);
 }
 

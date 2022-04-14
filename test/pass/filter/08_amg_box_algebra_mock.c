@@ -62,14 +62,14 @@ typedef struct hypre_BoxArrayArray_struct {
 
 #define hypre_CCBoxOffsetDistance(box, index) 0
 
-#define hypre_BoxArrayBoxes(box_array) ((box_array)->boxes)
-#define hypre_BoxArrayBox(box_array, i) &((box_array)->boxes[(i)])
-#define hypre_BoxArraySize(box_array) ((box_array)->size)
+#define hypre_BoxArrayBoxes(box_array)     ((box_array)->boxes)
+#define hypre_BoxArrayBox(box_array, i)    &((box_array)->boxes[(i)])
+#define hypre_BoxArraySize(box_array)      ((box_array)->size)
 #define hypre_BoxArrayAllocSize(box_array) ((box_array)->alloc_size)
 
-#define hypre_BoxArrayArrayBoxArrays(box_array_array) ((box_array_array)->box_arrays)
+#define hypre_BoxArrayArrayBoxArrays(box_array_array)   ((box_array_array)->box_arrays)
 #define hypre_BoxArrayArrayBoxArray(box_array_array, i) ((box_array_array)->box_arrays[(i)])
-#define hypre_BoxArrayArraySize(box_array_array) ((box_array_array)->size)
+#define hypre_BoxArrayArraySize(box_array_array)        ((box_array_array)->size)
 
 extern int hypre_UnionBoxes(hypre_BoxArray* boxes);
 extern hypre_BoxArrayArray* hypre_BoxArrayArrayCreate(int);
