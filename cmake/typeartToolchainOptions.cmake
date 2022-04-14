@@ -1,6 +1,5 @@
 include(CMakeDependentOption)
 include(CMakePackageConfigHelpers)
-include(GNUInstallDirs)
 include(FeatureSummary)
 
 find_package(LLVM CONFIG HINTS "${LLVM_DIR}")
@@ -191,6 +190,8 @@ else()
   set(TYPEART_DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 endif()
 
+
+include(GNUInstallDirs)
 
 set(TYPEART_PREFIX ${PROJECT_NAME})
 set(TARGETS_EXPORT_NAME ${TYPEART_PREFIX}Targets)
