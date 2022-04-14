@@ -296,7 +296,9 @@ function main_in() {
       ta_more_args+=" -o ${exe_file}"
     fi
     main_link "$ta_more_args" "${object_file}"
-    rm "${object_file}"
+    if [ -f "${object_file}" ]; then
+      rm "${object_file}"
+    fi
   elif [ "$linking" == 1 ]; then
     main_link "$@"
   else
