@@ -1,6 +1,7 @@
 include(CMakeDependentOption)
 include(CMakePackageConfigHelpers)
 include(FeatureSummary)
+include(CheckCSourceCompiles)
 
 find_package(LLVM CONFIG HINTS "${LLVM_DIR}")
 if(NOT LLVM_FOUND)

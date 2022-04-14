@@ -111,6 +111,61 @@ function(typeart_configure_coverage_script input output)
   endif()
 endfunction()
 
+function(typeart_find_mpi_vendor_helper symbol ret_value)
+  find_package(MPI)
+
+  if(NOT MPI_FOUND)
+    set(${ret_value} false)
+    return()
+  endif()
+
+  set(MPI_TEST_CODE
+   "#include <mpi.h>
+    int main(void) {
+      #if !defined(${symbol})
+        an_illegal_stmt
+      #endif
+      return 0;
+    }")
+
+  set(CMAKE_REQUIRED_INCLUDES ${MPI_C_INCLUDE_DIRS})
+  set(CMAKE_REQUIRED_FLAGS "${MPI_C_COMPILE_FLAGS}")
+  set(CMAKE_REQUIRED_DEFINITIONS "")
+  set(CMAKE_REQUIRED_LIBRARIES "${MPI_C_LIBRARIES}")
+
+  check_c_source_compiles("${MPI_TEST_CODE}" ${ret_value})
+endfunction()
+
+function(set_typeart_mpi_compiler)
+  # Note on mpich & Intel: Intel may also define \"MPICH_NAME\"
+  # in mpi.h, so check MPICH last
+  list(APPEND l_vendor OPEN_MPI INTEL_MPI MPICH)
+  list(APPEND l_symbol OPEN_MPI I_MPI_VERSION MPICH_NAME)
+  list(APPEND l_env_c OMPI_CC I_MPI_CC MPICH_CC)
+  list(APPEND l_env_cxx OMPI_CXX I_MPI_CXX MPICH_CXX)
+
+  foreach(vendor symbol env_c env_cxx IN ZIP_LISTS l_vendor l_symbol l_env_c l_env_cxx)
+    typeart_find_mpi_vendor_helper(${symbol} TYPEART_HAVE_${vendor})
+    if(TYPEART_HAVE_${vendor})
+      if(MPI_C_FOUND)
+        set(TYPEART_MPICC
+            "env ${env_c}=${TYPEART_CLANG_EXEC} ${MPI_C_COMPILER}"
+            CACHE STRING "TypeART MPICC compiler command for scripts"
+          )
+        mark_as_advanced(TYPEART_MPICC)
+      endif()
+      if(MPI_CXX_FOUND)
+        set(TYPEART_MPICXX
+            "env ${env_cxx}=${TYPEART_CLANGCXX_EXEC} ${MPI_CXX_COMPILER}"
+            CACHE STRING "TypeART MPICXX compiler command for scripts"
+        )
+        mark_as_advanced(TYPEART_MPICXX)
+      endif()
+      break()
+    endif()
+  endforeach()
+endfunction()
+
 typeart_configure_coverage_script(llvm-gcov.sh.in llvm-gcov.sh)
 
 typeart_configure_script(typeart-tmpl.sh.in run.sh)
@@ -148,31 +203,35 @@ typeart_configure_script(
   COMPILER ${TYPEART_CLANGCXX_EXEC}
 )
 
-if(${MPI_C_FOUND})
+if(MPI_FOUND)
+  set_typeart_mpi_compiler()
+endif()
+
+if(MPI_C_FOUND)
   typeart_configure_script(
     typeart-wrapper.in typeart-mpicc${CMAKE_DEBUG_POSTFIX}
     INSTALL_MODE ON
     WITH_FILTER ON
-    COMPILER "env OMPI_CC=${TYPEART_CLANG_EXEC} ${MPI_C_COMPILER}"
+    COMPILER "${TYPEART_MPICC}"
   )
   typeart_configure_script(
     typeart-wrapper.in typeart-mpicc-test
     WITH_FILTER ON
-    COMPILER "env OMPI_CC=${TYPEART_CLANG_EXEC} ${MPI_C_COMPILER}"
+    COMPILER "${TYPEART_MPICC}"
   )
 endif()
 
-if(${MPI_CXX_FOUND})
+if(MPI_CXX_FOUND)
   typeart_configure_script(
     typeart-wrapper.in typeart-mpic++${CMAKE_DEBUG_POSTFIX}
     INSTALL_MODE ON
     WITH_FILTER ON
-    COMPILER "env OMPI_CXX=${TYPEART_CLANGCXX_EXEC} ${MPI_CXX_COMPILER}"
+    COMPILER "${TYPEART_MPICXX}"
   )
   typeart_configure_script(
     typeart-wrapper.in typeart-mpic++-test
     WITH_FILTER ON
-    COMPILER "env OMPI_CXX=${TYPEART_CLANGCXX_EXEC} ${MPI_CXX_COMPILER}"
+    COMPILER "${TYPEART_MPICXX}"
   )
 endif()
 
