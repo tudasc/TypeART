@@ -102,6 +102,22 @@ void test_get_subtype() {
   // Legal address but illegal offset:
   // CHECK: [Expected]: Status not OK: TYPEART_BAD_ALIGNMENT
   type_check_sub(legal_addr, sizeof(int));
+
+  // CHECK: [Expected]: Status not OK: TYPEART_BAD_OFFSET
+  type_check_sub(legal_addr, 2 * sizeof(DataStruct));
+}
+
+void test_get_subtype_direct() {
+  typeart_struct_layout layout;
+  typeart_status status = typeart_resolve_type_id(777, &layout);
+  int subtype_id;
+  size_t subtype_byte_offset;
+  const void* base_adrr = NULL;
+  size_t count_check;
+  status = typeart_get_subtype(NULL, 0, layout, &subtype_id, &base_adrr, &subtype_byte_offset, &count_check);
+
+  // CHECK: [Expected]: Status not OK: TYPEART_ERROR
+  fprintf(stderr, "[Expected]: Status not OK: %s\n", err_code_to_string(status));
 }
 
 int main(void) {
@@ -112,6 +128,8 @@ int main(void) {
   test_get_containing();
 
   test_get_subtype();
+
+  test_get_subtype_direct();
 
   return 0;
 }
