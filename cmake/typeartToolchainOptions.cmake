@@ -73,13 +73,13 @@ add_feature_info(UBSAN TYPEART_UBSAN "Build with sanitizer \"ubsan=undefined\"."
 option(TYPEART_MPI_WRAPPER "Generate mpicc and mpic++ wrapper for TypeART" ON)
 add_feature_info(MPI_WRAPPER TYPEART_MPI_WRAPPER "Generate TypeART compiler wrapper for mpicc and mpic++.")
 
-option(TYPEART_ABSEIL "Enable usage of abseil's btree-backed map instead of std::map for the runtime." ON)
-add_feature_info(ABSEIL TYPEART_ABSEIL "External library \"Abseil\" replaces runtime std::map with btree-backed map.")
+option(TYPEART_PHMAP "Enable usage of project \"phmap\" btree-backed map for the runtime." ON)
+add_feature_info(PHMAP TYPEART_PHMAP "External library \"parallel-hashmap\" replaces runtime std::map with btree-backed map.")
 
-cmake_dependent_option(TYPEART_BTREE "Enable usage of btree-backed map instead of std::map for the runtime." ON
-  "NOT TYPEART_ABSEIL" OFF
+cmake_dependent_option(TYPEART_ABSEIL "Enable usage of abseil's btree-backed map instead of std::map for the runtime." ON
+  "NOT TYPEART_PHMAP" OFF
 )
-add_feature_info(BTREE TYPEART_BTREE "*Deprecated* External library replaces runtime std::map with btree-backed map.")
+add_feature_info(ABSEIL TYPEART_ABSEIL "External library \"Abseil\" replaces runtime std::map with btree-backed map.")
 
 option(TYPEART_INSTALL_UTIL_SCRIPTS "Install single file build and run scripts" OFF)
 mark_as_advanced(TYPEART_INSTALL_UTIL_SCRIPTS)

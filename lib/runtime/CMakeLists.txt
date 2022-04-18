@@ -46,7 +46,7 @@ target_link_libraries(
           LLVMCore
           LLVMSupport
           $<$<BOOL:${TYPEART_MPI_LOGGER}>:MPI::MPI_CXX>
-          $<$<BOOL:${TYPEART_BTREE}>:google::btree>
+          $<$<BOOL:${TYPEART_PHMAP}>:phpmap::phpmap>
           $<$<BOOL:${TYPEART_ABSEIL}>:absl::btree>
           $<$<BOOL:${TYPEART_SAFEPTR}>:sf::pointer>
           $<$<NOT:$<BOOL:${TYPEART_DISABLE_THREAD_SAFETY}>>:Threads::Threads>
@@ -68,7 +68,7 @@ target_compile_definitions(
   PRIVATE TYPEART_LOG_LEVEL=${TYPEART_LOG_LEVEL_RT}
           $<$<BOOL:${TYPEART_MPI_LOGGER}>:TYPEART_MPI_LOGGER=1>
           $<$<BOOL:${TYPEART_SOFTCOUNTERS}>:ENABLE_SOFTCOUNTER=1>
-          $<$<BOOL:${TYPEART_BTREE}>:TYPEART_BTREE>
+          $<$<BOOL:${TYPEART_PHMAP}>:TYPEART_PHMAP>
           $<$<BOOL:${TYPEART_ABSEIL}>:TYPEART_ABSEIL>
           $<$<BOOL:${TYPEART_SAFEPTR}>:USE_SAFEPTR>
           $<$<BOOL:${TYPEART_DISABLE_THREAD_SAFETY}>:TYPEART_DISABLE_THREAD_SAFETY>
