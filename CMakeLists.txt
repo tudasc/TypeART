@@ -13,8 +13,10 @@ else()
   set(TYPEART_IS_TOP_LEVEL false)
 endif()
 
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CMAKE_VERBOSE_MAKEFILE ON)
+if(TYPEART_IS_TOP_LEVEL)
+  set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+  set(CMAKE_VERBOSE_MAKEFILE ON)
+endif()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -29,7 +31,7 @@ list(
 include(typeartToolchainOptions)
 
 typeart_add_format_target(
-  format-sources "Formats project source files"
+  typeart-format-sources "Formats project source files"
   TARGETS lib/passes/*.cpp
           lib/passes/*.h
           lib/runtime/*.cpp

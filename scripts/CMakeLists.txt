@@ -95,7 +95,7 @@ function(typeart_configure_script input output)
 endfunction()
 
 function(typeart_configure_coverage_script input output)
-  typeart_find_llvm_progs(TYPEART_LLVMCOV_COMMAND "llvm-cov-${LLVM_VERSION_MAJOR};llvm-cov" false)
+  typeart_find_llvm_progs(TYPEART_LLVMCOV_COMMAND "llvm-cov-${LLVM_VERSION_MAJOR};llvm-cov")
   if(TYPEART_LLVMCOV_COMMAND)
     file(
       GENERATE

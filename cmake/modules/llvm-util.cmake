@@ -50,8 +50,8 @@ function(typeart_make_llvm_module name sources)
   )
 endfunction()
 
-function(typeart_find_llvm_progs target names default)
-  cmake_parse_arguments(ARG "" "" "SHOW_VAR" ${ARGN})
+function(typeart_find_llvm_progs target names)
+  cmake_parse_arguments(ARG "" "" "DEFAULT_EXE;SHOW_VAR" ${ARGN})
   set(TARGET_TMP ${target})
 
   find_program(
@@ -69,18 +69,19 @@ function(typeart_find_llvm_progs target names default)
   endif()
 
   if(NOT ${target})
-    unset(${target} CACHE)
-    set(${target}
-        ${default}
-        CACHE
-        STRING
-        "Default value for ${TARGET_TMP}."
-    )
-    message(
-      STATUS
-        "Did not find clang program ${names} in ${LLVM_TOOLS_BINARY_DIR} "
-        "or on system. Using def. value: ${default}"
-    )
+    set(target_missing_message "Did not find clang program ${names} in ${LLVM_TOOLS_BINARY_DIR} "
+                 "or in system path.")
+    if(ARG_DEFAULT_EXE)
+      unset(${target} CACHE)
+      set(${target}
+          ${ARG_DEFAULT_EXE}
+          CACHE
+          STRING
+          "Default value for ${TARGET_TMP}."
+      )
+      set(target_missing_message "${target_missing_message} Using default: ${ARG_DEFAULT_EXE}")
+    endif()
+    message(STATUS ${target_missing_message})
   endif()
 
   if(ARG_SHOW_VAR)

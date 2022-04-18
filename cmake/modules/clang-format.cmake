@@ -22,7 +22,6 @@ function(typeart_add_format_target target comment)
 
   typeart_find_llvm_progs(TYPEART_CLANG_FORMAT_COMMAND
     "clang-format-${LLVM_VERSION_MAJOR};clang-format"
-    "clang-format"
   )
   if(TYPEART_CLANG_FORMAT_COMMAND)
     add_custom_target(${target}

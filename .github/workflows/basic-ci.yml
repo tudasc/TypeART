@@ -100,15 +100,15 @@ jobs:
 
       - name: Prepare TypeART coverage
         if: matrix.preset.coverage
-        run: cmake --build build --target lcov-clean
+        run: cmake --build build --target typeart-lcov-clean
 
       - name: Test TypeART lit-suite
         if: matrix.preset.skip_test == false
-        run: cmake --build build --target lit-pass-test
+        run: cmake --build build --target check-typeart
 
       - name: Build coverage report
         if: matrix.preset.coverage
-        run: cmake --build build --target lcov-html
+        run: cmake --build build --target typeart-lcov-html
 
       - name: Prepare coverage artifact
         if: matrix.preset.coverage

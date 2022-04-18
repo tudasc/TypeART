@@ -16,7 +16,6 @@ function(typeart_add_tidy_target target comment)
 
   typeart_find_llvm_progs(TYPEART_CLANG_TIDY_COMMAND
     "clang-tidy-${LLVM_VERSION_MAJOR};clang-tidy"
-    "clang-tidy"
   )
 
   if(TYPEART_CLANG_TIDY_COMMAND)

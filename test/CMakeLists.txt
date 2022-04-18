@@ -50,7 +50,7 @@ function(typeart_configure_lit_site input output)
   typeart_target_generate_file(${input} ${output})
 endfunction()
 
-typeart_add_format_target(format-tests
+typeart_add_format_target(typeart-format-tests
   "Formats project test source files"
   TARGETS *.c *.cpp *.h
 )
@@ -60,33 +60,58 @@ typeart_configure_lit_site(
   ${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg
 )
 
-set(TYPEARTPASS_TEST_DEPENDS typeart::TransformPass typeart::Runtime)
+set(TYPEART_TEST_DEPENDS typeart::TransformPass typeart::Runtime typeart::Types)
 
-add_lit_testsuite(lit-pass-test
-  "Running the TYPEART support pass tests"
-  ${CMAKE_CURRENT_SOURCE_DIR}
-  ARGS -v -j 1
-  PARAMS typeartpass_site_config=${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg
-  DEPENDS ${TYPEARTPASS_TEST_DEPENDS}
+function(typeart_add_lit_target)
+  cmake_parse_arguments(ARG "" "" "SUITE" ${ARGN})
+
+  foreach(suite IN LISTS ARG_SUITE)
+    if("${suite}" STREQUAL "all")
+      set(SUITE_PATH ${CMAKE_CURRENT_SOURCE_DIR})
+      set(TARGET_NAME check-typeart)
+    else()
+      set(SUITE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/${suite})
+      set(TARGET_NAME check-typeart-${suite})
+    endif()
+
+    if(NOT EXISTS ${SUITE_PATH})
+      message(WARNING "Could not find suitable lit test target at ${SUITE_PATH}")
+      continue()
+    endif()
+
+    add_lit_testsuite(${TARGET_NAME}
+      "Running the lit suite TypeART::${suite}"
+      ${SUITE_PATH}
+      ARGS -v -j 1
+      PARAMS typeartpass_site_config=${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg
+      DEPENDS ${TYPEART_TEST_DEPENDS}
+    )
+  endforeach()
+endfunction()
+
+set(TYPEART_SUITES
+  all
+  pass
+  runtime
+  script
+  typemapping
 )
 
+typeart_add_lit_target(SUITE ${TYPEART_SUITES})
+
 add_test(
-  NAME ctest_lit_suite
+  NAME typeart-lit-suite
   COMMAND
     ${LIT_COMMAND_I} -j 1 --param
     typeartpass_site_config=${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-if(TYPEART_MPI_INTERCEPT_LIB)
-  add_subdirectory(lulesh)
-endif()
-
 if(TYPEART_TEST_CONFIGURE_IDE)
   function(typeart_add_test_target_ide target header sources)
     add_executable(${target} EXCLUDE_FROM_ALL ${header} ${sources})
 
-    add_dependencies(${target} ${TYPEARTPASS_TEST_DEPENDS})
+    add_dependencies(${target} ${TYPEART_TEST_DEPENDS})
 
     target_include_directories(
       ${target} PRIVATE ${PROJECT_SOURCE_DIR}/lib/typelib
