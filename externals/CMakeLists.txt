@@ -9,7 +9,7 @@ mark_as_advanced(
 )
 
 if(TYPEART_PHMAP)
-  set(CMAKE_POLICY_DEFAULT_CMP0076 NEW)
+  #set(CMAKE_POLICY_DEFAULT_CMP0076 NEW)
   add_subdirectory(phmap)
 endif()
 
