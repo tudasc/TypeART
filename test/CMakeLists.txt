@@ -62,7 +62,7 @@ typeart_configure_lit_site(
 
 set(TYPEART_TEST_DEPENDS typeart::TransformPass typeart::Runtime typeart::Types)
 
-function(typeart_add_lit_testsuite target commend)
+function(typeart_add_lit_testsuite target comment)
   cmake_parse_arguments(ARG "" "" "PARAMS;DEPENDS;ARGS" ${ARGN})
 
   foreach(param ${ARG_PARAMS})
