@@ -354,12 +354,12 @@ typeart_status typeart_get_containing_type(const void* addr, int* type_id, size_
   return TYPEART_UNKNOWN_ADDRESS;
 }
 
-typeart_status typeart_get_subtype(const void* base_addr, size_t offset, typeart_struct_layout container_layout,
+typeart_status typeart_get_subtype(const void* base_addr, size_t offset, const typeart_struct_layout* container_layout,
                                    int* subtype_id, const void** subtype_base_addr, size_t* subtype_byte_offset,
                                    size_t* subtype_count) {
   typeart::RTGuard guard;
   auto status = typeart::RuntimeSystem::get().typeResolution.getSubTypeInfo(
-      base_addr, offset, container_layout, subtype_id, subtype_base_addr, subtype_byte_offset, subtype_count);
+      base_addr, offset, *container_layout, subtype_id, subtype_base_addr, subtype_byte_offset, subtype_count);
   return status;
 }
 

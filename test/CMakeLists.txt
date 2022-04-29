@@ -62,6 +62,24 @@ typeart_configure_lit_site(
 
 set(TYPEART_TEST_DEPENDS typeart::TransformPass typeart::Runtime typeart::Types)
 
+function(typeart_add_lit_testsuite target commend)
+  cmake_parse_arguments(ARG "" "" "PARAMS;DEPENDS;ARGS" ${ARGN})
+
+  foreach(param ${ARG_PARAMS})
+    list(APPEND TEST_PARAMS --param ${param})
+  endforeach()
+
+  add_custom_target(${target}
+    COMMAND ${LIT_COMMAND_I} ${ARG_ARGS} ${TEST_PARAMS} ${ARG_UNPARSED_ARGUMENTS}
+    COMMENT "${comment}"
+    USES_TERMINAL
+  )
+
+  if (ARG_DEPENDS)
+    add_dependencies(${target} ${ARG_DEPENDS})
+  endif()
+endfunction()
+
 function(typeart_add_lit_target)
   cmake_parse_arguments(ARG "" "" "SUITE" ${ARGN})
 
@@ -79,7 +97,7 @@ function(typeart_add_lit_target)
       continue()
     endif()
 
-    add_lit_testsuite(${TARGET_NAME}
+    typeart_add_lit_testsuite(${TARGET_NAME}
       "Running the lit suite TypeART::${suite}"
       ${SUITE_PATH}
       ARGS -v -j 1

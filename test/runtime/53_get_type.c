@@ -78,7 +78,7 @@ void type_check_sub(const void* addr, size_t offset) {
 
   int subtype_id;
   size_t subtype_byte_offset;
-  status = typeart_get_subtype(base_adrr, offset, layout, &subtype_id, &base_adrr, &subtype_byte_offset, &count_check);
+  status = typeart_get_subtype(base_adrr, offset, &layout, &subtype_id, &base_adrr, &subtype_byte_offset, &count_check);
 
   if (status != TYPEART_OK) {
     fprintf(stderr, "[Error]: Status not OK: %i for %p\n", status, addr);

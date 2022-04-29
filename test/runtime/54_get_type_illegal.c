@@ -85,7 +85,7 @@ void type_check_sub(const void* addr, size_t offset) {
 
   int subtype_id;
   size_t subtype_byte_offset;
-  status = typeart_get_subtype(base_adrr, offset, layout, &subtype_id, &base_adrr, &subtype_byte_offset, &count_check);
+  status = typeart_get_subtype(base_adrr, offset, &layout, &subtype_id, &base_adrr, &subtype_byte_offset, &count_check);
 
   if (status != TYPEART_OK) {
     fprintf(stderr, "[Expected]: Status not OK: %s for %p\n", err_code_to_string(status), addr);
@@ -114,7 +114,7 @@ void test_get_subtype_direct() {
   size_t subtype_byte_offset;
   const void* base_adrr = NULL;
   size_t count_check;
-  status = typeart_get_subtype(NULL, 0, layout, &subtype_id, &base_adrr, &subtype_byte_offset, &count_check);
+  status = typeart_get_subtype(NULL, 0, &layout, &subtype_id, &base_adrr, &subtype_byte_offset, &count_check);
 
   // CHECK: [Expected]: Status not OK: TYPEART_ERROR
   fprintf(stderr, "[Expected]: Status not OK: %s\n", err_code_to_string(status));
