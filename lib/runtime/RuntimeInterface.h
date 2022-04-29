@@ -147,7 +147,7 @@ typeart_status typeart_get_containing_type(const void* addr, int* type_id, size_
  *     typeart_resolve_type_id(type_id, &layout_data);
  *   }
  *   We pass the address of the first element of the data array:
- *   status = typeart_get_subtype(&data[1], 20, layout_data, &subtype_id, &subtype_base_addr, &subtype_byte_offset,
+ *   status = typeart_get_subtype(&data[1], 20, &layout_data, &subtype_id, &subtype_base_addr, &subtype_byte_offset,
  *                                &subtype_count);
  *   returns:
  *   -> subtype_id: 5 (TYPEART_FLOAT)
@@ -170,7 +170,7 @@ typeart_status typeart_get_containing_type(const void* addr, int* type_id, size_
  *  - TYPEART_BAD_OFFSET: The provided offset is invalid.
  *  - TYPEART_ERROR: The typeart_struct_layout is invalid.
  */
-typeart_status typeart_get_subtype(const void* base_addr, size_t offset, typeart_struct_layout container_layout,
+typeart_status typeart_get_subtype(const void* base_addr, size_t offset, const typeart_struct_layout* container_layout,
                                    int* subtype_id, const void** subtype_base_addr, size_t* subtype_byte_offset,
                                    size_t* subtype_count);
 
