@@ -1,18 +1,18 @@
-find_program(TYPEART_LCOV_COMMAND lcov)
-find_program(TYPEART_GENHTML_COMMAND genhtml)
+find_program(TYPEART_LCOV_EXEC lcov)
+find_program(TYPEART_GENHTML_EXEC genhtml)
 
-if(TYPEART_LCOV_COMMAND-NOTFOUND OR TYPEART_GENHTML_COMMAND-NOTFOUND)
+if(TYPEART_LCOV_EXEC-NOTFOUND OR TYPEART_GENHTML_EXEC-NOTFOUND)
   message(WARNING "lcov and genhtml command needed for coverage.")
 endif()
 
 add_custom_target(
   typeart-lcov-clean
-  COMMAND ${TYPEART_LCOV_COMMAND} -d ${CMAKE_BINARY_DIR} -z
+  COMMAND ${TYPEART_LCOV_EXEC} -d ${CMAKE_BINARY_DIR} -z
 )
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  typeart_find_llvm_progs(TYPEART_LLVMCOV_COMMAND "llvm-cov-${LLVM_VERSION_MAJOR};llvm-cov")
-  if(NOT TYPEART_LLVMCOV_COMMAND)
+  typeart_find_llvm_progs(TYPEART_LLVMCOV_EXEC "llvm-cov-${LLVM_VERSION_MAJOR};llvm-cov")
+  if(NOT TYPEART_LLVMCOV_EXEC)
     message(FATAL_ERROR "Did not find llvm-cov, which is required for Clang-based LCOV coverage.")
   endif()
   # workaround lcov and clang --coverage have a version mismatch
@@ -27,14 +27,14 @@ endif()
 
 add_custom_target(
   typeart-lcov-make
-  COMMAND ${TYPEART_LCOV_COMMAND} ${GCOV_TOOL} ${GCOV_WORKAROUND}
+  COMMAND ${TYPEART_LCOV_EXEC} ${GCOV_TOOL} ${GCOV_WORKAROUND}
           --no-external -c -d ${CMAKE_BINARY_DIR} -b ${CMAKE_SOURCE_DIR} -o typeart.coverage
-  COMMAND ${TYPEART_LCOV_COMMAND} --remove typeart.coverage '${CMAKE_BINARY_DIR}/*' -o typeart.coverage
+  COMMAND ${TYPEART_LCOV_EXEC} --remove typeart.coverage '${CMAKE_BINARY_DIR}/*' -o typeart.coverage
 )
 
 add_custom_target(
   typeart-lcov-html
-  COMMAND ${TYPEART_GENHTML_COMMAND} -o ${TYPEART_PROFILE_DIR} typeart.coverage
+  COMMAND ${TYPEART_GENHTML_EXEC} -o ${TYPEART_PROFILE_DIR} typeart.coverage
   DEPENDS typeart-lcov-make
 )
 
@@ -49,17 +49,17 @@ function(typeart_target_lcov target)
 
   add_custom_target(
     typeart-lcov-make-${target}
-    COMMAND ${TYPEART_LCOV_COMMAND} ${GCOV_TOOL} ${GCOV_WORKAROUND}
+    COMMAND ${TYPEART_LCOV_EXEC} ${GCOV_TOOL} ${GCOV_WORKAROUND}
             --no-external -c -d ${CMAKE_BINARY_DIR}
             -b ${LCOV_TARGET_SOURCE_DIR} -o counter-${target}.pro
-    COMMAND ${TYPEART_LCOV_COMMAND} --remove counter-${target}.pro '${CMAKE_BINARY_DIR}/*'
+    COMMAND ${TYPEART_LCOV_EXEC} --remove counter-${target}.pro '${CMAKE_BINARY_DIR}/*'
             -o counter-${target}.pro
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   )
 
   add_custom_target(
     typeart-lcov-html-${target}
-    COMMAND ${TYPEART_GENHTML_COMMAND} -o ${TYPEART_PROFILE_DIR} counter-${target}.pro
+    COMMAND ${TYPEART_GENHTML_EXEC} -o ${TYPEART_PROFILE_DIR} counter-${target}.pro
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     DEPENDS typeart-lcov-make-${target}
   )

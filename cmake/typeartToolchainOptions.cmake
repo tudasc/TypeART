@@ -106,7 +106,6 @@ if(NOT TYPEART_IS_TOP_LEVEL)
 endif()
 
 include(AddLLVM)
-include(modules/llvm-lit)
 include(modules/clang-tidy)
 include(modules/clang-format)
 include(modules/llvm-util)
@@ -155,10 +154,9 @@ set_package_properties(Python3 PROPERTIES
 )
 
 typeart_find_llvm_progs(TYPEART_CLANG_EXEC "clang-${LLVM_VERSION_MAJOR};clang" DEFAULT_EXE "clang")
-typeart_find_llvm_progs(TYPEART_CLANGCXX_EXEC "clang++-${LLVM_VERSION_MAJOR};clang++" DEFAULT_EXE  "clang++")
+typeart_find_llvm_progs(TYPEART_CLANGCXX_EXEC "clang++-${LLVM_VERSION_MAJOR};clang++" DEFAULT_EXE "clang++")
 typeart_find_llvm_progs(TYPEART_LLC_EXEC "llc-${LLVM_VERSION_MAJOR};llc" DEFAULT_EXE "llc")
 typeart_find_llvm_progs(TYPEART_OPT_EXEC "opt-${LLVM_VERSION_MAJOR};opt" DEFAULT_EXE "opt")
-typeart_find_llvm_progs(TYPEART_FILECHECK_EXEC "FileCheck-${LLVM_VERSION_MAJOR};FileCheck" DEFAULT_EXE "FileCheck")
 
 if(TYPEART_IS_TOP_LEVEL)
   if(NOT CMAKE_BUILD_TYPE)
@@ -190,7 +188,6 @@ if(TYPEART_IS_TOP_LEVEL)
 else()
   set(TYPEART_DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 endif()
-
 
 include(GNUInstallDirs)
 

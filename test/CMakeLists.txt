@@ -1,3 +1,15 @@
+typeart_find_llvm_progs(TYPEART_FILECHECK_EXEC "FileCheck-${LLVM_VERSION_MAJOR};FileCheck" ABORT_IF_MISSING)
+
+if(LLVM_EXTERNAL_LIT)
+  cmake_path(GET LLVM_EXTERNAL_LIT PARENT_PATH LLVM_EXTERNAL_LIT_DIR)
+endif()
+
+typeart_find_llvm_progs(TYPEART_LIT_EXEC
+  "llvm-lit;lit;lit.py"
+  HINTS ${LLVM_EXTERNAL_LIT_DIR} /usr/lib/llvm-${LLVM_VERSION_MAJOR} /usr/lib/llvm /usr/bin /usr/local/bin /opt/local/bin
+  ABORT_IF_MISSING
+)
+
 macro(pythonize_bool truth_var var)
   if(${truth_var})
     set(${var} True)
@@ -60,8 +72,6 @@ typeart_configure_lit_site(
   ${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg
 )
 
-set(TYPEART_TEST_DEPENDS typeart::TransformPass typeart::Runtime typeart::Types)
-
 function(typeart_add_lit_testsuite target comment)
   cmake_parse_arguments(ARG "" "" "PARAMS;DEPENDS;ARGS" ${ARGN})
 
@@ -70,7 +80,7 @@ function(typeart_add_lit_testsuite target comment)
   endforeach()
 
   add_custom_target(${target}
-    COMMAND ${LIT_COMMAND_I} ${ARG_ARGS} ${TEST_PARAMS} ${ARG_UNPARSED_ARGUMENTS}
+    COMMAND ${TYPEART_LIT_EXEC} ${ARG_ARGS} ${TEST_PARAMS} ${ARG_UNPARSED_ARGUMENTS}
     COMMENT "${comment}"
     USES_TERMINAL
   )
@@ -81,9 +91,9 @@ function(typeart_add_lit_testsuite target comment)
 endfunction()
 
 function(typeart_add_lit_target)
-  cmake_parse_arguments(ARG "" "" "SUITE" ${ARGN})
+  cmake_parse_arguments(ARG "" "" "SUITES" ${ARGN})
 
-  foreach(suite IN LISTS ARG_SUITE)
+  foreach(suite IN LISTS ARG_SUITES)
     if("${suite}" STREQUAL "all")
       set(SUITE_PATH ${CMAKE_CURRENT_SOURCE_DIR})
       set(TARGET_NAME check-typeart)
@@ -107,6 +117,12 @@ function(typeart_add_lit_target)
   endforeach()
 endfunction()
 
+set(TYPEART_TEST_DEPENDS
+  typeart::TransformPass
+  typeart::Runtime
+  typeart::Types
+)
+
 set(TYPEART_SUITES
   all
   pass
@@ -115,12 +131,12 @@ set(TYPEART_SUITES
   typemapping
 )
 
-typeart_add_lit_target(SUITE ${TYPEART_SUITES})
+typeart_add_lit_target(SUITES ${TYPEART_SUITES})
 
 add_test(
   NAME typeart-lit-suite
   COMMAND
-    ${LIT_COMMAND_I} -j 1 --param
+    ${TYPEART_LIT_EXEC} -j 1 --param
     typeartpass_site_config=${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
