@@ -13,8 +13,10 @@ else()
   set(TYPEART_IS_TOP_LEVEL false)
 endif()
 
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CMAKE_VERBOSE_MAKEFILE ON)
+if(TYPEART_IS_TOP_LEVEL)
+  set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+  set(CMAKE_VERBOSE_MAKEFILE OFF)
+endif()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -29,7 +31,7 @@ list(
 include(typeartToolchainOptions)
 
 typeart_add_format_target(
-  format-sources "Formats project source files"
+  typeart-format-sources "Formats project source files"
   TARGETS lib/passes/*.cpp
           lib/passes/*.h
           lib/runtime/*.cpp
@@ -52,7 +54,7 @@ write_basic_package_version_file(
   COMPATIBILITY SameMinorVersion
 )
 
-set(INCLUDE_INSTALL_DIR ${CMAKE_INSTALL_INCLUDEDIR})
+set(INCLUDE_INSTALL_DIR ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME})
 set(LIBRARY_INSTALL_DIR ${CMAKE_INSTALL_LIBDIR})
 set(BINARY_INSTALL_DIR ${CMAKE_INSTALL_BINDIR})
 set(CMAKE_INSTALL_DIR ${TYPEART_INSTALL_CONFIGDIR})
@@ -75,12 +77,14 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
 # export(PACKAGE ${PROJECT_NAME})
 
 if(TYPEART_IS_TOP_LEVEL)
-  enable_testing()
-  add_subdirectory(test)
-endif()
+  if(TYPEART_TEST_CONFIG)
+    enable_testing()
+    add_subdirectory(test)
+  endif()
 
-feature_summary(WHAT ENABLED_FEATURES PACKAGES_FOUND PACKAGES_NOT_FOUND
-  DESCRIPTION "TypeART ${PROJECT_VERSION} package and feature info:"
-  INCLUDE_QUIET_PACKAGES
-  QUIET_ON_EMPTY
-)
+  feature_summary(WHAT ENABLED_FEATURES PACKAGES_FOUND PACKAGES_NOT_FOUND
+    DESCRIPTION "TypeART ${PROJECT_VERSION} package and feature info:"
+    INCLUDE_QUIET_PACKAGES
+    QUIET_ON_EMPTY
+  )
+endif()

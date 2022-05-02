@@ -7,7 +7,7 @@ struct S1 {
   ~S1() = default;
 };
 
-// CHECK: call{{.*}} i8* @_Znam(i64 8)
+// CHECK: call{{.*}} i8* @_Znam(i64{{( noundef)?}} 8)
 // CHECK: call void @__typeart_alloc(i8* [[POINTER:%[0-9a-z]+]], i32 {{2[0-9]+}}, i64 2)
 // CHECK: bitcast i8* [[POINTER]] to %struct.S1*
 int main() {

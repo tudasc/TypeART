@@ -52,7 +52,7 @@ static llvm::RegisterPass<typeart::pass::TypeArtPass> msp("typeart", "TypeArt ty
 static cl::OptionCategory typeart_category("TypeART instrumentation pass", "These control the instrumentation.");
 
 static cl::opt<std::string> cl_typeart_type_file("typeart-types", cl::desc("Location of the generated type file."),
-                                                 cl::init("types.yaml"), cl::cat(typeart_category));
+                                                 cl::cat(typeart_category));
 
 static cl::opt<bool> cl_typeart_stats("typeart-stats", cl::desc("Show statistics for TypeArt type pass."), cl::Hidden,
                                       cl::init(false), cl::cat(typeart_category));
@@ -133,7 +133,6 @@ namespace typeart::pass {
 char TypeArtPass::ID = 0;
 
 TypeArtPass::TypeArtPass() : llvm::ModulePass(ID) {
-  assert(!cl_typeart_type_file.empty() && "Default type file not set");
   analysis::MemInstFinderConfig conf{cl_typeart_instrument_heap,                                                   //
                                      cl_typeart_instrument_stack,                                                  //
                                      cl_typeart_instrument_global,                                                 //
@@ -155,7 +154,21 @@ void TypeArtPass::getAnalysisUsage(llvm::AnalysisUsage& info) const {
 }
 
 bool TypeArtPass::doInitialization(Module& m) {
-  typeManager = make_typegen(cl_typeart_type_file.getValue());
+  const auto types_file = [&]() -> std::string {
+    if (!cl_typeart_type_file.empty()) {
+      LOG_DEBUG("Using cl::opt for types file " << cl_typeart_type_file.getValue())
+      return cl_typeart_type_file.getValue();
+    }
+    const char* type_file = std::getenv("TYPEART_TYPE_FILE");
+    if (type_file != nullptr) {
+      LOG_DEBUG("Using env var for types file " << type_file)
+      return std::string{type_file};
+    }
+    LOG_DEBUG("Loading default types file " << default_types_file)
+    return default_types_file;
+  }();
+
+  typeManager = make_typegen(types_file);
 
   LOG_DEBUG("Propagating type infos.");
   const auto [loaded, error] = typeManager->load();
