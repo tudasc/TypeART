@@ -1,4 +1,4 @@
-function(add_format_target target comment)
+function(typeart_add_format_target target comment)
   macro(filter_dir dir_name_)
     foreach (source_file ${ALL_CXX_FILES})
       string(FIND ${source_file} ${dir_name_} EXCLUDE_FOUND)
@@ -20,11 +20,12 @@ function(add_format_target target comment)
     filter_dir(${exclude})
   endforeach()
 
-  find_program(FORMAT_COMMAND
-               NAMES clang-format clang-format-13 clang-format-12 clang-format-11 clang-format-10)
-  if(FORMAT_COMMAND)
+  typeart_find_llvm_progs(TYPEART_CLANG_FORMAT_EXEC
+    "clang-format-${LLVM_VERSION_MAJOR};clang-format"
+  )
+  if(TYPEART_CLANG_FORMAT_EXEC)
     add_custom_target(${target}
-      COMMAND ${FORMAT_COMMAND} -i -style=file ${ARG_OTHER} ${ARG_UNPARSED_ARGUMENTS}
+      COMMAND ${TYPEART_CLANG_FORMAT_EXEC} -i -style=file ${ARG_OTHER} ${ARG_UNPARSED_ARGUMENTS}
               ${ALL_CXX_FILES}
       WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
       COMMENT "${comment}"

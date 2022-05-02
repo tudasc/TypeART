@@ -1,66 +1,60 @@
-find_program(LLVM_PROFDATA_COMMAND
-  NAMES llvm-profdata-10 llvm-profdata
-  HINTS ${LLVM_TOOLS_BINARY_DIR}
-)
-find_program(LLVMCOV_COMMAND
-  NAMES llvm-cov-10 llvm-cov
-  HINTS ${LLVM_TOOLS_BINARY_DIR}
-)
+typeart_find_llvm_progs(TYPEART_LLVM_PROFDATA_EXEC "llvm-profdata-${LLVM_VERSION_MAJOR};llvm-profdata")
+typeart_find_llvm_progs(TYPEART_LLVMCOV_EXEC "llvm-cov-${LLVM_VERSION_MAJOR};llvm-cov")
 
-if(LLVM_PROFDATA_COMMAND-NOTFOUND OR LLVMCOV_COMMAND-NOTFOUND)
-  message(WARNING "llvm-cov program stack needed for coverage.")
+if(NOT TYPEART_LLVM_PROFDATA_EXEC OR NOT TYPEART_LLVMCOV_EXEC)
+  message(WARNING "llvm-cov and llvm-profdata programs needed for coverage.")
 endif()
 
 add_custom_target(
-  cov-merge
-  COMMAND ${LLVM_PROFDATA_COMMAND} merge -sparse -o code.pro *.profraw
+  typeart-cov-merge
+  COMMAND ${TYPEART_LLVM_PROFDATA_EXEC} merge -sparse -o code.pro *.profraw
   DEPENDS ${target}
   WORKING_DIRECTORY ${TYPEART_PROFILE_DIR}
 )
 
 add_custom_target(
-  cov-all-report
-  COMMAND ${LLVMCOV_COMMAND} report `cat -s ta-binaries.txt`
+  typeart-cov-all-report
+  COMMAND ${TYPEART_LLVMCOV_EXEC} report `cat -s typeart-binaries.txt`
           --instr-profile=code.pro -ignore-filename-regex=${CMAKE_BINARY_DIR}
   WORKING_DIRECTORY ${TYPEART_PROFILE_DIR}
-  DEPENDS cov-merge
+  DEPENDS typeart-cov-merge
 )
 
 add_custom_target(
-  cov-clean
-  COMMAND rm ta-binaries.txt
+  typeart-cov-clean
+  COMMAND rm typeart-binaries.txt
   COMMAND rm *.pro
   WORKING_DIRECTORY ${TYPEART_PROFILE_DIR}
 )
 
 add_custom_target(
-  cov-all-clean
+  typeart-cov-all-clean
   COMMAND rm *
   WORKING_DIRECTORY ${TYPEART_PROFILE_DIR}
 )
 
-function(make_llvm_cov_target target)
+function(typeart_target_llvm_cov target)
   add_custom_target(
-    cov-binary-list-${target}
-    COMMAND ${CMAKE_COMMAND} -E echo "-object $<TARGET_FILE:${target}>" >> ta-binaries.txt
+    typeart-cov-binary-list-${target}
+    COMMAND ${CMAKE_COMMAND} -E echo "-object $<TARGET_FILE:${target}>" >> typeart-binaries.txt
     WORKING_DIRECTORY ${TYPEART_PROFILE_DIR}
     DEPENDS ${target}
   )
 
   add_custom_target(
-    cov-merge-${target}
-    COMMAND ${LLVM_PROFDATA_COMMAND} merge -sparse -o code-${target}.pro *.profraw
+    typeart-cov-merge-${target}
+    COMMAND ${TYPEART_LLVM_PROFDATA_EXEC} merge -sparse -o code-${target}.pro *.profraw
     DEPENDS ${target}
     WORKING_DIRECTORY ${TYPEART_PROFILE_DIR}
   )
 
   add_custom_target(
-    cov-report-${target}
-    COMMAND ${LLVMCOV_COMMAND} report -object $<TARGET_FILE:${target}>
+    typeart-cov-report-${target}
+    COMMAND ${TYPEART_LLVMCOV_EXEC} report -object $<TARGET_FILE:${target}>
             --instr-profile=code-${target}.pro -ignore-filename-regex=${CMAKE_BINARY_DIR}
     WORKING_DIRECTORY ${TYPEART_PROFILE_DIR}
-    DEPENDS ${target} cov-merge-${target}
+    DEPENDS ${target} typeart-cov-merge-${target}
   )
 
-  add_dependencies(cov-all-report cov-binary-list-${target})
+  add_dependencies(typeart-cov-all-report typeart-cov-binary-list-${target})
 endfunction()

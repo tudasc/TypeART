@@ -24,7 +24,7 @@ jobs:
             -a \( -name "*.c" -o -name "*.cpp" -o -name "*.h" \) \
             -not -path "*/lulesh/*" -not -path "*/CallSite.h" \
             -print0 \
-            | xargs -0 clang-format-10 -i
+            | xargs -0 clang-format-12 -i
 
       - name: Format check
         run: |
@@ -37,9 +37,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: codespell-project/actions-codespell@master
-        with:
-          path: demo lib test
-          skip: ./.git,*.py,*/lulesh
 
   lit-suite:
     runs-on: ubuntu-20.04
@@ -103,15 +100,15 @@ jobs:
 
       - name: Prepare TypeART coverage
         if: matrix.preset.coverage
-        run: cmake --build build --target lcov-clean
+        run: cmake --build build --target typeart-lcov-clean
 
       - name: Test TypeART lit-suite
         if: matrix.preset.skip_test == false
-        run: cmake --build build --target lit-pass-test
+        run: cmake --build build --target check-typeart
 
       - name: Build coverage report
         if: matrix.preset.coverage
-        run: cmake --build build --target lcov-html
+        run: cmake --build build --target typeart-lcov-html
 
       - name: Prepare coverage artifact
         if: matrix.preset.coverage

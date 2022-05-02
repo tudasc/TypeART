@@ -1,5 +1,6 @@
 // This file tests for an specific endless recursion in the filter implementations w.r.t. following store targets
-// RUN: %c-to-llvm -fno-discard-value-names %s | %opt -O3 -S | %apply-typeart -typeart-alloca -call-filter -S 2>&1 \
+// RUN: %c-to-llvm -fno-discard-value-names %s | %opt -O3 -S \
+// RUN: | %apply-typeart -typeart-stack -typeart-call-filter -S 2>&1 \
 // RUN: | %filecheck %s --check-prefix=CHECK-exp-default-opt
 
 // CHECK-exp-default-opt: TypeArtPass [Heap & Stack]
@@ -13,10 +14,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define XUP 0
-#define YUP 1
-#define ZUP 2
-#define TUP 3
+#define XUP   0
+#define YUP   1
+#define ZUP   2
+#define TUP   3
 #define TDOWN 4
 #define ZDOWN 5
 #define YDOWN 6
@@ -25,12 +26,12 @@
 #define NODIR -1
 
 #define OPP_DIR(dir) (7 - (dir))
-#define NDIRS 8
+#define NDIRS        8
 
-#define NREPS 1
-#define NLOOP 3
+#define NREPS      1
+#define NLOOP      3
 #define MAX_LENGTH 6
-#define MAX_NUM 16
+#define MAX_NUM    16
 
 extern char gauge_action_description[128];
 int gauge_action_nloops = NLOOP;

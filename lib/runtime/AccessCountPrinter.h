@@ -50,7 +50,7 @@ inline MemOverhead estimate(Counter stack_max, Counter heap_max, Counter global_
 }  // namespace memory
 
 template <typename Recorder>
-void serialise(const Recorder& r, std::ostringstream& buf) {
+void serialize(const Recorder& r, std::ostringstream& buf) {
   if constexpr (std::is_same_v<Recorder, NoneRecorder>) {
     return;
   } else {

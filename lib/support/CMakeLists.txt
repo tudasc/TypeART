@@ -11,25 +11,25 @@ set_target_properties(
 )
 
 target_include_directories(
-  ${TYPEART_PREFIX}_SystemStatic
+  ${TYPEART_PREFIX}_SystemStatic ${warning_guard}
   PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}>
 )
 
-target_project_compile_options(${TYPEART_PREFIX}_SystemStatic)
-target_define_file_basename(${TYPEART_PREFIX}_SystemStatic)
-target_project_coverage_options(${TYPEART_PREFIX}_SystemStatic)
+typeart_target_compile_options(${TYPEART_PREFIX}_SystemStatic)
+typeart_target_define_file_basename(${TYPEART_PREFIX}_SystemStatic)
+typeart_target_coverage_options(${TYPEART_PREFIX}_SystemStatic)
 
-if(ENABLE_TSAN)
-  target_tsan_options(${TYPEART_PREFIX}_SystemStatic)
+if(TYPEART_TSAN)
+  typeart_target_tsan_options(${TYPEART_PREFIX}_SystemStatic)
 endif()
 
-if(ENABLE_ASAN)
-  target_asan_options(${TYPEART_PREFIX}_SystemStatic)
+if(TYPEART_ASAN)
+  typeart_target_asan_options(${TYPEART_PREFIX}_SystemStatic)
 endif()
 
-if(ENABLE_UBSAN)
-  target_ubsan_options(${TYPEART_PREFIX}_SystemStatic)
+if(TYPEART_UBSAN)
+  typeart_target_ubsan_options(${TYPEART_PREFIX}_SystemStatic)
 endif()
 
 set(CONFIG_NAME ${PROJECT_NAME}System)

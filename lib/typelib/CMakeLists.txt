@@ -7,16 +7,16 @@ set_target_properties(${TYPEART_PREFIX}_TypesObj PROPERTIES POSITION_INDEPENDENT
 target_include_directories(${TYPEART_PREFIX}_TypesObj SYSTEM PRIVATE ${LLVM_INCLUDE_DIRS})
 
 target_include_directories(
-  ${TYPEART_PREFIX}_TypesObj
+  ${TYPEART_PREFIX}_TypesObj ${warning_guard}
   PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   PRIVATE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
 )
 
-target_compile_definitions(${TYPEART_PREFIX}_TypesObj PRIVATE LOG_LEVEL=${LOG_LEVEL})
+target_compile_definitions(${TYPEART_PREFIX}_TypesObj PRIVATE TYPEART_LOG_LEVEL=${TYPEART_LOG_LEVEL})
 
-target_project_compile_options(${TYPEART_PREFIX}_TypesObj)
+typeart_target_compile_options(${TYPEART_PREFIX}_TypesObj)
 
-target_project_coverage_options(${TYPEART_PREFIX}_TypesObj)
+typeart_target_coverage_options(${TYPEART_PREFIX}_TypesObj)
 
 make_tidy_check(${TYPEART_PREFIX}_TypesObj "${TYPE_LIB_SOURCES}")
 
@@ -29,15 +29,15 @@ set_target_properties(
   EXPORT_NAME "Types"
 )
 target_include_directories(
-  ${TYPEART_PREFIX}_Types
+  ${TYPEART_PREFIX}_Types ${warning_guard}
   PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}>
   PRIVATE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
 )
 
 target_link_libraries(${TYPEART_PREFIX}_Types PRIVATE LLVMCore LLVMSupport)
 
-target_project_coverage_options(${TYPEART_PREFIX}_Types)
+typeart_target_coverage_options(${TYPEART_PREFIX}_Types)
 
 add_library(${TYPEART_PREFIX}_TypesStatic STATIC $<TARGET_OBJECTS:${TYPEART_PREFIX}_TypesObj>)
 add_library(typeart::TypesStatic ALIAS ${TYPEART_PREFIX}_TypesStatic)
@@ -48,13 +48,13 @@ set_target_properties(
   EXPORT_NAME "TypesStatic"
 )
 target_include_directories(
-  ${TYPEART_PREFIX}_TypesStatic
+  ${TYPEART_PREFIX}_TypesStatic ${warning_guard}
   PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}>
   PRIVATE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
 )
 
-target_project_coverage_options(${TYPEART_PREFIX}_TypesStatic)
+typeart_target_coverage_options(${TYPEART_PREFIX}_TypesStatic)
 
 set(CONFIG_NAME ${PROJECT_NAME}Types)
 set(TARGETS_EXPORT_NAME ${CONFIG_NAME}Targets)

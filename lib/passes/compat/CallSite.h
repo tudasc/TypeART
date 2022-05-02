@@ -157,8 +157,16 @@ class CallSiteBase {
   /// Set the callee to the specified value.  Unlike the function of the same
   /// name on CallBase, does not modify the type!
   void setCalledFunction(Value* V) {
+    const auto elem_type = [&V]() {
+#if LLVM_VERSION_MAJOR > 13
+      return V->getType()->getPointerElementType();
+#else
+      return cast<PointerType>(V->getType())->getElementType();
+#endif
+    };
     assert(getInstruction() && "Not a call, callbr, or invoke instruction!");
-    assert(cast<PointerType>(V->getType())->getElementType() == cast<CallBase>(getInstruction())->getFunctionType() &&
+
+    assert(elem_type() == cast<CallBase>(getInstruction())->getFunctionType() &&
            "New callee type does not match FunctionType on call");
     *getCallee() = V;
   }

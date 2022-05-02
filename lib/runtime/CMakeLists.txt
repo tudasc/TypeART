@@ -27,7 +27,7 @@ set(RUNTIME_LIB_SOURCES
     Runtime.cpp
     Runtime.h
     ${TYPEART_META_SOURCE}
-    $<$<BOOL:${MPI_LOGGER}>:../support/MPILogger.cpp>
+    $<$<BOOL:${TYPEART_MPI_LOGGER}>:../support/MPILogger.cpp>
 )
 
 add_library(${TYPEART_PREFIX}_Runtime SHARED ${RUNTIME_LIB_SOURCES})
@@ -45,16 +45,16 @@ target_link_libraries(
           typeart::SystemStatic
           LLVMCore
           LLVMSupport
-          $<$<BOOL:${MPI_LOGGER}>:MPI::MPI_CXX>
-          $<$<BOOL:${USE_BTREE}>:google::btree>
-          $<$<BOOL:${USE_ABSL}>:absl::btree>
-          $<$<BOOL:${ENABLE_SAFEPTR}>:sf::pointer>
-          $<$<NOT:$<BOOL:${DISABLE_THREAD_SAFETY}>>:Threads::Threads>
+          $<$<BOOL:${TYPEART_MPI_LOGGER}>:MPI::MPI_CXX>
+          $<$<BOOL:${TYPEART_PHMAP}>:phpmap::phpmap>
+          $<$<BOOL:${TYPEART_ABSEIL}>:absl::btree>
+          $<$<BOOL:${TYPEART_SAFEPTR}>:sf::pointer>
+          $<$<NOT:$<BOOL:${TYPEART_DISABLE_THREAD_SAFETY}>>:Threads::Threads>
 )
 
 target_include_directories(
-  ${TYPEART_PREFIX}_Runtime
-  PUBLIC $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+  ${TYPEART_PREFIX}_Runtime ${warning_guard}
+  PUBLIC $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}>
          $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/runtime>
          $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/typelib>
   PRIVATE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/passes/support>
@@ -65,29 +65,29 @@ target_include_directories(${TYPEART_PREFIX}_Runtime SYSTEM PRIVATE ${LLVM_INCLU
 
 target_compile_definitions(
   ${TYPEART_PREFIX}_Runtime
-  PRIVATE LOG_LEVEL=${LOG_LEVEL_RT}
-          $<$<BOOL:${MPI_LOGGER}>:MPI_LOGGER=1>
-          $<$<BOOL:${SOFTCOUNTERS}>:ENABLE_SOFTCOUNTER=1>
-          $<$<BOOL:${USE_BTREE}>:USE_BTREE>
-          $<$<BOOL:${USE_ABSL}>:USE_ABSL>
-          $<$<BOOL:${ENABLE_SAFEPTR}>:USE_SAFEPTR>
-          $<$<BOOL:${DISABLE_THREAD_SAFETY}>:DISABLE_THREAD_SAFETY>
+  PRIVATE TYPEART_LOG_LEVEL=${TYPEART_LOG_LEVEL_RT}
+          $<$<BOOL:${TYPEART_MPI_LOGGER}>:TYPEART_MPI_LOGGER=1>
+          $<$<BOOL:${TYPEART_SOFTCOUNTERS}>:ENABLE_SOFTCOUNTER=1>
+          $<$<BOOL:${TYPEART_PHMAP}>:TYPEART_PHMAP>
+          $<$<BOOL:${TYPEART_ABSEIL}>:TYPEART_ABSEIL>
+          $<$<BOOL:${TYPEART_SAFEPTR}>:USE_SAFEPTR>
+          $<$<BOOL:${TYPEART_DISABLE_THREAD_SAFETY}>:TYPEART_DISABLE_THREAD_SAFETY>
 )
 
-target_project_compile_options(${TYPEART_PREFIX}_Runtime)
-target_define_file_basename(${TYPEART_PREFIX}_Runtime)
-target_project_coverage_options(${TYPEART_PREFIX}_Runtime)
+typeart_target_compile_options(${TYPEART_PREFIX}_Runtime)
+typeart_target_define_file_basename(${TYPEART_PREFIX}_Runtime)
+typeart_target_coverage_options(${TYPEART_PREFIX}_Runtime)
 
-if(ENABLE_TSAN)
-  target_tsan_options(${TYPEART_PREFIX}_Runtime)
+if(TYPEART_TSAN)
+  typeart_target_tsan_options(${TYPEART_PREFIX}_Runtime)
 endif()
 
-if(ENABLE_ASAN)
-  target_asan_options(${TYPEART_PREFIX}_Runtime)
+if(TYPEART_ASAN)
+  typeart_target_asan_options(${TYPEART_PREFIX}_Runtime)
 endif()
 
-if(ENABLE_UBSAN)
-  target_ubsan_options(${TYPEART_PREFIX}_Runtime)
+if(TYPEART_UBSAN)
+  typeart_target_ubsan_options(${TYPEART_PREFIX}_Runtime)
 endif()
 
 make_tidy_check(${TYPEART_PREFIX}_Runtime "${RUNTIME_LIB_SOURCES}")

@@ -7,7 +7,7 @@ struct S1 {
   ~S1(){};
 };
 
-// CHECK: [[MEM:%[0-9a-z]+]] = call{{.*}} i8* @_Znam(i64 [[ALLOC:%[0-9a-z]+]])
+// CHECK: [[MEM:%[0-9a-z]+]] = call{{.*}} i8* @_Znam(i64{{( noundef)?}} [[ALLOC:%[0-9a-z]+]])
 // CHECK: [[COOKIE:%[0-9a-z]+]] = bitcast i8* [[MEM]] to i64*
 // CHECK: store i64 [[COUNT:%[0-9a-z]+]], i64* [[COOKIE]], align 8
 // CHECK: [[ARR:%[0-9a-z]+]] = getelementptr inbounds i8, i8* [[MEM]], i64 8

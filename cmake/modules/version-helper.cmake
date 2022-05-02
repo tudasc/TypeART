@@ -1,3 +1,5 @@
+cmake_minimum_required(VERSION 3.14)
+
 find_package(Git QUIET)
 
 if(EXISTS ${ROOT_DIR}/.git AND GIT_FOUND)

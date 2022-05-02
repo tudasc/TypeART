@@ -7,11 +7,11 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(MPI REQUIRED)
 
-function(make_mpi_target target)
+function(demo_make_mpi_target target)
   target_link_libraries(${target} PUBLIC MPI::MPI_C)
 endfunction()
 
-function(make_run_target target comment)
+function(demo_make_run_target target comment)
   add_custom_target(
     run-${target}
     COMMAND env LD_PRELOAD=${CMAKE_BINARY_DIR}/libtool.so ${MPIEXEC}
@@ -26,12 +26,12 @@ function(make_run_target target comment)
 endfunction()
 
 add_library(tool SHARED tool.c)
-make_mpi_target(tool)
+demo_make_mpi_target(tool)
 
 add_executable(demo 01_struct_example.c)
-make_mpi_target(demo)
-make_run_target(demo "Working demo")
+demo_make_mpi_target(demo)
+demo_make_run_target(demo "Working demo")
 
 add_executable(demo_broken 02_broken_struct_example.c)
-make_mpi_target(demo_broken)
-make_run_target(demo_broken "Broken demo")
+demo_make_mpi_target(demo_broken)
+demo_make_run_target(demo_broken "Broken demo")

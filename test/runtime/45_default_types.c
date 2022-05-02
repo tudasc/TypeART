@@ -7,7 +7,7 @@ int main(int argc, char** argv) {
   // CHECK: [Trace] TypeART Runtime Trace
   // CHECK: [Warning]{{.*}}No type file with default name
   // CHECK: [Trace] Alloc 0x{{.*}} int8 1 42
-  char* a = malloc(n * sizeof(char));
+  char* a     = malloc(n * sizeof(char));
   // CHECK: [Trace] Free 0x{{.*}}
   free(a);
 }

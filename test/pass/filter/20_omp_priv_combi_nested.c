@@ -1,9 +1,9 @@
 // clang-format off
-// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %apply-typeart -typeart-alloca -call-filter -typeart-filter-pointer-alloca=false -S 2>&1 | %filecheck %s
-// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %opt -O2 -S | %apply-typeart -typeart-alloca -call-filter -typeart-filter-pointer-alloca=false -S 2>&1 | %filecheck %s --check-prefix=check-opt
+// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %apply-typeart -typeart-stack -typeart-call-filter -typeart-filter-pointer-alloca=false -S 2>&1 | %filecheck %s
+// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %opt -O2 -S | %apply-typeart -typeart-stack -typeart-call-filter -typeart-filter-pointer-alloca=false -S 2>&1 | %filecheck %s --check-prefix=check-opt
 
-// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %apply-typeart -typeart-alloca -call-filter -typeart-filter-pointer-alloca=false -S | %filecheck %s --check-prefix=check-inst
-// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %opt -O2 -S | %apply-typeart -typeart-alloca -call-filter -typeart-filter-pointer-alloca=false -S | %filecheck %s --check-prefix=check-opt-inst
+// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %apply-typeart -typeart-stack -typeart-call-filter -typeart-filter-pointer-alloca=false -S | %filecheck %s --check-prefix=check-inst
+// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %opt -O2 -S | %apply-typeart -typeart-stack -typeart-call-filter -typeart-filter-pointer-alloca=false -S | %filecheck %s --check-prefix=check-opt-inst
 // REQUIRES: openmp
 // clang-format on
 
@@ -22,7 +22,7 @@ void func(int* x, int* e) {
   // check-opt-inst-NOT: call void @__typeart_alloc_stack
 
   // check-inst: define {{.*}} @.omp_outlined
-  // check-inst: call void @__typeart_alloc_stack_omp(i8* %0, i32 10, i64 1)
+  // check-inst: call void @__typeart_alloc_stack_omp(i8* %{{[0-9]}}, i32 10, i64 1)
 
   // check-opt-inst: define {{.*}} @.omp_outlined
   // check-opt-inst-NOT: call void @__typeart_alloc_stack_omp
@@ -53,7 +53,7 @@ void func_other(int* x, int* e) {
   // check-opt-inst-NOT: call void @__typeart_alloc_stack
 
   // check-inst: define {{.*}} @.omp_outlined
-  // check-inst: call void @__typeart_alloc_stack_omp(i8* %0, i32 10, i64 1)
+  // check-inst: call void @__typeart_alloc_stack_omp(i8* %{{[0-9]}}, i32 10, i64 1)
 
   // check-opt-inst: define {{.*}} @.omp_outlined
   // check-opt-inst-NOT: call void @__typeart_alloc_stack_omp
@@ -67,10 +67,10 @@ void func_other(int* x, int* e) {
 
 void bar(int x_other) {
   // check-inst: define {{.*}} @bar
-  // check-inst: call void @__typeart_alloc_stack(i8* %0, i32 2, i64 1)
+  // check-inst: call void @__typeart_alloc_stack(i8* %{{[0-9]}}, i32 2, i64 1)
 
   // check-opt-inst: define {{.*}} @bar
-  // check-opt-inst: call void @__typeart_alloc_stack(i8* %0, i32 2, i64 1)
+  // check-opt-inst: call void @__typeart_alloc_stack(i8* %{{[0-9]}}, i32 2, i64 1)
   int x = x_other;
   int y = 2;
 #pragma omp parallel

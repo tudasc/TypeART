@@ -4,12 +4,13 @@ set_and_check(TYPEART_INCLUDE_DIR "@PACKAGE_INCLUDE_INSTALL_DIR@")
 set_and_check(TYPEART_LIBRARY_DIR "@PACKAGE_LIBRARY_INSTALL_DIR@")
 set_and_check(TYPEART_BINARY_DIR "@PACKAGE_BINARY_INSTALL_DIR@")
 set_and_check(TYPEART_CMAKE_DIR "@PACKAGE_CMAKE_INSTALL_DIR@")
+set(TYPEART_LLVM_VERSION @LLVM_PACKAGE_VERSION@)
 
 macro (check_components comps_list)
   set(@PROJECT_NAME@_FOUND true)
 
   foreach(component ${comps_list})
-    if(NOT TARGET @PROJECT_NAME@::${component} AND NOT TARGET typeart::${component}Static)
+    if(NOT TARGET @PROJECT_NAME@::${component} AND NOT TARGET @PROJECT_NAME@::${component}Static)
       set(@PROJECT_NAME@_${component}_FOUND false)
       if(@PROJECT_NAME@_FIND_REQUIRED_${component})
         message(WARNING "Could not find component ${component}")
@@ -30,11 +31,32 @@ if (@PROJECT_NAME@_FIND_COMPONENTS)
   check_components("${@PROJECT_NAME@_FIND_COMPONENTS}")
 else()
   file(GLOB
-    target-file
+    @PROJECT_NAME@-target-file
     LIST_DIRECTORIES false
     "${CMAKE_CURRENT_LIST_DIR}/@PROJECT_NAME@*Targets.cmake"
   )
-  foreach(component ${target-file})
-    include(${component})
+  foreach(component_file ${@PROJECT_NAME@-target-file})
+    include(${component_file})
+    string(REGEX MATCH "${CMAKE_CURRENT_LIST_DIR}/@PROJECT_NAME@(.*)Targets.cmake" COMP_NAME ${component_file})
+    list(APPEND @PROJECT_NAME@_FIND_COMPONENTS "${CMAKE_MATCH_1}")
   endforeach()
+  check_components("${@PROJECT_NAME@_FIND_COMPONENTS}")
 endif()
+
+macro(find_@PROJECT_NAME@_script _prog_name _name)
+  if(NOT ${_prog_name})
+    find_program(${_prog_name} ${_name}
+      PATHS @PACKAGE_BINARY_INSTALL_DIR@
+      DOC "TypeART wrapper script \"${_name}\""
+      NO_DEFAULT_PATH
+    )
+    mark_as_advanced(${_prog_name})
+  endif()
+endmacro()
+
+foreach(script_file @TYPEART_INSTALL_SCRIPT_CANDIDATE@)
+  string(REPLACE "-" "_" script_file_name ${script_file})
+  string(TOUPPER "${script_file_name}" script_file_name)
+  find_typeart_script(${script_file_name}_CMD ${script_file})
+  find_typeart_script(${script_file_name}_CMD_DEBUG ${script_file}@TYPEART_DEBUG_POSTFIX@)
+endforeach()

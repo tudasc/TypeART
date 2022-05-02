@@ -21,6 +21,8 @@ namespace llvm {
 class AllocaInst;
 class CallBase;
 class Module;
+class InstrinsicInst;
+class Function;
 }  // namespace llvm
 
 namespace typeart::analysis {
@@ -30,23 +32,25 @@ struct MemOpVisitor : public llvm::InstVisitor<MemOpVisitor> {
   MallocDataList mallocs;
   FreeDataList frees;
   AllocaDataList allocas;
+  llvm::SmallVector<std::pair<llvm::IntrinsicInst*, llvm::AllocaInst*>, 16> lifetime_starts;
 
  private:
   MemOps mem_operations{};
-  bool collectAllocas;
-  bool collectHeap;
+  bool collect_allocas;
+  bool collect_heap;
 
  public:
   MemOpVisitor();
-  MemOpVisitor(bool collectAllocas, bool collectHeap);
-
- public:
+  MemOpVisitor(bool collect_allocas, bool collect_heap);
+  void collect(llvm::Function& function);
+  void collectGlobals(llvm::Module& module);
   void clear();
-  void visitModuleGlobals(llvm::Module& m);
+
   void visitCallBase(llvm::CallBase& cb);
   void visitMallocLike(llvm::CallBase& ci, MemOpKind k);
   void visitFreeLike(llvm::CallBase& ci, MemOpKind k);
   void visitAllocaInst(llvm::AllocaInst& ai);
+  void visitIntrinsicInst(llvm::IntrinsicInst& inst);
 };
 
 }  // namespace typeart::analysis

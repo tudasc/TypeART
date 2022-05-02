@@ -14,13 +14,13 @@
 source "$1" --version
 
 # wcxx: TypeART-Toolchain:
-# wcxx-NEXT: clang++{{(-10|-11|-12|-13)?}}
-# wcxx-NEXT: opt{{(-10|-11|-12|-13)?}}
-# wcxx-NEXT: llc{{(-10|-11|-12|-13)?}}
+# wcxx-NEXT: clang++{{(-10|-11|-12|-13|-14)?}}
+# wcxx-NEXT: opt{{(-10|-11|-12|-13|-14)?}}
+# wcxx-NEXT: llc{{(-10|-11|-12|-13|-14)?}}
 # wcc: TypeART-Toolchain:
-# wcc-NEXT: clang{{(-10|-11|-12|-13)?}}
-# wcc-NEXT: opt{{(-10|-11|-12|-13)?}}
-# wcc-NEXT: llc{{(-10|-11|-12|-13)?}}
+# wcc-NEXT: clang{{(-10|-11|-12|-13|-14)?}}
+# wcc-NEXT: opt{{(-10|-11|-12|-13|-14)?}}
+# wcc-NEXT: llc{{(-10|-11|-12|-13|-14)?}}
 echo "TypeART-Toolchain:"
 echo "$compiler"
 echo "$opt_tool"
@@ -44,7 +44,7 @@ is_linking -c
 echo $?
 
 # CHECK: 1
-skip_typeart -E main.c
+skip_typeart_compile -E main.c
 echo $?
 
 function parse_check() {
@@ -113,5 +113,22 @@ echo "${ta_more_args}"
 # CHECK-NEXT: es eo ea eb
 # CHECK-NEXT: -L. -L../parcsr_ls -L../parcsr_mv -L../IJ_mv -L../seq_mv -L../sstruct_mv -L../struct_mv -L../krylov -L../utilities -lparcsr_ls -lparcsr_mv -lseq_mv -lsstruct_mv -lIJ_mv -lHYPRE_struct_mv -lkrylov -lHYPRE_utilities -lm -fopenmp
 parse_cmd_line -o amg2013 amg2013.o -L. -L../parcsr_ls -L../parcsr_mv -L../IJ_mv -L../seq_mv -L../sstruct_mv -L../struct_mv -L../krylov -L../utilities -lparcsr_ls -lparcsr_mv -lseq_mv -lsstruct_mv -lIJ_mv -lHYPRE_struct_mv -lkrylov -lHYPRE_utilities -lm -fopenmp
+parse_check
+echo "${ta_more_args}"
+
+# a linker call:
+# CHECK: 0 0 1 1 0 0 -O0
+# CHECK-NEXT: es eo ea libtool.so
+# CHECK-NEXT: -fPIC -shared -Wl,-soname,libtool.so CMakeFiles/tool.dir/tool.c.o
+linking=1 # This call would typically not be passed to parse_cmd_line, linking is required for proper parsing.
+parse_cmd_line -fPIC -shared -Wl,-soname,libtool.so -o libtool.so CMakeFiles/tool.dir/tool.c.o
+linking=0
+parse_check
+echo "${ta_more_args}"
+
+# CHECK: 1 1 0 1 0 0 -O0
+# CHECK-NEXT: typeart/demo/tool.c CMakeFiles/tool.dir/tool.c.o ea eb
+# CHECK-NEXT: -Dtool_EXPORTS -fPIC -MD -MT CMakeFiles/tool.dir/tool.c.o -MF CMakeFiles/tool.dir/tool.c.o.d
+parse_cmd_line -Dtool_EXPORTS  -fPIC -MD -MT CMakeFiles/tool.dir/tool.c.o -MF CMakeFiles/tool.dir/tool.c.o.d -o CMakeFiles/tool.dir/tool.c.o -c typeart/demo/tool.c
 parse_check
 echo "${ta_more_args}"

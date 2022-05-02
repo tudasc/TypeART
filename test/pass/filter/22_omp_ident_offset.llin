@@ -1,4 +1,4 @@
-; RUN: cat %s | %apply-typeart -typeart-alloca -call-filter -S 2>&1 | %filecheck %s
+; RUN: cat %s | %apply-typeart -typeart-stack -typeart-call-filter -S 2>&1 | %filecheck %s
 
 
 %struct.ident_t = type { i32, i32, i32, i32, i8* }
@@ -23,8 +23,8 @@ define dso_local void @foo() #0 {
 entry:
 ; TEST: the translation to fork_call(%s, %outlined, ...) -> outlined should handle the internal struct.ident_t %s arg when following dataflow
 ; CHECK: @foo()
-; CHECK: %0 = bitcast i32* %x to i8*
-; CHECK-NEXT: call void @__typeart_alloc_stack(i8* %0, i32 2, i64 1)
+; CHECK: [[POINTER:%[0-9a-z]+]] = bitcast i32* %x to i8*
+; CHECK: call void @__typeart_alloc_stack(i8* [[POINTER]], i32 2, i64 1)
   %x = alloca i32, align 4
   %0 = bitcast i32* %x to i8*
   %s = alloca %struct.ident_t, align 8

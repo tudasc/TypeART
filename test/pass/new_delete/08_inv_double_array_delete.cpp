@@ -3,10 +3,10 @@
 // clang-format on
 
 #include <new>
-// CHECK: invoke{{.*}} i8* @_Znam(i64 16)
+// CHECK: invoke{{.*}} i8* @_Znam(i64{{( noundef)?}} 16)
 // CHECK: call void @__typeart_alloc(i8* [[POINTER:%[0-9a-z]+]], i32 6, i64 2)
 // CHECK-NEXT: bitcast i8* {{.*}}[[POINTER]] to double*
-// CHECK: call void @_ZdaPv(i8* [[POINTER2:%[0-9a-z]+]])
+// CHECK: call void @_ZdaPv(i8*{{( noundef)?}} [[POINTER2:%[0-9a-z]+]])
 // CHECK-NEXT: call void @__typeart_free(i8* {{.*}}[[POINTER2]])
 int main() {
   try {
@@ -18,10 +18,10 @@ int main() {
   return 0;
 }
 
-// CHECK: invoke{{.*}} i8* @_Znam(i64 16)
+// CHECK: invoke{{.*}} i8* @_Znam(i64{{( noundef)?}} 16)
 // CHECK: call void @__typeart_alloc(i8* [[POINTER:%[0-9a-z]+]], i32 6, i64 2)
 // CHECK-NEXT: bitcast i8* {{.*}}[[POINTER]] to double*
-// CHECK: call void @_ZdaPv(i8* [[POINTER2:%[0-9a-z]+]])
+// CHECK: call void @_ZdaPv(i8*{{( noundef)?}} [[POINTER2:%[0-9a-z]+]])
 // CHECK-NEXT: call void @__typeart_free(i8* {{.*}}[[POINTER2]])
 void foo() {
   double* b{nullptr};

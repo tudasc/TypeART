@@ -13,6 +13,7 @@
 #ifndef TYPEART_MEMOPDATA_H
 #define TYPEART_MEMOPDATA_H
 
+#include "llvm/ADT/Optional.h"
 #include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringMap.h"
@@ -25,6 +26,7 @@ class GlobalVariable;
 class StoreInst;
 class Value;
 class GetElementPtrInst;
+class IntrinsicInst;
 }  // namespace llvm
 
 namespace typeart {
@@ -145,6 +147,7 @@ struct AllocaData {
   llvm::AllocaInst* alloca{nullptr};
   size_t array_size;
   bool is_vla{false};
+  llvm::SmallPtrSet<llvm::IntrinsicInst*, 4> lifetime_start{};
 };
 
 struct GlobalData {

@@ -127,7 +127,7 @@ function global_init() {
     # shellcheck disable=SC2155
     local -r typeart_install_dir="$(dirname "${typeart_bin_dir}")"
     local -r typeart_lib_dir="${typeart_install_dir}/@CMAKE_INSTALL_LIBDIR@"
-    local -r typeart_include_dir="-I${typeart_install_dir}/@CMAKE_INSTALL_INCLUDEDIR@"
+    local -r typeart_include_dir="-I${typeart_install_dir}/@CMAKE_INSTALL_INCLUDEDIR@/@PROJECT_NAME@"
     local -r typeart_pass="${typeart_lib_dir}/$<TARGET_FILE_NAME:typeart::TransformPass>"
     readonly typeart_interceptor="@TYPEART_MPI_INTERCEPT_DIR@/@TYPEART_MPI_TOOL@"
   fi
@@ -144,9 +144,9 @@ function global_init() {
 
   # shellcheck disable=SC2027
   readonly typeart_plugin="-load "${typeart_pass}" -typeart"
-  readonly typeart_stack_mode_args="-typeart-no-heap -typeart-alloca -typeart-stats"
-  readonly typeart_heap_mode_args="-typeart-no-heap=false -typeart-stats"
-  readonly typeart_combined_mode_args="${typeart_heap_mode_args} -typeart-alloca"
+  readonly typeart_stack_mode_args="-typeart-heap=false -typeart-stack -typeart-stats"
+  readonly typeart_heap_mode_args="-typeart-heap=true -typeart-stats"
+  readonly typeart_combined_mode_args="${typeart_heap_mode_args} -typeart-stack"
 }
 
 function toolchain_init() {

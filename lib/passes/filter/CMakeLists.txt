@@ -1,6 +1,4 @@
 set(FILTER_SOURCES
-  StandardFilter.cpp
-  StandardFilter.h
   CGInterface.cpp
   CGInterface.h
   Filter.h
@@ -27,13 +25,13 @@ add_library(typeart::MemOpFilter ALIAS ${TYPEART_PREFIX}_MemOpFilter)
 # https://lists.llvm.org/pipermail/llvm-dev/2018-July/124534.html
 # target_link_libraries(${TYPEART_PREFIX}_MemOpFilter PUBLIC LLVMCore LLVMSupport )
 
-target_compile_definitions(${TYPEART_PREFIX}_MemOpFilter PRIVATE LOG_LEVEL=${LOG_LEVEL})
+target_compile_definitions(${TYPEART_PREFIX}_MemOpFilter PRIVATE TYPEART_LOG_LEVEL=${TYPEART_LOG_LEVEL})
 
 set_target_properties(${TYPEART_PREFIX}_MemOpFilter PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 target_include_directories(
-  ${TYPEART_PREFIX}_MemOpFilter
-  PUBLIC $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+  ${TYPEART_PREFIX}_MemOpFilter ${warning_guard}
+  PUBLIC $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}>
          $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
          $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/passes>
          $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
@@ -43,9 +41,9 @@ target_include_directories(${TYPEART_PREFIX}_MemOpFilter SYSTEM PRIVATE ${LLVM_I
 
 make_tidy_check(${TYPEART_PREFIX}_MemOpFilter "${FILTER_SOURCES}")
 
-target_project_compile_options(${TYPEART_PREFIX}_MemOpFilter)
-target_define_file_basename(${TYPEART_PREFIX}_MemOpFilter)
-target_project_coverage_options(${TYPEART_PREFIX}_MemOpFilter)
+typeart_target_compile_options(${TYPEART_PREFIX}_MemOpFilter)
+typeart_target_define_file_basename(${TYPEART_PREFIX}_MemOpFilter)
+typeart_target_coverage_options(${TYPEART_PREFIX}_MemOpFilter)
 
 # For now, non-consumable filter:
 #install(

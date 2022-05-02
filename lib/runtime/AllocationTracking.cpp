@@ -28,16 +28,16 @@
 #include <type_traits>
 #include <vector>
 
-#ifdef USE_BTREE
+#ifdef TYPEART_BTREE
 using namespace btree;
 #endif
 
-#define likely(x) __builtin_expect(!!(x), 1)
+#define likely(x)   __builtin_expect(!!(x), 1)
 #define unlikely(x) __builtin_expect(!!(x), 0)
 
 #define CONCAT_(x, y) x##y
-#define CONCAT(x, y) CONCAT_(x, y)
-#define GUARDNAME CONCAT(typeart_guard_, __LINE__)
+#define CONCAT(x, y)  CONCAT_(x, y)
+#define GUARDNAME     CONCAT(typeart_guard_, __LINE__)
 
 #define TYPEART_RUNTIME_GUARD     \
   typeart::RTGuard GUARDNAME;     \
