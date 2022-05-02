@@ -8,8 +8,9 @@ mark_as_advanced(
   FETCHCONTENT_UPDATES_DISCONNECTED
 )
 
-if(TYPEART_BTREE)
-  add_subdirectory(btree)
+if(TYPEART_PHMAP)
+  #set(CMAKE_POLICY_DEFAULT_CMP0076 NEW)
+  add_subdirectory(phmap)
 endif()
 
 if(TYPEART_ABSEIL)

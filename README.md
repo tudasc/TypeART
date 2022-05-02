@@ -333,12 +333,12 @@ $> cmake --build build --target install --parallel
 
 <!--- @formatter:off --->
 
-| Option | Default | Description |
-| --- | :---: | --- |
-| `TYPEART_ABSEIL` | `ON` | Enable usage of btree-backed map of the [Abseil project](https://abseil.io/) instead of `std::map` |
-| `TYPEART_BTREE` | `OFF` | *Deprecated*. Enable usage of a [btree-backed map](https://github.com/ahueck/cpp-btree) (alternative to Abseil) instead of `std::map` |
-| `TYPEART_SOFTCOUNTERS` | `OFF` | Enable runtime tracking of #tracked addrs. / #distinct checks / etc. |
-| `TYPEART_LOG_LEVEL_RT` | `0` | Granularity of runtime logger. 3 is most verbose, 0 is least |
+| Option                 | Default | Description                                                                                                                           |
+|------------------------|:-------:|---------------------------------------------------------------------------------------------------------------------------------------|
+| `TYPEART_PHMAP`        |  `ON`   | Enable usage of a [btree-backed map](https://github.com/greg7mdp/parallel-hashmap) instead of `std::map` for storing allocation data. |
+| `TYPEART_ABSEIL`       |  `OFF`  | Enable usage of btree-backed map of the [Abseil project](https://abseil.io/) (alternative to TYPEART_PHMAP).                          |
+| `TYPEART_SOFTCOUNTERS` |  `OFF`  | Enable runtime tracking of #tracked addrs. / #distinct checks / etc.                                                                  |
+| `TYPEART_LOG_LEVEL_RT` |   `0`   | Granularity of runtime logger. 3 is most verbose, 0 is least.                                                                         |
 
 <!--- @formatter:on --->
 
