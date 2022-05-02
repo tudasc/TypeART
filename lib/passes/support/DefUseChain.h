@@ -16,6 +16,7 @@
 #include "support/Logger.h"
 #include "support/Util.h"
 
+#include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/IR/Instructions.h"
 
 #include <algorithm>

@@ -1,7 +1,6 @@
 find_package(Python3 QUIET)
 
-if(LLVM_EXTERNAL_LIT)
-  message(STATUS "External lit path is used")
+if(EXISTS ${LLVM_EXTERNAL_LIT})
   get_llvm_lit_path(
     lit_base_dir
     lit_file_name
@@ -24,7 +23,7 @@ if(NOT LIT_COMMAND_I)
   if(LLVM_LIT_PATH)
     get_filename_component(TYPEART_LLVM_LIT_PATH ${LLVM_LIT_PATH} ABSOLUTE CACHE)
     set(LIT_COMMAND_I ${TYPEART_LLVM_LIT_PATH})
-    set(LLVM_EXTERNAL_LIT ${LLVM_LIT_PATH})
+    set(LLVM_EXTERNAL_LIT ${LLVM_LIT_PATH} CACHE FILEPATH "External lit path.")
   else()
     message(WARNING "No llvm lit is available")
   endif()
@@ -32,4 +31,4 @@ endif()
 
 mark_as_advanced(TYPEART_LLVM_LIT_PATH)
 
-message(STATUS "llvm lit command is set to ${LIT_COMMAND_I}")
+message(STATUS "LLVM lit command is set to ${LIT_COMMAND_I}")

@@ -7,6 +7,27 @@
 #include <stdio.h>
 #include <string.h>
 
+const char* err_code_to_string(typeart_status status) {
+  switch (status) {
+    case TYPEART_OK:
+      return "TYPEART_OK";
+    case TYPEART_BAD_ALIGNMENT:
+      return "TYPEART_BAD_ALIGNMENT";
+    case TYPEART_UNKNOWN_ADDRESS:
+      return "TYPEART_UNKNOWN_ADDRESS";
+    case TYPEART_ERROR:
+      return "TYPEART_ERROR";
+    case TYPEART_BAD_OFFSET:
+      return "TYPEART_BAD_OFFSET";
+    case TYPEART_INVALID_ID:
+      return "TYPEART_INVALID_ID";
+    case TYPEART_WRONG_KIND:
+      return "TYPEART_WRONG_KIND";
+    default:
+      return "unknown_status";
+  }
+}
+
 int get_struct_id(int index) {
   return TYPEART_NUM_RESERVED_IDS + index;
 }

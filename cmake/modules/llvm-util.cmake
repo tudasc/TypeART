@@ -32,7 +32,7 @@ function(typeart_make_llvm_module name sources)
   )
 
   if(ARG_INCLUDE_DIRS)
-    target_include_directories(${name}
+    target_include_directories(${name} ${warning_guard}
       PRIVATE
       ${ARG_INCLUDE_DIRS}
     )
@@ -50,28 +50,48 @@ function(typeart_make_llvm_module name sources)
   )
 endfunction()
 
-function(typeart_find_llvm_progs target names default)
+function(typeart_find_llvm_progs target names)
+  cmake_parse_arguments(ARG "ABORT_IF_MISSING;SHOW_VAR" "DEFAULT_EXE" "HINTS" ${ARGN})
+  set(TARGET_TMP ${target})
+
   find_program(
-    target-prog
+    ${target}
     NAMES ${names}
-    HINTS ${LLVM_TOOLS_BINARY_DIR}
+    PATHS ${LLVM_TOOLS_BINARY_DIR}
     NO_DEFAULT_PATH
   )
-
-  if(NOT target-prog)
-    set(${target}
-        ${default}
-        PARENT_SCOPE
-    )
-    message(
-      STATUS
-        "Did not find clang program ${names} in ${LLVM_TOOLS_BINARY_DIR}. Using def. value: ${default}"
-    )
-  else()
-    set(${target}
-        ${target-prog}
-        PARENT_SCOPE
+  if(NOT ${target})
+    find_program(
+      ${target}
+      NAMES ${names}
+      HINTS ${ARG_HINTS}
     )
   endif()
-  unset(target-prog CACHE)
+
+  if(NOT ${target})
+    set(target_missing_message "Did not find LLVM program ${names} in ${LLVM_TOOLS_BINARY_DIR} "
+                 ", in system path or hints ${ARG_HINTS}.")
+    if(ARG_DEFAULT_EXE)
+      unset(${target} CACHE)
+      set(${target}
+          ${ARG_DEFAULT_EXE}
+          CACHE
+          STRING
+          "Default value for ${TARGET_TMP}."
+      )
+      set(target_missing_message "${target_missing_message} Using default: ${ARG_DEFAULT_EXE}")
+    endif()
+    if(ARG_ABORT_IF_MISSING AND NOT ARG_DEFAULT_EXE)
+      message(SEND_ERROR ${target_missing_message})
+    else()
+      message(STATUS ${target_missing_message})
+    endif()
+
+  endif()
+
+  if(ARG_SHOW_VAR)
+    mark_as_advanced(CLEAR ${target})
+  else()
+    mark_as_advanced(${target})
+  endif()
 endfunction()

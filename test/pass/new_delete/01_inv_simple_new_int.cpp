@@ -3,7 +3,7 @@
 // clang-format on
 
 #include <new>
-// CHECK: invoke{{.*}} i8* @_Znwm(i64 4)
+// CHECK: invoke{{.*}} i8* @_Znwm(i64{{( noundef)?}} 4)
 // CHECK: call void @__typeart_alloc(i8* [[POINTER:%[0-9a-z]+]], i32 2, i64 1)
 // CHECK-NEXT: bitcast i8* {{.*}}[[POINTER]] to i32*
 int main() {
