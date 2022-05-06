@@ -16,7 +16,7 @@ target_compile_definitions(${TYPEART_PREFIX}_TypeGenObj PRIVATE TYPEART_LOG_LEVE
 set_target_properties(${TYPEART_PREFIX}_TypeGenObj PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 target_include_directories(
-  ${TYPEART_PREFIX}_TypeGenObj
+  ${TYPEART_PREFIX}_TypeGenObj ${warning_guard}
   PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
          $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
          $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/passes>
@@ -47,8 +47,8 @@ typeart_target_coverage_options(${TYPEART_PREFIX}_TypeGenStatic)
 target_link_libraries(${TYPEART_PREFIX}_TypeGenStatic typeart::TypesStatic)
 
 target_include_directories(
-  ${TYPEART_PREFIX}_TypeGenStatic
-  PUBLIC $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+  ${TYPEART_PREFIX}_TypeGenStatic ${warning_guard}
+  PUBLIC $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
   $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/passes>

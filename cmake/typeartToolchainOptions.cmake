@@ -1,12 +1,12 @@
 include(CMakeDependentOption)
 include(CMakePackageConfigHelpers)
-include(GNUInstallDirs)
 include(FeatureSummary)
+include(CheckCSourceCompiles)
 
-find_package(LLVM CONFIG HINTS "${LLVM_DIR}" NO_DEFAULT_PATH)
+find_package(LLVM CONFIG HINTS "${LLVM_DIR}")
 if(NOT LLVM_FOUND)
   message(STATUS "LLVM not found at: ${LLVM_DIR}.")
-  find_package(LLVM 10 REQUIRED CONFIG)
+  find_package(LLVM REQUIRED CONFIG)
 endif()
 set_package_properties(LLVM PROPERTIES
   URL https://llvm.org/
@@ -26,8 +26,8 @@ set_package_properties(OpenMP PROPERTIES
   "OpenMP is optionally used by the test suite to verify that the LLVM passes handle OpenMPk codes."
 )
 
-set(TYPEART_LOG_LEVEL 0 CACHE STRING "Granularity of LLVM pass logger. 3 ist most verbose, 0 is least.")
-set(TYPEART_LOG_LEVEL_RT 0 CACHE STRING "Granularity of runtime logger. 3 ist most verbose, 0 is least.")
+set(TYPEART_LOG_LEVEL 0 CACHE STRING "Granularity of LLVM pass logger. 3 is most verbose, 0 is least.")
+set(TYPEART_LOG_LEVEL_RT 0 CACHE STRING "Granularity of runtime logger. 3 is most verbose, 0 is least.")
 
 option(TYPEART_SHOW_STATS "Passes show the statistics vars." ON)
 add_feature_info(SHOW_STATS TYPEART_SHOW_STATS "Show compile time statistics of TypeART's LLVM passes.")
@@ -74,13 +74,13 @@ add_feature_info(UBSAN TYPEART_UBSAN "Build with sanitizer \"ubsan=undefined\"."
 option(TYPEART_MPI_WRAPPER "Generate mpicc and mpic++ wrapper for TypeART" ON)
 add_feature_info(MPI_WRAPPER TYPEART_MPI_WRAPPER "Generate TypeART compiler wrapper for mpicc and mpic++.")
 
-option(TYPEART_ABSEIL "Enable usage of abseil's btree-backed map instead of std::map for the runtime." ON)
+option(TYPEART_ABSEIL "Enable usage of Abseil's btree-backed map instead of std::map for the runtime." ON)
 add_feature_info(ABSEIL TYPEART_ABSEIL "External library \"Abseil\" replaces runtime std::map with btree-backed map.")
 
-cmake_dependent_option(TYPEART_BTREE "Enable usage of btree-backed map instead of std::map for the runtime." ON
+cmake_dependent_option(TYPEART_PHMAP "Enable usage of project \"phmap\" btree-backed map for the runtime." ON
   "NOT TYPEART_ABSEIL" OFF
 )
-add_feature_info(BTREE TYPEART_BTREE "*Deprecated* External library replaces runtime std::map with btree-backed map.")
+add_feature_info(PHMAP TYPEART_PHMAP "External library \"parallel-hashmap\" replaces runtime std::map with btree-backed map.")
 
 option(TYPEART_INSTALL_UTIL_SCRIPTS "Install single file build and run scripts" OFF)
 mark_as_advanced(TYPEART_INSTALL_UTIL_SCRIPTS)
@@ -88,8 +88,24 @@ mark_as_advanced(TYPEART_INSTALL_UTIL_SCRIPTS)
 option(TYPEART_TEST_CONFIGURE_IDE "Add targets so the IDE (e.g., Clion) can interpret test files better" ON)
 mark_as_advanced(TYPEART_TEST_CONFIGURE_IDE)
 
+option(TYPEART_CONFIG_DIR_IS_SHARE "Install to \"share/cmake/\" instead of \"lib/cmake/\"" OFF)
+mark_as_advanced(TYPEART_CONFIG_DIR_IS_SHARE)
+
+set(warning_guard "")
+if(NOT TYPEART_IS_TOP_LEVEL)
+  option(
+      TYPEART_INCLUDES_WITH_SYSTEM
+      "Use SYSTEM modifier for TypeART includes to disable warnings."
+      ON
+  )
+  mark_as_advanced(TYPEART_INCLUDES_WITH_SYSTEM)
+
+  if(TYPEART_INCLUDES_WITH_SYSTEM)
+    set(warning_guard SYSTEM)
+  endif()
+endif()
+
 include(AddLLVM)
-include(modules/llvm-lit)
 include(modules/clang-tidy)
 include(modules/clang-format)
 include(modules/llvm-util)
@@ -137,31 +153,49 @@ set_package_properties(Python3 PROPERTIES
   "The Python3 interpreter is used for lit-testing and the MPI interceptor tool code generation."
 )
 
-typeart_find_llvm_progs(TYPEART_CLANG_EXEC "clang;clang-13;clang-12;clang-11;clang-10" "clang")
-typeart_find_llvm_progs(TYPEART_CLANGCXX_EXEC "clang++;clang-13;clang-12;clang-11;clang++-10" "clang++")
-typeart_find_llvm_progs(TYPEART_LLC_EXEC "llc;llc-13;llc-12;llc-11;llc-10" "llc")
-typeart_find_llvm_progs(TYPEART_OPT_EXEC "opt;opt-13;opt-12;opt-11;opt-10" "opt")
-typeart_find_llvm_progs(TYPEART_FILECHECK_EXEC "FileCheck;FileCheck-13;FileCheck-12;FileCheck-11;FileCheck-10" "FileCheck")
+typeart_find_llvm_progs(TYPEART_CLANG_EXEC "clang-${LLVM_VERSION_MAJOR};clang" DEFAULT_EXE "clang")
+typeart_find_llvm_progs(TYPEART_CLANGCXX_EXEC "clang++-${LLVM_VERSION_MAJOR};clang++" DEFAULT_EXE "clang++")
+typeart_find_llvm_progs(TYPEART_LLC_EXEC "llc-${LLVM_VERSION_MAJOR};llc" DEFAULT_EXE "llc")
+typeart_find_llvm_progs(TYPEART_OPT_EXEC "opt-${LLVM_VERSION_MAJOR};opt" DEFAULT_EXE "opt")
 
-if(NOT CMAKE_BUILD_TYPE)
-  # set default build type
-  set(CMAKE_BUILD_TYPE Debug CACHE STRING "" FORCE)
-  message(STATUS "Building as debug (default)")
+if(TYPEART_IS_TOP_LEVEL)
+  if(NOT CMAKE_BUILD_TYPE)
+    # set default build type
+    set(CMAKE_BUILD_TYPE Debug CACHE STRING "" FORCE)
+    message(STATUS "Building as debug (default)")
+  endif()
+
+  if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    # set default install path
+    set(CMAKE_INSTALL_PREFIX
+        "${typeart_SOURCE_DIR}/install/typeart"
+        CACHE PATH "Default install path" FORCE
+    )
+    message(STATUS "Installing to (default): ${CMAKE_INSTALL_PREFIX}")
+  endif()
+
+  # TYPEART_DEBUG_POSTFIX is only used for Config
+  if(CMAKE_DEBUG_POSTFIX)
+    set(TYPEART_DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
+  else()
+    set(TYPEART_DEBUG_POSTFIX "-d")
+  endif()
+
+  # CMAKE_DEBUG_POSTFIX is used for targets
+  if(NOT CMAKE_DEBUG_POSTFIX AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(CMAKE_DEBUG_POSTFIX ${TYPEART_DEBUG_POSTFIX})
+  endif()
+else()
+  set(TYPEART_DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 endif()
 
-if(NOT CMAKE_DEBUG_POSTFIX AND CMAKE_BUILD_TYPE STREQUAL "Debug")
-  set(CMAKE_DEBUG_POSTFIX "-d")
-endif()
-
-if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-  # set default install path
-  set(CMAKE_INSTALL_PREFIX
-      "${typeart_SOURCE_DIR}/install/typeart"
-      CACHE PATH "Default install path" FORCE
-  )
-  message(STATUS "Installing to (default): ${CMAKE_INSTALL_PREFIX}")
-endif()
+include(GNUInstallDirs)
 
 set(TYPEART_PREFIX ${PROJECT_NAME})
 set(TARGETS_EXPORT_NAME ${TYPEART_PREFIX}Targets)
-set(TYPEART_INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
+
+if(TYPEART_CONFIG_DIR_IS_SHARE)
+  set(TYPEART_INSTALL_CONFIGDIR ${CMAKE_INSTALL_DATAROOTDIR}/cmake/${PROJECT_NAME})
+else()
+  set(TYPEART_INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
+endif()

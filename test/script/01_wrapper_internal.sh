@@ -14,13 +14,13 @@
 source "$1" --version
 
 # wcxx: TypeART-Toolchain:
-# wcxx-NEXT: clang++{{(-10|-11|-12|-13)?}}
-# wcxx-NEXT: opt{{(-10|-11|-12|-13)?}}
-# wcxx-NEXT: llc{{(-10|-11|-12|-13)?}}
+# wcxx-NEXT: clang++{{(-10|-11|-12|-13|-14)?}}
+# wcxx-NEXT: opt{{(-10|-11|-12|-13|-14)?}}
+# wcxx-NEXT: llc{{(-10|-11|-12|-13|-14)?}}
 # wcc: TypeART-Toolchain:
-# wcc-NEXT: clang{{(-10|-11|-12|-13)?}}
-# wcc-NEXT: opt{{(-10|-11|-12|-13)?}}
-# wcc-NEXT: llc{{(-10|-11|-12|-13)?}}
+# wcc-NEXT: clang{{(-10|-11|-12|-13|-14)?}}
+# wcc-NEXT: opt{{(-10|-11|-12|-13|-14)?}}
+# wcc-NEXT: llc{{(-10|-11|-12|-13|-14)?}}
 echo "TypeART-Toolchain:"
 echo "$compiler"
 echo "$opt_tool"

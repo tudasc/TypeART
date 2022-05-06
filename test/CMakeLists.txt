@@ -1,3 +1,15 @@
+typeart_find_llvm_progs(TYPEART_FILECHECK_EXEC "FileCheck-${LLVM_VERSION_MAJOR};FileCheck" ABORT_IF_MISSING)
+
+if(LLVM_EXTERNAL_LIT)
+  cmake_path(GET LLVM_EXTERNAL_LIT PARENT_PATH LLVM_EXTERNAL_LIT_DIR)
+endif()
+
+typeart_find_llvm_progs(TYPEART_LIT_EXEC
+  "llvm-lit;lit;lit.py"
+  HINTS ${LLVM_EXTERNAL_LIT_DIR} /usr/lib/llvm-${LLVM_VERSION_MAJOR} /usr/lib/llvm /usr/bin /usr/local/bin /opt/local/bin
+  ABORT_IF_MISSING
+)
+
 macro(pythonize_bool truth_var var)
   if(${truth_var})
     set(${var} True)
@@ -24,7 +36,7 @@ function(typeart_configure_lit_site input output)
   pythonize_bool(TYPEART_SOFTCOUNTERS TYPEARTPASS_SOFTCOUNTER)
 
   pythonize_bool(OPENMP_FOUND TYPEARTPASS_OPENMP)
-  pythonize_bool(CMAKE_THREAD_LIBS_INIT TYPEARTPASS_THREADS)
+  pythonize_bool(Threads_FOUND TYPEARTPASS_THREADS)
   pythonize_bool(TYPEART_DISABLE_THREAD_SAFETY TYPEARTPASS_THREAD_UNSAFE)
 
   pythonize_bool(MPI_C_FOUND TYPEARTPASS_MPI_C)
@@ -50,7 +62,7 @@ function(typeart_configure_lit_site input output)
   typeart_target_generate_file(${input} ${output})
 endfunction()
 
-typeart_add_format_target(format-tests
+typeart_add_format_target(typeart-format-tests
   "Formats project test source files"
   TARGETS *.c *.cpp *.h
 )
@@ -60,33 +72,81 @@ typeart_configure_lit_site(
   ${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg
 )
 
-set(TYPEARTPASS_TEST_DEPENDS typeart::TransformPass typeart::Runtime)
+function(typeart_add_lit_testsuite target comment)
+  cmake_parse_arguments(ARG "" "" "PARAMS;DEPENDS;ARGS" ${ARGN})
 
-add_lit_testsuite(lit-pass-test
-  "Running the TYPEART support pass tests"
-  ${CMAKE_CURRENT_SOURCE_DIR}
-  ARGS -v -j 1
-  PARAMS typeartpass_site_config=${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg
-  DEPENDS ${TYPEARTPASS_TEST_DEPENDS}
+  foreach(param ${ARG_PARAMS})
+    list(APPEND TEST_PARAMS --param ${param})
+  endforeach()
+
+  add_custom_target(${target}
+    COMMAND ${TYPEART_LIT_EXEC} ${ARG_ARGS} ${TEST_PARAMS} ${ARG_UNPARSED_ARGUMENTS}
+    COMMENT "${comment}"
+    USES_TERMINAL
+  )
+
+  if (ARG_DEPENDS)
+    add_dependencies(${target} ${ARG_DEPENDS})
+  endif()
+endfunction()
+
+function(typeart_add_lit_target)
+  cmake_parse_arguments(ARG "" "" "SUITES" ${ARGN})
+
+  foreach(suite IN LISTS ARG_SUITES)
+    if("${suite}" STREQUAL "all")
+      set(SUITE_PATH ${CMAKE_CURRENT_SOURCE_DIR})
+      set(TARGET_NAME check-typeart)
+    else()
+      set(SUITE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/${suite})
+      set(TARGET_NAME check-typeart-${suite})
+    endif()
+
+    if(NOT EXISTS ${SUITE_PATH})
+      message(WARNING "Could not find suitable lit test target at ${SUITE_PATH}")
+      continue()
+    endif()
+
+    typeart_add_lit_testsuite(${TARGET_NAME}
+      "Running the lit suite TypeART::${suite}"
+      ${SUITE_PATH}
+      ARGS -v -j 1
+      PARAMS typeartpass_site_config=${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg
+      DEPENDS ${TYPEART_TEST_DEPENDS}
+    )
+  endforeach()
+endfunction()
+
+set(TYPEART_TEST_DEPENDS
+  typeart::TransformPass
+  typeart::Runtime
+  typeart::Types
 )
 
+set(TYPEART_SUITES
+  all
+  pass
+  runtime
+  script
+  typemapping
+  mpi_typecheck
+)
+
+typeart_add_lit_target(SUITES ${TYPEART_SUITES})
+
 add_test(
-  NAME ctest_lit_suite
+  NAME typeart-lit-suite
   COMMAND
-    ${LIT_COMMAND_I} -j 1 --param
+    ${TYPEART_LIT_EXEC} -j 1 --param
     typeartpass_site_config=${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
-
-if(TYPEART_MPI_INTERCEPT_LIB)
-  add_subdirectory(lulesh)
-endif()
 
 if(TYPEART_TEST_CONFIGURE_IDE)
   function(typeart_add_test_target_ide target header sources)
     add_executable(${target} EXCLUDE_FROM_ALL ${header} ${sources})
 
-    add_dependencies(${target} ${TYPEARTPASS_TEST_DEPENDS})
+    add_dependencies(${target} ${TYPEART_TEST_DEPENDS})
 
     target_include_directories(
       ${target} PRIVATE ${PROJECT_SOURCE_DIR}/lib/typelib

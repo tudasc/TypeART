@@ -113,7 +113,7 @@ RuntimeSystem::~RuntimeSystem() {
   //  llvm::raw_string_ostream stream(stats);
 
   std::ostringstream stream;
-  softcounter::serialise(recorder, stream);
+  softcounter::serialize(recorder, stream);
   if (!stream.str().empty()) {
     // llvm::errs/LOG will crash with virtual call error
     std::cerr << stream.str();

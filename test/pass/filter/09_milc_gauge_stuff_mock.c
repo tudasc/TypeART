@@ -14,10 +14,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define XUP 0
-#define YUP 1
-#define ZUP 2
-#define TUP 3
+#define XUP   0
+#define YUP   1
+#define ZUP   2
+#define TUP   3
 #define TDOWN 4
 #define ZDOWN 5
 #define YDOWN 6
@@ -26,12 +26,12 @@
 #define NODIR -1
 
 #define OPP_DIR(dir) (7 - (dir))
-#define NDIRS 8
+#define NDIRS        8
 
-#define NREPS 1
-#define NLOOP 3
+#define NREPS      1
+#define NLOOP      3
 #define MAX_LENGTH 6
-#define MAX_NUM 16
+#define MAX_NUM    16
 
 extern char gauge_action_description[128];
 int gauge_action_nloops = NLOOP;

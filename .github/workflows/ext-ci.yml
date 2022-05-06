@@ -105,6 +105,10 @@ jobs:
         preset:
           - name: release-counter
           - name: release-unsafe-counter
+        include:
+          - llvm-version: 12
+            preset:
+              name: release-safeptr-counter
 
     steps:
       - uses: actions/checkout@v2

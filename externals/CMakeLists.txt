@@ -18,12 +18,12 @@ if(TYPEART_MPI_INTERCEPT_LIB)
   add_subdirectory(spdlog)
 endif()
 
-if(TYPEART_BTREE)
-  add_subdirectory(btree)
+if(TYPEART_PHMAP)
+  #set(CMAKE_POLICY_DEFAULT_CMP0076 NEW)
+  add_subdirectory(phmap)
 endif()
 
 if(TYPEART_ABSEIL)
-  set(CMAKE_POSITION_INDEPENDENT_CODE ON)
   add_subdirectory(abseil)
 endif()
 

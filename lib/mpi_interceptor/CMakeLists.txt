@@ -9,7 +9,7 @@ add_custom_command(
   COMMENT "Generate PMPI wrapper"
 )
 
-add_library(MPITool SHARED
+add_library(${TYPEART_PREFIX}_MPITool SHARED
   ${LIB_SOURCE}
   Config.cpp
   InterceptorFunctions.cpp
@@ -17,31 +17,31 @@ add_library(MPITool SHARED
   TypeCheck.cpp
   Util.cpp
 )
-set_property(TARGET MPITool PROPERTY OUTPUT_NAME "${PROJECT_NAME}MPITool")
-add_library(typeart::MPITool ALIAS MPITool)
 
-set_property(TARGET MPITool PROPERTY C_STANDARD 11)
-set_property(TARGET MPITool PROPERTY C_STANDARD_REQUIRED TRUE)
+set_property(TARGET ${TYPEART_PREFIX}_MPITool PROPERTY OUTPUT_NAME "${PROJECT_NAME}MPITool")
+add_library(typeart::MPITool ALIAS ${TYPEART_PREFIX}_MPITool)
 
-set_property(TARGET MPITool PROPERTY CXX_STANDARD 17)
-set_property(TARGET MPITool PROPERTY CXX_STANDARD_REQUIRED TRUE)
+set_property(TARGET ${TYPEART_PREFIX}_MPITool PROPERTY C_STANDARD 11)
+set_property(TARGET ${TYPEART_PREFIX}_MPITool PROPERTY C_STANDARD_REQUIRED TRUE)
 
+set_property(TARGET ${TYPEART_PREFIX}_MPITool PROPERTY CXX_STANDARD 17)
+set_property(TARGET ${TYPEART_PREFIX}_MPITool PROPERTY CXX_STANDARD_REQUIRED TRUE)
 
-typeart_target_define_file_basename(MPITool)
+typeart_target_define_file_basename(${TYPEART_PREFIX}_MPITool)
 
-target_include_directories(MPITool
+target_include_directories(${TYPEART_PREFIX}_MPITool ${warning_guard}
   PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
          $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/support>
          $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}>
 )
 
-target_include_directories(MPITool
+target_include_directories(${TYPEART_PREFIX}_MPITool
   SYSTEM
   PRIVATE ${LLVM_INCLUDE_DIRS}
 )
 
-target_link_libraries(MPITool
+target_link_libraries(${TYPEART_PREFIX}_MPITool
   PRIVATE typeart::Runtime
           MPI::MPI_CXX
           result::result
@@ -50,15 +50,15 @@ target_link_libraries(MPITool
 )
 
 target_compile_definitions(
-  MPITool
+  ${TYPEART_PREFIX}_MPITool
   PRIVATE TYPEART_LOG_LEVEL=${TYPEART_LOG_LEVEL_RT}
 )
 
-set(CONFIG_NAME ${PROJECT_NAME}MPITool)
+set(CONFIG_NAME ${PROJECT_NAME}${TYPEART_PREFIX}_MPITool)
 set(TARGETS_EXPORT_NAME ${CONFIG_NAME}Targets)
 
 install(
-  TARGETS MPITool
+  TARGETS ${TYPEART_PREFIX}_MPITool
   EXPORT ${TARGETS_EXPORT_NAME}
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}

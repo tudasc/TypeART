@@ -14,6 +14,7 @@
 #define TYPEART_STRUCTTYPEHANDLER_H
 
 #include "llvm/ADT/None.h"
+#include "llvm/ADT/Optional.h"
 #include "llvm/ADT/StringMap.h"
 
 #include <string>
