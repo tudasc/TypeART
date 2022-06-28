@@ -10,6 +10,8 @@ typeart_find_llvm_progs(TYPEART_LIT_EXEC
   ABORT_IF_MISSING
 )
 
+find_package(CUDAToolkit QUIET)
+
 macro(pythonize_bool truth_var var)
   if(${truth_var})
     set(${var} True)
@@ -38,6 +40,8 @@ function(typeart_configure_lit_site input output)
   pythonize_bool(OPENMP_FOUND TYPEARTPASS_OPENMP)
   pythonize_bool(Threads_FOUND TYPEARTPASS_THREADS)
   pythonize_bool(TYPEART_DISABLE_THREAD_SAFETY TYPEARTPASS_THREAD_UNSAFE)
+
+  pythonize_bool(CUDAToolkit_FOUND TYPEARTPASS_CUDA)
 
   pythonize_bool(MPI_C_FOUND TYPEARTPASS_MPI_C)
   pythonize_bool(MPI_CXX_FOUND TYPEARTPASS_MPI_CXX)
@@ -129,6 +133,7 @@ set(TYPEART_SUITES
   runtime
   script
   typemapping
+  cuda
 )
 
 typeart_add_lit_target(SUITES ${TYPEART_SUITES})
