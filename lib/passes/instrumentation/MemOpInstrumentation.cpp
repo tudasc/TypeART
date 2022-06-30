@@ -54,8 +54,8 @@ MemOpInstrumentation::MemOpInstrumentation(TAFunctionQuery& fquery, Instrumentat
 InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
   InstrCount counter{0};
   for (const auto& [malloc, args] : heap) {
-    auto kind                = malloc.kind;
-    Instruction* malloc_call = args.get_as<Instruction>(ArgMap::ID::pointer);
+    auto kind         = malloc.kind;
+    auto* malloc_call = malloc.call;
 
     Instruction* insertBefore = malloc_call->getNextNode();
     if (malloc.array_cookie.hasValue()) {
@@ -79,10 +79,14 @@ InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
 
     Value* elementCount{nullptr};
 
+    Value* pointer = args.get_value(ArgMap::ID::pointer);
+
     auto parent_f  = malloc.call->getFunction();
     const bool omp = util::omp::isOmpContext(parent_f);
 
     switch (kind) {
+      case MemOpKind::CudaMallocLike:
+        pointer = IRB.CreateBitCast(pointer, instr_helper->getTypeFor(IType::ptr));
       case MemOpKind::AlignedAllocLike:
         [[fallthrough]];
       case MemOpKind::NewLike:
@@ -121,7 +125,7 @@ InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
     }
 
     const auto callback_id = omp ? IFunc::heap_omp : IFunc::heap;
-    IRB.CreateCall(fquery->getFunctionFor(callback_id), ArrayRef<Value*>{malloc_call, typeIdConst, elementCount});
+    IRB.CreateCall(fquery->getFunctionFor(callback_id), ArrayRef<Value*>{pointer, typeIdConst, elementCount});
     ++counter;
   }
 

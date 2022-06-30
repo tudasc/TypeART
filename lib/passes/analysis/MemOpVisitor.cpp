@@ -14,6 +14,7 @@
 
 #include "analysis/MemOpData.h"
 #include "compat/CallSite.h"
+#include "support/CudaUtil.h"
 #include "support/Error.h"
 #include "support/Logger.h"
 #include "support/TypeUtil.h"
@@ -135,9 +136,18 @@ llvm::Expected<T*> getSingleUserAs(llvm::Value* value) {
 using MallocGeps   = SmallPtrSet<GetElementPtrInst*, 2>;
 using MallocBcasts = SmallPtrSet<BitCastInst*, 4>;
 
-std::pair<MallocGeps, MallocBcasts> collectRelevantMallocUsers(llvm::CallBase& ci) {
+std::pair<MallocGeps, MallocBcasts> collectRelevantMallocUsers(llvm::CallBase& ci, MemOpKind kind) {
   auto geps   = MallocGeps{};
   auto bcasts = MallocBcasts{};
+
+  if (kind == MemOpKind::CudaMallocLike) {
+    auto bcast = cuda::bitcast_for(ci);
+    if (bcast) {
+      bcasts.insert(bcast.getValue());
+    }
+    return {geps, bcasts};
+  }
+
   for (auto user : ci.users()) {
     // Simple case: Pointer is immediately casted
     if (auto inst = dyn_cast<BitCastInst>(user)) {
@@ -236,7 +246,7 @@ llvm::Optional<ArrayCookieData> handleArrayCookie(const MallocGeps& geps, Malloc
 }
 
 void MemOpVisitor::visitMallocLike(llvm::CallBase& ci, MemOpKind k) {
-  auto [geps, bcasts] = collectRelevantMallocUsers(ci);
+  auto [geps, bcasts] = collectRelevantMallocUsers(ci, k);
   auto primary_cast   = bcasts.empty() ? nullptr : *bcasts.begin();
   auto array_cookie   = handleArrayCookie(geps, bcasts, primary_cast);
   if (primary_cast == nullptr) {

@@ -53,43 +53,76 @@ HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
     Value* pointer              = malloc_call;
     BitCastInst* primaryBitcast = mdata.primary;
     auto kind                   = mdata.kind;
+    //
+    //    int typeId{-1};
+    //    unsigned typeSize{0};
+    //    Value* dstPtrType{nullptr};
 
     // Number of bytes allocated
-    auto mallocArg = malloc_call->getOperand(0);
-    int typeId     = type_m->getOrRegisterType(malloc_call->getType()->getPointerElementType(),
-                                           dl);  // retrieveTypeID(tu::getVoidType(c));
-    if (typeId == TYPEART_UNKNOWN_TYPE) {
-      LOG_ERROR("Unknown heap type. Not instrumenting. " << util::dump(*malloc_call));
-      // TODO notify caller that we skipped: via lambda callback function
-      continue;
-    }
+    //    auto mallocArg =
 
-    // Number of bytes per element, 1 for void*
-    unsigned typeSize = tu::getTypeSizeInBytes(malloc_call->getType()->getPointerElementType(), dl);
+    using ArgDataPack = struct HeapData {
+      int type_id{-1};
+      unsigned type_size{0};
+      //      llvm::Optional<Value*> dst_ptr{llvm::None};
+    };
 
-    // Use the first cast as the determining type (if there is any)
-    if (primaryBitcast != nullptr) {
-      auto* dstPtrType = primaryBitcast->getDestTy()->getPointerElementType();
+    const auto collect_heap_info = [&]() -> ArgDataPack {
+      ArgDataPack heap_data;
 
-      typeSize = tu::getTypeSizeInBytes(dstPtrType, dl);
+      const auto* malloc_type = malloc_call->getType();
+      if (malloc_type != nullptr && malloc_type->isPointerTy()) {
+        heap_data.type_id = type_m->getOrRegisterType(malloc_call->getType()->getPointerElementType(),
+                                                      dl);  // retrieveTypeID(tu::getVoidType(c));
+        if (heap_data.type_id == TYPEART_UNKNOWN_TYPE) {
+          LOG_ERROR("Unknown heap type. Not instrumenting. " << util::dump(*malloc_call));
+          // TODO notify caller that we skipped: via lambda callback function
+          return heap_data;
+        }
+
+        // Number of bytes per element, 1 for void*
+        heap_data.type_size = tu::getTypeSizeInBytes(malloc_call->getType()->getPointerElementType(), dl);
+      }
+
+      // Past this point, we look at the primary bitcast for type info
+      if (primaryBitcast == nullptr) {
+        LOG_WARNING("Primary bitcast is null. malloc: " << util::dump(*malloc_call))
+        return heap_data;
+      }
+
+      auto* bitcast_pointer_type = [&kind, &primaryBitcast]() {
+        if (kind == MemOpKind::CudaMallocLike) {
+          return primaryBitcast->getSrcTy()->getPointerElementType()->getPointerElementType();
+        }
+        return primaryBitcast->getDestTy()->getPointerElementType();
+      }();
+
+      heap_data.type_size = tu::getTypeSizeInBytes(bitcast_pointer_type, dl);
 
       // Resolve arrays
       // TODO: Write tests for this case
-      if (dstPtrType->isArrayTy()) {
-        dstPtrType = tu::getArrayElementType(dstPtrType);
+      if (bitcast_pointer_type->isArrayTy()) {
+        bitcast_pointer_type = tu::getArrayElementType(bitcast_pointer_type);
       }
 
-      typeId = type_m->getOrRegisterType(dstPtrType, dl);
-      if (typeId == TYPEART_UNKNOWN_TYPE) {
+      heap_data.type_id = type_m->getOrRegisterType(bitcast_pointer_type, dl);
+
+      if (heap_data.type_id == TYPEART_UNKNOWN_TYPE) {
         LOG_ERROR("Target type of casted allocation is unknown. Not instrumenting. " << util::dump(*malloc_call));
         LOG_ERROR("Cast: " << util::dump(*primaryBitcast));
-        LOG_ERROR("Target type: " << util::dump(*dstPtrType));
-        // TODO notify caller that we skipped: via lambda callback function
-        continue;
+        LOG_ERROR("Target type: " << util::dump(*bitcast_pointer_type));
       }
-    } else {
-      LOG_WARNING("Primary bitcast is null. malloc: " << util::dump(*malloc_call))
+
+      return heap_data;
+    };
+
+    auto [typeId, typeSize] = collect_heap_info();
+    if (typeId == TYPEART_UNKNOWN_TYPE) {
+      continue;
     }
+
+    assert(typeId > -1 && "Error type id not correctly set");
+    assert(typeSize > 0 && "Error type size should be at least 1 byte");
 
     auto* typeIdConst    = instr_helper->getConstantFor(IType::type_id, typeId);
     Value* typeSizeConst = instr_helper->getConstantFor(IType::extent, typeSize);
@@ -107,7 +140,7 @@ HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
           pointer                = array_cookie_data.array_ptr_gep;
         }
 
-        byte_count = mallocArg;
+        byte_count = malloc_call->getOperand(0);
         break;
       case MemOpKind::CallocLike: {
         if (mdata.primary == nullptr) {
@@ -123,6 +156,10 @@ HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
         break;
       case MemOpKind::AlignedAllocLike:
         byte_count = malloc_call->getArgOperand(1);
+        break;
+      case MemOpKind::CudaMallocLike:
+        byte_count = malloc_call->getArgOperand(1);
+        pointer    = primaryBitcast->getOperand(0);
         break;
       default:
         LOG_ERROR("Unknown malloc kind. Not instrumenting. " << util::dump(*malloc_call));

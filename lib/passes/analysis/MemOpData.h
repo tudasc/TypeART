@@ -38,6 +38,7 @@ enum class MemOpKind : uint8_t {
   ReallocLike        = 1 << 4,            // re-allocated (existing) memory
   FreeLike           = 1 << 5,            // free memory
   DeleteLike         = 1 << 6,            // delete (cpp) memory
+  CudaMallocLike     = 1 << 7,
   MallocOrCallocLike = MallocLike | CallocLike | AlignedAllocLike,
   AllocLike          = MallocOrCallocLike,
   AnyAlloc           = AllocLike | ReallocLike,
@@ -100,6 +101,7 @@ struct MemOps {
       {"_ZnajSt11align_val_tRKSt9nothrow_t", MemOpKind::MallocLike}, /*new[](unsigned int, align_val_t, nothrow)*/
       {"_ZnamSt11align_val_t", MemOpKind::NewLike},                  /*new[](unsigned long, align_val_t)*/
       {"_ZnamSt11align_val_tRKSt9nothrow_t", MemOpKind::MallocLike}, /*new[](unsigned long, align_val_t, nothrow)*/
+      {"cudaMalloc", MemOpKind::CudaMallocLike},
   };
 
   const llvm::StringMap<MemOpKind> dealloc_map{
@@ -118,6 +120,7 @@ struct MemOps {
       {"_ZdlPvmSt11align_val_t", MemOpKind::DeleteLike},              /* delete(void*, unsigned long, align_val_t) */
       {"_ZdaPvjSt11align_val_t", MemOpKind::DeleteLike},              /* delete[](void*, unsigned int, align_val_t) */
       {"_ZdaPvmSt11align_val_t", MemOpKind::DeleteLike},              /* delete[](void*, unsigned long, align_val_t) */
+      {"cudaFree", MemOpKind::FreeLike},
   };
   //clang-format off
 };
