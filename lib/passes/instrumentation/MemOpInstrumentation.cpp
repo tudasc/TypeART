@@ -85,8 +85,11 @@ InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
     const bool omp = util::omp::isOmpContext(parent_f);
 
     switch (kind) {
-      case MemOpKind::CudaMallocLike:
-        pointer = IRB.CreateBitCast(pointer, instr_helper->getTypeFor(IType::ptr));
+      case MemOpKind::CudaMallocLike: {
+        auto* load_inst = IRB.CreateLoad(pointer);
+        pointer         = IRB.CreateBitCast(load_inst, instr_helper->getTypeFor(IType::ptr));
+        break;
+      }
       case MemOpKind::AlignedAllocLike:
         [[fallthrough]];
       case MemOpKind::NewLike:

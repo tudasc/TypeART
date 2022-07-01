@@ -10,8 +10,6 @@ typeart_find_llvm_progs(TYPEART_LIT_EXEC
   ABORT_IF_MISSING
 )
 
-find_package(CUDAToolkit QUIET)
-
 macro(pythonize_bool truth_var var)
   if(${truth_var})
     set(${var} True)

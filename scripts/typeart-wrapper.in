@@ -45,6 +45,11 @@ function global_init() {
   readonly typeart_heap_mode_args="-typeart-heap=true -typeart-stats"
 }
 
+function global_cuda_init() {
+  # TODO: use generator expr. w.r.t. CUDA::cudart
+  readonly cuda_ldflags="-L@CUDAToolkit_LIBRARY_DIR@/ -lcudart -lcudart_static -lcudadevrt"
+}
+
 function is_wrapper_disabled() {
   case "${TYPEART_WRAPPER}" in
   off | OFF | 0 | false | FALSE)
@@ -70,7 +75,7 @@ function has_source() {
   for arg in "$@"; do
     local extension_of_arg="${arg##*.}"
     case "$extension_of_arg" in
-    cpp | cxx | cc | c)
+    cpp | cxx | cc | c | cu)
       return 1
     ;;
     esac
@@ -96,7 +101,7 @@ function try_extract_source() {
   local -r shift_val="$2"
 
   case "$extension" in
-  cpp | cxx | cc | c)
+  cpp | cxx | cc | c | cu)
     source_file="$1"
     found_src_file=1
     return "$shift_val"
@@ -148,6 +153,59 @@ function handle_binary() {
     found_exe_file=1
   fi
   return 2
+}
+
+function parse_cuda_cmd_line() {
+  typeart_non_cuda_args=""
+  found_cuda=0
+  cuda_code_arch=""
+  cuda_compute_arch=""
+
+  while (("$#")); do
+    case "$1" in
+    *.cu)
+      found_cuda=1
+      handle_source_flag "$1"
+      shift $?
+      ;;
+    -x)
+      if [ "$2" == "cuda" ]; then
+        found_cuda=1
+      else
+        typeart_non_cuda_args="$typeart_non_cuda_args $1 $2"
+      fi
+      shift 2
+      ;;
+    --cuda-gpu-arch=*)
+      cuda_code_arch="${1##--cuda-gpu-arch=}"
+      shift 1
+      ;;
+    -code=*)
+      cuda_code_arch="${1##-code=}"
+      shift 1
+      ;;
+    -arch=*)
+      cuda_compute_arch="${1##-arch=}"
+      shift 1
+      ;;
+    -gencode)
+      shift 1
+      ;;
+    arch=*)
+      echo $1
+      cuda_compute_arch="${1%%,code=*}"
+      cuda_compute_arch="${cuda_compute_arch##arch=}"
+      cuda_code_arch="${1##*code=}"
+      shift 1
+      ;;
+    *) # preserve other arguments
+      typeart_non_cuda_args="$typeart_non_cuda_args $1"
+      shift
+      ;;
+    esac
+  done
+  # set other positional arguments in their proper place
+  set -- "typeart_non_cuda_args"
 }
 
 # shellcheck disable=SC2034
@@ -235,12 +293,67 @@ function parse_cmd_line() {
   fi
 }
 
-function main_link() {
-  # shellcheck disable=SC2086 disable=SC2068
-  $compiler ${typeart_includes} ${typeart_ldflags} ${typeart_san_flags} $@
+function parse_commands() {
+  parse_cuda_cmd_line "$@"
+  parse_cmd_line ${typeart_non_cuda_args}
 }
 
-function main_compile() {
+function main_link() {
+  local cuda_linkflags=""
+  if [ "$found_cuda" == 1 ]; then
+    cuda_linkflags="${cuda_ldflags}"
+  fi
+  # shellcheck disable=SC2086 disable=SC2068
+  $compiler ${typeart_includes} ${typeart_ldflags} ${cuda_linkflags} ${typeart_san_flags} $@
+}
+
+function compile_cuda() {
+  if [ -z "${object_file}" ]; then
+    # if no object file is specified, use filename(source_file).o
+    object_file="${source_file%.*}".o
+  fi
+
+  if [ "$typeart_to_asm" == 1 ] && [ -z "${asm_file}" ]; then
+    # if no asm file is specified, use filename(source_file).s
+    local asm_file="${source_file%.*}".s
+  fi
+
+  local out_file="${object_file}"
+  local llc_flags="--filetype=obj"
+
+  if [ "$typeart_to_asm" == 1 ]; then
+    local llc_flags="--filetype=asm"
+    local out_file="${asm_file}"
+  fi
+
+  found_fpic=1
+  if [ "$found_fpic" == 1 ]; then
+    local llc_flags="$llc_flags --relocation-model=pic"
+  fi
+
+  $compiler ${ta_more_args} ${typeart_includes} \
+    -O1 -Xclang -disable-llvm-passes -S -emit-llvm -fPIC -x cuda "${source_file}" --cuda-device-only --cuda-gpu-arch=${cuda_code_arch} -o - |
+    $llc_tool -x=ir --relocation-model=pic -march=nvptx64 -mcpu=${cuda_code_arch} -mattr=+ptx64 -o "${out_file}".ptx
+
+  ptxas -m64 --gpu-name=${cuda_code_arch} "${out_file}".ptx -o "${out_file}".ptx.o
+
+  fatbinary --64 --create "${out_file}".fatbin --image=profile=${cuda_code_arch},file="${out_file}".ptx.o \
+    --image=profile=${cuda_compute_arch},file="${out_file}".ptx -link
+
+  nvcc "${out_file}".fatbin -gencode arch=${cuda_compute_arch},code=${cuda_code_arch} \
+    -dlink -o "${out_file}"_dlink.o -lcudart -lcudart_static -lcudadevrt
+
+
+  $compiler ${ta_more_args} ${typeart_includes} \
+    -O1 -Xclang -disable-llvm-passes -S -emit-llvm -fPIC -x cuda "${source_file}" --cuda-host-only \
+    -Xclang -fcuda-include-gpubinary -Xclang "${out_file}".fatbin -o - |
+    $opt_tool ${typeart_plugin} ${typeart_heap_mode_args} |
+    $opt_tool ${optimize} -S |
+    $opt_tool ${typeart_plugin} ${typeart_stack_mode_args} |
+    $llc_tool -x=ir ${llc_flags} -o "${out_file}"
+}
+
+function compile_host() {
   if [ -z "${object_file}" ]; then
     # if no object file is specified, use filename(source_file).o
     object_file="${source_file%.*}".o
@@ -272,8 +385,17 @@ function main_compile() {
     $llc_tool -x=ir ${llc_flags} -o "${out_file}"
 }
 
+function main_compile() {
+  if [ "$found_cuda" == 1 ]; then
+    compile_cuda "$@"
+  else
+    compile_host "$@"
+  fi
+}
+
 function main_in() {
   global_init
+  global_cuda_init
 
   is_wrapper_disabled
   readonly typeart_disabled=$?
@@ -290,7 +412,7 @@ function main_in() {
   local -r with_source=$?
 
   if [ "$linking" == 1 ] && [ "$with_source" == 1 ]; then
-    parse_cmd_line "$@"
+    parse_commands "$@"
     main_compile "$@"
     if [ "$found_exe_file" == 1 ]; then
       ta_more_args+=" -o ${exe_file}"
@@ -302,7 +424,7 @@ function main_in() {
   elif [ "$linking" == 1 ]; then
     main_link "$@"
   else
-    parse_cmd_line "$@"
+    parse_commands "$@"
     main_compile "$@"
   fi
 }
