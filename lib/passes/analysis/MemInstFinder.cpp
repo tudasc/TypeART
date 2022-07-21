@@ -404,6 +404,7 @@ void MemInstFinderPass::printStats(llvm::raw_ostream& out) const {
   Table stats("MemInstFinderPass");
   stats.wrap_header = true;
   stats.wrap_length = true;
+  stats.put(Row::make("Filter", filter_impl_to_string(config.filter.implementation)));
   stats.put(Row::make("Filter string", config.filter.ClCallFilterGlob));
   stats.put(Row::make_row("> Heap Memory"));
   stats.put(Row::make("Heap alloc", NumDetectedHeap.getValue()));

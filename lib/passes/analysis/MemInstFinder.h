@@ -28,6 +28,19 @@ namespace typeart::analysis {
 
 enum class FilterImplementation { none, standard, cg };
 
+inline std::string filter_impl_to_string(FilterImplementation impl) {
+  switch (impl) {
+    case FilterImplementation::none:
+      return "None";
+    case FilterImplementation::standard:
+      return "Standard";
+    case FilterImplementation::cg:
+      return "Call-graph";
+    default:
+      return "Unknown";
+  }
+}
+
 struct MemInstFinderConfig {
   struct Filter {
     bool ClFilterNonArrayAlloca{false};

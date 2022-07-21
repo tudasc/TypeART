@@ -108,11 +108,14 @@ FilterAnalysis CGFilterImpl::decl(CallSite current, const Path& p) {
 
   switch (reached) {
     case CGInterface::ReachabilityResult::reaches:
+      LOG_DEBUG("Reaches");
       return FilterAnalysis::Keep;
-    case CGInterface::ReachabilityResult::never_reaches:
-      return FilterAnalysis::Skip;
     case CGInterface::ReachabilityResult::maybe_reaches:
-      return FilterAnalysis::Filter;
+      LOG_DEBUG("Maybe reaches");
+      return FilterAnalysis::Continue;
+    case CGInterface::ReachabilityResult::never_reaches:
+      LOG_DEBUG("Never reaches");
+      return FilterAnalysis::Skip;
     default:
       return FilterAnalysis::Continue;
   }
