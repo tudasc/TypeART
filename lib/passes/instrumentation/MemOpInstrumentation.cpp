@@ -88,7 +88,7 @@ InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
       case MemOpKind::CudaMallocLike: {
         auto* load_inst = IRB.CreateLoad(pointer);
         pointer         = IRB.CreateBitCast(load_inst, instr_helper->getTypeFor(IType::ptr));
-        break;
+        [[fallthrough]];  // need elementCount from below, nothing else
       }
       case MemOpKind::AlignedAllocLike:
         [[fallthrough]];
