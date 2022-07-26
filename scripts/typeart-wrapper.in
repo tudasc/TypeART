@@ -178,6 +178,7 @@ function parse_cuda_cmd_line() {
       ;;
     --cuda-gpu-arch=*)
       cuda_code_arch="${1##--cuda-gpu-arch=}"
+      cuda_compute_arch="compute${cuda_code_arch##sm}"
       shift 1
       ;;
     -code=*)
