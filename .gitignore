@@ -52,4 +52,6 @@ test/**/*.log
 test/**/*.exe
 test/**/*.yaml
 test/**/*.profraw
+test/**/*.ptx
+test/**/*.fatbin
 **/musttypes
