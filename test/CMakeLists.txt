@@ -155,6 +155,11 @@ if(TYPEART_TEST_CONFIGURE_IDE)
                         ${PROJECT_SOURCE_DIR}/lib/runtime
                         ${PROJECT_SOURCE_DIR}
     )
+
+    if(CUDAToolkit_FOUND)
+      target_link_libraries(${target} PRIVATE CUDA::cudart)
+      target_include_directories(${target} PRIVATE ${CUDAToolkit_INCLUDE_DIRS})
+    endif()
   endfunction()
 
   file(GLOB_RECURSE TYPEART_CXX_TESTS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
