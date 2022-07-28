@@ -16,6 +16,7 @@
 #include "instrumentation/MemOpArgCollector.h"
 #include "instrumentation/MemOpInstrumentation.h"
 #include "instrumentation/TypeARTFunctions.h"
+#include "support/CudaUtil.h"
 #include "support/Logger.h"
 #include "support/Table.h"
 #include "typegen/TypeGenerator.h"
@@ -154,6 +155,10 @@ void TypeArtPass::getAnalysisUsage(llvm::AnalysisUsage& info) const {
 }
 
 bool TypeArtPass::doInitialization(Module& m) {
+  if (cuda::is_cuda(m)) {
+    return false;
+  }
+
   const auto types_file = [&]() -> std::string {
     if (!cl_typeart_type_file.empty()) {
       LOG_DEBUG("Using cl::opt for types file " << cl_typeart_type_file.getValue())
@@ -191,6 +196,11 @@ bool TypeArtPass::doInitialization(Module& m) {
 }
 
 bool TypeArtPass::runOnModule(Module& m) {
+  if (cuda::is_cuda(m)) {
+    LOG_DEBUG("Skipping runOnModule. Reason cuda module.")
+    return false;
+  }
+
   meminst_finder->runOnModule(m);
 
   bool instrumented_global{false};
@@ -212,7 +222,9 @@ bool TypeArtPass::runOnModule(Module& m) {
 bool TypeArtPass::runOnFunc(Function& f) {
   using namespace typeart;
 
-  if (f.isDeclaration() || f.getName().startswith("__typeart")) {
+  const auto skip_cuda = [&](Function& f) -> bool { return cuda::is_device_stub(f) || cuda::is_dim3_init(f); };
+
+  if (f.isDeclaration() || f.getName().startswith("__typeart") || skip_cuda(f)) {
     return false;
   }
 
@@ -258,7 +270,10 @@ bool TypeArtPass::runOnFunc(Function& f) {
   return mod;
 }  // namespace pass
 
-bool TypeArtPass::doFinalization(Module&) {
+bool TypeArtPass::doFinalization(Module& m) {
+  if (cuda::is_cuda(m)) {
+    return false;
+  }
   /*
    * Persist the accumulated type definition information for this module.
    */

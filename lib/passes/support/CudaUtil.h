@@ -13,8 +13,9 @@
 #ifndef TYPEART_CUDAUTIL_H
 #define TYPEART_CUDAUTIL_H
 
-#include "TypeUtil.h"
 #include "support/Logger.h"
+#include "support/TypeUtil.h"
+#include "support/Util.h"
 
 #include "llvm/ADT/None.h"
 #include "llvm/ADT/Optional.h"
@@ -46,6 +47,21 @@ inline llvm::Optional<llvm::BitCastInst*> bitcast_for(llvm::Value* cuda_ptr) {
 
 inline llvm::Optional<llvm::BitCastInst*> bitcast_for(const llvm::CallBase& cuda_call) {
   return bitcast_for(cuda_call.getArgOperand(0));
+}
+
+inline bool is_cuda(llvm::Module& module) {
+  const bool is_cuda = module.getTargetTriple().find("nvptx") != std::string::npos;
+  return is_cuda;
+}
+
+inline bool is_device_stub(llvm::Function& stub_func) {
+  const bool is_stub = util::try_demangle(stub_func).find("__device_stub__") != std::string::npos;
+  return is_stub;
+}
+
+inline bool is_dim3_init(llvm::Function& func) {
+  const bool is_dim3_init = util::try_demangle(func).find("dim3::dim3") != std::string::npos;
+  return is_dim3_init;
 }
 
 }  // namespace typeart::cuda

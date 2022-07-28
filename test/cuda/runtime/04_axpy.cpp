@@ -7,7 +7,7 @@
 // CHECK: Status OK
 // CHECK: Status OK
 // CHECK: Status OK
-// CHECK: 5   :   2 ,    4 ,    1 , float
+// CHECK: 5   :   2 ,    3 ,    1 , float
 
 #include "../../lib/runtime/RuntimeInterface.h"
 

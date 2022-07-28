@@ -12,6 +12,42 @@
 # SPDX-License-Identifier: BSD-3-Clause
 #
 
+function parse_cuda_cmd_line() {
+  typeart_non_cuda_args=""
+  found_cuda=0
+  cuda_code_arch="sm_50"
+  cuda_compute_arch="compute_50"
+  show_cuda_ir=0
+
+  while (("$#")); do
+    case "$1" in
+    -x)
+      if [ "$2" == "cuda" ]; then
+        found_cuda=1
+      else
+        typeart_non_cuda_args="$typeart_non_cuda_args $1 $2"
+      fi
+      shift 2
+      ;;
+    --cuda-gpu-arch=*)
+      cuda_code_arch="${1##--cuda-gpu-arch=}"
+      cuda_compute_arch="compute${cuda_code_arch##sm}"
+      shift 1
+      ;;
+    --show_cuda_ir)
+      show_cuda_ir=1
+      shift 1
+      ;;
+    *) # preserve other arguments
+      typeart_non_cuda_args="$typeart_non_cuda_args $1"
+      shift
+      ;;
+    esac
+  done
+  # set other positional arguments in their proper place
+  set -- "typeart_non_cuda_args"
+}
+
 function parse_cmd_line() {
   readonly source_file=$1
   optimize=""
@@ -108,7 +144,7 @@ function parse_cmd_line() {
     compile_flags=""
   fi
 
-  if [ $show_ir == 1 ]; then
+  if [ $show_ir == 1 ] || [ $show_cuda_ir == 1 ]; then
     ta_more_args+=" -S"
   fi
 }
@@ -179,7 +215,15 @@ function toolchain_init() {
 }
 
 function source_to_llvm() {
-  $compiler ${omp_flags} ${typeart_includes} ${typeart_san_flags} \
+  local cuda_add_flag=""
+  if [ $found_cuda == 1 ]; then
+    cuda_add_flag="--cuda-host-only"
+    if [ $show_cuda_ir == 1 ]; then
+      cuda_add_flag="--cuda-device-only --cuda-gpu-arch=${cuda_code_arch}"
+    fi
+    cuda_add_flag+=" -x cuda"
+  fi
+  $compiler ${cuda_add_flag} ${omp_flags} ${typeart_includes} ${typeart_san_flags} \
     -O1 ${compile_flags} -Xclang -disable-llvm-passes -S -emit-llvm "${source_file}" -o -
 }
 
@@ -198,7 +242,7 @@ function apply_typeart_optim() {
 function make_no_optim() {
   # Order: heap and stack/global together, no optimization pass
   if [ $skip_typeart == 0 ]; then
-    if [ $show_ir == 0 ]; then
+    if [ $show_ir == 0 ] && [ $show_cuda_ir == 0 ]; then
       apply_typeart | $llc_tool -x=ir ${llc_flags} -o "${object_file}"
     else
       apply_typeart
@@ -207,7 +251,7 @@ function make_no_optim() {
     # First create types.yaml:
     apply_typeart >/dev/null
 
-    if [ $show_ir == 0 ]; then
+    if [ $show_ir == 0 ] && [ $show_cuda_ir == 0 ] ; then
       source_to_llvm | $llc_tool -x=ir ${llc_flags} -o "${object_file}"
     else
       source_to_llvm
@@ -218,7 +262,7 @@ function make_no_optim() {
 function make_with_optim() {
   # Order: heap, optimize, alloca with additional args.
   if [ $skip_typeart == 0 ]; then
-    if [ $show_ir == 0 ]; then
+    if [ $show_ir == 0 ] && [ $show_cuda_ir == 0 ]; then
       apply_typeart_optim | $llc_tool -x=ir ${llc_flags} -o "${object_file}"
     else
       apply_typeart_optim
@@ -227,10 +271,10 @@ function make_with_optim() {
     # First create types.yaml:
     apply_typeart_optim >/dev/null
 
-    if [ $show_ir == 0 ]; then
+    if [ $show_ir == 0 ] && [ $show_cuda_ir == 0 ]; then
       source_to_llvm  | $opt_tool ${optimize} | $llc_tool -x=ir ${llc_flags} -o "${object_file}"
     else
-      source_to_llvm  | $opt_tool ${optimize}
+      source_to_llvm  | $opt_tool ${optimize} -S
     fi
   fi
 }
@@ -273,12 +317,18 @@ function execute() {
   fi
 }
 
+function parse_commands() {
+  parse_cuda_cmd_line "$@"
+  parse_cmd_line ${typeart_non_cuda_args}
+}
+
 function main_in() {
-  parse_cmd_line "$@"
+  parse_commands "$@"
   global_init
   toolchain_init
   compile
-  if [ @TYPEART_RUN_SCRIPT@ == 1 -a $show_ir == 0 ]; then
+  # shellcheck disable=SC2050
+  if [ @TYPEART_RUN_SCRIPT@ == 1 ] && [ $show_ir == 0 ] && [ $found_cuda == 0 ]; then
     main_link
     execute
   fi
