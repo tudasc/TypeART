@@ -10,6 +10,42 @@ typeart_find_llvm_progs(TYPEART_LIT_EXEC
   ABORT_IF_MISSING
 )
 
+function(cuda_runnable_detect cuda_is_runnable)
+  set(${cuda_is_runnable} 0)
+  if(NOT CUDAToolkit_FOUND)
+    return()
+  endif()
+
+  find_program(TYPEART_NVIDIA_SMI_EXEC nvidia-smi)
+  mark_as_advanced(TYPEART_NVIDIA_SMI_EXEC)
+  if(NOT TYPEART_NVIDIA_SMI_EXEC)
+    return()
+  endif()
+
+  execute_process(
+    COMMAND ${TYPEART_NVIDIA_SMI_EXEC} -L
+    RESULT_VARIABLE smi_result
+    OUTPUT_VARIABLE smi_out
+  )
+  if(NOT smi_result EQUAL 0)
+    return()
+  endif()
+
+  string(REGEX MATCHALL "GPU [0-9]+:" smi_gpu_list ${smi_out})
+  list(LENGTH smi_gpu_list TYPEART_CUDA_GPU_COUNT)
+  #message(STATUS "CUDA GPU count: ${TYPEART_CUDA_GPU_COUNT}")
+
+  if (TYPEART_CUDA_GPU_COUNT GREATER 0)
+    message(STATUS "CUDA is runnable")
+    set(${cuda_is_runnable} 1
+      CACHE
+      STRING "Is CUDA program runnable on system")
+      mark_as_advanced(${cuda_is_runnable})
+  endif()
+endfunction()
+
+cuda_runnable_detect(TYPEART_CUDA_RUNNABLE)
+
 macro(pythonize_bool truth_var var)
   if(${truth_var})
     set(${var} True)
@@ -40,6 +76,7 @@ function(typeart_configure_lit_site input output)
   pythonize_bool(TYPEART_DISABLE_THREAD_SAFETY TYPEARTPASS_THREAD_UNSAFE)
 
   pythonize_bool(CUDAToolkit_FOUND TYPEARTPASS_CUDA)
+  pythonize_bool(TYPEART_CUDA_RUNNABLE TYPEARTPASS_CUDA_RUNNABLE)
 
   pythonize_bool(MPI_C_FOUND TYPEARTPASS_MPI_C)
   pythonize_bool(MPI_CXX_FOUND TYPEARTPASS_MPI_CXX)
@@ -157,8 +194,10 @@ if(TYPEART_TEST_CONFIGURE_IDE)
     )
 
     if(CUDAToolkit_FOUND)
+      #enable_language(CUDA)
       target_link_libraries(${target} PRIVATE CUDA::cudart)
       target_include_directories(${target} PRIVATE ${CUDAToolkit_INCLUDE_DIRS})
+      #target_compile_features(${target} PRIVATE cuda_std_17)
     endif()
   endfunction()
 

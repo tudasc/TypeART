@@ -1,7 +1,7 @@
 // RUN: %wrapper-cxx -x cuda --cuda-gpu-arch=sm_72 %s -o %s.exe
 // RUN: %s.exe 2>&1 | %filecheck %s
 
-// REQUIRES: cuda && softcounter
+// REQUIRES: cuda_runnable && softcounter
 
 // CHECK: Status OK
 // CHECK: Status OK

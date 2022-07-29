@@ -1,7 +1,7 @@
 // RUN: %wrapper-cc -x cuda -gencode arch=compute_50,code=sm_50 %s -o %s.exe
 // RUN: %s.exe 2>&1 | %filecheck %s
 
-// REQUIRES: cuda
+// REQUIRES: cuda_runnable
 
 // CHECK: Alloc [[CU_POINTER:0x[0-9a-z]+]] 5 float 4 20 ({{.*}}) H
 // CHECK: Status OK: 5 20

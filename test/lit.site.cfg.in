@@ -36,6 +36,7 @@ config.asan=@TYPEARTPASS_ASAN@
 config.ubsan=@TYPEARTPASS_UBSAN@
 config.coverage=@TYPEART_COVERAGE@
 config.cuda_used=@TYPEARTPASS_CUDA@
+config.cuda_runnable=@TYPEARTPASS_CUDA_RUNNABLE@
 
 # Let the main config do the real work.
 config.loaded_site_config = True
