@@ -36,6 +36,10 @@ void __typeart_alloc_omp(const void* addr, int type_id, size_t count);
 void __typeart_free_omp(const void* addr);
 void __typeart_alloc_stack_omp(const void* addr, int type_id, size_t count);
 void __typeart_leave_scope_omp(int alloca_count);
+
+// Called from CUDA context
+void __typeart_alloc_cuda(const void* addr, int type_id, size_t count);
+void __typeart_free_cuda(const void* addr);
 #ifdef __cplusplus
 }
 #endif

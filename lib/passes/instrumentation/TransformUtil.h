@@ -53,7 +53,7 @@ struct StackCounter {
 
     // Find return instructions:
     // if(counter > 0) call runtime for stack cleanup
-    const auto callback_id = util::omp::isOmpContext(f) ? IFunc::scope_omp : IFunc::scope;
+    const auto callback_id = ifunc_for_function(IFunc::scope, f);
 
     EscapeEnumerator ee(*f);
     while (IRBuilder<>* irb = ee.Next()) {

@@ -61,6 +61,9 @@ class TypeArtPass : public llvm::ModulePass {
   TypeArtFunc typeart_free_omp         = typeart_free;
   TypeArtFunc typeart_leave_scope_omp  = typeart_leave_scope;
 
+  TypeArtFunc typeart_alloc_cuda = typeart_alloc;
+  TypeArtFunc typeart_free_cuda  = typeart_free;
+
   std::unique_ptr<analysis::MemInstFinder> meminst_finder;
   std::unique_ptr<TypeGenerator> typeManager;
   InstrumentationHelper instrumentation_helper;

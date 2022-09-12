@@ -40,7 +40,11 @@ enum class IFunc : unsigned {
   stack_omp,
   free_omp,
   scope_omp,
+  heap_cuda,
+  free_cuda,
 };
+
+IFunc ifunc_for_function(IFunc general_type, llvm::Value* value);
 
 class TAFunctionQuery {
  public:
@@ -68,8 +72,7 @@ class TAFunctionDeclarator {
 
  public:
   TAFunctionDeclarator(llvm::Module& m, InstrumentationHelper& instr, TAFunctions& tafunc);
-  llvm::Function* make_function(IFunc function, llvm::StringRef basename, llvm::ArrayRef<llvm::Type*> args,
-                                bool with_omp = false, bool fixed_name = true);
+  llvm::Function* make_function(IFunc function, llvm::StringRef basename, llvm::ArrayRef<llvm::Type*> args);
   const llvm::StringMap<llvm::Function*>& getFunctionMap() const;
   virtual ~TAFunctionDeclarator() = default;
 };

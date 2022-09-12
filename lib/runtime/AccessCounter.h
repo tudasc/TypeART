@@ -319,6 +319,14 @@ class AccessRecorder {
     ++omp_heap_free;
   }
 
+  inline void incCudaContextHeap() {
+    ++cuda_heap;
+  }
+
+  inline void incCudaContextFree() {
+    ++cuda_heap_free;
+  }
+
   Counter getHeapAllocs() const {
     return heapAllocs;
   }
@@ -387,6 +395,12 @@ class AccessRecorder {
   }
   Counter getOmpStackCalls() const {
     return omp_stack;
+  }
+  Counter getCudaFreeCalls() const {
+    return cuda_heap_free;
+  }
+  Counter getCudaHeapCalls() const {
+    return cuda_heap;
   }
   /**
    * Must be locked by the caller.
@@ -498,6 +512,8 @@ class AccessRecorder {
   AtomicCounter omp_stack        = 0;
   AtomicCounter omp_heap         = 0;
   AtomicCounter omp_heap_free    = 0;
+  AtomicCounter cuda_heap        = 0;
+  AtomicCounter cuda_heap_free   = 0;
 
   //  ThreadRecorderMapSafe threadRecorders;
   mutable MutexT threadRecorderMutex;
@@ -563,6 +579,10 @@ class NoneRecorder {
   [[maybe_unused]] inline void incOmpContextHeap() {
   }
   [[maybe_unused]] inline void incOmpContextFree() {
+  }
+  [[maybe_unused]] inline void incCudaContextHeap() {
+  }
+  [[maybe_unused]] inline void incCudaContextFree() {
   }
 };
 

@@ -71,6 +71,7 @@ void serialize(const Recorder& r, std::ostringstream& buf) {
     t.put(Row::make("Total free heap", r.getHeapAllocsFree(), r.getHeapArrayFree()));
     t.put(Row::make("Total free stack", r.getStackAllocsFree(), r.getStackArrayFree()));
     t.put(Row::make("OMP Stack/Heap/Free", r.getOmpStackCalls(), r.getOmpHeapCalls(), r.getOmpFreeCalls()));
+    t.put(Row::make("CUDA Heap/Free", r.getCudaHeapCalls(), r.getCudaFreeCalls()));
     t.put(Row::make("Null/Zero/NullZero Addr", r.getNullAlloc(), r.getZeroAlloc(), r.getNullAndZeroAlloc()));
     t.put(Row::make("User-def. types", r.getNumUDefTypes()));
     t.put(Row::make("Estimated memory use (KiB)", size_t(std::round(memory_use.map + memory_use.stack))));

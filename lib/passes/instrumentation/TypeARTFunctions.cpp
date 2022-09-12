@@ -12,7 +12,10 @@
 
 #include "TypeARTFunctions.h"
 
+#include "support/CudaUtil.h"
 #include "support/Logger.h"
+#include "support/OmpUtil.h"
+#include "support/Util.h"
 
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/StringMap.h"
@@ -37,28 +40,121 @@ using namespace llvm;
 
 namespace typeart {
 
+namespace detail {
+std::string get_func_suffix(IFunc id) {
+  switch (id) {
+    case IFunc::free_cuda:
+    case IFunc::heap_cuda:
+      return "_cuda";
+    case IFunc::free_omp:
+    case IFunc::heap_omp:
+    case IFunc::stack_omp:
+    case IFunc::scope_omp:
+      return "_omp";
+    default:
+      return "";
+  }
+}
+
+enum class IFuncType : unsigned { standard, omp, cuda };
+
+IFuncType ifunc_type_for(llvm::Function* f) {
+  if (f == nullptr) {
+    return IFuncType::standard;
+  }
+  if (cuda::is_cuda_function(*f)) {
+    return IFuncType::cuda;
+  }
+  if (util::omp::isOmpContext(f)) {
+    return IFuncType::omp;
+  }
+  return IFuncType::standard;
+}
+
+}  // namespace detail
+
+// enum class IFunc : unsigned {
+//   heap,
+//   stack,
+//   global,
+//   free,
+//   scope,
+//   heap_omp,
+//   stack_omp,
+//   free_omp,
+//   scope_omp,
+//   heap_cuda,
+//   free_cuda,
+// };
+
+IFunc ifunc_for_function(IFunc general_type, llvm::Value* value) {
+  detail::IFuncType type = typeart::detail::IFuncType::standard;
+
+  if (auto function = llvm::dyn_cast<Function>(value)) {
+    type = detail::ifunc_type_for(function);
+  } else if (auto alloca = llvm::dyn_cast<AllocaInst>(value)) {
+    type = detail::ifunc_type_for(alloca->getFunction());
+  } else if (auto global = llvm::dyn_cast<GlobalVariable>(value)) {
+    type = detail::ifunc_type_for(nullptr);
+  } else if (auto callbase = llvm::dyn_cast<CallBase>(value)) {
+    type            = detail::ifunc_type_for(callbase->getFunction());
+    auto maybe_cuda = detail::ifunc_type_for(callbase->getCalledFunction());
+    if (maybe_cuda == detail::IFuncType::cuda) {
+      type = detail::IFuncType::cuda;
+    }
+  }
+
+  if (detail::IFuncType::standard == type) {
+    return general_type;
+  }
+
+  if (detail::IFuncType::cuda == type) {
+    switch (general_type) {
+      case IFunc::heap:
+        return IFunc::heap_cuda;
+      case IFunc::free:
+        return IFunc::free_cuda;
+      default:
+        llvm_unreachable("IFunc not supported for CUDA.");
+    }
+  }
+
+  switch (general_type) {
+    case IFunc::stack:
+      return IFunc::stack_omp;
+    case IFunc::heap:
+      return IFunc::heap_omp;
+    case IFunc::free:
+      return IFunc::free_omp;
+    case IFunc::scope:
+      return IFunc::scope_omp;
+    default:
+      llvm_unreachable("IFunc type is not supported for OpenMP.");
+  }
+}
+
 TAFunctionDeclarator::TAFunctionDeclarator(Module& m, InstrumentationHelper&, TAFunctions& tafunc)
     : m(m), tafunc(tafunc) {
 }
 
 llvm::Function* TAFunctionDeclarator::make_function(IFunc id, llvm::StringRef basename,
-                                                    llvm::ArrayRef<llvm::Type*> args, bool with_omp, bool fixed_name) {
-  const auto make_fname = [&fixed_name](llvm::StringRef name, llvm::ArrayRef<llvm::Type*> args, bool with_omp) {
+                                                    llvm::ArrayRef<llvm::Type*> args) {
+  const auto make_fname = [&id](llvm::StringRef name, llvm::ArrayRef<llvm::Type*> args) {
     std::string fname;
     llvm::raw_string_ostream os(fname);
     os << name;
-
-    if (!fixed_name) {
-      os << "_" << std::to_string(args.size());
-    }
-    if (with_omp) {
-      os << "_"
-         << "omp";
-    }
+    os << detail::get_func_suffix(id);
+    //    if (!fixed_name) {
+    //      os << "_" << std::to_string(args.size());
+    //    }
+    //    if (with_omp) {
+    //      os << "_"
+    //         << "omp";
+    //    }
     return os.str();
   };
 
-  const auto name = make_fname(basename, args, with_omp);
+  const auto name = make_fname(basename, args);
 
   if (auto it = f_map.find(name); it != f_map.end()) {
     return it->second;

@@ -1,5 +1,5 @@
 // RUN: %wrapper-cxx -x cuda --cuda-gpu-arch=sm_72 %s -o %s.exe
-// RUN: %s.exe 2>&1 | %filecheck %s
+// RUN: cuda-memcheck --leak-check full %s.exe 2>&1 | %filecheck %s
 
 // REQUIRES: cuda_runnable && softcounter
 
@@ -58,6 +58,9 @@ int main(int argc, char* argv[]) {
   for (int i = 0; i < kDataLen; ++i) {
     std::cout << "y[" << i << "] = " << host_y[i] << "\n";
   }
+
+  cudaFree(device_x);
+  cudaFree(device_y);
 
   cudaDeviceReset();
   return 0;

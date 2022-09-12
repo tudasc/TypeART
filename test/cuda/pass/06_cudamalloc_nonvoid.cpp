@@ -2,9 +2,9 @@
 
 // REQUIRES: cuda
 
-// CHECK: __typeart_alloc(i8* %{{[0-9a-z]+}}, i32 5
-// CHECK: __typeart_alloc(i8* %{{[0-9a-z]+}}, i32 6
-// CHECK: __typeart_alloc(i8* %{{[0-9a-z]+}}, i32 {{[2][0-9]+}}
+// CHECK: __typeart_alloc_cuda(i8* %{{[0-9a-z]+}}, i32 5
+// CHECK: __typeart_alloc_cuda(i8* %{{[0-9a-z]+}}, i32 6
+// CHECK: __typeart_alloc_cuda(i8* %{{[0-9a-z]+}}, i32 {{[2][0-9]+}}
 
 struct X {
   int a;
