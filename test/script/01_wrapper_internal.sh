@@ -28,7 +28,7 @@ echo "$llc_tool"
 
 # CHECK: 0
 # wrapper-off: 1
-is_wrapper_disabled
+typeart_is_wrapper_disabled
 echo $?
 
 # CHECK: 1
@@ -170,3 +170,12 @@ TYPEART_WRAPPER_STACK_CONFIG="some/env/file_stack.yaml"
 global_environment_variable_init
 echo "${typeart_cmdline_args_heap}"
 echo "${typeart_cmdline_args_stack}"
+
+# CHECK: 0
+global_environment_variable_init
+echo "${typeart_wrapper_emit_ir}"
+
+# CHECK: 1
+TYPEART_WRAPPER_EMIT_IR=1
+global_environment_variable_init
+echo "${typeart_wrapper_emit_ir}"
