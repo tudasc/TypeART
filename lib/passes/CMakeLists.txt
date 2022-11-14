@@ -4,6 +4,7 @@ add_subdirectory(analysis)
 
 set(PASS_SOURCES
   TypeARTPass.cpp
+  Commandline.cpp
   support/TypeUtil.cpp
   instrumentation/InstrumentationHelper.cpp
   instrumentation/TypeARTFunctions.cpp
