@@ -13,19 +13,29 @@
 #ifndef TYPEART_COMMANDLINE_H
 #define TYPEART_COMMANDLINE_H
 
-#include "analysis/MemInstFinder.h"
+#include "support/Configuration.h"
 
-namespace typeart::cl {
+#include "llvm/ADT/StringMap.h"
 
-analysis::MemInstFinderConfig get_meminstfinder_configuration();
+namespace typeart::config::cl {
 
-std::string get_type_file_path();
-bool get_instrument_heap();
-bool get_instrument_global();
-bool get_instrument_stack();
-bool get_instrument_stack_lifetime();
-bool get_print_stats();
+class CommandLineOptions final : public config::Configuration {
+ public:
+  using OptionsMap      = llvm::StringMap<config::OptionValue>;
+  using ClOccurrenceMap = llvm::StringMap<bool>;
 
-}  // namespace typeart::cl
+ private:
+  OptionsMap mapping_;
+  ClOccurrenceMap occurence_mapping_;
+
+ public:
+  CommandLineOptions();
+  [[nodiscard]] llvm::Optional<config::OptionValue> getValue(std::string_view opt_path) const override;
+  [[nodiscard]] config::OptionValue getValueOr(std::string_view opt_path, config::OptionValue alt) const override;
+  [[nodiscard]] config::OptionValue operator[](std::string_view opt_path) const override;
+  [[maybe_unused]] [[nodiscard]] bool valueSpecified(std::string_view opt_path) const;
+};
+
+}  // namespace typeart::config::cl
 
 #endif  // TYPEART_COMMANDLINE_H

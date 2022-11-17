@@ -12,6 +12,7 @@
 
 #include "Commandline.h"
 
+#include "analysis/MemInstFinder.h"
 #include "support/Logger.h"
 
 #include "llvm/Support/CommandLine.h"
@@ -91,22 +92,7 @@ static cl::opt<bool> cl_typeart_filter_pointer_alloca("typeart-filter-pointer-al
                                                       cl::desc("Filter allocas of pointer types."), cl::Hidden,
                                                       cl::init(true), cl::cat(typeart_meminstfinder_category));
 
-namespace typeart::cl {
-
-analysis::MemInstFinderConfig get_meminstfinder_configuration() {
-  return analysis::MemInstFinderConfig{cl_typeart_instrument_heap,                                                   //
-                                       cl_typeart_instrument_stack,                                                  //
-                                       cl_typeart_instrument_global,                                                 //
-                                       analysis::MemInstFinderConfig::Filter{cl_typeart_filter_stack_non_array,      //
-                                                                             cl_typeart_filter_heap_alloc,           //
-                                                                             cl_typeart_filter_global,               //
-                                                                             cl_typeart_call_filter,                 //
-                                                                             cl_typeart_filter_pointer_alloca,       //
-                                                                             cl_typeart_call_filter_implementation,  //
-                                                                             cl_typeart_call_filter_glob,            //
-                                                                             cl_typeart_call_filter_glob_deep,       //
-                                                                             cl_typeart_call_filter_cg_file}};
-}
+namespace typeart::config::cl {
 
 std::string get_type_file_path() {
   if (!cl_typeart_type_file.empty()) {
@@ -122,24 +108,95 @@ std::string get_type_file_path() {
   return "types.yaml";
 }
 
-bool get_instrument_global() {
-  return cl_typeart_instrument_global.getValue();
+namespace detail {
+template <typename ClOpt>
+config::OptionValue make_opt(const ClOpt& cl_opt) {
+  if constexpr (std::is_base_of_v<llvm::cl::Option, ClOpt>) {
+    if constexpr (std::is_enum_v<decltype(cl_opt.getValue())>) {
+      return config::OptionValue{static_cast<int>(cl_opt.getValue())};
+    } else {
+      return config::OptionValue{cl_opt.getValue()};
+    }
+  } else {
+    return config::OptionValue{cl_opt};
+  }
 }
 
-bool get_instrument_stack() {
-  return cl_typeart_instrument_stack.getValue();
+template <typename ClOpt>
+std::pair<StringRef, typename CommandLineOptions::OptionsMap::mapped_type> make_entry(std::string&& key,
+                                                                                      ClOpt&& cl_opt) {
+  return {key, make_opt(std::forward<ClOpt>(cl_opt))};
 }
 
-bool get_instrument_stack_lifetime() {
-  return cl_typeart_instrument_stack_lifetime.getValue();
+template <typename ClOpt>
+std::pair<StringRef, typename CommandLineOptions::ClOccurrenceMap::mapped_type> make_occurr_entry(std::string&& key,
+                                                                                                  ClOpt&& cl_opt) {
+  return {key, (cl_opt.getNumOccurrences() > 0)};
+}
+}  // namespace detail
+
+CommandLineOptions::CommandLineOptions() {
+  using namespace config;
+  using namespace typeart::config::cl::detail;
+
+  mapping_ = {
+      make_entry(ConfigStdArgs::types, get_type_file_path()),
+      make_entry(ConfigStdArgs::stats, cl_typeart_stats),
+      make_entry(ConfigStdArgs::heap, cl_typeart_instrument_heap),
+      make_entry(ConfigStdArgs::global, cl_typeart_instrument_global),
+      make_entry(ConfigStdArgs::stack, cl_typeart_instrument_stack),
+      make_entry(ConfigStdArgs::stack_lifetime, cl_typeart_instrument_stack_lifetime),
+      make_entry(ConfigStdArgs::filter, cl_typeart_call_filter),
+      make_entry(ConfigStdArgs::filter_impl, cl_typeart_call_filter_implementation),
+      make_entry(ConfigStdArgs::filter_glob, cl_typeart_call_filter_glob),
+      make_entry(ConfigStdArgs::filter_glob_deep, cl_typeart_call_filter_glob_deep),
+      make_entry(ConfigStdArgs::filter_cg_file, cl_typeart_call_filter_cg_file),
+      make_entry(ConfigStdArgs::analysis_filter_global, cl_typeart_filter_global),
+      make_entry(ConfigStdArgs::analysis_filter_heap_alloc, cl_typeart_filter_heap_alloc),
+      make_entry(ConfigStdArgs::analysis_filter_pointer_alloc, cl_typeart_filter_pointer_alloca),
+      make_entry(ConfigStdArgs::analysis_filter_alloca_non_array, cl_typeart_filter_stack_non_array),
+  };
+
+  occurence_mapping_ = {
+      make_occurr_entry(ConfigStdArgs::types, cl_typeart_type_file),
+      make_occurr_entry(ConfigStdArgs::stats, cl_typeart_stats),
+      make_occurr_entry(ConfigStdArgs::heap, cl_typeart_instrument_heap),
+      make_occurr_entry(ConfigStdArgs::global, cl_typeart_instrument_global),
+      make_occurr_entry(ConfigStdArgs::stack, cl_typeart_instrument_stack),
+      make_occurr_entry(ConfigStdArgs::stack_lifetime, cl_typeart_instrument_stack_lifetime),
+      make_occurr_entry(ConfigStdArgs::filter, cl_typeart_call_filter),
+      make_occurr_entry(ConfigStdArgs::filter_impl, cl_typeart_call_filter_implementation),
+      make_occurr_entry(ConfigStdArgs::filter_glob, cl_typeart_call_filter_glob),
+      make_occurr_entry(ConfigStdArgs::filter_glob_deep, cl_typeart_call_filter_glob_deep),
+      make_occurr_entry(ConfigStdArgs::filter_cg_file, cl_typeart_call_filter_cg_file),
+      make_occurr_entry(ConfigStdArgs::analysis_filter_global, cl_typeart_filter_global),
+      make_occurr_entry(ConfigStdArgs::analysis_filter_heap_alloc, cl_typeart_filter_heap_alloc),
+      make_occurr_entry(ConfigStdArgs::analysis_filter_pointer_alloc, cl_typeart_filter_pointer_alloca),
+      make_occurr_entry(ConfigStdArgs::analysis_filter_alloca_non_array, cl_typeart_filter_stack_non_array),
+  };
 }
 
-bool get_instrument_heap() {
-  return cl_typeart_instrument_heap.getValue();
+llvm::Optional<typeart::config::OptionValue> CommandLineOptions::getValue(std::string_view opt_path) const {
+  auto key = llvm::StringRef(opt_path);
+  if (mapping_.count(key) != 0U) {
+    return mapping_.lookup(key);
+  }
+  return llvm::None;
 }
 
-bool get_print_stats() {
-  return cl_typeart_stats.getValue();
+config::OptionValue CommandLineOptions::getValueOr(std::string_view opt_path, config::OptionValue alt) const {
+  const auto val = getValue(opt_path);
+  if (val.hasValue()) {
+    return val.getValue();
+  }
+  return alt;
 }
 
-}  // namespace typeart::cl
+config::OptionValue CommandLineOptions::operator[](std::string_view opt_path) const {
+  return getValueOr(opt_path, config::OptionValue{});
+}
+[[maybe_unused]] bool CommandLineOptions::valueSpecified(std::string_view opt_path) const {
+  return occurence_mapping_.lookup(opt_path);
+}
+
+}  // namespace typeart::config::cl

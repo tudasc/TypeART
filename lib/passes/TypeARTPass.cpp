@@ -61,8 +61,8 @@ namespace typeart::pass {
 char TypeArtPass::ID = 0;
 
 TypeArtPass::TypeArtPass() : llvm::ModulePass(ID) {
-  const auto conf = cl::get_meminstfinder_configuration();
-  meminst_finder  = analysis::create_finder(conf);
+  pass_config    = std::make_unique<config::cl::CommandLineOptions>();
+  meminst_finder = analysis::create_finder(*pass_config);
 
   EnableStatistics(false);
 }
@@ -71,7 +71,7 @@ void TypeArtPass::getAnalysisUsage(llvm::AnalysisUsage& info) const {
 }
 
 bool TypeArtPass::doInitialization(Module& m) {
-  const auto types_file = cl::get_type_file_path();
+  const std::string types_file = pass_config->getValueOr(config::ConfigStdArgs::types, {"types.yaml"});
 
   typeManager = make_typegen(types_file);
 
@@ -85,9 +85,10 @@ bool TypeArtPass::doInitialization(Module& m) {
 
   instrumentation_helper.setModule(m);
 
-  auto arg_collector = std::make_unique<MemOpArgCollector>(typeManager.get(), instrumentation_helper);
+  auto arg_collector                   = std::make_unique<MemOpArgCollector>(typeManager.get(), instrumentation_helper);
+  const bool instrument_stack_lifetime = (*pass_config)[config::ConfigStdArgs::stack_lifetime];
   auto mem_instrument =
-      std::make_unique<MemOpInstrumentation>(functions, instrumentation_helper, cl::get_instrument_stack_lifetime());
+      std::make_unique<MemOpInstrumentation>(functions, instrumentation_helper, instrument_stack_lifetime);
   instrumentation_context =
       std::make_unique<InstrumentationContext>(std::move(arg_collector), std::move(mem_instrument));
 
@@ -96,9 +97,9 @@ bool TypeArtPass::doInitialization(Module& m) {
 
 bool TypeArtPass::runOnModule(Module& m) {
   meminst_finder->runOnModule(m);
-
+  const bool instrument_global = (*pass_config)[config::ConfigStdArgs::global];
   bool instrumented_global{false};
-  if (cl::get_instrument_global()) {
+  if (instrument_global) {
     declareInstrumentationFunctions(m);
 
     const auto& globalsList = meminst_finder->getModuleGlobals();
@@ -142,7 +143,10 @@ bool TypeArtPass::runOnFunc(Function& f) {
   const auto& allocas = fData.allocas;
   const auto& frees   = fData.frees;
 
-  if (cl::get_instrument_heap()) {
+  const bool instrument_heap  = (*pass_config)[config::ConfigStdArgs::heap];
+  const bool instrument_stack = (*pass_config)[config::ConfigStdArgs::stack];
+
+  if (instrument_heap) {
     // instrument collected calls of bb:
     const auto heap_count = instrumentation_context->handleHeap(mallocs);
     const auto free_count = instrumentation_context->handleFree(frees);
@@ -153,7 +157,7 @@ bool TypeArtPass::runOnFunc(Function& f) {
     mod |= heap_count > 0 || free_count > 0;
   }
 
-  if (cl::get_instrument_stack()) {
+  if (instrument_stack) {
     const auto stack_count = instrumentation_context->handleStack(allocas);
     NumInstrumentedAlloca += stack_count;
     mod |= stack_count > 0;
@@ -166,7 +170,7 @@ bool TypeArtPass::doFinalization(Module&) {
   /*
    * Persist the accumulated type definition information for this module.
    */
-  const auto types_file = cl::get_type_file_path();
+  const std::string types_file = (*pass_config)[config::ConfigStdArgs::types];
   LOG_DEBUG("Writing type file to " << types_file);
 
   const auto [stored, error] = typeManager->store();
@@ -175,7 +179,9 @@ bool TypeArtPass::doFinalization(Module&) {
   } else {
     LOG_FATAL("Failed writing type config to " << types_file << ". Reason: " << error.message());
   }
-  if (cl::get_print_stats()) {
+
+  const bool print_stats = (*pass_config)[config::ConfigStdArgs::stats];
+  if (print_stats) {
     auto& out = llvm::errs();
     printStats(out);
   }
@@ -213,8 +219,8 @@ void TypeArtPass::printStats(llvm::raw_ostream& out) {
   meminst_finder->printStats(out);
 
   const auto get_ta_mode = [&]() {
-    const bool heap  = cl::get_instrument_heap();
-    const bool stack = cl::get_instrument_stack();
+    const bool heap  = (*pass_config)[config::ConfigStdArgs::heap];
+    const bool stack = (*pass_config)[config::ConfigStdArgs::stack];
 
     if (heap) {
       if (stack) {
