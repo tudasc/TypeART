@@ -1,0 +1,17 @@
+---
+types: "types_config.yaml"
+heap: false
+stack: true
+global: false
+stack-lifetime: false
+filter: false
+call-filter:
+  implementation: "std"
+  glob: "*MPI_*"
+  glob-deep: "MPI_*"
+  cg-file: "path/.../cg.file"
+analysis:
+  filter-global: true
+  filter-heap-alloc: true
+  filter-pointer-alloc: true
+  filter-alloca-non-array: false

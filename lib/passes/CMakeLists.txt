@@ -11,6 +11,8 @@ set(PASS_SOURCES
   instrumentation/MemOpArgCollector.cpp
   instrumentation/MemOpInstrumentation.cpp
   instrumentation/Instrumentation.cpp
+  ../support/FileConfiguration.cpp
+  TypeARTConfiguration.cpp
 )
 
 typeart_make_llvm_module(

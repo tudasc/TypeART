@@ -13,10 +13,12 @@
 #include "TypeARTPass.h"
 
 #include "Commandline.h"
+#include "TypeARTConfiguration.h"
 #include "analysis/MemInstFinder.h"
 #include "instrumentation/MemOpArgCollector.h"
 #include "instrumentation/MemOpInstrumentation.h"
 #include "instrumentation/TypeARTFunctions.h"
+#include "support/FileConfiguration.h"
 #include "support/Logger.h"
 #include "support/Table.h"
 #include "typegen/TypeGenerator.h"
@@ -48,6 +50,14 @@ using namespace llvm;
 static llvm::RegisterPass<typeart::pass::TypeArtPass> msp("typeart", "TypeArt type instrumentation sanitizer", false,
                                                           false);
 
+static cl::opt<std::string> cl_typeart_configuration_file(
+    "typeart-config", cl::init(""),
+    cl::desc(
+        "Location of the configuration file to configure the TypeART pass. Commandline arguments are prioritized."));
+
+static cl::opt<bool> cl_typeart_configuration_file_dump("typeart-config-dump", cl::init(false), cl::Hidden,
+                                                        cl::desc("Dump default config file content to std::out."));
+
 #define DEBUG_TYPE "typeart"
 
 ALWAYS_ENABLED_STATISTIC(NumInstrumentedMallocs, "Number of instrumented mallocs");
@@ -61,9 +71,6 @@ namespace typeart::pass {
 char TypeArtPass::ID = 0;
 
 TypeArtPass::TypeArtPass() : llvm::ModulePass(ID) {
-  pass_config    = std::make_unique<config::cl::CommandLineOptions>();
-  meminst_finder = analysis::create_finder(*pass_config);
-
   EnableStatistics(false);
 }
 
@@ -71,7 +78,34 @@ void TypeArtPass::getAnalysisUsage(llvm::AnalysisUsage& info) const {
 }
 
 bool TypeArtPass::doInitialization(Module& m) {
-  const std::string types_file = pass_config->getValueOr(config::ConfigStdArgs::types, {"types.yaml"});
+  if (cl_typeart_configuration_file_dump.getValue()) {
+    auto config = config::make_typeart_configuration({"", config::TypeARTConfigInit::FileConfigurationMode::Empty});
+    config->get()->emitTypeartFileConfiguration(llvm::outs());
+    LOG_DEBUG("Emitted standard config. Exiting now.")
+    std::exit(EXIT_SUCCESS);
+  }
+
+  if (cl_typeart_configuration_file.getNumOccurrences() == 0) {
+    pass_config = std::make_unique<config::cl::CommandLineOptions>();
+  } else {
+    auto typeart_config = config::make_typeart_configuration({cl_typeart_configuration_file.getValue()});
+    if (typeart_config) {
+      {
+        std::string typeart_conf_str;
+        llvm::raw_string_ostream conf_out_stream{typeart_conf_str};
+        typeart_config->get()->emitTypeartFileConfiguration(conf_out_stream);
+        LOG_INFO("Emitting TypeART file content\n" << conf_out_stream.str())
+      }
+      pass_config = std::move(*typeart_config);
+    } else {
+      LOG_FATAL("Could not load TypeARTConfiguration.")
+      std::exit(EXIT_FAILURE);
+    }
+  }
+  meminst_finder = analysis::create_finder(*pass_config);
+
+  const std::string types_file =
+      pass_config->getValueOr(config::ConfigStdArgs::types, {config::ConfigStdArgValues::types});
 
   typeManager = make_typegen(types_file);
 
