@@ -25,19 +25,26 @@
 namespace typeart::config {
 
 struct ConfigStdArgs final {
-#define TYPEART_CONFIG_OPTION(name, path, type, def_value) static constexpr char name[] = path;
+#define TYPEART_CONFIG_OPTION(name, path, type, def_value, description) static constexpr char name[] = path;
 #include "ConfigurationBaseOptions.h"
 #undef TYPEART_CONFIG_OPTION
 };
 
 struct ConfigStdArgValues final {
-#define TYPEART_CONFIG_OPTION(name, path, type, def_value) static constexpr decltype(def_value) name{def_value};
+#define TYPEART_CONFIG_OPTION(name, path, type, def_value, description) \
+  static constexpr decltype(def_value) name{def_value};
 #include "ConfigurationBaseOptions.h"
 #undef TYPEART_CONFIG_OPTION
 };
 
 struct ConfigStdArgTypes final {
-#define TYPEART_CONFIG_OPTION(name, path, type, default_value) using name##_ty = type;
+#define TYPEART_CONFIG_OPTION(name, path, type, default_value, description) using name##_ty = type;
+#include "ConfigurationBaseOptions.h"
+#undef TYPEART_CONFIG_OPTION
+};
+
+struct ConfigStdArgDescriptions final {
+#define TYPEART_CONFIG_OPTION(name, path, type, default_value, description) static constexpr char name[] = description;
 #include "ConfigurationBaseOptions.h"
 #undef TYPEART_CONFIG_OPTION
 };

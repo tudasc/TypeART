@@ -16,9 +16,9 @@
 // CHECK-NEXT:   cg-file:         ''
 // CHECK-NEXT: analysis:
 // CHECK-NEXT:   filter-global:   true
-// CHECK-NEXT:   filter-heap-alloc: false
-// CHECK-NEXT:   filter-pointer-alloc: true
-// CHECK-NEXT:   filter-alloca-non-array: false
+// CHECK-NEXT:   filter-heap-alloca: false
+// CHECK-NEXT:   filter-pointer-alloca: true
+// CHECK-NEXT:   filter-non-array-alloca: false
 // CHECK-NEXT: file-format:     1
 
 void test() {

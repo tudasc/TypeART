@@ -19,78 +19,99 @@
 
 using namespace llvm;
 
-static cl::OptionCategory typeart_category("TypeART instrumentation pass", "These control the instrumentation.");
+namespace typeart::config::cl {
+struct CommandlineStdArgs final {
+#define TYPEART_CONFIG_OPTION(name, path, type, def_value, description) static constexpr char name[] = "typeart-" path;
+#include "support/ConfigurationBaseOptions.h"
+#undef TYPEART_CONFIG_OPTION
+};
+}  // namespace typeart::config::cl
 
-static cl::opt<std::string> cl_typeart_type_file("typeart-types", cl::desc("Location of the generated type file."),
-                                                 cl::cat(typeart_category));
+using typeart::config::ConfigStdArgDescriptions;
+using typeart::config::ConfigStdArgTypes;
+using typeart::config::ConfigStdArgValues;
+using typeart::config::cl::CommandlineStdArgs;
 
-static cl::opt<bool> cl_typeart_stats("typeart-stats", cl::desc("Show statistics for TypeArt type pass."), cl::Hidden,
-                                      cl::init(false), cl::cat(typeart_category));
+cl::OptionCategory typeart_category("TypeART instrumentation pass", "These control the instrumentation.");
 
-static cl::opt<bool> cl_typeart_instrument_heap("typeart-heap",
-                                                cl::desc("Instrument heap allocation/free instructions."),
-                                                cl::init(true), cl::cat(typeart_category));
+static cl::opt<ConfigStdArgTypes::types_ty> cl_typeart_type_file(CommandlineStdArgs::types,
+                                                                 cl::desc(ConfigStdArgDescriptions::types),
+                                                                 cl::cat(typeart_category));
 
-static cl::opt<bool> cl_typeart_instrument_global("typeart-global", cl::desc("Instrument global allocations."),
-                                                  cl::init(false), cl::cat(typeart_category));
+static cl::opt<ConfigStdArgTypes::stats_ty> cl_typeart_stats(CommandlineStdArgs::stats,
+                                                             cl::desc(ConfigStdArgDescriptions::stats), cl::Hidden,
+                                                             cl::init(ConfigStdArgValues::stats),
+                                                             cl::cat(typeart_category));
 
-static cl::opt<bool> cl_typeart_instrument_stack(
-    "typeart-stack", cl::desc("Instrument stack (alloca) allocations. Turns on global instrumentation."),
-    cl::init(false), cl::cat(typeart_category), cl::callback([](const bool& opt) {
-      if (opt) {
-        ::cl_typeart_instrument_global = true;
-      }
-    }));
+static cl::opt<ConfigStdArgTypes::heap_ty> cl_typeart_instrument_heap(CommandlineStdArgs::heap,
+                                                                      cl::desc(ConfigStdArgDescriptions::heap),
+                                                                      cl::init(ConfigStdArgValues::heap),
+                                                                      cl::cat(typeart_category));
 
-static cl::opt<bool> cl_typeart_instrument_stack_lifetime(
-    "typeart-stack-lifetime", cl::desc("Instrument lifetime.start intrinsic instead of alloca."), cl::init(true),
-    cl::cat(typeart_category));
+static cl::opt<ConfigStdArgTypes::global_ty> cl_typeart_instrument_global(CommandlineStdArgs::global,
+                                                                          cl::desc(ConfigStdArgDescriptions::global),
+                                                                          cl::init(ConfigStdArgValues::global),
+                                                                          cl::cat(typeart_category));
 
-static cl::OptionCategory typeart_meminstfinder_category(
+static cl::opt<ConfigStdArgTypes::stack_ty> cl_typeart_instrument_stack(CommandlineStdArgs::stack,
+                                                                        cl::desc(ConfigStdArgDescriptions::stack),
+                                                                        cl::init(ConfigStdArgValues::stack),
+                                                                        cl::cat(typeart_category),
+                                                                        cl::callback([](const bool& opt) {
+                                                                          if (opt) {
+                                                                            ::cl_typeart_instrument_global = true;
+                                                                          }
+                                                                        }));
+
+static cl::opt<ConfigStdArgTypes::stack_lifetime_ty> cl_typeart_instrument_stack_lifetime(
+    CommandlineStdArgs::stack_lifetime, cl::desc(ConfigStdArgDescriptions::stack_lifetime),
+    cl::init(ConfigStdArgValues::stack_lifetime), cl::cat(typeart_category));
+
+static cl::OptionCategory typeart_analysis_category(
     "TypeART memory instruction finder", "These options control which memory instructions are collected/filtered.");
 
-static cl::opt<bool> cl_typeart_filter_stack_non_array("typeart-stack-array-only",
-                                                       cl::desc("Only find stack (alloca) instructions of arrays."),
-                                                       cl::Hidden, cl::init(false),
-                                                       cl::cat(typeart_meminstfinder_category));
+static cl::opt<ConfigStdArgTypes::analysis_filter_alloca_non_array_ty> cl_typeart_filter_stack_non_array(
+    CommandlineStdArgs::analysis_filter_alloca_non_array,
+    cl::desc(ConfigStdArgDescriptions::analysis_filter_alloca_non_array), cl::Hidden,
+    cl::init(ConfigStdArgValues::analysis_filter_alloca_non_array), cl::cat(typeart_analysis_category));
 
-static cl::opt<bool> cl_typeart_filter_heap_alloc(
-    "typeart-malloc-store-filter", cl::desc("Filter alloca instructions that have a store from a heap allocation."),
-    cl::Hidden, cl::init(false), cl::cat(typeart_meminstfinder_category));
+static cl::opt<ConfigStdArgTypes::analysis_filter_heap_alloc_ty> cl_typeart_filter_heap_alloc(
+    CommandlineStdArgs::analysis_filter_heap_alloc, cl::desc(ConfigStdArgDescriptions::analysis_filter_heap_alloc),
+    cl::Hidden, cl::init(ConfigStdArgValues::analysis_filter_heap_alloc), cl::cat(typeart_analysis_category));
 
-static cl::opt<bool> cl_typeart_filter_global("typeart-filter-globals", cl::desc("Filter globals of a module."),
-                                              cl::Hidden, cl::init(true), cl::cat(typeart_meminstfinder_category));
+static cl::opt<ConfigStdArgTypes::analysis_filter_global_ty> cl_typeart_filter_global(
+    CommandlineStdArgs::analysis_filter_global, cl::desc(ConfigStdArgDescriptions::analysis_filter_global), cl::Hidden,
+    cl::init(ConfigStdArgValues::analysis_filter_global), cl::cat(typeart_analysis_category));
 
-static cl::opt<bool> cl_typeart_call_filter(
-    "typeart-call-filter",
-    cl::desc("Filter (stack/global) alloca instructions that are passed to specific function calls."), cl::Hidden,
-    cl::init(false), cl::cat(typeart_meminstfinder_category));
+static cl::opt<ConfigStdArgTypes::filter_ty> cl_typeart_call_filter(CommandlineStdArgs::filter,
+                                                                    cl::desc(ConfigStdArgDescriptions::filter),
+                                                                    cl::Hidden, cl::init(ConfigStdArgValues::filter),
+                                                                    cl::cat(typeart_analysis_category));
 
 static cl::opt<typeart::analysis::FilterImplementation> cl_typeart_call_filter_implementation(
-    "typeart-call-filter-impl", cl::desc("Select the call filter implementation."),
+    CommandlineStdArgs::filter_impl, cl::desc(ConfigStdArgDescriptions::filter_impl),
     cl::values(clEnumValN(typeart::analysis::FilterImplementation::none, "none", "No filter"),
                clEnumValN(typeart::analysis::FilterImplementation::standard, "std",
                           "Standard forward filter (default)"),
                clEnumValN(typeart::analysis::FilterImplementation::cg, "cg", "Call-graph-based filter")),
-    cl::Hidden, cl::init(typeart::analysis::FilterImplementation::standard), cl::cat(typeart_meminstfinder_category));
+    cl::Hidden, cl::init(typeart::analysis::FilterImplementation::standard), cl::cat(typeart_analysis_category));
 
-static cl::opt<std::string> cl_typeart_call_filter_glob(
-    "typeart-call-filter-str", cl::desc("Filter allocas based on the function name (glob) <string>."), cl::Hidden,
-    cl::init("*MPI_*"), cl::cat(typeart_meminstfinder_category));
+static cl::opt<ConfigStdArgTypes::filter_glob_ty> cl_typeart_call_filter_glob(
+    CommandlineStdArgs::filter_glob, cl::desc(ConfigStdArgDescriptions::filter_glob), cl::Hidden,
+    cl::init(ConfigStdArgValues::filter_glob), cl::cat(typeart_analysis_category));
 
-static cl::opt<std::string> cl_typeart_call_filter_glob_deep(
-    "typeart-call-filter-deep-str",
-    cl::desc("Filter allocas based on specific API, i.e., value passed as void* are correlated when string matched and "
-             "possibly kept."),
-    cl::Hidden, cl::init("MPI_*"), cl::cat(typeart_meminstfinder_category));
+static cl::opt<ConfigStdArgTypes::filter_glob_deep_ty> cl_typeart_call_filter_glob_deep(
+    CommandlineStdArgs::filter_glob_deep, cl::desc(ConfigStdArgDescriptions::filter_glob_deep), cl::Hidden,
+    cl::init(ConfigStdArgValues::filter_glob_deep), cl::cat(typeart_analysis_category));
 
-static cl::opt<std::string> cl_typeart_call_filter_cg_file("typeart-call-filter-cg-file",
-                                                           cl::desc("Location of call-graph file to use."), cl::Hidden,
-                                                           cl::init(""), cl::cat(typeart_meminstfinder_category));
+static cl::opt<ConfigStdArgTypes::filter_cg_file_ty> cl_typeart_call_filter_cg_file(
+    CommandlineStdArgs::filter_cg_file, cl::desc(ConfigStdArgDescriptions::filter_cg_file), cl::Hidden,
+    cl::init(ConfigStdArgValues::filter_cg_file), cl::cat(typeart_analysis_category));
 
-static cl::opt<bool> cl_typeart_filter_pointer_alloca("typeart-filter-pointer-alloca",
-                                                      cl::desc("Filter allocas of pointer types."), cl::Hidden,
-                                                      cl::init(true), cl::cat(typeart_meminstfinder_category));
+static cl::opt<ConfigStdArgTypes::analysis_filter_pointer_alloc_ty> cl_typeart_filter_pointer_alloca(
+    CommandlineStdArgs::analysis_filter_pointer_alloc,
+    cl::desc(ConfigStdArgDescriptions::analysis_filter_pointer_alloc), cl::Hidden,
+    cl::init(ConfigStdArgValues::analysis_filter_pointer_alloc), cl::cat(typeart_analysis_category));
 
 namespace typeart::config::cl {
 

@@ -136,7 +136,7 @@ echo "${typeart_wrapper_more_args}"
 # CHECK: /some/file.yaml
 # CHECK-NEXT: /some/file_stack.yaml
 # CHECK-NEXT: -O3 -fPIC
-parse_typeart_cmd_line -typeart-heap-config=/some/file.yaml -typeart-stack-config=/some/file_stack.yaml -O3 -fPIC
+parse_typeart_cmd_line --typeart-heap-config=/some/file.yaml --typeart-stack-config=/some/file_stack.yaml -O3 -fPIC
 echo "${typeart_cmdline_args_heap}"
 echo "${typeart_cmdline_args_stack}"
 echo "${typeart_other_args}"

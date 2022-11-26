@@ -1,4 +1,4 @@
-; RUN: %apply-typeart -typeart-stack -typeart-stack-lifetime -S < %s | %llc -x=ir --filetype=obj -o %s.o
+; RUN: %apply-typeart --typeart-stack --typeart-stack-lifetime -S < %s | %llc -x=ir --filetype=obj -o %s.o
 ; RUN: %wrapper-cc %s.o -o %s.exe
 ; RUN: %s.exe 2>&1 | %filecheck %s
 

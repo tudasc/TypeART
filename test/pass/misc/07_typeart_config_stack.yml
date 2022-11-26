@@ -12,6 +12,6 @@ call-filter:
   cg-file: "path/.../cg.file"
 analysis:
   filter-global: true
-  filter-heap-alloc: true
-  filter-pointer-alloc: true
-  filter-alloca-non-array: false
+  filter-heap-alloca: true
+  filter-pointer-alloca: true
+  filter-non-array-alloca: false

@@ -25,7 +25,7 @@ CXXFLAGS = -g -I. -Wall
 LDFLAGS = -g -O3
 
 PASSES=-load ${TYPEART_LIBPATH}/passes/analysis/meminstfinderpass.so -load ${TYPEART_LIBPATH}/passes/typeartpass.so -typeart-stats
-CALL_FILTER=-typeart-call-filter -typeart-call-filter-impl=default
+CALL_FILTER=--typeart-filter --typeart-filter-implementation=default
 
 ifeq ($(TSAN), yes)
 	CXXFLAGS += -fsanitize=thread
@@ -34,7 +34,7 @@ endif
 
 .cc.o: lulesh.h
 ifeq ($(TYPEART), yes)
-	$(CXX) ${CXXFLAGS} -O1 -Xclang -disable-llvm-passes -S -emit-llvm $< -o - | opt $(PASSES) -typeart -S | opt -O3 -S | opt $(PASSES) -typeart -typeart-stack $(CALL_FILTER) -typeart-heap=false | llc -x=ir -filetype=obj -o $@
+	$(CXX) ${CXXFLAGS} -O1 -Xclang -disable-llvm-passes -S -emit-llvm $< -o - | opt $(PASSES) -typeart -S | opt -O3 -S | opt $(PASSES) -typeart --typeart-stack $(CALL_FILTER) --typeart-heap=false | llc -x=ir -filetype=obj -o $@
 else
 	$(CXX) $(CXXFLAGS) -O3 -c -o $@ $<
 endif

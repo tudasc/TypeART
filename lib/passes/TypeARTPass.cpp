@@ -50,13 +50,17 @@ using namespace llvm;
 static llvm::RegisterPass<typeart::pass::TypeArtPass> msp("typeart", "TypeArt type instrumentation sanitizer", false,
                                                           false);
 
+extern llvm::cl::OptionCategory typeart_category;
+
 static cl::opt<std::string> cl_typeart_configuration_file(
     "typeart-config", cl::init(""),
     cl::desc(
-        "Location of the configuration file to configure the TypeART pass. Commandline arguments are prioritized."));
+        "Location of the configuration file to configure the TypeART pass. Commandline arguments are prioritized."),
+    cl::cat(typeart_category));
 
 static cl::opt<bool> cl_typeart_configuration_file_dump("typeart-config-dump", cl::init(false), cl::Hidden,
-                                                        cl::desc("Dump default config file content to std::out."));
+                                                        cl::desc("Dump default config file content to std::out."),
+                                                        cl::cat(typeart_category));
 
 #define DEBUG_TYPE "typeart"
 
