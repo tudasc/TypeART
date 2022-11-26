@@ -12,6 +12,19 @@
 # SPDX-License-Identifier: BSD-3-Clause
 #
 
+function global_environment_variable_init() {
+  if [ -n "${TYPEART_WRAPPER_CONFIG+x}" ]; then
+    typeart_cmdline_args_heap="${TYPEART_WRAPPER_CONFIG}"
+    typeart_cmdline_args_stack="${TYPEART_WRAPPER_CONFIG}"
+  fi
+  if [ -n "${TYPEART_WRAPPER_HEAP_CONFIG+x}" ]; then
+    typeart_cmdline_args_heap="${TYPEART_WRAPPER_HEAP_CONFIG}"
+  fi
+  if [ -n "${TYPEART_WRAPPER_STACK_CONFIG+x}" ]; then
+    typeart_cmdline_args_stack="${TYPEART_WRAPPER_STACK_CONFIG}"
+  fi
+}
+
 function global_init() {
   local -r typeart_use_rel_path=@TYPEART_RELOCATABLE@
   if [ "$typeart_use_rel_path" == 0 ]; then
@@ -43,6 +56,12 @@ function global_init() {
   readonly typeart_plugin="-load "${typeart_pass}" -typeart"
   readonly typeart_stack_mode_args="-typeart-heap=false -typeart-stack -typeart-stats @TYPEART_CALLFILTER@"
   readonly typeart_heap_mode_args="-typeart-heap=true -typeart-stats"
+
+  # Used for values passed to wrapper:
+  typeart_cmdline_args_heap=""
+  typeart_cmdline_args_stack=""
+
+  global_environment_variable_init
 }
 
 function is_wrapper_disabled() {
@@ -150,6 +169,34 @@ function handle_binary() {
   return 2
 }
 
+function parse_typeart_cmd_line() {
+  typeart_other_args=""
+
+  while (("$#")); do
+    case "$1" in
+    -typeart-config=*)
+      typeart_cmdline_args_heap="${1##-typeart-config=}"
+      typeart_cmdline_args_stack="${1##-typeart-config=}"
+      shift
+      ;;
+    -typeart-heap-config=*)
+      typeart_cmdline_args_heap="${1##-typeart-heap-config=}"
+      shift
+      ;;
+    -typeart-stack-config=*)
+      typeart_cmdline_args_stack="${1##-typeart-stack-config=}"
+      shift
+      ;;
+    *) # preserve other arguments
+      typeart_other_args="$typeart_other_args $1"
+      shift
+      ;;
+    esac
+  done
+  # set other positional arguments in their proper place
+  set -- "typeart_other_args"
+}
+
 # shellcheck disable=SC2034
 function parse_cmd_line() {
   found_src_file=0
@@ -162,7 +209,7 @@ function parse_cmd_line() {
   source_file=""
   object_file=""
   asm_file=""
-  ta_more_args=""
+  typeart_wrapper_more_args=""
   optimize=""
 
   while (("$#")); do
@@ -173,10 +220,10 @@ function parse_cmd_line() {
       ;;
     -MT)
       if [ -n "$2" ]; then
-        ta_more_args+=" $1 $2"
+        typeart_wrapper_more_args+=" $1 $2"
         shift 2
       else
-        ta_more_args+=" $1"
+        typeart_wrapper_more_args+=" $1"
         shift 1
       fi
       ;;
@@ -211,28 +258,33 @@ function parse_cmd_line() {
         shift $?
       else
         # when linking, we don't care about object files
-        ta_more_args="$ta_more_args $1"
+        typeart_wrapper_more_args="$typeart_wrapper_more_args $1"
         shift
       fi
       ;;
     -fPIC)
       # llc requires special flag
       found_fpic=1
-      ta_more_args="$ta_more_args $1"
+      typeart_wrapper_more_args="$typeart_wrapper_more_args $1"
       shift
       ;;
     *) # preserve other arguments
-      ta_more_args="$ta_more_args $1"
+      typeart_wrapper_more_args="$typeart_wrapper_more_args $1"
       shift
       ;;
     esac
   done
   # set other positional arguments in their proper place
-  eval set -- "ta_more_args"
+  eval set -- "typeart_wrapper_more_args"
 
   if [ -z "${optimize}" ]; then
     optimize=-O0
   fi
+}
+
+function parse_commands() {
+  parse_typeart_cmd_line "$@"
+  parse_cmd_line ${typeart_other_args}
 }
 
 function main_link() {
@@ -264,11 +316,11 @@ function main_compile() {
   fi
 
   # shellcheck disable=SC2086
-  $compiler ${ta_more_args} ${typeart_includes} ${typeart_san_flags} \
+  $compiler ${typeart_wrapper_more_args} ${typeart_includes} ${typeart_san_flags} \
     -O1 -Xclang -disable-llvm-passes -S -emit-llvm "${source_file}" -o - |
-    $opt_tool ${typeart_plugin} ${typeart_heap_mode_args} |
+    $opt_tool ${typeart_plugin} ${typeart_heap_mode_args} ${typeart_cmdline_args_heap} |
     $opt_tool ${optimize} -S |
-    $opt_tool ${typeart_plugin} ${typeart_stack_mode_args} |
+    $opt_tool ${typeart_plugin} ${typeart_stack_mode_args} ${typeart_cmdline_args_stack} |
     $llc_tool -x=ir ${llc_flags} -o "${out_file}"
 }
 
@@ -290,19 +342,19 @@ function main_in() {
   local -r with_source=$?
 
   if [ "$linking" == 1 ] && [ "$with_source" == 1 ]; then
-    parse_cmd_line "$@"
+    parse_commands "$@"
     main_compile "$@"
     if [ "$found_exe_file" == 1 ]; then
-      ta_more_args+=" -o ${exe_file}"
+      typeart_wrapper_more_args+=" -o ${exe_file}"
     fi
-    main_link "$ta_more_args" "${object_file}"
+    main_link "$typeart_wrapper_more_args" "${object_file}"
     if [ -f "${object_file}" ]; then
       rm "${object_file}"
     fi
   elif [ "$linking" == 1 ]; then
     main_link "$@"
   else
-    parse_cmd_line "$@"
+    parse_commands "$@"
     main_compile "$@"
   fi
 }
