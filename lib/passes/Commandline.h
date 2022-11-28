@@ -31,8 +31,6 @@ class CommandLineOptions final : public config::Configuration {
  public:
   CommandLineOptions();
   [[nodiscard]] llvm::Optional<config::OptionValue> getValue(std::string_view opt_path) const override;
-  [[nodiscard]] config::OptionValue getValueOr(std::string_view opt_path, config::OptionValue alt) const override;
-  [[nodiscard]] config::OptionValue operator[](std::string_view opt_path) const override;
   [[maybe_unused]] [[nodiscard]] bool valueSpecified(std::string_view opt_path) const;
 };
 

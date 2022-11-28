@@ -205,17 +205,6 @@ llvm::Optional<typeart::config::OptionValue> CommandLineOptions::getValue(std::s
   return llvm::None;
 }
 
-config::OptionValue CommandLineOptions::getValueOr(std::string_view opt_path, config::OptionValue alt) const {
-  const auto val = getValue(opt_path);
-  if (val.hasValue()) {
-    return val.getValue();
-  }
-  return alt;
-}
-
-config::OptionValue CommandLineOptions::operator[](std::string_view opt_path) const {
-  return getValueOr(opt_path, config::OptionValue{});
-}
 [[maybe_unused]] bool CommandLineOptions::valueSpecified(std::string_view opt_path) const {
   return occurence_mapping_.lookup(opt_path);
 }

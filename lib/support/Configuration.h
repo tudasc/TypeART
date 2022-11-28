@@ -115,10 +115,21 @@ class OptionValue final {
 
 class Configuration {
  public:
-  [[nodiscard]] virtual llvm::Optional<OptionValue> getValue(std::string_view opt_path) const    = 0;
-  [[nodiscard]] virtual OptionValue getValueOr(std::string_view opt_path, OptionValue alt) const = 0;
-  [[nodiscard]] virtual OptionValue operator[](std::string_view opt_path) const                  = 0;
-  virtual ~Configuration()                                                                       = default;
+  [[nodiscard]] virtual llvm::Optional<OptionValue> getValue(std::string_view opt_path) const = 0;
+
+  [[nodiscard]] virtual OptionValue getValueOr(std::string_view opt_path, OptionValue alt) const {
+    const auto val = getValue(opt_path);
+    if (val.hasValue()) {
+      return val.getValue();
+    }
+    return alt;
+  }
+
+  [[nodiscard]] virtual OptionValue operator[](std::string_view opt_path) const {
+    return getValueOr(opt_path, config::OptionValue{});
+  }
+
+  virtual ~Configuration() = default;
 };
 
 }  // namespace typeart::config

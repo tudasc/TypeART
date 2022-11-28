@@ -116,10 +116,6 @@ class YamlFileConfiguration final : public FileOptions {
 
   [[nodiscard]] Optional<config::OptionValue> getValue(std::string_view opt_path) const override;
 
-  [[nodiscard]] OptionValue getValueOr(std::string_view opt_path, config::OptionValue alt) const override;
-
-  OptionValue operator[](std::string_view opt_path) const override;
-
   [[nodiscard]] FileOptionsMap getConfiguration() const override;
 
   [[nodiscard]] std::string getConfigurationAsString() const override;
@@ -137,18 +133,6 @@ llvm::Optional<typeart::config::OptionValue> YamlFileConfiguration::getValue(std
     return mapping_.lookup(key);
   }
   return llvm::None;
-}
-
-config::OptionValue YamlFileConfiguration::getValueOr(std::string_view opt_path, config::OptionValue alt) const {
-  const auto val = getValue(opt_path);
-  if (val.hasValue()) {
-    return val.getValue();
-  }
-  return alt;
-}
-
-config::OptionValue YamlFileConfiguration::operator[](std::string_view opt_path) const {
-  return getValueOr(opt_path, config::OptionValue{});
 }
 
 FileOptionsMap YamlFileConfiguration::getConfiguration() const {
