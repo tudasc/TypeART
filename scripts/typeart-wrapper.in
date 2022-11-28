@@ -174,16 +174,16 @@ function parse_typeart_cmd_line() {
 
   while (("$#")); do
     case "$1" in
-    -typeart-config=*)
+    --typeart-config=*)
       typeart_cmdline_args_heap="${1##-typeart-config=}"
       typeart_cmdline_args_stack="${1##-typeart-config=}"
       shift
       ;;
-    -typeart-heap-config=*)
+    --typeart-heap-config=*)
       typeart_cmdline_args_heap="${1##-typeart-heap-config=}"
       shift
       ;;
-    -typeart-stack-config=*)
+    --typeart-stack-config=*)
       typeart_cmdline_args_stack="${1##-typeart-stack-config=}"
       shift
       ;;
