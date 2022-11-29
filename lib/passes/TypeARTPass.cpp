@@ -71,6 +71,20 @@ ALWAYS_ENABLED_STATISTIC(NumInstrumentedGlobal, "Number of instrumented globals"
 
 namespace typeart::pass {
 
+llvm::Optional<std::string> get_configuration_file_path() {
+  if (!cl_typeart_configuration_file.empty()) {
+    LOG_DEBUG("Using cl::opt for config file " << cl_typeart_configuration_file.getValue());
+    return cl_typeart_configuration_file.getValue();
+  }
+  const char* config_file = std::getenv("TYPEART_CONFIG_FILE");
+  if (config_file != nullptr) {
+    LOG_DEBUG("Using env var for types file " << config_file)
+    return std::string{config_file};
+  }
+  LOG_INFO("No configuration file set.")
+  return llvm::None;
+}
+
 // Used by LLVM pass manager to identify passes in memory
 char TypeArtPass::ID = 0;
 
@@ -89,10 +103,12 @@ bool TypeArtPass::doInitialization(Module& m) {
     std::exit(EXIT_SUCCESS);
   }
 
-  if (cl_typeart_configuration_file.getNumOccurrences() == 0) {
+  auto config_file_path = get_configuration_file_path();
+
+  if (!config_file_path) {
     pass_config = std::make_unique<config::cl::CommandLineOptions>();
   } else {
-    auto typeart_config = config::make_typeart_configuration({cl_typeart_configuration_file.getValue()});
+    auto typeart_config = config::make_typeart_configuration({config_file_path.getValue()});
     if (typeart_config) {
       {
         std::string typeart_conf_str;
