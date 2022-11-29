@@ -198,7 +198,7 @@ CommandLineOptions::CommandLineOptions() {
 }
 
 llvm::Optional<typeart::config::OptionValue> CommandLineOptions::getValue(std::string_view opt_path) const {
-  auto key = llvm::StringRef(opt_path);
+  auto key = llvm::StringRef(opt_path.data());
   if (mapping_.count(key) != 0U) {
     return mapping_.lookup(key);
   }
@@ -206,7 +206,8 @@ llvm::Optional<typeart::config::OptionValue> CommandLineOptions::getValue(std::s
 }
 
 [[maybe_unused]] bool CommandLineOptions::valueSpecified(std::string_view opt_path) const {
-  return occurence_mapping_.lookup(opt_path);
+  auto key = llvm::StringRef(opt_path.data());
+  return occurence_mapping_.lookup(key);
 }
 
 }  // namespace typeart::config::cl

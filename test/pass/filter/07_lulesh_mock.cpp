@@ -8,11 +8,15 @@ using Int_t  = int;
 
 #define real_f(name) \
   Real_t _##name;    \
-  Real_t& name() { return _##name; }
+  Real_t& name() {   \
+    return _##name;  \
+  }
 
 #define int_f(name) \
   Int_t _##name;    \
-  Int_t& name() { return _##name; }
+  Int_t& name() {   \
+    return _##name; \
+  }
 
 struct Domain {
   real_f(stoptime);

@@ -19,34 +19,34 @@ namespace typeart::config {
 
 TypeARTConfiguration::TypeARTConfiguration(std::unique_ptr<file::FileOptions> config_options,
                                            std::unique_ptr<cl::CommandLineOptions> commandline_options)
-    : configuration_options(std::move(config_options)), commandline_options(std::move(commandline_options)) {
+    : configuration_options_(std::move(config_options)), commandline_options_(std::move(commandline_options)) {
 }
 
 llvm::Optional<OptionValue> TypeARTConfiguration::getValue(std::string_view opt_path) const {
-  const bool use_cl = prioritize_commandline && commandline_options->valueSpecified(opt_path);
+  const bool use_cl = prioritize_commandline && commandline_options_->valueSpecified(opt_path);
   if (use_cl) {
-    LOG_DEBUG("Take CL arg for " << opt_path)
-    return commandline_options->getValue(opt_path);
+    LOG_DEBUG("Take CL arg for " << opt_path.data())
+    return commandline_options_->getValue(opt_path);
   }
-  return configuration_options->getValue(opt_path);
+  return configuration_options_->getValue(opt_path);
 }
 
 OptionValue TypeARTConfiguration::getValueOr(std::string_view opt_path, OptionValue alt) const {
-  const bool use_cl = prioritize_commandline && commandline_options->valueSpecified(opt_path);
+  const bool use_cl = prioritize_commandline && commandline_options_->valueSpecified(opt_path);
   if (use_cl) {
-    LOG_DEBUG("Take CL arg for " << opt_path)
-    return commandline_options->getValueOr(opt_path, alt);
+    LOG_DEBUG("Take CL arg for " << opt_path.data())
+    return commandline_options_->getValueOr(opt_path, alt);
   }
-  return configuration_options->getValueOr(opt_path, alt);
+  return configuration_options_->getValueOr(opt_path, alt);
 }
 
 OptionValue TypeARTConfiguration::operator[](std::string_view opt_path) const {
-  const bool use_cl = prioritize_commandline && commandline_options->valueSpecified(opt_path);
+  const bool use_cl = prioritize_commandline && commandline_options_->valueSpecified(opt_path);
   if (use_cl) {
-    LOG_DEBUG("Take CL arg for " << opt_path)
-    return commandline_options->operator[](opt_path);
+    LOG_DEBUG("Take CL arg for " << opt_path.data())
+    return commandline_options_->operator[](opt_path);
   }
-  return configuration_options->operator[](opt_path);
+  return configuration_options_->operator[](opt_path);
 }
 
 void TypeARTConfiguration::prioritizeCommandline(bool do_prioritize) {
@@ -54,7 +54,7 @@ void TypeARTConfiguration::prioritizeCommandline(bool do_prioritize) {
 }
 
 void TypeARTConfiguration::emitTypeartFileConfiguration(llvm::raw_ostream& out_stream) {
-  out_stream << configuration_options->getConfigurationAsString();
+  out_stream << configuration_options_->getConfigurationAsString();
 }
 
 llvm::ErrorOr<std::unique_ptr<TypeARTConfiguration>> make_typeart_configuration(const TypeARTConfigInit& init) {
@@ -65,7 +65,7 @@ llvm::ErrorOr<std::unique_ptr<TypeARTConfiguration>> make_typeart_configuration(
     auto cl_opts = std::make_unique<config::cl::CommandLineOptions>();
     auto config  = std::make_unique<config::TypeARTConfiguration>(std::move(file_opts.get()), std::move(cl_opts));
     config->prioritizeCommandline(true);
-    return std::move(config);
+    return config;
   }
   LOG_FATAL("Could not initialize file configuration: \'" << init.file_path
                                                           << "\'. Reason: " << file_opts.getError().message())

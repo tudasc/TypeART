@@ -29,8 +29,8 @@ class CommandLineOptions;
 
 class TypeARTConfiguration final : public Configuration {
  private:
-  std::unique_ptr<file::FileOptions> configuration_options;
-  std::unique_ptr<cl::CommandLineOptions> commandline_options;
+  std::unique_ptr<file::FileOptions> configuration_options_;
+  std::unique_ptr<cl::CommandLineOptions> commandline_options_;
   bool prioritize_commandline{true};
 
  public:

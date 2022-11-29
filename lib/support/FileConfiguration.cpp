@@ -53,8 +53,10 @@ namespace helper {
 
 ConfigurationOptions map2config(const FileOptionsMap& mapping) {
   const auto make_entry = [&mapping](std::string_view entry, auto& ref) {
-    ref = static_cast<typename std::remove_reference<decltype(ref)>::type>(mapping.lookup(entry));
+    auto key = llvm::StringRef(entry.data());
+    ref      = static_cast<typename std::remove_reference<decltype(ref)>::type>(mapping.lookup(key));
   };
+
   ConfigurationOptions conf_file;
   make_entry(ConfigStdArgs::types, conf_file.types);
   make_entry(ConfigStdArgs::stats, conf_file.statistics);
@@ -128,7 +130,7 @@ YamlFileConfiguration::YamlFileConfiguration(const ConfigurationOptions& conf_fi
 }
 
 llvm::Optional<typeart::config::OptionValue> YamlFileConfiguration::getValue(std::string_view opt_path) const {
-  auto key = llvm::StringRef(opt_path);
+  auto key = llvm::StringRef(opt_path.data());
   if (mapping_.count(key) != 0U) {
     return mapping_.lookup(key);
   }
@@ -164,7 +166,7 @@ auto open_flag() {
   ErrorOr<std::unique_ptr<MemoryBuffer>> memBuffer = MemoryBuffer::getFile(file_path.data());
 
   if (std::error_code error = memBuffer.getError(); error) {
-    LOG_WARNING("Warning while loading configuration file \'" << file_path << "\'. Reason: " << error.message());
+    LOG_WARNING("Warning while loading configuration file \'" << file_path.data() << "\'. Reason: " << error.message());
     return error;
   }
 
@@ -212,7 +214,7 @@ struct llvm::yaml::MappingTraits<typeart::config::file::ConfigurationOptions::An
     using typeart::config::ConfigStdArgs;
     const auto drop_prefix = [](const std::string& path, std::string_view prefix = "analysis-") {
       llvm::StringRef prefix_less{path};
-      prefix_less.consume_front(prefix);
+      prefix_less.consume_front(prefix.data());
       return prefix_less;
     };
     yml_io.mapOptional(drop_prefix(ConfigStdArgs::analysis_filter_global).data(), info.filter_global);
@@ -229,7 +231,7 @@ struct llvm::yaml::MappingTraits<typeart::config::file::ConfigurationOptions::Ca
     using typeart::config::ConfigStdArgs;
     const auto drop_prefix = [](const std::string& path, std::string_view prefix = "filter-") {
       llvm::StringRef prefix_less{path};
-      prefix_less.consume_front(prefix);
+      prefix_less.consume_front(prefix.data());
       return prefix_less;
     };
     yml_io.mapOptional(drop_prefix(ConfigStdArgs::filter_impl).data(), info.implementation);
