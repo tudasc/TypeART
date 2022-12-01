@@ -1,4 +1,4 @@
-; RUN: %apply-typeart -typeart-stack -typeart-stack-lifetime -S < %s | %filecheck %s
+; RUN: %apply-typeart --typeart-stack --typeart-stack-lifetime -S < %s | %filecheck %s
 
 ; Adapted from LLVM codegen test suite
 

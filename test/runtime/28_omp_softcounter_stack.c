@@ -1,6 +1,6 @@
 // clang-format off
-// RUN: %run %s -o -O0 --omp -typeart-filter-pointer-alloca=false 2>&1 | %filecheck %s --check-prefix=CHECK-TSAN
-// RUN: %run %s -o -O0 --omp -typeart-filter-pointer-alloca=false 2>&1 | %filecheck %s --check-prefixes=CHECK,ERROR
+// RUN: %run %s -o -O0 --omp --typeart-analysis-filter-pointer-alloca=false 2>&1 | %filecheck %s --check-prefix=CHECK-TSAN
+// RUN: %run %s -o -O0 --omp --typeart-analysis-filter-pointer-alloca=false 2>&1 | %filecheck %s --check-prefixes=CHECK,ERROR
 // REQUIRES: openmp && softcounter
 // clang-format on
 

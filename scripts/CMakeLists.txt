@@ -72,7 +72,7 @@ function(typeart_configure_script input output)
   endif()
 
   if(ARG_WITH_FILTER)
-    set(TYPEART_CALLFILTER "-typeart-call-filter")
+    set(TYPEART_CALLFILTER "--typeart-filter")
   endif()
 
   if(TYPEART_TSAN)

@@ -16,6 +16,7 @@
 #include "instrumentation/Instrumentation.h"
 #include "instrumentation/InstrumentationHelper.h"
 #include "instrumentation/TypeARTFunctions.h"
+#include "support/Configuration.h"
 
 #include "llvm/Pass.h"
 
@@ -43,7 +44,8 @@ namespace typeart::pass {
 
 class TypeArtPass : public llvm::ModulePass {
  private:
-  const std::string default_types_file{"types.yaml"};
+  //  const std::string default_types_file{"types.yaml"};
+  std::unique_ptr<config::Configuration> pass_config;
 
   struct TypeArtFunc {
     const std::string name;

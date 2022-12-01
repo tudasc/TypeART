@@ -4,12 +4,15 @@ add_subdirectory(analysis)
 
 set(PASS_SOURCES
   TypeARTPass.cpp
+  Commandline.cpp
   support/TypeUtil.cpp
   instrumentation/InstrumentationHelper.cpp
   instrumentation/TypeARTFunctions.cpp
   instrumentation/MemOpArgCollector.cpp
   instrumentation/MemOpInstrumentation.cpp
   instrumentation/Instrumentation.cpp
+  ../support/FileConfiguration.cpp
+  TypeARTConfiguration.cpp
 )
 
 typeart_make_llvm_module(
