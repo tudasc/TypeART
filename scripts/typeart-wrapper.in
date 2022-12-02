@@ -12,7 +12,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 #
 
-function global_environment_variable_init() {
+function typeart_global_env_var_init_fn() {
   if [ -n "${TYPEART_WRAPPER_CONFIG+x}" ]; then
     typeart_cmdline_args_heap="${TYPEART_WRAPPER_CONFIG}"
     typeart_cmdline_args_stack="${TYPEART_WRAPPER_CONFIG}"
@@ -35,7 +35,7 @@ function global_environment_variable_init() {
   esac
 }
 
-function typeart_is_wrapper_disabled() {
+function typeart_is_wrapper_disabled_fn() {
   case "${TYPEART_WRAPPER}" in
   off | OFF | 0 | false | FALSE)
     return 1
@@ -45,7 +45,7 @@ function typeart_is_wrapper_disabled() {
   return 0
 }
 
-function global_init() {
+function typeart_global_init_fn() {
   local -r typeart_use_rel_path=@TYPEART_RELOCATABLE@
   if [ "$typeart_use_rel_path" == 0 ]; then
     local -r typeart_bin_dir="@TYPEART_BINARY_DIR@"
@@ -62,9 +62,9 @@ function global_init() {
     local -r typeart_pass="${typeart_lib_dir}/$<TARGET_FILE_NAME:typeart::TransformPass>"
   fi
 
-  readonly compiler="@TYPEART_COMPILER@"
-  readonly opt_tool="@TYPEART_OPT@"
-  readonly llc_tool="@TYPEART_LLC@"
+  readonly typeart_compiler="@TYPEART_COMPILER@"
+  readonly typeart_opt_tool="@TYPEART_OPT@"
+  readonly typeart_llc_tool="@TYPEART_LLC@"
 
   readonly typeart_includes="${typeart_include_dir}"
   readonly typeart_ldflags="-L${typeart_lib_dir}/ \
@@ -81,10 +81,11 @@ function global_init() {
   typeart_cmdline_args_heap=""
   typeart_cmdline_args_stack=""
 
-  global_environment_variable_init
+  typeart_global_env_var_init_fn
 }
 
-function is_linking() {
+function typeart_is_typeart_linking_fn() {
+  local arg=""
   for arg in "$@"; do
     case "$arg" in
     -c | -S | -E)
@@ -95,7 +96,8 @@ function is_linking() {
   return 1
 }
 
-function has_source() {
+function typeart_has_source_fn() {
+  local arg=""
   for arg in "$@"; do
     local extension_of_arg="${arg##*.}"
     case "$extension_of_arg" in
@@ -107,8 +109,9 @@ function has_source() {
   return 0
 }
 
-function skip_typeart_compile() {
+function typeart_skip_fn() {
   # -E inline header; -M list (all) headers; -MM list file deps
+  local arg=""
   for arg in "$@"; do
     case "$arg" in
     -E | -M | -MM)
@@ -119,15 +122,15 @@ function skip_typeart_compile() {
   return 0
 }
 
-function try_extract_source() {
+function typeart_try_extract_source_fn() {
   # $1 == flag (source file); $2 == shift value
   local -r extension="${1##*.}"
   local -r shift_val="$2"
 
   case "$extension" in
   cpp | cxx | cc | c)
-    source_file="$1"
-    found_src_file=1
+    typeart_source_file="$1"
+    typeart_found_src_file=1
     return "$shift_val"
     ;;
   *)
@@ -136,24 +139,24 @@ function try_extract_source() {
   esac
 }
 
-function handle_source_flag() {
+function typeart_handle_source_flag_fn() {
   if [ -n "$2" ]; then
-    try_extract_source "$2" 2
+    typeart_try_extract_source_fn "$2" 2
   else
-    try_extract_source "$1" 1
+    typeart_try_extract_source_fn "$1" 1
   fi
   return $?
 }
 
-function try_extract_object() {
+function typeart_try_extract_object_fn() {
   # $1 == flag (obj file); $2 == shift value
   local -r extension="${1##*.}"
   local -r shift_val="$2"
 
   case "$extension" in
   o)
-    object_file="$1"
-    found_obj_file=1
+    typeart_object_file="$1"
+    typeart_found_obj_file=1
     return "$shift_val"
     ;;
   *)
@@ -164,22 +167,22 @@ function try_extract_object() {
 
 function handle_object_flag() {
   if [ -n "$2" ]; then
-    try_extract_object "$2" 2
+    typeart_try_extract_object_fn "$2" 2
   else
-    try_extract_object "$1" 1
+    typeart_try_extract_object_fn "$1" 1
   fi
   return $?
 }
 
-function handle_binary() {
+function typeart_handle_binary_fn() {
   if [ -n "$2" ]; then
-    exe_file="$2"
-    found_exe_file=1
+    typeart_exe_file="$2"
+    typeart_found_exe_file=1
   fi
   return 2
 }
 
-function parse_typeart_cmd_line() {
+function typeart_parse_typeart_cmd_line_fn() {
   typeart_other_args=""
 
   while (("$#")); do
@@ -208,24 +211,24 @@ function parse_typeart_cmd_line() {
 }
 
 # shellcheck disable=SC2034
-function parse_cmd_line() {
-  found_src_file=0
-  found_obj_file=0
-  found_exe_file=0
-  found_fpic=0
-  skip_typeart=0
+function typeart_parse_cmd_line_fn() {
+  typeart_found_src_file=0
+  typeart_found_obj_file=0
+  typeart_found_exe_file=0
+  typeart_found_fpic=0
+  typeart_skip=0
   typeart_to_asm=0
-  exe_file=""
-  source_file=""
-  object_file=""
-  asm_file=""
+  typeart_exe_file=""
+  typeart_source_file=""
+  typeart_object_file=""
+  typeart_asm_file=""
   typeart_wrapper_more_args=""
-  optimize=""
+  typeart_optimize=""
 
   while (("$#")); do
     case "$1" in
     -O?)
-      optimize=$1
+      typeart_optimize=$1
       shift
       ;;
     -MT)
@@ -242,39 +245,39 @@ function parse_cmd_line() {
       if [ "$1" == "-S" ]; then
         typeart_to_asm=1
       fi
-      handle_source_flag "$1" "$2"
+      typeart_handle_source_flag_fn "$1" "$2"
       shift $?
       ;;
     *.s)
-      asm_file="$1"
+      typeart_asm_file="$1"
       shift 1
       ;;
     *.cpp | *.cxx | *.cc | *.c)
-      handle_source_flag "$1"
+      typeart_handle_source_flag_fn "$1"
       shift $?
       ;;
     -o)
       # shellcheck disable=SC2154
-      if [ "$linking" == 1 ]; then
-        handle_binary "$1" "$2"
+      if [ "$typeart_linking" == 1 ]; then
+        typeart_handle_binary_fn "$1" "$2"
       else
         handle_object_flag "$1" "$2"
       fi
       shift $?
       ;;
     *.o)
-      if [ "$linking" == 0 ]; then
+      if [ "$typeart_linking" == 0 ]; then
         handle_object_flag "$1"
         shift $?
       else
-        # when linking, we don't care about object files
+        # when typeart_linking, we don't care about object files
         typeart_wrapper_more_args="$typeart_wrapper_more_args $1"
         shift
       fi
       ;;
     -fPIC)
       # llc requires special flag
-      found_fpic=1
+      typeart_found_fpic=1
       typeart_wrapper_more_args="$typeart_wrapper_more_args $1"
       shift
       ;;
@@ -287,99 +290,99 @@ function parse_cmd_line() {
   # set other positional arguments in their proper place
   eval set -- "typeart_wrapper_more_args"
 
-  if [ -z "${optimize}" ]; then
-    optimize=-O0
+  if [ -z "${typeart_optimize}" ]; then
+    typeart_optimize=-O0
   fi
 }
 
-function parse_commands() {
-  parse_typeart_cmd_line "$@"
-  parse_cmd_line ${typeart_other_args}
+function typeart_parse_commands_fn() {
+  typeart_parse_typeart_cmd_line_fn "$@"
+  typeart_parse_cmd_line_fn ${typeart_other_args}
 }
 
-function main_link() {
+function typeart_main_link_fn() {
   # shellcheck disable=SC2086 disable=SC2068
-  $compiler ${typeart_includes} ${typeart_ldflags} ${typeart_san_flags} $@
+  $typeart_compiler ${typeart_includes} ${typeart_ldflags} ${typeart_san_flags} $@
 }
 
 
 # shellcheck disable=SC2068
-function typeart_opt_redirect() {
+function typeart_opt_redirect_fn() {
   # First argument of $@ must be "redirect file name"
   # Rest are the std arguments for opt
   if [ -z ${typeart_wrapper_emit_ir} ] || [ ${typeart_wrapper_emit_ir} -eq 0 ]; then
-    $opt_tool ${@:2}
+    $typeart_opt_tool ${@:2}
   else
-    $opt_tool -S ${@:2} | tee "${@:1:1}"
+    $typeart_opt_tool -S ${@:2} | tee "${@:1:1}"
   fi
 }
 
-function main_compile() {
-  if [ -z "${object_file}" ]; then
-    # if no object file is specified, use filename(source_file).o
-    object_file="${source_file%.*}".o
+function typeart_main_compile_fn() {
+  if [ -z "${typeart_object_file}" ]; then
+    # if no object file is specified, use filename(typeart_source_file).o
+    typeart_object_file="${typeart_source_file%.*}".o
   fi
 
-  if [ "$typeart_to_asm" == 1 ] && [ -z "${asm_file}" ]; then
-    # if no asm file is specified, use filename(source_file).s
-    local asm_file="${source_file%.*}".s
+  if [ "$typeart_to_asm" == 1 ] && [ -z "${typeart_asm_file}" ]; then
+    # if no asm file is specified, use filename(typeart_source_file).s
+    local typeart_asm_file="${typeart_source_file%.*}".s
   fi
 
-  local out_basename="${source_file%.*}"
-  local out_file="${object_file}"
+  local out_basename="${typeart_source_file%.*}"
+  local out_file="${typeart_object_file}"
   local llc_flags="--filetype=obj"
 
   if [ "$typeart_to_asm" == 1 ]; then
     local llc_flags="--filetype=asm"
-    local out_file="${asm_file}"
+    local out_file="${typeart_asm_file}"
   fi
 
-  if [ "$found_fpic" == 1 ]; then
+  if [ "$typeart_found_fpic" == 1 ]; then
     local llc_flags="$llc_flags --relocation-model=pic"
   fi
 
   # shellcheck disable=SC2086
-  $compiler ${typeart_wrapper_more_args} ${typeart_includes} ${typeart_san_flags} \
-    -O1 -Xclang -disable-llvm-passes -S -emit-llvm "${source_file}" -o - |
-    typeart_opt_redirect "${out_basename}"_heap.ll ${typeart_plugin} ${typeart_heap_mode_args} ${typeart_cmdline_args_heap}  |
-    typeart_opt_redirect "${out_basename}"_opt.ll ${optimize} |
-    typeart_opt_redirect "${out_basename}"_stack.ll ${typeart_plugin} ${typeart_stack_mode_args} ${typeart_cmdline_args_stack} |
-    $llc_tool -x=ir ${llc_flags} -o "${out_file}"
+  $typeart_compiler ${typeart_wrapper_more_args} ${typeart_includes} ${typeart_san_flags} \
+    -O1 -Xclang -disable-llvm-passes -S -emit-llvm "${typeart_source_file}" -o - |
+    typeart_opt_redirect_fn "${out_basename}"_heap.ll ${typeart_plugin} ${typeart_heap_mode_args} ${typeart_cmdline_args_heap}  |
+    typeart_opt_redirect_fn "${out_basename}"_opt.ll ${typeart_optimize} |
+    typeart_opt_redirect_fn "${out_basename}"_stack.ll ${typeart_plugin} ${typeart_stack_mode_args} ${typeart_cmdline_args_stack} |
+    $typeart_llc_tool -x=ir ${llc_flags} -o "${out_file}"
 }
 
-function main_in() {
-  global_init
+function typeart_main_driver_fn() {
+  typeart_global_init_fn
 
-  typeart_is_wrapper_disabled
+  typeart_is_wrapper_disabled_fn
   readonly typeart_disabled=$?
-  skip_typeart_compile "$@"
+  typeart_skip_fn "$@"
   if [ "$?" == 1 ] || [ "$typeart_disabled" == 1 ]; then
     # shellcheck disable=SC2068
-    $compiler $@
+    $typeart_compiler $@
     return 0
   fi
 
-  is_linking "$@"
-  local -r linking=$?
-  has_source "$@"
+  typeart_is_typeart_linking_fn "$@"
+  local -r typeart_linking=$?
+  typeart_has_source_fn "$@"
   local -r with_source=$?
 
-  if [ "$linking" == 1 ] && [ "$with_source" == 1 ]; then
-    parse_commands "$@"
-    main_compile "$@"
-    if [ "$found_exe_file" == 1 ]; then
-      typeart_wrapper_more_args+=" -o ${exe_file}"
+  if [ "$typeart_linking" == 1 ] && [ "$with_source" == 1 ]; then
+    typeart_parse_commands_fn "$@"
+    typeart_main_compile_fn "$@"
+    if [ "$typeart_found_exe_file" == 1 ]; then
+      typeart_wrapper_more_args+=" -o ${typeart_exe_file}"
     fi
-    main_link "$typeart_wrapper_more_args" "${object_file}"
-    if [ -f "${object_file}" ]; then
-      rm "${object_file}"
+    typeart_main_link_fn "$typeart_wrapper_more_args" "${typeart_object_file}"
+    if [ -f "${typeart_object_file}" ]; then
+      rm "${typeart_object_file}"
     fi
-  elif [ "$linking" == 1 ]; then
-    main_link "$@"
+  elif [ "$typeart_linking" == 1 ]; then
+    typeart_main_link_fn "$@"
   else
-    parse_commands "$@"
-    main_compile "$@"
+    typeart_parse_commands_fn "$@"
+    typeart_main_compile_fn "$@"
   fi
 }
 
-main_in "$@"
+typeart_main_driver_fn "$@"
