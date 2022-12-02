@@ -80,8 +80,14 @@ function typeart_global_init_fn() {
   # Used for values passed to wrapper:
   typeart_cmdline_args_heap=""
   typeart_cmdline_args_stack=""
-
   typeart_global_env_var_init_fn
+
+  readonly typeart_to_llvm_flags="-O1 -Xclang -disable-llvm-passes -S -emit-llvm"
+  if [ -z ${typeart_wrapper_emit_ir} ] || [ ${typeart_wrapper_emit_ir} -eq 0 ]; then
+    typeart_to_llvm_more_flags=""
+  else
+    typeart_to_llvm_more_flags="-fno-discard-value-names"
+  fi
 }
 
 function typeart_is_typeart_linking_fn() {
@@ -343,7 +349,7 @@ function typeart_main_compile_fn() {
 
   # shellcheck disable=SC2086
   $typeart_compiler ${typeart_wrapper_more_args} ${typeart_includes} ${typeart_san_flags} \
-    -O1 -Xclang -disable-llvm-passes -S -emit-llvm "${typeart_source_file}" -o - |
+    ${typeart_to_llvm_flags} ${typeart_to_llvm_more_flags} "${typeart_source_file}" -o - |
     typeart_opt_redirect_fn "${out_basename}"_heap.ll ${typeart_plugin} ${typeart_heap_mode_args} ${typeart_cmdline_args_heap}  |
     typeart_opt_redirect_fn "${out_basename}"_opt.ll ${typeart_optimize} |
     typeart_opt_redirect_fn "${out_basename}"_stack.ll ${typeart_plugin} ${typeart_stack_mode_args} ${typeart_cmdline_args_stack} |
