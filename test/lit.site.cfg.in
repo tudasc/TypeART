@@ -10,6 +10,7 @@ config.opt_args = "@TYPEART_OPT_ARGS@"
 config.llc = "@TYPEART_LLC_EXEC@"
 config.filecheck = "@TYPEART_FILECHECK_EXEC@"
 
+config.typeart_project_dir = "@TYPEARTPASS_PROJECT_DIR@"
 config.typeart_base_lib_dir = "@TYPEARTPASS_BASE_LIBRARY_DIR@"
 config.typeart_obj_root = "@TYPEARTPASS_BINARY_DIR@"
 config.typeart_lib_dir = "@TYPEARTPASS_LIBRARY_DIR@"
