@@ -126,7 +126,8 @@ def view_typeart_ir(config):
 
 def rm_ir_files(config):
     for file in config.ir_files:
-        os.remove(file)
+        if file.exists():
+            os.remove(file)
     if config.types_file.exists():
         os.remove(config.types_file)
 
@@ -138,7 +139,9 @@ class ViewerConfig:
         if args.count(" -- ") > 0:
             self.wrapper_args = args.split(" -- ")[1].split(" ")
             logging.debug(f"User arguments for wrapper \'{self.wrapper_args}\'")
-        arg_viewer, _ = parser.parse_known_args(args=args_v, namespace=self)
+            parser.parse_known_args(args=args.split(" -- ")[0].split(" "), namespace=self)
+        else:
+            parser.parse_known_args(args=args_v, namespace=self)
         self.source_file = pathlib.Path(self.source_file).absolute().resolve()
         self.types_file = pathlib.Path(self.source_file.parent, self.source_file.stem + "-types-ir-viewer.yaml")
         self.ir_files = fetch_typeart_ir_files(self.source_file, self.mode_skip)
