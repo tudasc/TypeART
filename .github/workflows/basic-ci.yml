@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-20.04
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Format source code
         run: |
@@ -35,7 +35,7 @@ jobs:
     runs-on: ubuntu-20.04
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: codespell-project/actions-codespell@master
 
   lit-suite:
@@ -60,7 +60,7 @@ jobs:
             skip_test: true
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Update apt
         run: sudo apt-get update
@@ -118,7 +118,7 @@ jobs:
 
       - name: Upload test coverage artifact
         if: matrix.preset.coverage
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: typeart-ci-coverage
           path: artifact
