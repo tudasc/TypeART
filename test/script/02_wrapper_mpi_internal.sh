@@ -19,6 +19,6 @@ source "$1" --version
 # wcc-NEXT: opt{{(-10|-11|-12|-13|-14)?}}
 # wcc-NEXT: llc{{(-10|-11|-12|-13|-14)?}}
 echo "TypeART-Toolchain:"
-echo "$compiler"
-echo "$opt_tool"
-echo "$llc_tool"
+echo "$typeart_compiler"
+echo "$typeart_opt_tool"
+echo "$typeart_llc_tool"
