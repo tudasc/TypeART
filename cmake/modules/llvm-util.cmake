@@ -69,8 +69,7 @@ function(typeart_find_llvm_progs target names)
   endif()
 
   if(NOT ${target})
-    set(target_missing_message "Did not find LLVM program ${names} in ${LLVM_TOOLS_BINARY_DIR} "
-                 ", in system path or hints ${ARG_HINTS}.")
+    set(target_missing_message "")
     if(ARG_DEFAULT_EXE)
       unset(${target} CACHE)
       set(${target}
@@ -79,14 +78,18 @@ function(typeart_find_llvm_progs target names)
           STRING
           "Default value for ${TARGET_TMP}."
       )
-      set(target_missing_message "${target_missing_message} Using default: ${ARG_DEFAULT_EXE}")
-    endif()
-    if(ARG_ABORT_IF_MISSING AND NOT ARG_DEFAULT_EXE)
-      message(SEND_ERROR ${target_missing_message})
-    else()
-      message(STATUS ${target_missing_message})
+      set(target_missing_message "Using default: ${ARG_DEFAULT_EXE}")
     endif()
 
+    set(message_status STATUS)
+    if(ARG_ABORT_IF_MISSING AND NOT ARG_DEFAULT_EXE)
+      set(message_status SEND_ERROR)
+    endif()
+    message(${message_status}
+      "Did not find LLVM program " "${names}"
+      " in ${LLVM_TOOLS_BINARY_DIR}, in system path or hints " "\"${ARG_HINTS}\"" ". "
+      ${target_missing_message}
+    )
   endif()
 
   if(ARG_SHOW_VAR)
