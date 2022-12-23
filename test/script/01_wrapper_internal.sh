@@ -22,113 +22,160 @@ source "$1" --version
 # wcc-NEXT: opt{{(-10|-11|-12|-13|-14)?}}
 # wcc-NEXT: llc{{(-10|-11|-12|-13|-14)?}}
 echo "TypeART-Toolchain:"
-echo "$compiler"
-echo "$opt_tool"
-echo "$llc_tool"
+echo "$typeart_compiler"
+echo "$typeart_opt_tool"
+echo "$typeart_llc_tool"
 
 # CHECK: 0
 # wrapper-off: 1
-is_wrapper_disabled
+typeart_is_wrapper_disabled_fn
 echo $?
 
 # CHECK: 1
-is_linking -o binary
+typeart_is_linking_fn -o binary
 echo $?
 
 # CHECK: 1
-is_linking main.o -o binary
+typeart_is_linking_fn main.o -o binary
 echo $?
 
 # CHECK: 0
-is_linking -c
+typeart_is_linking_fn -c
 echo $?
 
 # CHECK: 1
-skip_typeart_compile -E main.c
+typeart_skip_compile_fn -E main.c
 echo $?
 
-function parse_check() {
+function typeart_lit_parse_check_fn() {
   echo \
-    "$found_src_file" "$found_obj_file" "$found_exe_file" \
-    "$found_fpic" "$skip_typeart" "$typeart_to_asm" \
-    "${optimize}"
+    "$typeart_found_src_file" "$typeart_found_obj_file" "$typeart_found_exe_file" \
+    "$typeart_found_fpic" "$typeart_skip" "$typeart_to_asm" \
+    "${typeart_optimize}"
 
-  echo "${source_file:-es}" "${object_file:-eo}" "${asm_file:-ea}" "${exe_file:-eb}"
+  echo "${typeart_source_file:-es}" "${typeart_object_file:-eo}" "${typeart_asm_file:-ea}" "${typeart_exe_file:-eb}"
 }
 
 # CHECK: 1 0 0 1 0 0 -O0
 # CHECK-NEXT: tool.c eo ea eb
-parse_cmd_line -shared -fPIC tool.c -o libtool.so
-parse_check
+typeart_parse_cmd_line_fn -shared -fPIC tool.c -o libtool.so
+typeart_lit_parse_check_fn
 
 # CHECK: 1 1 0 0 0 0 -O1
 # CHECK-NEXT: main.c main.o ea eb
-parse_cmd_line -O1 -g -c -o main.o main.c
-parse_check
+typeart_parse_cmd_line_fn -O1 -g -c -o main.o main.c
+typeart_lit_parse_check_fn
 
 # a linker call:
 # CHECK: 0 0 0 0 0 0 -O0
 # CHECK-NEXT: es eo ea eb
-parse_cmd_line main.o -o binary
-parse_check
+typeart_parse_cmd_line_fn main.o -o binary
+typeart_lit_parse_check_fn
 
 # CHECK: 1 1 0 0 0 0 -O3
 # CHECK-NEXT: lulesh.cc lulesh.o ea eb
 # CHECK-NEXT: -DUSE_MPI=1 -g -I. -Wall
-parse_cmd_line -DUSE_MPI=1 -g -I. -Wall -O3 -c -o lulesh.o lulesh.cc
-parse_check
-echo "${ta_more_args}"
+typeart_parse_cmd_line_fn -DUSE_MPI=1 -g -I. -Wall -O3 -c -o lulesh.o lulesh.cc
+typeart_lit_parse_check_fn
+echo "${typeart_wrapper_more_args}"
 
 # a linker call:
 # CHECK: 0 0 0 0 0 0 -O3
 # CHECK-NEXT: es eo ea eb
 # CHECK-NEXT: -DUSE_MPI=1 lulesh.o lulesh-comm.o lulesh-viz.o lulesh-util.o lulesh-init.o -g -lm lulesh2.0
-parse_cmd_line -DUSE_MPI=1 lulesh.o lulesh-comm.o lulesh-viz.o lulesh-util.o lulesh-init.o -g -O3 -lm -o lulesh2.0
-parse_check
-echo "${ta_more_args}"
+typeart_parse_cmd_line_fn -DUSE_MPI=1 lulesh.o lulesh-comm.o lulesh-viz.o lulesh-util.o lulesh-init.o -g -O3 -lm -o lulesh2.0
+typeart_lit_parse_check_fn
+echo "${typeart_wrapper_more_args}"
 
 # CHECK: 1 1 0 0 0 0 -O2
 # CHECK-NEXT: io_nonansi.c io_nonansi.o ea eb
 # CHECK-NEXT: -I. -DFN -DFAST -DCONGRAD_TMP_VECTORS -DDSLASH_TMP_LINKS -g
-parse_cmd_line -c -I. -DFN -DFAST -DCONGRAD_TMP_VECTORS -DDSLASH_TMP_LINKS -g -O2 io_nonansi.c -o io_nonansi.o
-parse_check
-echo "${ta_more_args}"
+typeart_parse_cmd_line_fn -c -I. -DFN -DFAST -DCONGRAD_TMP_VECTORS -DDSLASH_TMP_LINKS -g -O2 io_nonansi.c -o io_nonansi.o
+typeart_lit_parse_check_fn
+echo "${typeart_wrapper_more_args}"
 
 # CHECK: 1 1 0 0 0 0 -O2
 # CHECK-NEXT: mgfparse.c mgfparse.o ea eb
 # CHECK-NEXT: -DSPEC_MPI -DNDEBUG -g
-parse_cmd_line -DSPEC_MPI -DNDEBUG -g -O2 -c mgfparse.c -o mgfparse.o
-parse_check
-echo "${ta_more_args}"
+typeart_parse_cmd_line_fn -DSPEC_MPI -DNDEBUG -g -O2 -c mgfparse.c -o mgfparse.o
+typeart_lit_parse_check_fn
+echo "${typeart_wrapper_more_args}"
 
 # CHECK: 1 1 0 0 0 0 -O2
 # CHECK-NEXT: amg2013.c amg2013.o ea eb
 # CHECK-NEXT: -I.. -I../utilities -I../struct_mv -I../sstruct_mv -I../IJ_mv -I../seq_mv -I../parcsr_mv -I../parcsr_ls -I../krylov -DHYPRE_USING_OPENMP -DTIMER_USE_MPI -DHYPRE_LONG_LONG -DHYPRE_NO_GLOBAL_PARTITION -g -fopenmp -DHYPRE_TIMING
-parse_cmd_line -o amg2013.o -c -I.. -I../utilities -I../struct_mv -I../sstruct_mv -I../IJ_mv -I../seq_mv -I../parcsr_mv -I../parcsr_ls -I../krylov -DHYPRE_USING_OPENMP -DTIMER_USE_MPI -DHYPRE_LONG_LONG -DHYPRE_NO_GLOBAL_PARTITION -O2 -g -fopenmp -DHYPRE_TIMING amg2013.c
-parse_check
-echo "${ta_more_args}"
+typeart_parse_cmd_line_fn -o amg2013.o -c -I.. -I../utilities -I../struct_mv -I../sstruct_mv -I../IJ_mv -I../seq_mv -I../parcsr_mv -I../parcsr_ls -I../krylov -DHYPRE_USING_OPENMP -DTIMER_USE_MPI -DHYPRE_LONG_LONG -DHYPRE_NO_GLOBAL_PARTITION -O2 -g -fopenmp -DHYPRE_TIMING amg2013.c
+typeart_lit_parse_check_fn
+echo "${typeart_wrapper_more_args}"
 
 # a linker call:
 # CHECK: 0 0 0 0 0 0 -O0
 # CHECK-NEXT: es eo ea eb
 # CHECK-NEXT: -L. -L../parcsr_ls -L../parcsr_mv -L../IJ_mv -L../seq_mv -L../sstruct_mv -L../struct_mv -L../krylov -L../utilities -lparcsr_ls -lparcsr_mv -lseq_mv -lsstruct_mv -lIJ_mv -lHYPRE_struct_mv -lkrylov -lHYPRE_utilities -lm -fopenmp
-parse_cmd_line -o amg2013 amg2013.o -L. -L../parcsr_ls -L../parcsr_mv -L../IJ_mv -L../seq_mv -L../sstruct_mv -L../struct_mv -L../krylov -L../utilities -lparcsr_ls -lparcsr_mv -lseq_mv -lsstruct_mv -lIJ_mv -lHYPRE_struct_mv -lkrylov -lHYPRE_utilities -lm -fopenmp
-parse_check
-echo "${ta_more_args}"
+typeart_parse_cmd_line_fn -o amg2013 amg2013.o -L. -L../parcsr_ls -L../parcsr_mv -L../IJ_mv -L../seq_mv -L../sstruct_mv -L../struct_mv -L../krylov -L../utilities -lparcsr_ls -lparcsr_mv -lseq_mv -lsstruct_mv -lIJ_mv -lHYPRE_struct_mv -lkrylov -lHYPRE_utilities -lm -fopenmp
+typeart_lit_parse_check_fn
+echo "${typeart_wrapper_more_args}"
 
 # a linker call:
 # CHECK: 0 0 1 1 0 0 -O0
 # CHECK-NEXT: es eo ea libtool.so
 # CHECK-NEXT: -fPIC -shared -Wl,-soname,libtool.so CMakeFiles/tool.dir/tool.c.o
-linking=1 # This call would typically not be passed to parse_cmd_line, linking is required for proper parsing.
-parse_cmd_line -fPIC -shared -Wl,-soname,libtool.so -o libtool.so CMakeFiles/tool.dir/tool.c.o
-linking=0
-parse_check
-echo "${ta_more_args}"
+typeart_linking=1 # This call would typically not be passed to typeart_parse_cmd_line_fn, linking is required for proper parsing.
+typeart_parse_cmd_line_fn -fPIC -shared -Wl,-soname,libtool.so -o libtool.so CMakeFiles/tool.dir/tool.c.o
+typeart_linking=0
+typeart_lit_parse_check_fn
+echo "${typeart_wrapper_more_args}"
 
 # CHECK: 1 1 0 1 0 0 -O0
 # CHECK-NEXT: typeart/demo/tool.c CMakeFiles/tool.dir/tool.c.o ea eb
 # CHECK-NEXT: -Dtool_EXPORTS -fPIC -MD -MT CMakeFiles/tool.dir/tool.c.o -MF CMakeFiles/tool.dir/tool.c.o.d
-parse_cmd_line -Dtool_EXPORTS  -fPIC -MD -MT CMakeFiles/tool.dir/tool.c.o -MF CMakeFiles/tool.dir/tool.c.o.d -o CMakeFiles/tool.dir/tool.c.o -c typeart/demo/tool.c
-parse_check
-echo "${ta_more_args}"
+typeart_parse_cmd_line_fn -Dtool_EXPORTS  -fPIC -MD -MT CMakeFiles/tool.dir/tool.c.o -MF CMakeFiles/tool.dir/tool.c.o.d -o CMakeFiles/tool.dir/tool.c.o -c typeart/demo/tool.c
+typeart_lit_parse_check_fn
+echo "${typeart_wrapper_more_args}"
+
+# CHECK: /some/file.yaml
+# CHECK-NEXT: /some/file_stack.yaml
+# CHECK-NEXT: -O3 -fPIC
+typeart_parse_typeart_cmd_line_fn --typeart-heap-config=/some/file.yaml --typeart-stack-config=/some/file_stack.yaml -O3 -fPIC
+echo "${typeart_cmdline_args_heap}"
+echo "${typeart_cmdline_args_stack}"
+echo "${typeart_other_args}"
+
+# CHECK: /some/file.yaml
+# CHECK-NEXT: /some/file.yaml
+# CHECK-NEXT: -O3 -fPIC
+typeart_parse_typeart_cmd_line_fn --typeart-config=/some/file.yaml -O3 -fPIC
+echo "${typeart_cmdline_args_heap}"
+echo "${typeart_cmdline_args_stack}"
+echo "${typeart_other_args}"
+
+# CHECK: x
+# CHECK-NEXT: x
+typeart_global_env_var_init_fn
+echo "${typeart_cmdline_args_heap+x}"
+echo "${typeart_cmdline_args_stack+x}"
+
+# CHECK: some/env/file.yaml
+# CHECK-NEXT: some/env/file.yaml
+TYPEART_WRAPPER_CONFIG="some/env/file.yaml"
+typeart_global_env_var_init_fn
+echo "${typeart_cmdline_args_heap}"
+echo "${typeart_cmdline_args_stack}"
+
+# CHECK: some/env/file_heap.yaml
+# CHECK-NEXT: some/env/file_stack.yaml
+TYPEART_WRAPPER_CONFIG=""
+TYPEART_WRAPPER_HEAP_CONFIG="some/env/file_heap.yaml"
+TYPEART_WRAPPER_STACK_CONFIG="some/env/file_stack.yaml"
+typeart_global_env_var_init_fn
+echo "${typeart_cmdline_args_heap}"
+echo "${typeart_cmdline_args_stack}"
+
+# CHECK: 0
+typeart_global_env_var_init_fn
+echo "${typeart_wrapper_emit_ir}"
+
+# CHECK: 1
+TYPEART_WRAPPER_EMIT_IR=1
+typeart_global_env_var_init_fn
+echo "${typeart_wrapper_emit_ir}"

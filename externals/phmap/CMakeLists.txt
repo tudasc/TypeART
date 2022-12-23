@@ -2,7 +2,7 @@ FetchContent_Declare(
   phmap_phmap
   GIT_REPOSITORY https://github.com/greg7mdp/parallel-hashmap.git
   GIT_SHALLOW 1
-  GIT_TAG 48e86db1f4ebc85145d384ba061c4f615cb3106f
+  GIT_TAG 1.35
 )
 
 FetchContent_GetProperties(phmap_phmap)

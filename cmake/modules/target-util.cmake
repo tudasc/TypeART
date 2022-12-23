@@ -32,7 +32,7 @@ function(typeart_target_compile_definitions target)
 
   if (ARG_PRIVATE_DEFS)
     target_compile_definitions(${target} PRIVATE
-      "${ARG_PRIVATE_DEFS}"
+      "${ARG_PR mIVATE_DEFS}"
     )
   endif ()
 

@@ -1,6 +1,6 @@
 // clang-format off
-// RUN: %c-to-llvm %s | %apply-typeart -typeart-stack -typeart-call-filter -typeart-call-filter-impl=cg -typeart-call-filter-cg-file=%p/04_cg.ipcg -S 2>&1 | %filecheck %s
-// RUN: %c-to-llvm %s | %apply-typeart -typeart-stack -typeart-call-filter -S 2>&1 | %filecheck %s --check-prefix=CHECK-default
+// RUN: %c-to-llvm %s | %apply-typeart --typeart-stack --typeart-filter --typeart-filter-implementation=cg --typeart-filter-cg-file=%p/04_cg.ipcg -S 2>&1 | %filecheck %s
+// RUN: %c-to-llvm %s | %apply-typeart --typeart-stack --typeart-filter -S 2>&1 | %filecheck %s --check-prefix=CHECK-default
 // clang-format on
 
 extern void bar(int* ptr);  // reaches MPI, see 04_cg.ipcg

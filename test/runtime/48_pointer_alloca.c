@@ -1,6 +1,6 @@
 // clang-format off
-// RUN: %run %s -typeart-filter-pointer-alloca=true 2>&1 | %filecheck %s
-// RUN: %run %s -typeart-filter-pointer-alloca=false 2>&1 | %filecheck %s --check-prefix CHECK-pointer
+// RUN: %run %s --typeart-analysis-filter-pointer-alloca=true 2>&1 | %filecheck %s
+// RUN: %run %s --typeart-analysis-filter-pointer-alloca=false 2>&1 | %filecheck %s --check-prefix CHECK-pointer
 // clang-format on
 
 // REQUIRES: softcounter

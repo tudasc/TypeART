@@ -1,4 +1,4 @@
-// RUN: %c-to-llvm %s | %apply-typeart -typeart-stack -S 2>&1 | %filecheck %s
+// RUN: %c-to-llvm %s | %apply-typeart --typeart-stack -S 2>&1 | %filecheck %s
 
 void __typeart_leave_scope(int alloca_count);
 

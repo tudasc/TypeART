@@ -23,10 +23,10 @@ jobs:
           - name: release-unsafe-counter
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Checkout test-bench
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: tudasc/typeart-bench
           ssh-key: ${{ secrets.AUTH_SSH_CI_EXT }}
@@ -86,7 +86,7 @@ jobs:
           mv test-bench/artifact-${{ matrix.llvm-version }} artifact/bench
 
       - name: Upload test-bench artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: typeart-ci-ext
           path: artifact
@@ -101,16 +101,12 @@ jobs:
         preset:
           - name: release-counter
           - name: release-unsafe-counter
-        include:
-          - llvm-version: 12
-            preset:
-              name: release-safeptr-counter
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Checkout AD test-bench
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: ahueck/typeart-ad-benchmarks
           ssh-key: ${{ secrets.AUTH_SSH_CI_EXT_AD }}
@@ -159,7 +155,7 @@ jobs:
           mv ad-test-bench/artifact-${{ matrix.llvm-version }} artifact/ad-bench
 
       - name: Upload AD test-bench artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: typeart-ci-ext-ad
           path: artifact
@@ -179,10 +175,10 @@ jobs:
           - name: release-safeptr-counter
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Checkout OMP test-bench
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: tudasc/typeart-bench
           ssh-key: ${{ secrets.AUTH_SSH_CI_EXT }}
@@ -238,7 +234,7 @@ jobs:
           mv omp-test-bench/artifact-${{ matrix.llvm-version }} artifact/bench
 
       - name: Upload omp-test-bench artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: typeart-ci-ext-omp
           path: artifact

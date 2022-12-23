@@ -182,7 +182,11 @@ add_test(
 )
 
 if(TYPEART_TEST_CONFIGURE_IDE)
-  function(typeart_add_test_target_ide target header sources)
+  function(add_test_target_ide target header sources compile_std linker_language)
+    if(NOT sources)
+      return()
+    endif()
+
     add_executable(${target} EXCLUDE_FROM_ALL ${header} ${sources})
 
     add_dependencies(${target} ${TYPEART_TEST_DEPENDS})
@@ -192,7 +196,8 @@ if(TYPEART_TEST_CONFIGURE_IDE)
                         ${PROJECT_SOURCE_DIR}/lib/runtime
                         ${PROJECT_SOURCE_DIR}
     )
-
+    target_compile_features(${target} PUBLIC ${compile_std})
+    set_target_properties(${target} PROPERTIES LINKER_LANGUAGE ${linker_language})
     if(CUDAToolkit_FOUND)
       #enable_language(CUDA)
       target_link_libraries(${target} PRIVATE CUDA::cudart)
@@ -203,16 +208,14 @@ if(TYPEART_TEST_CONFIGURE_IDE)
 
   file(GLOB_RECURSE TYPEART_CXX_TESTS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
   file(GLOB_RECURSE TYPEART_CC_TESTS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.c)
-  file(GLOB_RECURSE TYPEART_TEST_HEADER CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
+  file(GLOB_RECURSE TYPEART_HEADER_TESTS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
 
-  typeart_add_test_target_ide(
-    typeart_cxx_test_objects "${TYPEART_TEST_HEADER}" "${TYPEART_CXX_TESTS}"
+  add_test_target_ide(typeart_cxx_test_objects
+    "${TYPEART_HEADER_TESTS}" "${TYPEART_CXX_TESTS}"
+    cxx_std_17 CXX
   )
-  set_target_properties(typeart_cxx_test_objects PROPERTIES LINKER_LANGUAGE CXX)
-  target_compile_features(typeart_cxx_test_objects PUBLIC cxx_std_17)
-  typeart_add_test_target_ide(
-    typeart_cc_test_objects "${TYPEART_TEST_HEADER}" "${TYPEART_CC_TESTS}"
+  add_test_target_ide(typeart_cc_test_objects
+    "${TYPEART_HEADER_TESTS}" "${TYPEART_CC_TESTS}"
+    c_std_99 C
   )
-  set_target_properties(typeart_cc_test_objects PROPERTIES LINKER_LANGUAGE C)
-  target_compile_features(typeart_cxx_test_objects PUBLIC c_std_99)
 endif()

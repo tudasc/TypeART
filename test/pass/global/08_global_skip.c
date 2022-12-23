@@ -1,6 +1,6 @@
-// RUN: %c-to-llvm %s | %apply-typeart -typeart-global -S 2>&1 | %filecheck %s
+// RUN: %c-to-llvm %s | %apply-typeart --typeart-global -S 2>&1 | %filecheck %s
 
-// RUN: %c-to-llvm %s | %apply-typeart -typeart-stack -typeart-global=false -S 2>&1 \
+// RUN: %c-to-llvm %s | %apply-typeart --typeart-stack --typeart-global=false -S 2>&1 \
 // RUN: | %filecheck %s --check-prefix CHECK-SKIP
 
 int global;
