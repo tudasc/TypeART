@@ -2,6 +2,7 @@
 // RUN: %s.exe 2>&1 | %filecheck %s
 
 // REQUIRES: cuda_runnable
+// UNSUPPORTED: sanitizer
 
 // CHECK: Alloc [[CU_POINTER:0x[0-9a-z]+]] 5 float 4 20 ({{.*}}) H
 // CHECK: Free [[CU_POINTER]] 5 float 4 20

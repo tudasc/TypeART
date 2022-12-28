@@ -1,12 +1,17 @@
-// RUN: %wrapper-cxx -x cuda --cuda-gpu-arch=sm_72 %s -o %s.exe
+// RUN: %wrapper-cxx -x cuda --cuda-gpu-arch=sm_50 %s -o %s.exe
 // RUN: cuda-memcheck --leak-check full %s.exe 2>&1 | %filecheck %s
 
 // REQUIRES: cuda_runnable && softcounter
+// UNSUPPORTED: sanitizer
 
 // CHECK: Status OK
 // CHECK: Status OK
 // CHECK: Status OK
 // CHECK: Status OK
+// CHECK: y[0] = 2
+// CHECK: y[1] = 4
+// CHECK: y[2] = 6
+// CHECK: y[3] = 8
 // CHECK: 5   :   2 ,    3 ,    1 , float
 
 #include "../../lib/runtime/RuntimeInterface.h"
