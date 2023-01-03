@@ -44,6 +44,10 @@ function(typeart_target_compile_definitions target)
 endfunction()
 
 function (typeart_target_generate_file input output)
+  set_property(
+    DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+      ${input}
+  )
   file(READ ${input} contents)
   string(CONFIGURE "${contents}" contents @ONLY)
   file(GENERATE
