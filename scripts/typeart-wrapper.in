@@ -230,6 +230,11 @@ function typeart_parse_cuda_cmd_line_fn() {
 
   while (("$#")); do
     case "$1" in
+    *.cu)
+      typeart_found_cuda=1
+      typeart_non_cuda_args="$typeart_non_cuda_args $1"
+      shift 1
+      ;;
     -x)
       if [ "$2" == "cuda" ]; then
         typeart_found_cuda=1
@@ -266,10 +271,6 @@ function typeart_parse_cuda_cmd_line_fn() {
       ;;
     esac
   done
-
-  if [ "${typeart_source_file##*.}" == "cu" ]; then
-    typeart_found_cuda=1
-  fi
   # set other positional arguments in their proper place
   set -- "typeart_non_cuda_args"
 }
