@@ -20,7 +20,6 @@ import subprocess
 import sys
 
 parser = argparse.ArgumentParser(prog='typeart-ir-viewer')
-parser.add_argument('source_file')
 parser.add_argument('-w', '--wrapper', default=None, help='TypeART wrapper')
 parser.add_argument('-p', '--compiledb', default='', help='Compilation database dir')
 parser.add_argument('-d', '--diff-viewer', default='meld', help='Diff viewer')
@@ -29,17 +28,23 @@ parser.add_argument('-s', '--skip-viewer', action='store_const', const=True, def
                     help='Only generate IR files, no diff viewer')
 parser.add_argument('-f', '--force-ir', action='store_const', const=True, default=False,
                     help='Always generate IR files')
-parser.add_argument('-m', '--mode-skip', default='', choices=['heap', 'opt', 'stack'],
-                    help='Skip viewing specified phase')
+parser.add_argument('-m', '--mode-skip', choices=['base', 'heap', 'opt', 'stack'],
+                    action='append', type=str,
+                    help='Skip viewing specified phase (default: \"base\")')
+parser.add_argument('source_file')
 
 
-def fetch_typeart_ir_files(source_path, mode_skip):
+def fetch_typeart_ir_files(source_path, mode_skip, clean_ir):
     source_dir = source_path.parent
     source_file_no_ext = source_path.stem
-    logging.debug(f"Generating ir_file paths for {source_path}. Base name: ({source_file_no_ext})")
-    ir_files = [pathlib.Path(source_dir, source_file_no_ext + ext) for ext in ['_heap.ll', '_opt.ll', '_stack.ll']]
-    if mode_skip:
-        ir_files = list(filter(lambda file: not str(file).endswith(mode_skip + '.ll'), ir_files))
+    logging.debug(
+        f"Generating ir_file paths for {source_path}. Base name: ({source_file_no_ext}) with skipped modes {mode_skip}")
+    ir_files = [pathlib.Path(source_dir, source_file_no_ext + ext) for ext in
+                ['_base.ll', '_heap.ll', '_opt.ll', '_stack.ll']]
+    if mode_skip and not clean_ir:
+        ir_files = list(
+            filter(lambda file: not any(str(file).endswith(mode_skip_arg + '.ll') for mode_skip_arg in mode_skip),
+                   ir_files))
     logging.debug(ir_files)
     return ir_files
 
@@ -139,12 +144,16 @@ class ViewerConfig:
         if args.count(" -- ") > 0:
             self.wrapper_args = args.split(" -- ")[1].split(" ")
             logging.debug(f"User arguments for wrapper \'{self.wrapper_args}\'")
+            test = args.split(" -- ")[0].split(" ")
+            logging.debug(f"Parse arguments for wrapper \'{test}\'")
             parser.parse_known_args(args=args.split(" -- ")[0].split(" "), namespace=self)
         else:
             parser.parse_known_args(args=args_v, namespace=self)
+        if not self.mode_skip:
+            self.mode_skip = ['base']
         self.source_file = pathlib.Path(self.source_file).absolute().resolve()
         self.types_file = pathlib.Path(self.source_file.parent, self.source_file.stem + "-types-ir-viewer.yaml")
-        self.ir_files = fetch_typeart_ir_files(self.source_file, self.mode_skip)
+        self.ir_files = fetch_typeart_ir_files(self.source_file, self.mode_skip, self.clean_ir)
 
 
 def main(args):

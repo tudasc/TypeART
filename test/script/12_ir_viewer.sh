@@ -17,6 +17,8 @@ cd "$3"
 # CHECK: 0
 # CHECK: 0
 # CHECK: 0
+# CHECK: 0
+exists 12_ir_viewer_target_base.ll
 exists 12_ir_viewer_target_heap.ll
 exists 12_ir_viewer_target_opt.ll
 exists 12_ir_viewer_target_stack.ll
@@ -26,6 +28,8 @@ python $1 -s -w "$2" 12_ir_viewer_target.c -- -g
 # CHECK: 1
 # CHECK: 1
 # CHECK: 1
+# CHECK: 1
+exists 12_ir_viewer_target_base.ll
 exists 12_ir_viewer_target_heap.ll
 exists 12_ir_viewer_target_opt.ll
 exists 12_ir_viewer_target_stack.ll
@@ -36,6 +40,8 @@ python $1 -c 12_ir_viewer_target.c
 # CHECK: 0
 # CHECK: 0
 # CHECK: 0
+# CHECK: 0
+exists 12_ir_viewer_target_base.ll
 exists 12_ir_viewer_target_heap.ll
 exists 12_ir_viewer_target_opt.ll
 exists 12_ir_viewer_target_stack.ll
