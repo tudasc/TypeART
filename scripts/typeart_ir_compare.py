@@ -24,7 +24,7 @@ parser.add_argument('source_file')
 parser.add_argument('-d', '--diff-viewer', default='meld', help='Diff viewer')
 parser.add_argument('-a', '--wrapper-a', help='TypeART wrapper path A')
 parser.add_argument('-b', '--wrapper-b', help='TypeART wrapper path B')
-parser.add_argument('-m', '--mode', default='heap', choices=['heap', 'opt', 'stack'],
+parser.add_argument('-m', '--mode', default='heap', choices=['base', 'heap', 'opt', 'stack'],
                     help='View diff of specified phase')
 parser.add_argument('-s', '--skip-viewer', action='store_const', const=True, default=False,
                     help='Only generate IR files, no diff viewer')
