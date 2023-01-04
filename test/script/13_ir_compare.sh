@@ -39,3 +39,11 @@ exists 12_ir_viewer_target_stack.ll-a
 exists 12_ir_viewer_target_stack.ll-b
 
 rm 12_ir_viewer_target_stack.ll-a 12_ir_viewer_target_stack.ll-b
+
+python $1 -s -m base -a "$2" -b "$3" 12_ir_viewer_target.c -- -g
+# CHECK: 1
+# CHECK: 1
+exists 12_ir_viewer_target_base.ll-a
+exists 12_ir_viewer_target_base.ll-b
+
+rm 12_ir_viewer_target_base.ll-a 12_ir_viewer_target_base.ll-b

@@ -230,11 +230,6 @@ function typeart_parse_cuda_cmd_line_fn() {
 
   while (("$#")); do
     case "$1" in
-    *.cu)
-      typeart_found_cuda=1
-      typeart_non_cuda_args="$typeart_non_cuda_args $1"
-      shift 1
-      ;;
     -x)
       if [ "$2" == "cuda" ]; then
         typeart_found_cuda=1
@@ -271,6 +266,10 @@ function typeart_parse_cuda_cmd_line_fn() {
       ;;
     esac
   done
+
+  if [ "${typeart_source_file##*.}" == "cu" ]; then
+    typeart_found_cuda=1
+  fi
   # set other positional arguments in their proper place
   set -- "typeart_non_cuda_args"
 }
@@ -401,14 +400,25 @@ function typeart_main_link_fn() {
 }
 
 # shellcheck disable=SC2068
-function typeart_opt_redirect_fn() {
+function typeart_redirect_fn() {
   # First argument of $@ must be "redirect file name"
   # Rest are the std arguments for opt
   if [ -z ${typeart_wrapper_emit_ir} ] || [ ${typeart_wrapper_emit_ir} -eq 0 ]; then
-    $typeart_opt_tool ${@:2}
+    $typeart_command_exe ${@:2}
   else
-    $typeart_opt_tool -S ${@:2} | tee "${@:1:1}"
+    # FIXME with clang, duplicate "-S"
+    $typeart_command_exe -S ${@:2} | tee "${@:1:1}"
   fi
+}
+
+function typeart_opt_fn() {
+  local typeart_command_exe="$typeart_opt_tool"
+  typeart_redirect_fn "$@"
+}
+
+function typeart_compiler_fn() {
+  local typeart_command_exe="$typeart_compiler"
+  typeart_redirect_fn "$@"
 }
 
 # shellcheck disable=SC2086
@@ -429,11 +439,11 @@ function typeart_compile_cuda_device_fn() {
 
 function typeart_compile_host_fn() {
   # shellcheck disable=SC2086
-  $typeart_compiler ${typeart_wrapper_more_args} ${typeart_includes} ${typeart_san_flags} \
+  typeart_compiler_fn "${out_basename}"_base.ll ${typeart_wrapper_more_args} ${typeart_includes} ${typeart_san_flags} \
     ${typeart_to_llvm_flags} ${typeart_to_llvm_more_flags} "${typeart_source_file}" -o - |
-    typeart_opt_redirect_fn "${out_basename}"_heap.ll ${typeart_plugin} ${typeart_heap_mode_args} ${typeart_cmdline_args_heap}  |
-    typeart_opt_redirect_fn "${out_basename}"_opt.ll ${typeart_optimize} |
-    typeart_opt_redirect_fn "${out_basename}"_stack.ll ${typeart_plugin} ${typeart_stack_mode_args} ${typeart_cmdline_args_stack} |
+    typeart_opt_fn "${out_basename}"_heap.ll ${typeart_plugin} ${typeart_heap_mode_args} ${typeart_cmdline_args_heap}  |
+    typeart_opt_fn "${out_basename}"_opt.ll ${typeart_optimize} |
+    typeart_opt_fn "${out_basename}"_stack.ll ${typeart_plugin} ${typeart_stack_mode_args} ${typeart_cmdline_args_stack} |
     $typeart_llc_tool -x=ir ${llc_flags} -o "${out_file}"
 }
 
