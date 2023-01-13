@@ -10,6 +10,10 @@
 // RUN: TYPEART_WRAPPER=OFF %wrapper-cc -c -emit-llvm -O1 %s -o %s-van.bc
 // RUN: cat %s-van.bc 2>&1 | %opt -S | %filecheck %s --check-prefixes vanilla-CHECK
 
+// RUN: %wrapper-cc -S -emit-llvm -O1 %s -o - | %filecheck %s
+
+// RUN: %wrapper-cc -emit-llvm -O1 %s -o - | %opt -S | %filecheck %s
+
 #include <stdlib.h>
 
 int main(int argc, char** argv) {
