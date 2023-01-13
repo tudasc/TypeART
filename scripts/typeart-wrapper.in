@@ -83,9 +83,8 @@ function typeart_global_init_fn() {
   typeart_global_env_var_init_fn
 
   readonly typeart_to_llvm_flags="-O1 -Xclang -disable-llvm-passes -c -emit-llvm"
-  if [ -z ${typeart_wrapper_emit_ir} ] || [ ${typeart_wrapper_emit_ir} -eq 0 ]; then
-    typeart_to_llvm_more_flags=""
-  else
+  typeart_to_llvm_more_flags=""
+  if [ ${typeart_wrapper_emit_ir} == 1 ]; then
     typeart_to_llvm_more_flags="-fno-discard-value-names"
   fi
 }
@@ -175,7 +174,7 @@ function typeart_try_extract_object_fn() {
   esac
 }
 
-function handle_object_flag() {
+function typeart_handle_object_flag() {
   if [ -n "$2" ]; then
     typeart_try_extract_object_fn "$2" 2
   else
@@ -211,13 +210,11 @@ function typeart_parse_typeart_cmd_line_fn() {
       shift
       ;;
     *) # preserve other arguments
-      typeart_other_args="$typeart_other_args $1"
+      typeart_other_args+=" $1"
       shift
       ;;
     esac
   done
-  # set other positional arguments in their proper place
-  set -- "typeart_other_args"
 }
 
 # shellcheck disable=SC2034
@@ -241,7 +238,7 @@ function typeart_parse_cmd_line_fn() {
     case "$1" in
     -O?)
       typeart_optimize=$1
-      shift
+      shift 1
       ;;
     -MT)
       if [ -n "$2" ]; then
@@ -254,6 +251,9 @@ function typeart_parse_cmd_line_fn() {
       ;;
     -S)
       typeart_to_asm=1
+      shift 1
+      ;;
+    -c)
       shift 1
       ;;
     *.s | *.bc | *.ll)
@@ -269,24 +269,24 @@ function typeart_parse_cmd_line_fn() {
       if [ "$typeart_linking" == 1 ]; then
         typeart_handle_binary_fn "$1" "$2"
       else
-        handle_object_flag "$1" "$2"
+        typeart_handle_object_flag "$1" "$2"
       fi
       shift $?
       ;;
     *.o)
       if [ "$typeart_linking" == 0 ]; then
-        handle_object_flag "$1"
+        typeart_handle_object_flag "$1"
         shift $?
       else
         # when typeart_linking, we don't care about object files
-        typeart_wrapper_more_args="$typeart_wrapper_more_args $1"
+        typeart_wrapper_more_args+=" $1"
         shift 1
       fi
       ;;
     -fPIC)
       # llc requires special flag
       typeart_found_fpic=1
-      typeart_wrapper_more_args="$typeart_wrapper_more_args $1"
+      typeart_wrapper_more_args+=" $1"
       shift 1
       ;;
     -emit-llvm)
@@ -294,13 +294,11 @@ function typeart_parse_cmd_line_fn() {
       shift 1
       ;;
     *) # preserve other arguments
-      typeart_wrapper_more_args="$typeart_wrapper_more_args $1"
-      shift
+      typeart_wrapper_more_args+=" $1"
+      shift 1
       ;;
     esac
   done
-  # set other positional arguments in their proper place
-  eval set -- "typeart_wrapper_more_args"
 
   if [ -z "${typeart_optimize}" ]; then
     typeart_optimize=-O0
@@ -340,29 +338,6 @@ function typeart_compiler_fn() {
 
 # shellcheck disable=SC2120
 function typeart_tu_out_fn() {
-  if [ "$typeart_emit_llvm" == 1 ] && [ "$typeart_to_asm" == 1 ]; then
-    local typeart_command_exe="${typeart_opt_tool} -S"
-  elif [ "$typeart_emit_llvm" == 1 ]; then
-    local typeart_command_exe="${typeart_opt_tool} -f"
-  else
-    local typeart_command_exe="${typeart_llc_tool} -x=ir ${llc_flags}"
-  fi
-
-  if [ "${typeart_to_stdout}" == 0 ]; then
-    local typeart_command_exe="${typeart_command_exe} -o ${out_file}"
-  fi
-
-  $typeart_command_exe "$@"
-}
-
-function typeart_main_compile_fn() {
-
-  local out_basename="${typeart_source_file%.*}"
-  if [ -z "${typeart_object_file}" ]; then
-    # if no object file is specified, use filename(typeart_source_file).o
-    typeart_object_file="${out_basename}".o
-  fi
-
   local out_file="${typeart_object_file}"
   local llc_flags="--filetype=obj"
 
@@ -385,9 +360,30 @@ function typeart_main_compile_fn() {
   fi
 
   if [ "$typeart_found_fpic" == 1 ]; then
-    local llc_flags="$llc_flags --relocation-model=pic"
+    local llc_flags+=" --relocation-model=pic"
   fi
 
+  if [ "$typeart_emit_llvm" == 1 ] && [ "$typeart_to_asm" == 1 ]; then
+    local typeart_command_exe="${typeart_opt_tool} -S"
+  elif [ "$typeart_emit_llvm" == 1 ]; then
+    local typeart_command_exe="${typeart_opt_tool} -f"
+  else
+    local typeart_command_exe="${typeart_llc_tool} -x=ir ${llc_flags}"
+  fi
+
+  if [ "${typeart_to_stdout}" == 0 ]; then
+    local typeart_command_exe+=" -o ${out_file}"
+  fi
+
+  $typeart_command_exe "$@"
+}
+
+function typeart_main_compile_fn() {
+  local -r out_basename="${typeart_source_file%.*}"
+  if [ -z "${typeart_object_file}" ]; then
+    # if no object file is specified, use filename(typeart_source_file).o
+    typeart_object_file="${out_basename}".o
+  fi
   # shellcheck disable=SC2086
   typeart_compiler_fn "${out_basename}"_base.ll ${typeart_wrapper_more_args} ${typeart_includes} ${typeart_san_flags} \
     ${typeart_to_llvm_flags} ${typeart_to_llvm_more_flags} "${typeart_source_file}" -o - |
