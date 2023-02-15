@@ -137,8 +137,11 @@ struct OmpContext {
           return val->users();
         },
         [&found](auto value) {
+          if (!llvm::isa<llvm::InvokeInst, llvm::CallInst>(value)) {
+            return util::DefUseChain::no_match;
+          }
           llvm::CallSite site(value);
-          if (site.isCall() || site.isInvoke()) {
+          {
             const auto called = site.getCalledFunction();
             if (called != nullptr && called->getName().startswith("__kmpc_omp_task(")) {
               found = true;

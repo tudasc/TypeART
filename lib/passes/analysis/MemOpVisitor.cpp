@@ -114,8 +114,11 @@ llvm::Expected<T*> getSingleUserAs(llvm::Value* value) {
   // Check for calls: In case of ASAN, the array cookie is passed to its API.
   // TODO: this may need to be extended to include other such calls
   const auto num_asan_calls = llvm::count_if(users, [](llvm::User* user) {
+    if (!llvm::isa<llvm::InvokeInst, llvm::CallInst>(user)) {
+      return false;
+    }
     CallSite csite(user);
-    if (!(csite.isCall() || csite.isInvoke()) || csite.getCalledFunction() == nullptr) {
+    if (csite.getCalledFunction() == nullptr) {
       return false;
     }
     const auto name = csite.getCalledFunction()->getName();

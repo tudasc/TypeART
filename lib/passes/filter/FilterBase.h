@@ -259,8 +259,11 @@ class BaseFilter :
   }
 
   FilterAnalysis callsite(llvm::Value* val, const Path& path) {
+    if (!llvm::isa<llvm::InvokeInst, llvm::CallInst>(val)) {
+      return FilterAnalysis::Continue;
+    }
+
     CallSite site(val);
-    if (site.isCall() || site.isInvoke()) {
       const auto callee        = site.getCalledFunction();
       const bool indirect_call = callee == nullptr;
 
@@ -325,8 +328,6 @@ class BaseFilter :
           return FilterAnalysis::Keep;
         }
       }
-    }
-    return FilterAnalysis::Continue;
   }
 };
 
