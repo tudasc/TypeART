@@ -39,20 +39,55 @@ enum class FilterAnalysis {
   FollowDef,  // Want analysis of the called function def
 };
 
-template <typename CallSiteHandler, typename Search, typename OmpHelper = omp::EmptyContext>
-class BaseFilter : public Filter {
-  CallSiteHandler handler;
-  Search search_dir{};
+
+template<typename Cls>
+struct FilterTraits {
+  template <class T> using has_indirect_t = decltype(std::declval<T &>().indirect(
+      std::declval<CallSite>(),
+      std::declval<const Path &>()
+  ));
+  template <class T> using has_intrinsic_t = decltype(std::declval<T &>().intrinsic(
+      std::declval<CallSite>(),
+      std::declval<const Path &>()
+  ));
+  template <class T> using has_declaration_t = decltype(std::declval<T &>().decl(
+      std::declval<CallSite>(),
+      std::declval<const Path &>()
+  ));
+  template <class T> using has_definition_t = decltype(std::declval<T &>().def(
+      std::declval<CallSite>(),
+      std::declval<const Path &>()
+  ));
+  template <class T> using has_precheck_t = decltype(std::declval<T &>().precheck(
+      std::declval<Value*>(),
+      std::declval<Function*>(),
+      std::declval<const FPath &>()
+  ));
+
+  constexpr static bool Indirect    = llvm::is_detected<has_indirect_t, Cls>::value;
+  constexpr static bool Intrinsic   = llvm::is_detected<has_intrinsic_t, Cls>::value;
+  constexpr static bool Declaration = llvm::is_detected<has_declaration_t, Cls>::value;
+  constexpr static bool Definition  = llvm::is_detected<has_definition_t, Cls>::value;
+  constexpr static bool PreCheck    = llvm::is_detected<has_precheck_t, Cls>::value;
+};
+
+
+template <typename CallSiteHandler, typename SearchHandler, typename OmpHelper = omp::EmptyContext>
+class BaseFilter :
+    public Filter,
+    private CallSiteHandler,
+    private SearchHandler
+{
+  using Support = FilterTraits<CallSiteHandler>;
+
+  static_assert(std::is_default_constructible<SearchHandler>::value, "SearchHandler is not default constructible");
+
   bool malloc_mode{false};
   llvm::Function* start_f{nullptr};
 
  public:
-  explicit BaseFilter(const CallSiteHandler& handler) : handler(handler) {
-  }
-
   template <typename... Args>
-  explicit BaseFilter(Args&&... args) : handler(std::forward<Args>(args)...) {
-  }
+  explicit BaseFilter(Args&&... args) : CallSiteHandler(std::forward<Args>(args)...) {}
 
   bool filter(llvm::Value* in) override {
     if (in == nullptr) {
@@ -79,11 +114,11 @@ class BaseFilter : public Filter {
  private:
   bool DFSFuncFilter(llvm::Value* current, FPath& fpath) {
     /* do a pre-flow tracking check of value in  */
-    if constexpr (CallSiteHandler::Support::PreCheck) {
+    if constexpr (Support::PreCheck) {
       // is null in case of global:
       llvm::Function* currentF = fpath.getCurrentFunc();
       if (currentF != nullptr) {
-        auto status = handler.precheck(current, currentF, fpath);
+        auto status = CallSiteHandler::precheck(current, currentF, fpath);
         switch (status) {
           case FilterAnalysis::Filter:
             fpath.pop();
@@ -198,7 +233,7 @@ class BaseFilter : public Filter {
     }
 
     if (!skip) {
-      const auto successors = search_dir.search(current, path);
+      const auto successors = SearchHandler::search(current, path);
       for (auto* successor : successors) {
         if constexpr (OmpHelper::WithOmp) {
           if (OmpHelper::isTaskRelatedStore(successor)) {
@@ -231,8 +266,8 @@ class BaseFilter : public Filter {
 
       // Indirect calls (sth. like function pointers)
       if (indirect_call) {
-        if constexpr (CallSiteHandler::Support::Indirect) {
-          auto status = handler.indirect(site, path);
+        if constexpr (Support::Indirect) {
+          auto status = CallSiteHandler::indirect(site, path);
           LOG_DEBUG("Indirect call: " << util::try_demangle(site))
           return status;
         } else {
@@ -247,8 +282,8 @@ class BaseFilter : public Filter {
       // Handle decl
       if (is_decl) {
         if (is_intrinsic) {
-          if constexpr (CallSiteHandler::Support::Intrinsic) {
-            auto status = handler.intrinsic(site, path);
+          if constexpr (Support::Intrinsic) {
+            auto status = CallSiteHandler::intrinsic(site, path);
             LOG_DEBUG("Intrinsic call: " << util::try_demangle(site))
             return status;
           } else {
@@ -271,8 +306,8 @@ class BaseFilter : public Filter {
         }
 
         // Handle decl (like MPI calls)
-        if constexpr (CallSiteHandler::Support::Declaration) {
-          auto status = handler.decl(site, path);
+        if constexpr (Support::Declaration) {
+          auto status = CallSiteHandler::decl(site, path);
           LOG_DEBUG("Decl call: " << util::try_demangle(site))
           return status;
         } else {
@@ -281,8 +316,8 @@ class BaseFilter : public Filter {
         }
       } else {
         // Handle definitions
-        if constexpr (CallSiteHandler::Support::Definition) {
-          auto status = handler.def(site, path);
+        if constexpr (Support::Definition) {
+          auto status = CallSiteHandler::def(site, path);
           LOG_DEBUG("Defined call: " << util::try_demangle(site))
           return status;
         } else {

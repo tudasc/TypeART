@@ -35,20 +35,13 @@ struct DefaultSearch;
 
 namespace typeart::filter {
 
-struct StdFilterTrait {
-  constexpr static bool Indirect    = false;
-  constexpr static bool Intrinsic   = false;
-  constexpr static bool Declaration = true;
-  constexpr static bool Definition  = true;
-  constexpr static bool PreCheck    = true;
-};
-
-struct ForwardFilterImpl {
-  using Support = StdFilterTrait;
+class ForwardFilterImpl {
+ private:
   std::unique_ptr<Matcher> matcher;
   std::unique_ptr<Matcher> deep_matcher;
   FunctionOracleMatcher oracle;  // TODO make set flexible
 
+ public:
   explicit ForwardFilterImpl(std::unique_ptr<Matcher>&& m);
 
   ForwardFilterImpl(std::unique_ptr<Matcher>&& m, std::unique_ptr<Matcher>&& deep);
