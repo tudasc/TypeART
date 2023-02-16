@@ -9,11 +9,15 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 //
+#include "support/MetaCG.h"
+#include "support/MetaCGExtension.h"
+#include "support/JSONHelper.h"
 
 #include "MemInstFinder.h"
 
 #include "MemOpVisitor.h"
 #include "analysis/MemOpData.h"
+#include "filter/ACGForwardFilter.h"
 #include "filter/CGForwardFilter.h"
 #include "filter/CGInterface.h"
 #include "filter/Filter.h"
@@ -100,27 +104,38 @@ namespace filter {
 namespace detail {
 static std::unique_ptr<typeart::filter::Filter> make_filter(const MemInstFinderConfig& config) {
   using namespace typeart::filter;
-  const auto filter_id   = config.filter.implementation;
+  using namespace typeart::util::metacg;
+
+  const auto filter_id   = config.filter.useCallFilter ? config.filter.implementation : FilterImplementation::none;
   const std::string glob = config.filter.callFilterGlob;
 
-  if (filter_id == FilterImplementation::none || !config.filter.useCallFilter) {
-    LOG_DEBUG("Return no-op filter")
-    return std::make_unique<NoOpFilter>();
-  } else if (filter_id == FilterImplementation::cg) {
-    if (config.filter.callFilterCgFile.empty()) {
-      LOG_FATAL("CG File not set!");
-      std::exit(1);
+  switch (filter_id){
+    case FilterImplementation::none: {
+      LOG_DEBUG("Return no-op filter")
+      return std::make_unique<NoOpFilter>();
     }
-    LOG_DEBUG("Return CG filter with CG file @ " << config.filter.callFilterCgFile)
-    auto json_cg = JSONCG::getJSON(config.filter.callFilterCgFile);
-    auto matcher = std::make_unique<DefaultStringMatcher>(util::glob2regex(glob));
-    return std::make_unique<CGForwardFilter>(glob, std::move(json_cg), std::move(matcher));
-  } else {
-    LOG_DEBUG("Return default filter")
-    auto matcher         = std::make_unique<DefaultStringMatcher>(util::glob2regex(glob));
-    const auto deep_glob = config.filter.callFilterDeepGlob;
-    auto deep_matcher    = std::make_unique<DefaultStringMatcher>(util::glob2regex(deep_glob));
-    return std::make_unique<StandardForwardFilter>(std::move(matcher), std::move(deep_matcher));
+
+    case FilterImplementation::standard: {
+      LOG_DEBUG("Return default filter")
+      auto matcher         = std::make_unique<DefaultStringMatcher>(util::glob2regex(glob));
+      const auto deep_glob = config.filter.callFilterDeepGlob;
+      auto deep_matcher    = std::make_unique<DefaultStringMatcher>(util::glob2regex(deep_glob));
+      return std::make_unique<StandardForwardFilter>(std::move(matcher), std::move(deep_matcher));
+    }
+
+    case FilterImplementation::cg: {
+      LOG_DEBUG("Return CG filter with CG file @ " << config.filter.callFilterCgFile)
+      auto json_cg = std::make_unique<JSONCG>(util::getJSON(config.filter.callFilterCgFile).get());
+      auto matcher = std::make_unique<DefaultStringMatcher>(util::glob2regex(glob));
+      return std::make_unique<CGForwardFilter>(glob, std::move(json_cg), std::move(matcher));
+    }
+
+    case FilterImplementation::acg: {
+      LOG_DEBUG("Return ACG filter with CG file @ " << config.filter.callFilterCgFile)
+      auto json_cg = util::getJSON<JSONACG>(config.filter.callFilterCgFile).get();
+      const Regex TargetMatcher{util::glob2regex(glob), Regex::NoFlags};
+      return std::make_unique<ACGForwardFilter>(createDatabase(TargetMatcher, json_cg));
+    }
   }
 }
 }  // namespace detail

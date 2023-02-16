@@ -30,7 +30,7 @@ class Configuration;
 
 namespace typeart::analysis {
 
-enum class FilterImplementation { none, standard, cg };
+enum class FilterImplementation { none, standard, cg, acg };
 
 struct FunctionData {
   MallocDataList mallocs;

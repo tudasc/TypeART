@@ -5,6 +5,8 @@ set(FILTER_SOURCES
   FilterBase.h
   CGForwardFilter.h
   CGForwardFilter.cpp
+  ACGForwardFilter.h
+  ACGForwardFilter.cpp
   StdForwardFilter.h
   StdForwardFilter.cpp
   FilterUtil.cpp
