@@ -30,17 +30,39 @@ class Matcher {
   Matcher& operator=(const Matcher&) = default;
   Matcher& operator=(Matcher&&) = default;
 
-  virtual MatchResult match(llvm::CallSite) const = 0;
+  [[nodiscard]] virtual MatchResult match(llvm::CallSite Site) const = 0;
+
+  [[nodiscard]] virtual MatchResult match(const llvm::CallBase& Site) const = 0;
+
+  [[nodiscard]] virtual MatchResult match(const llvm::Function& Function) const = 0;
+
+  [[nodiscard]] virtual MatchResult match(const llvm::StringRef&) const  = 0;
 
   virtual ~Matcher() = default;
 };
 
-class NoMatcher final : public Matcher {
+template<Matcher::MatchResult Result>
+class StaticMatcher final : public Matcher {
  public:
-  MatchResult match(llvm::CallSite) const {
-    return MatchResult::NoMatch;
+  [[nodiscard]] MatchResult match(llvm::CallSite) const noexcept override {
+    return Result;
+  }
+
+  [[nodiscard]] MatchResult match(const llvm::CallBase&) const noexcept override {
+    return Result;
+  }
+
+  [[nodiscard]] Matcher::MatchResult match(const llvm::Function&) const noexcept override {
+    return Result;
+  };
+
+  [[nodiscard]] Matcher::MatchResult match(const llvm::StringRef&) const noexcept override {
+    return Result;
   };
 };
+
+using NoMatcher  = StaticMatcher<Matcher::MatchResult::NoMatch>;
+using AnyMatcher = StaticMatcher<Matcher::MatchResult::Match>;
 
 class DefaultStringMatcher final : public Matcher {
   Regex matcher;
@@ -48,17 +70,31 @@ class DefaultStringMatcher final : public Matcher {
  public:
   explicit DefaultStringMatcher(const std::string& regex) : matcher(regex, Regex::NoFlags) {
   }
-
-  MatchResult match(llvm::CallSite c) const override {
-    const auto f = c.getCalledFunction();
-    if (f != nullptr) {
-      const auto f_name  = util::demangle(f->getName());
-      const bool matched = matcher.match(f_name);
-      if (matched) {
-        return MatchResult::Match;
+  [[nodiscard]] MatchResult match(llvm::CallSite Site) const noexcept override {
+      if (const auto *Function = Site.getCalledFunction()) {
+        return DefaultStringMatcher::match(*Function);
       }
-    }
-    return MatchResult::NoMatch;
+      return MatchResult::NoMatch;
+  }
+
+  [[nodiscard]] MatchResult match(const llvm::CallBase& Site) const noexcept override {
+      if (const auto *Function = Site.getCalledFunction()) {
+        return DefaultStringMatcher::match(*Function);
+      }
+      return MatchResult::NoMatch;
+  }
+
+  [[nodiscard]] MatchResult match(const llvm::Function& Function) const noexcept override {
+      return DefaultStringMatcher::match(Function.getName());
+  }
+
+  [[nodiscard]] MatchResult match(const llvm::StringRef& Function) const noexcept override {
+      const auto f_name  = util::demangle(Function);
+      const bool matched = matcher.match(f_name);
+      if (!matched) {
+        return MatchResult::NoMatch;
+      }
+      return MatchResult::Match;
   }
 };
 
@@ -71,26 +107,41 @@ class FunctionOracleMatcher final : public Matcher {
                                                 {"scanf"},  {"strtol"},       {"srand"}};
 
  public:
-  MatchResult match(llvm::CallSite c) const override {
-    const auto f = c.getCalledFunction();
-    if (f != nullptr) {
-      const auto f_name = util::demangle(f->getName());
-      StringRef f_name_ref{f_name};
-      if (continue_set.count(f_name) > 0) {
-        return MatchResult::ShouldContinue;
+  [[nodiscard]] MatchResult match(llvm::CallSite Site) const noexcept override {
+      if (const auto *Function = Site.getCalledFunction()) {
+        return FunctionOracleMatcher::match(*Function);
       }
-      if (skip_set.count(f_name) > 0) {
-        return MatchResult::ShouldSkip;
+      return MatchResult::NoMatch;
+  }
+
+  [[nodiscard]] MatchResult match(const llvm::CallBase& Site) const noexcept override {
+      if (const auto *Function = Site.getCalledFunction()) {
+        return FunctionOracleMatcher::match(*Function);
       }
-      if (f_name_ref.startswith("__typeart_")) {
-        return MatchResult::ShouldSkip;
-      }
-      if (mem_operations.kind(f_name)) {
-        return MatchResult::ShouldSkip;
-      }
-      if (f_name_ref.startswith("__ubsan") || f_name_ref.startswith("__asan") || f_name_ref.startswith("__msan")) {
-        return MatchResult::ShouldContinue;
-      }
+      return MatchResult::NoMatch;
+  }
+
+  [[nodiscard]] MatchResult match(const llvm::Function& Function) const noexcept override {
+      return FunctionOracleMatcher::match(Function.getName());
+  }
+
+  [[nodiscard]] MatchResult match(const llvm::StringRef& Function) const noexcept override {
+    const auto f_name = util::demangle(Function);
+    const llvm::StringRef f_name_ref{f_name};
+    if (continue_set.count(f_name) > 0) {
+      return MatchResult::ShouldContinue;
+    }
+    if (skip_set.count(f_name) > 0) {
+      return MatchResult::ShouldSkip;
+    }
+    if (f_name_ref.startswith("__typeart_")) {
+      return MatchResult::ShouldSkip;
+    }
+    if (mem_operations.kind(f_name)) {
+      return MatchResult::ShouldSkip;
+    }
+    if (f_name_ref.startswith("__ubsan") || f_name_ref.startswith("__asan") || f_name_ref.startswith("__msan")) {
+      return MatchResult::ShouldContinue;
     }
     return MatchResult::NoMatch;
   }
