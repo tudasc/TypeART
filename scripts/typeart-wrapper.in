@@ -74,10 +74,12 @@ function typeart_global_init_fn() {
 
   # shellcheck disable=SC2027
   readonly typeart_plugin="-load "${typeart_pass}" -typeart"
-  readonly typeart_stack_mode_args="--typeart-heap=false --typeart-stack --typeart-stats @TYPEART_CALLFILTER@"
-  readonly typeart_heap_mode_args="--typeart-heap=true --typeart-stats"
+  readonly typeart_heap_mode_args="--typeart-stack=false --typeart-stats"
+  readonly typeart_stack_mode_args="--typeart-heap=false --typeart-stats @TYPEART_CALLFILTER@"
 
   # Used for values passed to wrapper:
+  typeart_heap_mode="--typeart-heap=true"
+  typeart_stack_mode="--typeart-stack=true"
   typeart_cmdline_args_heap=""
   typeart_cmdline_args_stack=""
   typeart_global_env_var_init_fn
@@ -196,6 +198,14 @@ function typeart_parse_typeart_cmd_line_fn() {
 
   while (("$#")); do
     case "$1" in
+    --typeart-heap | --typeart-heap=*)
+      typeart_heap_mode="$1"
+      shift
+      ;;
+    --typeart-stack | --typeart-stack=*)
+      typeart_stack_mode="$1"
+      shift
+      ;;
     --typeart-config=*)
       typeart_cmdline_args_heap="${1##-typeart-config=}"
       typeart_cmdline_args_stack="${1##-typeart-config=}"
@@ -387,9 +397,9 @@ function typeart_main_compile_fn() {
   # shellcheck disable=SC2086
   typeart_compiler_fn "${out_basename}"_base.ll ${typeart_wrapper_more_args} ${typeart_includes} ${typeart_san_flags} \
     ${typeart_to_llvm_flags} ${typeart_to_llvm_more_flags} "${typeart_source_file}" -o - |
-    typeart_opt_fn "${out_basename}"_heap.ll ${typeart_plugin} ${typeart_heap_mode_args} ${typeart_cmdline_args_heap} |
+    typeart_opt_fn "${out_basename}"_heap.ll ${typeart_plugin} ${typeart_heap_mode} ${typeart_heap_mode_args} ${typeart_cmdline_args_heap} |
     typeart_opt_fn "${out_basename}"_opt.ll ${typeart_optimize} |
-    typeart_opt_fn "${out_basename}"_stack.ll ${typeart_plugin} ${typeart_stack_mode_args} ${typeart_cmdline_args_stack} |
+    typeart_opt_fn "${out_basename}"_stack.ll ${typeart_plugin} ${typeart_stack_mode} ${typeart_stack_mode_args} ${typeart_cmdline_args_stack} |
     typeart_tu_out_fn
 }
 
