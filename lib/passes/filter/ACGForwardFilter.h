@@ -123,32 +123,39 @@ class ACGFilterImpl {
   identifiermap_t callSiteIdentifiers{};
 
   [[nodiscard]] bool edgeReachesRelevantFormalArgument(const FunctionDescriptor::ArgumentEdge&) const;
+
   [[nodiscard]] bool edgeMaybeReachesFormalArgument(const FunctionDescriptor::ArgumentEdge&) const;
 
   [[nodiscard]] std::vector<FunctionDescriptor::ArgumentEdge> createEdgesForCallsite(
       const CallBase&, const llvm::Value&, const std::vector<const FunctionDescriptor*>&) const;
 
-  [[nodiscard]] FilterAnalysis analyseFlowPath(std::vector<FunctionDescriptor::ArgumentEdge>&& InitialEdges) const;
+  [[nodiscard]] FilterAnalysis analyseFlowPath(const std::vector<FunctionDescriptor::ArgumentEdge>&) const;
 
   template <typename RangeT>
   [[nodiscard]] FilterAnalysis analyseMaybeCandidates(const RangeT&&) const;
 
   [[nodiscard]] FilterAnalysis analyseCallsite(const llvm::CallBase&, const Path&) const;
 
-  [[nodiscard]] unsigned int getIdentifierForCallsite(const llvm::CallBase& Site) const;
+  [[nodiscard]] unsigned int getIdentifierForCallsite(const llvm::CallBase&) const;
 
   [[nodiscard]] bool isFormalArgumentRelevant(const FunctionDescriptor::ArgumentEdge&) const;
 
-  [[nodiscard]] std::vector<const FunctionDescriptor*> getCalleesForCallsite(const FunctionDescriptor& FunctionData,
-                                                                             const CallBase& Site) const;
+  [[nodiscard]] std::vector<const FunctionDescriptor*> getCalleesForCallsite(const FunctionDescriptor&,
+                                                                             const CallBase&) const;
 
-  std::size_t calculateSiteIdentifiersIfAbsent(const Function& Function);
+  unsigned calculateSiteIdentifiersIfAbsent(const Function&);
+
+  void logUnusedArgument(const llvm::CallBase&, const llvm::Value&) const;
+
+  void logMissingCallees(const llvm::CallBase&, const llvm::Value&) const;
+
+  void logMissingEdges(const llvm::CallBase&, const llvm::Value&) const;
 
  public:
   explicit ACGFilterImpl(ACGDataMap&& DataMap) : functionMap(std::move(DataMap)) {
   }
 
-  [[nodiscard]] FilterAnalysis precheck(llvm::Value* in, llvm::Function*, const FPath&);
+  [[nodiscard]] FilterAnalysis precheck(llvm::Value*, llvm::Function*, const FPath&);
 
   [[nodiscard]] FilterAnalysis decl(const llvm::CallSite&, const Path&);
 

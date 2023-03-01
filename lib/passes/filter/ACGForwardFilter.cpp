@@ -30,7 +30,7 @@ enum VisitResult {
 };
 
 template <typename T, typename CB>
-inline void solveReachable(std::vector<T>&& Range, CB&& Callback) noexcept {
+inline void solveReachable(const std::vector<T>& Range, CB&& Callback) noexcept {
   llvm::SmallPtrSet<T const*, 32> Visited{};
   llvm::SmallVector<T const*> Worklist{};
 
@@ -165,23 +165,15 @@ inline FilterAnalysis ACGFilterImpl::ACGFilterImpl::analyseMaybeCandidates(const
   return FilterAnalysis::Continue;
 }
 
-FilterAnalysis ACGFilterImpl::analyseFlowPath(std::vector<FunctionDescriptor::ArgumentEdge>&& InitialEdges) const {
+FilterAnalysis ACGFilterImpl::analyseFlowPath(const std::vector<FunctionDescriptor::ArgumentEdge>& InitialEdges) const {
   enum class ReachabilityResult { reaches, maybe_reaches, never_reaches };
   using namespace typeart::filter::detail;
-
-  if (InitialEdges.empty()) {
-    // it is unlikely, but possible that a callsite was not analysed in the first place. this is often the
-    // result of an unsound analysis, therefore we want a conservative fallback
-    LOG_INFO("no flow found, keep value")
-    return FilterAnalysis::Keep;
-  }
 
   /// contains declarations which have at least one argument that is reachable and relevant
   StringSet MaybeCandidates;
 
   ReachabilityResult Result = ReachabilityResult::never_reaches;
-  solveReachable(
-      std::move(InitialEdges), [&](const FunctionDescriptor::ArgumentEdge& Edge, auto const& Enqueue) -> VisitResult {
+  solveReachable(InitialEdges, [&](const FunctionDescriptor::ArgumentEdge& Edge, auto const& Enqueue) -> VisitResult {
         if (edgeReachesRelevantFormalArgument(Edge)) {
           Result = ReachabilityResult::reaches;
           return VR_Stop;
@@ -218,8 +210,9 @@ FilterAnalysis ACGFilterImpl::analyseFlowPath(std::vector<FunctionDescriptor::Ar
 [[nodiscard]] std::vector<FunctionDescriptor::ArgumentEdge> ACGFilterImpl::createEdgesForCallsite(
     const CallBase& Site, const llvm::Value& ActualArgument,
     const std::vector<const FunctionDescriptor*>& CalleesForCallsite) const {
-  const auto&& CorrespondingArgs =
-      llvm::make_filter_range(Site.args(), [&ActualArgument](const auto& Arg) { return Arg.get() == &ActualArgument; });
+
+  const auto&& CorrespondingArgs = llvm::make_filter_range(Site.args(),
+    [&ActualArgument](const auto& Arg) { return Arg.get() == &ActualArgument; });
 
   std::vector<FunctionDescriptor::ArgumentEdge> Init;
   for (const auto& CallSiteArg : CorrespondingArgs) {
@@ -233,7 +226,64 @@ FilterAnalysis ACGFilterImpl::analyseFlowPath(std::vector<FunctionDescriptor::Ar
   return Init;
 }
 
+inline void ACGFilterImpl::logUnusedArgument(const llvm::CallBase& Site, const llvm::Value& ActualArgument) const {
+  if (Site.getCalledOperand() == &ActualArgument) {
+    LOG_INFO("Argument is CalledOperand of Callsite")
+    return;
+  }
+
+  // this can happen when the IRSearch finds a store-instruction and adds
+  // the pointer operand to the successors.
+  // do not log as this is not an error
+  if (llvm::is_contained(Site.users(), &ActualArgument)) {
+    return;
+  }
+
+  std::string String;
+  raw_string_ostream StringStream{String};
+  StringStream << "function ";
+  Site.getFunction()->printAsOperand(StringStream, false);
+  StringStream << ": argument ";
+  ActualArgument.print(StringStream, true);
+  StringStream << " is not used at callsite ";
+  Site.print(StringStream, true);
+
+  LOG_INFO(String)
+}
+
+inline void ACGFilterImpl::logMissingCallees(const llvm::CallBase& Site, const llvm::Value& ) const {
+  std::string String;
+  raw_string_ostream StringStream{String};
+  StringStream << "function ";
+  Site.getFunction()->printAsOperand(StringStream, false);
+  StringStream << ": no callees found for callsite ";
+  Site.print(StringStream, true);
+
+  LOG_WARNING(String)
+}
+
+inline void ACGFilterImpl::logMissingEdges(const llvm::CallBase& Site, const llvm::Value& ActualArgument) const {
+  std::string String;
+  raw_string_ostream StringStream{String};
+  StringStream << "function ";
+  Site.getFunction()->printAsOperand(StringStream, false);
+  StringStream << ": no edges found for argument ";
+  ActualArgument.printAsOperand(StringStream, false);
+  StringStream << " @ ";
+  Site.print(StringStream, true);
+
+  LOG_WARNING(String)
+}
+
 FilterAnalysis ACGFilterImpl::analyseCallsite(const llvm::CallBase& Site, const Path& Path) const {
+  const llvm::Value* ActualArgument = Path.getEndPrev().getValue();
+  assert(ActualArgument != nullptr && "Argument should not be null");
+
+  if (!Site.hasArgument(ActualArgument)) {
+    logUnusedArgument(Site, *ActualArgument);
+    return FilterAnalysis::Continue;
+  }
+
   /// the parent function of the callsite
   const auto& ParentFunctionName = Site.getFunction()->getName();
   if (functionMap.count(ParentFunctionName) == 0) {
@@ -246,10 +296,22 @@ FilterAnalysis ACGFilterImpl::analyseCallsite(const llvm::CallBase& Site, const 
   }
   const auto& FunctionData = functionMap.lookup(ParentFunctionName);
 
-  const auto& Callees               = getCalleesForCallsite(FunctionData, Site);
-  const llvm::Value* ActualArgument = Path.getEndPrev().getValue();
+  const auto& Callees = getCalleesForCallsite(FunctionData, Site);
+  if (Callees.empty()) {
+    // it is unlikely, but possible that a callsite was not analysed in the first place.
+    // this is often the result of an unsound analysis, therefore we want a conservative fallback
+    logMissingCallees(Site, *ActualArgument);
+    return FilterAnalysis::Keep;
+  }
 
-  return analyseFlowPath(createEdgesForCallsite(Site, *ActualArgument, Callees));
+  const auto InitialEdges = createEdgesForCallsite(Site, *ActualArgument, Callees);
+  if (InitialEdges.empty()) {
+    // no initial edges is likely an error in the callgraph file, keep the value in those cases
+    logMissingEdges(Site, *ActualArgument);
+    return FilterAnalysis::Keep;
+  }
+
+  return analyseFlowPath(InitialEdges);
 }
 
 std::vector<const FunctionDescriptor*> ACGFilterImpl::getCalleesForCallsite(const FunctionDescriptor& FunctionData,
@@ -264,7 +326,7 @@ std::vector<const FunctionDescriptor*> ACGFilterImpl::getCalleesForCallsite(cons
 
 /// identifiers all callsites of a function and stores additionally the highest used identifier as metadata field
 /// at the function. if the function metadata field already exists, its value is returned
-std::size_t ACGFilterImpl::calculateSiteIdentifiersIfAbsent(const Function& Function) {
+unsigned ACGFilterImpl::calculateSiteIdentifiersIfAbsent(const Function& Function) {
   if (analysedFunctions.count(&Function) != 0) {
     return analysedFunctions[&Function];
   }
@@ -286,29 +348,29 @@ unsigned int ACGFilterImpl::getIdentifierForCallsite(const llvm::CallBase& Site)
   return FoundAt->second;
 }
 
-FilterAnalysis ACGFilterImpl::precheck(llvm::Value* in, llvm::Function* start, const FPath& fpath) {
-  assert(start != nullptr && "pre-check in FilterBase::DFSFuncFilter failed");
+FilterAnalysis ACGFilterImpl::precheck(llvm::Value* In, llvm::Function* Start, const FPath& Fpath) {
+  assert(Start != nullptr && "pre-check in FilterBase::DFSFuncFilter failed");
 
   // use the precheck-callback to identify all callsites within a function
   // preferably this would be implemented as a pass, but that would require
   // structural changes for TypeART.
-  const auto NoOfCallSites = calculateSiteIdentifiersIfAbsent(*start);
-  if (NoOfCallSites == 0) {
+  const auto NumberOfCallSites = calculateSiteIdentifiersIfAbsent(*Start);
+  if (NumberOfCallSites == 0) {
     return FilterAnalysis::Filter;
   }
 
-  if (!fpath.empty()) {
+  if (!Fpath.empty()) {
     return FilterAnalysis::Continue;
   }
 
   // These conditions (temp alloc and alloca reaches task)
   // are only interesting if filter just started (aka fpath is empty)
-  if (isTempAlloc(in)) {
-    LOG_DEBUG("Alloca is a temporary " << *in);
+  if (isTempAlloc(In)) {
+    LOG_DEBUG("Alloca is a temporary " << *In);
     return FilterAnalysis::Filter;
   }
 
-  if (auto* alloc = llvm::dyn_cast<AllocaInst>(in)) {
+  if (auto* alloc = llvm::dyn_cast<AllocaInst>(In)) {
     if (alloc->getAllocatedType()->isStructTy() && omp::OmpContext::allocaReachesTask(alloc)) {
       LOG_DEBUG("Alloca reaches task call " << *alloc)
       return FilterAnalysis::Filter;
