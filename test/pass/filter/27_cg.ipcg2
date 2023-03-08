@@ -129,6 +129,97 @@
         "ipdf": {}
       }
     },
+    "f_three": {
+      "isVirtual": false,
+      "doesOverride": false,
+      "overrides": [],
+      "overriddenBy": [],
+      "hasBody": true,
+      "callers": [
+        "foo"
+      ],
+      "callees": [
+        "__typeart_alloc"
+      ],
+      "meta": {
+        "signature": {
+          "identifier": "f_three",
+          "returnType": "void",
+          "paramTypes": [
+            "i32*",
+            "i32*"
+          ],
+          "isVariadic": false
+        },
+        "ipdf": {
+          "interFlow": {
+            "__typeart_alloc": [
+              {
+                "actual": 0,
+                "formal": 0
+              },
+              {
+                "actual": 1,
+                "formal": 0
+              }
+            ]
+          },
+          "callSites": {
+            "__typeart_alloc": [
+              1,
+              2
+            ]
+          }
+        }
+      }
+    },
+    "__typeart_alloc": {
+      "isVirtual": false,
+      "doesOverride": false,
+      "overrides": [],
+      "overriddenBy": [],
+      "hasBody": false,
+      "callers": [
+        "f_three"
+      ],
+      "callees": [],
+      "meta": {
+        "signature": {
+          "identifier": "__typeart_alloc",
+          "returnType": "void",
+          "paramTypes": [
+            "i8*",
+            "i32",
+            "i64"
+          ],
+          "isVariadic": false
+        },
+        "ipdf": {}
+      }
+    },
+    "f_four": {
+      "isVirtual": false,
+      "doesOverride": false,
+      "overrides": [],
+      "overriddenBy": [],
+      "hasBody": true,
+      "callers": [
+        "foo"
+      ],
+      "callees": [],
+      "meta": {
+        "signature": {
+          "identifier": "f_four",
+          "returnType": "void",
+          "paramTypes": [
+            "i32*",
+            "i32*"
+          ],
+          "isVariadic": false
+        },
+        "ipdf": {}
+      }
+    },
     "foo": {
       "isVirtual": false,
       "doesOverride": false,
@@ -138,7 +229,9 @@
       "callers": [
       ],
       "callees": [
+        "f_four",
         "f_one",
+        "f_three",
         "f_two"
       ],
       "meta": {
@@ -150,8 +243,15 @@
         },
         "ipdf": {
           "callSites": {
+            "f_four": [
+              4,
+              5
+            ],
             "f_one": [
               1
+            ],
+            "f_three": [
+              3
             ],
             "f_two": [
               2
