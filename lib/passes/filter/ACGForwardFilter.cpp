@@ -115,6 +115,7 @@ ACGDataMap createDatabase(const Regex& TargetMatcher, JSONACG& MetaCg) {
   return DataMap;
 }
 
+/// tests if an edge can reach a void* argument
 bool ACGFilterImpl::isFormalArgumentRelevant(const FunctionDescriptor::ArgumentEdge& Edge) const {
   return Edge.callee.functionSignature.paramIsType(Edge.formalArgumentNumber, VoidType);
 }
@@ -148,7 +149,8 @@ inline FilterAnalysis ACGFilterImpl::ACGFilterImpl::analyseMaybeCandidates(const
         break;
 
       case Matcher::MatchResult::NoMatch:
-        break;
+        // keep the function if the matcher has no information
+        return FilterAnalysis::Keep;
     }
   }
 
@@ -226,29 +228,38 @@ FilterAnalysis ACGFilterImpl::analyseFlowPath(const std::vector<FunctionDescript
   return Init;
 }
 
-inline void ACGFilterImpl::logUnusedArgument(const llvm::CallBase& Site, const llvm::Value& ActualArgument) const {
-  if (Site.getCalledOperand() == &ActualArgument) {
-    LOG_INFO("Argument is CalledOperand of Callsite")
-    return;
-  }
 
-  // this can happen when the IRSearch finds a store-instruction and adds
-  // the pointer operand to the successors.
-  // do not log as this is not an error
-  if (llvm::is_contained(Site.users(), &ActualArgument)) {
-    return;
-  }
-
+std::string ACGFilterImpl::prepareLogMessage(const CallBase& Site, const Value& ActualArgument, const StringRef& Msg) const {
   std::string String;
   raw_string_ostream StringStream{String};
   StringStream << "function ";
   Site.getFunction()->printAsOperand(StringStream, false);
   StringStream << ": argument ";
-  ActualArgument.print(StringStream, true);
-  StringStream << " is not used at callsite ";
+  ActualArgument.printAsOperand(StringStream, false);
+  StringStream << ": callsite ";
   Site.print(StringStream, true);
+  StringStream << " (";
+  Site.getDebugLoc().print(StringStream);
+  StringStream << "): " << Msg;
 
-  LOG_INFO(String)
+  return String;
+}
+
+inline void ACGFilterImpl::logUnusedArgument(const llvm::CallBase& Site, const llvm::Value& ActualArgument) const {
+  if (Site.getCalledOperand() == &ActualArgument) {
+    LOG_DEBUG(prepareLogMessage(Site, ActualArgument, "Argument is CalledOperand of Callsite"))
+    return;
+  }
+
+  // this can happen when the IRSearch finds a store-instruction and adds
+  // the pointer operand to the successors.
+  if (llvm::is_contained(Site.users(), &ActualArgument)) {
+    LOG_DEBUG(prepareLogMessage(Site, ActualArgument, "Argument is User of Callsite"))
+    return;
+  }
+
+  // this is a serious problem within the dataflow analysis
+  LOG_ERROR(prepareLogMessage(Site, ActualArgument, "Argument is not used at Callsite"))
 }
 
 inline void ACGFilterImpl::logMissingCallees(const llvm::CallBase& Site, const llvm::Value& ) const {
@@ -287,9 +298,9 @@ FilterAnalysis ACGFilterImpl::analyseCallsite(const llvm::CallBase& Site, const 
   /// the parent function of the callsite
   const auto& ParentFunctionName = Site.getFunction()->getName();
   if (functionMap.count(ParentFunctionName) == 0) {
-    // This can happen when the (parent) function was not analysed in the first place.
+    // This can happen when the (parent) function was not analyzed in the first place.
     // Which means that the parent function is not reachable from a program entry point. Either
-    // the function is unreachable/dead or it was wrongly not analysed (unsound). Therefore, we
+    // the function is unreachable/dead or it was wrongly not analyzed (unsound). Therefore, we
     // conservative keep the value.
     LOG_INFO("function not in map: " << ParentFunctionName)
     return typeart::filter::FilterAnalysis::Keep;
@@ -298,7 +309,7 @@ FilterAnalysis ACGFilterImpl::analyseCallsite(const llvm::CallBase& Site, const 
 
   const auto& Callees = getCalleesForCallsite(FunctionData, Site);
   if (Callees.empty()) {
-    // it is unlikely, but possible that a callsite was not analysed in the first place.
+    // it is unlikely, but possible that a callsite was not analyzed in the first place.
     // this is often the result of an unsound analysis, therefore we want a conservative fallback
     logMissingCallees(Site, *ActualArgument);
     return FilterAnalysis::Keep;
@@ -327,8 +338,8 @@ std::vector<const FunctionDescriptor*> ACGFilterImpl::getCalleesForCallsite(cons
 /// identifiers all callsites of a function and stores additionally the highest used identifier as metadata field
 /// at the function. if the function metadata field already exists, its value is returned
 unsigned ACGFilterImpl::calculateSiteIdentifiersIfAbsent(const Function& Function) {
-  if (analysedFunctions.count(&Function) != 0) {
-    return analysedFunctions[&Function];
+  if (analyzedFunctions.count(&Function) != 0) {
+    return analyzedFunctions[&Function];
   }
 
   unsigned CallSiteIdentifier = 0;
@@ -338,7 +349,7 @@ unsigned ACGFilterImpl::calculateSiteIdentifiersIfAbsent(const Function& Functio
     }
   }
 
-  analysedFunctions[&Function] = CallSiteIdentifier;
+  analyzedFunctions[&Function] = CallSiteIdentifier;
   return CallSiteIdentifier;
 }
 

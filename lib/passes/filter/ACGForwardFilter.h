@@ -63,11 +63,11 @@ struct FunctionSignature {
    */
   const bool isVariadic = false;
 
-  [[nodiscard]] constexpr bool paramIsType(size_t No, const std::string& Type) const noexcept {
-    if (No >= paramTypes.size()) {
+  [[nodiscard]] constexpr bool paramIsType(unsigned ArgumentNumber, const std::string& Type) const noexcept {
+    if (ArgumentNumber >= paramTypes.size()) {
       return isVariadic;
     }
-    return paramTypes[No] == Type;
+    return paramTypes[ArgumentNumber] == Type;
   }
 
   [[nodiscard]] constexpr bool returnIsType(const std::string& Type) const noexcept {
@@ -117,9 +117,9 @@ class ACGFilterImpl {
 
   static constexpr auto VoidType = "i8*";
 
-  AnyMatcher candidateMatcher{};
+  FunctionOracleMatcher candidateMatcher{};
   ACGDataMap functionMap;
-  functionmap_t analysedFunctions{};
+  functionmap_t analyzedFunctions{};
   identifiermap_t callSiteIdentifiers{};
 
   [[nodiscard]] bool edgeReachesRelevantFormalArgument(const FunctionDescriptor::ArgumentEdge&) const;
@@ -142,6 +142,8 @@ class ACGFilterImpl {
 
   [[nodiscard]] std::vector<const FunctionDescriptor*> getCalleesForCallsite(const FunctionDescriptor&,
                                                                              const CallBase&) const;
+
+  [[nodiscard]] std::string prepareLogMessage(const CallBase&, const Value&,  const StringRef&) const;
 
   unsigned calculateSiteIdentifiersIfAbsent(const Function&);
 
