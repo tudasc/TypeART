@@ -27,26 +27,26 @@ namespace typeart::util {
 template <typename T = llvm::json::Value>
 inline llvm::Expected<T> getJSON(const llvm::StringRef& SrcFile) {
   std::string Err;
-  llvm::raw_string_ostream ErrOS(Err);
+  llvm::raw_string_ostream ErrOStream(Err);
 
   if (SrcFile.empty()) {
-    ErrOS << "CG File not set!";
-    LOG_FATAL(ErrOS.str());
+    ErrOStream << "CG File not set!";
+    LOG_FATAL(ErrOStream.str());
     std::exit(-1);
   }
 
   const auto& Mem = llvm::MemoryBuffer::getFile(SrcFile);
   if (!Mem) {
-    ErrOS << Mem.getError().message();
-    LOG_FATAL(ErrOS.str());
+    ErrOStream << Mem.getError().message();
+    LOG_FATAL(ErrOStream.str());
     std::exit(-1);
   }
 
   if constexpr (std::is_same_v<llvm::json::Value, T>) {
     auto ParsedJSON = llvm::json::parse(Mem.get()->getBuffer());
     if (!ParsedJSON) {
-      llvm::logAllUnhandledErrors(ParsedJSON.takeError(), ErrOS);
-      LOG_FATAL(ErrOS.str());
+      llvm::logAllUnhandledErrors(ParsedJSON.takeError(), ErrOStream);
+      LOG_FATAL(ErrOStream.str());
       std::exit(-1);
     }
 
@@ -54,8 +54,8 @@ inline llvm::Expected<T> getJSON(const llvm::StringRef& SrcFile) {
   } else {
     auto ParsedJSON = llvm::json::parse<T>(Mem.get()->getBuffer());
     if (!ParsedJSON) {
-      llvm::logAllUnhandledErrors(ParsedJSON.takeError(), ErrOS);
-      LOG_FATAL(ErrOS.str());
+      llvm::logAllUnhandledErrors(ParsedJSON.takeError(), ErrOStream);
+      LOG_FATAL(ErrOStream.str());
       std::exit(-1);
     }
 
