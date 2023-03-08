@@ -25,6 +25,9 @@
 
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Intrinsics.h"
+#if LLVM_VERSION_MAJOR < 12
+#include "compat/STLExtras.h"
+#endif
 
 #include <iterator>
 #include <type_traits>
