@@ -176,24 +176,24 @@ FilterAnalysis ACGFilterImpl::analyseFlowPath(const std::vector<FunctionDescript
 
   ReachabilityResult Result = ReachabilityResult::never_reaches;
   solveReachable(InitialEdges, [&](const FunctionDescriptor::ArgumentEdge& Edge, auto const& Enqueue) -> VisitResult {
-        if (edgeReachesRelevantFormalArgument(Edge)) {
-          Result = ReachabilityResult::reaches;
-          return VR_Stop;
-        }
+    if (edgeReachesRelevantFormalArgument(Edge)) {
+      Result = ReachabilityResult::reaches;
+      return VR_Stop;
+    }
 
-        if (edgeMaybeReachesFormalArgument(Edge)) {
-          Result = ReachabilityResult::maybe_reaches;
-          MaybeCandidates.insert(Edge.callee.functionSignature.identifier);
-        }
+    if (edgeMaybeReachesFormalArgument(Edge)) {
+      Result = ReachabilityResult::maybe_reaches;
+      MaybeCandidates.insert(Edge.callee.functionSignature.identifier);
+    }
 
-        // enqueue all edges that can be reached from the current callee/argument
-        const auto& ReachableFormals = make_range(Edge.callee.reachableFormals.equal_range(Edge.formalArgumentNumber));
-        for (const auto& [ActualNumber, FormalEdge] : ReachableFormals) {
-          Enqueue(FormalEdge);
-        }
+    // enqueue all edges that can be reached from the current callee/argument
+    const auto& ReachableFormals = make_range(Edge.callee.reachableFormals.equal_range(Edge.formalArgumentNumber));
+    for (const auto& [ActualNumber, FormalEdge] : ReachableFormals) {
+      Enqueue(FormalEdge);
+    }
 
-        return VR_Continue;
-      });
+    return VR_Continue;
+  });
 
   switch (Result) {
     // check also the other call-sites
@@ -212,9 +212,8 @@ FilterAnalysis ACGFilterImpl::analyseFlowPath(const std::vector<FunctionDescript
 [[nodiscard]] std::vector<FunctionDescriptor::ArgumentEdge> ACGFilterImpl::createEdgesForCallsite(
     const CallBase& Site, const llvm::Value& ActualArgument,
     const std::vector<const FunctionDescriptor*>& CalleesForCallsite) const {
-
-  const auto&& CorrespondingArgs = llvm::make_filter_range(Site.args(),
-    [&ActualArgument](const auto& Arg) { return Arg.get() == &ActualArgument; });
+  const auto&& CorrespondingArgs =
+      llvm::make_filter_range(Site.args(), [&ActualArgument](const auto& Arg) { return Arg.get() == &ActualArgument; });
 
   std::vector<FunctionDescriptor::ArgumentEdge> Init;
   for (const auto& CallSiteArg : CorrespondingArgs) {
@@ -228,8 +227,8 @@ FilterAnalysis ACGFilterImpl::analyseFlowPath(const std::vector<FunctionDescript
   return Init;
 }
 
-
-std::string ACGFilterImpl::prepareLogMessage(const CallBase& Site, const Value& ActualArgument, const StringRef& Msg) const {
+std::string ACGFilterImpl::prepareLogMessage(const CallBase& Site, const Value& ActualArgument,
+                                             const StringRef& Msg) const {
   std::string String;
   raw_string_ostream StringStream{String};
   StringStream << "function ";
@@ -262,7 +261,7 @@ inline void ACGFilterImpl::logUnusedArgument(const llvm::CallBase& Site, const l
   LOG_ERROR(prepareLogMessage(Site, ActualArgument, "Argument is not used at Callsite"))
 }
 
-inline void ACGFilterImpl::logMissingCallees(const llvm::CallBase& Site, const llvm::Value& ) const {
+inline void ACGFilterImpl::logMissingCallees(const llvm::CallBase& Site, const llvm::Value&) const {
   std::string String;
   raw_string_ostream StringStream{String};
   StringStream << "function ";

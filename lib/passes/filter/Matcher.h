@@ -36,12 +36,12 @@ class Matcher {
 
   [[nodiscard]] virtual MatchResult match(const llvm::Function& Function) const = 0;
 
-  [[nodiscard]] virtual MatchResult match(const llvm::StringRef&) const  = 0;
+  [[nodiscard]] virtual MatchResult match(const llvm::StringRef&) const = 0;
 
   virtual ~Matcher() = default;
 };
 
-template<Matcher::MatchResult Result>
+template <Matcher::MatchResult Result>
 class StaticMatcher final : public Matcher {
  public:
   [[nodiscard]] MatchResult match(llvm::CallSite) const noexcept override {
@@ -71,30 +71,30 @@ class DefaultStringMatcher final : public Matcher {
   explicit DefaultStringMatcher(const std::string& regex) : matcher(regex, Regex::NoFlags) {
   }
   [[nodiscard]] MatchResult match(llvm::CallSite Site) const noexcept override {
-      if (const auto *Function = Site.getCalledFunction()) {
-        return DefaultStringMatcher::match(*Function);
-      }
-      return MatchResult::NoMatch;
+    if (const auto* Function = Site.getCalledFunction()) {
+      return DefaultStringMatcher::match(*Function);
+    }
+    return MatchResult::NoMatch;
   }
 
   [[nodiscard]] MatchResult match(const llvm::CallBase& Site) const noexcept override {
-      if (const auto *Function = Site.getCalledFunction()) {
-        return DefaultStringMatcher::match(*Function);
-      }
-      return MatchResult::NoMatch;
+    if (const auto* Function = Site.getCalledFunction()) {
+      return DefaultStringMatcher::match(*Function);
+    }
+    return MatchResult::NoMatch;
   }
 
   [[nodiscard]] MatchResult match(const llvm::Function& Function) const noexcept override {
-      return DefaultStringMatcher::match(Function.getName());
+    return DefaultStringMatcher::match(Function.getName());
   }
 
   [[nodiscard]] MatchResult match(const llvm::StringRef& Function) const noexcept override {
-      const auto f_name  = util::demangle(Function);
-      const bool matched = matcher.match(f_name);
-      if (!matched) {
-        return MatchResult::NoMatch;
-      }
-      return MatchResult::Match;
+    const auto f_name  = util::demangle(Function);
+    const bool matched = matcher.match(f_name);
+    if (!matched) {
+      return MatchResult::NoMatch;
+    }
+    return MatchResult::Match;
   }
 };
 
@@ -108,21 +108,21 @@ class FunctionOracleMatcher final : public Matcher {
 
  public:
   [[nodiscard]] MatchResult match(llvm::CallSite Site) const noexcept override {
-      if (const auto *Function = Site.getCalledFunction()) {
-        return FunctionOracleMatcher::match(*Function);
-      }
-      return MatchResult::NoMatch;
+    if (const auto* Function = Site.getCalledFunction()) {
+      return FunctionOracleMatcher::match(*Function);
+    }
+    return MatchResult::NoMatch;
   }
 
   [[nodiscard]] MatchResult match(const llvm::CallBase& Site) const noexcept override {
-      if (const auto *Function = Site.getCalledFunction()) {
-        return FunctionOracleMatcher::match(*Function);
-      }
-      return MatchResult::NoMatch;
+    if (const auto* Function = Site.getCalledFunction()) {
+      return FunctionOracleMatcher::match(*Function);
+    }
+    return MatchResult::NoMatch;
   }
 
   [[nodiscard]] MatchResult match(const llvm::Function& Function) const noexcept override {
-      return FunctionOracleMatcher::match(Function.getName());
+    return FunctionOracleMatcher::match(Function.getName());
   }
 
   [[nodiscard]] MatchResult match(const llvm::StringRef& Function) const noexcept override {

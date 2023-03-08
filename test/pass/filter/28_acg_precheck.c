@@ -4,7 +4,7 @@
 
 #include <stdlib.h>
 
-void sink(void *a);
+void sink(void* a);
 
 // precheck: no callsites
 void foo() {
@@ -12,16 +12,14 @@ void foo() {
 }
 
 // precheck: alloca is temp
-void bar(int *a) {
+void bar(int* a) {
   sink(a);
 }
-
 
 static int g = 0;
 void baz() {
   sink(&g);
 }
-
 
 // CHECK: > Stack Memory
 // CHECK-NEXT: Alloca                      :   2.00

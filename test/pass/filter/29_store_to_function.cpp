@@ -4,7 +4,6 @@
 
 #include <vector>
 
-
 int& ref(int&) noexcept;
 
 void foo(int r) {

@@ -13,7 +13,6 @@ extern void split_flow(int* x, int* y, int* z);
 //     MPI_sink(z);
 // }
 
-
 void foo() {
   int a = 1;
   int b = 1;

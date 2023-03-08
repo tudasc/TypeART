@@ -28,10 +28,9 @@ extern void f_three(int* a, int* b);
 #endif
 
 void f_four(int* a, int* b) {
-
 }
 
-static int a5 =  9;
+static int a5 = 9;
 static int b5 = 10;
 
 void foo() {

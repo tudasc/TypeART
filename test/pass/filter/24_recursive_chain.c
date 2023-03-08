@@ -4,7 +4,6 @@
 
 #include <stdlib.h>
 
-
 extern void MPI_sink(void* a);
 extern int ring_index;
 
@@ -19,7 +18,6 @@ extern void ring(int* x, int* y, int* z, int counter);
 //
 //   ring(y, z, x, counter - 1);
 // }
-
 
 void foo() {
   int a = 1;

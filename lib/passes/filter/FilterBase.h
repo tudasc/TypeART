@@ -42,30 +42,19 @@ enum class FilterAnalysis {
   FollowDef,  // Want analysis of the called function def
 };
 
-
-template<typename Cls>
+template <typename Cls>
 struct FilterTraits {
-  template <class T> using has_indirect_t = decltype(std::declval<T &>().indirect(
-      std::declval<CallSite>(),
-      std::declval<const Path &>()
-  ));
-  template <class T> using has_intrinsic_t = decltype(std::declval<T &>().intrinsic(
-      std::declval<CallSite>(),
-      std::declval<const Path &>()
-  ));
-  template <class T> using has_declaration_t = decltype(std::declval<T &>().decl(
-      std::declval<CallSite>(),
-      std::declval<const Path &>()
-  ));
-  template <class T> using has_definition_t = decltype(std::declval<T &>().def(
-      std::declval<CallSite>(),
-      std::declval<const Path &>()
-  ));
-  template <class T> using has_precheck_t = decltype(std::declval<T &>().precheck(
-      std::declval<Value*>(),
-      std::declval<Function*>(),
-      std::declval<const FPath &>()
-  ));
+  template <class T>
+  using has_indirect_t = decltype(std::declval<T&>().indirect(std::declval<CallSite>(), std::declval<const Path&>()));
+  template <class T>
+  using has_intrinsic_t = decltype(std::declval<T&>().intrinsic(std::declval<CallSite>(), std::declval<const Path&>()));
+  template <class T>
+  using has_declaration_t = decltype(std::declval<T&>().decl(std::declval<CallSite>(), std::declval<const Path&>()));
+  template <class T>
+  using has_definition_t = decltype(std::declval<T&>().def(std::declval<CallSite>(), std::declval<const Path&>()));
+  template <class T>
+  using has_precheck_t = decltype(std::declval<T&>().precheck(std::declval<Value*>(), std::declval<Function*>(),
+                                                              std::declval<const FPath&>()));
 
   constexpr static bool Indirect    = llvm::is_detected<has_indirect_t, Cls>::value;
   constexpr static bool Intrinsic   = llvm::is_detected<has_intrinsic_t, Cls>::value;
@@ -74,13 +63,8 @@ struct FilterTraits {
   constexpr static bool PreCheck    = llvm::is_detected<has_precheck_t, Cls>::value;
 };
 
-
 template <typename CallSiteHandler, typename SearchHandler, typename OmpHelper = omp::EmptyContext>
-class BaseFilter :
-    public Filter,
-    private CallSiteHandler,
-    private SearchHandler
-{
+class BaseFilter : public Filter, private CallSiteHandler, private SearchHandler {
   using Support = FilterTraits<CallSiteHandler>;
 
   static_assert(std::is_default_constructible<SearchHandler>::value, "SearchHandler is not default constructible");
@@ -90,7 +74,8 @@ class BaseFilter :
 
  public:
   template <typename... Args>
-  explicit BaseFilter(Args&&... args) : CallSiteHandler(std::forward<Args>(args)...) {}
+  explicit BaseFilter(Args&&... args) : CallSiteHandler(std::forward<Args>(args)...) {
+  }
 
   bool filter(llvm::Value* in) override {
     if (in == nullptr) {
@@ -267,70 +252,70 @@ class BaseFilter :
     }
 
     CallSite site(val);
-      const auto callee        = site.getCalledFunction();
-      const bool indirect_call = callee == nullptr;
+    const auto callee        = site.getCalledFunction();
+    const bool indirect_call = callee == nullptr;
 
-      // Indirect calls (sth. like function pointers)
-      if (indirect_call) {
-        if constexpr (Support::Indirect) {
-          auto status = CallSiteHandler::indirect(site, path);
-          LOG_DEBUG("Indirect call: " << util::try_demangle(site))
-          return status;
-        } else {
-          LOG_DEBUG("Indirect call, keep: " << util::try_demangle(site))
-          return FilterAnalysis::Keep;
-        }
-      }
-
-      const bool is_decl      = callee->isDeclaration();
-      const bool is_intrinsic = site.getIntrinsicID() != Intrinsic::not_intrinsic;
-
-      // Handle decl
-      if (is_decl) {
-        if (is_intrinsic) {
-          if constexpr (Support::Intrinsic) {
-            auto status = CallSiteHandler::intrinsic(site, path);
-            LOG_DEBUG("Intrinsic call: " << util::try_demangle(site))
-            return status;
-          } else {
-            LOG_DEBUG("Skip intrinsic: " << util::try_demangle(site))
-            return FilterAnalysis::Skip;
-          }
-        }
-
-        if constexpr (OmpHelper::WithOmp) {
-          // here we handle microtask executor functions:
-          if (OmpHelper::isOmpExecutor(site)) {
-            LOG_DEBUG("Omp executor, follow microtask: " << util::try_demangle(site))
-            return FilterAnalysis::FollowDef;
-          }
-
-          if (OmpHelper::isOmpHelper(site)) {
-            LOG_DEBUG("Omp helper, skip: " << util::try_demangle(site))
-            return FilterAnalysis::Skip;
-          }
-        }
-
-        // Handle decl (like MPI calls)
-        if constexpr (Support::Declaration) {
-          auto status = CallSiteHandler::decl(site, path);
-          LOG_DEBUG("Decl call: " << util::try_demangle(site))
-          return status;
-        } else {
-          LOG_DEBUG("Declaration, keep: " << util::try_demangle(site))
-          return FilterAnalysis::Keep;
-        }
+    // Indirect calls (sth. like function pointers)
+    if (indirect_call) {
+      if constexpr (Support::Indirect) {
+        auto status = CallSiteHandler::indirect(site, path);
+        LOG_DEBUG("Indirect call: " << util::try_demangle(site))
+        return status;
       } else {
-        // Handle definitions
-        if constexpr (Support::Definition) {
-          auto status = CallSiteHandler::def(site, path);
-          LOG_DEBUG("Defined call: " << util::try_demangle(site))
+        LOG_DEBUG("Indirect call, keep: " << util::try_demangle(site))
+        return FilterAnalysis::Keep;
+      }
+    }
+
+    const bool is_decl      = callee->isDeclaration();
+    const bool is_intrinsic = site.getIntrinsicID() != Intrinsic::not_intrinsic;
+
+    // Handle decl
+    if (is_decl) {
+      if (is_intrinsic) {
+        if constexpr (Support::Intrinsic) {
+          auto status = CallSiteHandler::intrinsic(site, path);
+          LOG_DEBUG("Intrinsic call: " << util::try_demangle(site))
           return status;
         } else {
-          LOG_DEBUG("Definition, keep: " << util::try_demangle(site))
-          return FilterAnalysis::Keep;
+          LOG_DEBUG("Skip intrinsic: " << util::try_demangle(site))
+          return FilterAnalysis::Skip;
         }
       }
+
+      if constexpr (OmpHelper::WithOmp) {
+        // here we handle microtask executor functions:
+        if (OmpHelper::isOmpExecutor(site)) {
+          LOG_DEBUG("Omp executor, follow microtask: " << util::try_demangle(site))
+          return FilterAnalysis::FollowDef;
+        }
+
+        if (OmpHelper::isOmpHelper(site)) {
+          LOG_DEBUG("Omp helper, skip: " << util::try_demangle(site))
+          return FilterAnalysis::Skip;
+        }
+      }
+
+      // Handle decl (like MPI calls)
+      if constexpr (Support::Declaration) {
+        auto status = CallSiteHandler::decl(site, path);
+        LOG_DEBUG("Decl call: " << util::try_demangle(site))
+        return status;
+      } else {
+        LOG_DEBUG("Declaration, keep: " << util::try_demangle(site))
+        return FilterAnalysis::Keep;
+      }
+    } else {
+      // Handle definitions
+      if constexpr (Support::Definition) {
+        auto status = CallSiteHandler::def(site, path);
+        LOG_DEBUG("Defined call: " << util::try_demangle(site))
+        return status;
+      } else {
+        LOG_DEBUG("Definition, keep: " << util::try_demangle(site))
+        return FilterAnalysis::Keep;
+      }
+    }
   }
 };
 

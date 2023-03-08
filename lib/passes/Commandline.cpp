@@ -94,7 +94,8 @@ static cl::opt<typeart::analysis::FilterImplementation> cl_typeart_call_filter_i
                clEnumValN(typeart::analysis::FilterImplementation::standard, "std",
                           "Standard forward filter (default)"),
                clEnumValN(typeart::analysis::FilterImplementation::cg, "cg", "Call-graph-based filter"),
-               clEnumValN(typeart::analysis::FilterImplementation::acg, "acg", "Call-graph-based filter (distinguishes arguments)")),
+               clEnumValN(typeart::analysis::FilterImplementation::acg, "acg",
+                          "Call-graph-based filter (distinguishes arguments)")),
     cl::Hidden, cl::init(typeart::analysis::FilterImplementation::standard), cl::cat(typeart_analysis_category));
 
 static cl::opt<ConfigStdArgTypes::filter_glob_ty> cl_typeart_call_filter_glob(

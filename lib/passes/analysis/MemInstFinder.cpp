@@ -9,10 +9,6 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 //
-#include "support/MetaCG.h"
-#include "support/MetaCGExtension.h"
-#include "support/JSONHelper.h"
-
 #include "MemInstFinder.h"
 
 #include "MemOpVisitor.h"
@@ -24,7 +20,10 @@
 #include "filter/Matcher.h"
 #include "filter/StdForwardFilter.h"
 #include "support/Configuration.h"
+#include "support/JSONHelper.h"
 #include "support/Logger.h"
+#include "support/MetaCG.h"
+#include "support/MetaCGExtension.h"
 #include "support/Table.h"
 #include "support/TypeUtil.h"
 #include "support/Util.h"
@@ -109,7 +108,7 @@ static std::unique_ptr<typeart::filter::Filter> make_filter(const MemInstFinderC
   const auto filter_id   = config.filter.useCallFilter ? config.filter.implementation : FilterImplementation::none;
   const std::string glob = config.filter.callFilterGlob;
 
-  switch (filter_id){
+  switch (filter_id) {
     case FilterImplementation::none: {
       LOG_DEBUG("Return no-op filter")
       return std::make_unique<NoOpFilter>();
