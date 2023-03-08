@@ -1,0 +1,61 @@
+{
+  "_MetaCG": {
+    "version": "2.0",
+    "generator": {
+      "name": "TypeART-Tests",
+      "version": "0.1"
+    }
+  },
+  "_CG": {
+    "_Z3fooi": {
+      "isVirtual": false,
+      "doesOverride": false,
+      "overrides": [],
+      "overriddenBy": [],
+      "hasBody": true,
+      "callers": [],
+      "callees": [
+        "_Z3refRi"
+      ],
+      "meta": {
+        "signature": {
+          "identifier": "_Z3fooi",
+          "returnType": "void",
+          "paramTypes": [
+            "i32"
+          ],
+          "isVariadic": false
+        },
+        "ipdf": {
+          "callSites": {
+            "_Z3refRi": [
+              1
+            ]
+          }
+        }
+      }
+    },
+    "_Z3refRi": {
+      "isVirtual": false,
+      "doesOverride": false,
+      "overrides": [],
+      "overriddenBy": [],
+      "hasBody": false,
+      "callers": [
+        "_Z3fooi"
+      ],
+      "callees": [],
+      "meta": {
+        "signature": {
+          "identifier": "_Z3refRi",
+          "returnType": "i32*",
+          "paramTypes": [
+            "i32*"
+          ],
+          "isVariadic": false
+        },
+        "ipdf": {}
+      }
+    }
+  }
+}
