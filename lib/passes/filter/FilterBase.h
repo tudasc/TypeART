@@ -101,7 +101,7 @@ class BaseFilter : public Filter, private CallSiteHandler, private SearchHandler
  private:
   bool DFSFuncFilter(llvm::Value* current, FPath& fpath) {
     /* do a pre-flow tracking check of value in  */
-    if constexpr (Support::PreCheck) {
+    if constexpr (CallSiteHandler::Support::PreCheck) {
       // is null in case of global:
       llvm::Function* currentF = fpath.getCurrentFunc();
       if (currentF != nullptr) {
@@ -256,7 +256,7 @@ class BaseFilter : public Filter, private CallSiteHandler, private SearchHandler
 
     // Indirect calls (sth. like function pointers)
     if (indirect_call) {
-      if constexpr (Support::Indirect) {
+      if constexpr (CallSiteHandler::Support::Indirect) {
         auto status = CallSiteHandler::indirect(site, path);
         LOG_DEBUG("Indirect call: " << util::try_demangle(site))
         return status;
@@ -272,7 +272,7 @@ class BaseFilter : public Filter, private CallSiteHandler, private SearchHandler
     // Handle decl
     if (is_decl) {
       if (is_intrinsic) {
-        if constexpr (Support::Intrinsic) {
+        if constexpr (CallSiteHandler::Support::Intrinsic) {
           auto status = CallSiteHandler::intrinsic(site, path);
           LOG_DEBUG("Intrinsic call: " << util::try_demangle(site))
           return status;
@@ -296,7 +296,7 @@ class BaseFilter : public Filter, private CallSiteHandler, private SearchHandler
       }
 
       // Handle decl (like MPI calls)
-      if constexpr (Support::Declaration) {
+      if constexpr (CallSiteHandler::Support::Declaration) {
         auto status = CallSiteHandler::decl(site, path);
         LOG_DEBUG("Decl call: " << util::try_demangle(site))
         return status;
@@ -306,7 +306,7 @@ class BaseFilter : public Filter, private CallSiteHandler, private SearchHandler
       }
     } else {
       // Handle definitions
-      if constexpr (Support::Definition) {
+      if constexpr (CallSiteHandler::Support::Definition) {
         auto status = CallSiteHandler::def(site, path);
         LOG_DEBUG("Defined call: " << util::try_demangle(site))
         return status;

@@ -37,15 +37,23 @@ struct DefaultSearch;
 
 namespace typeart::filter {
 
+struct CGFilterTrait {
+  constexpr static bool Indirect    = false;
+  constexpr static bool Intrinsic   = false;
+  constexpr static bool Declaration = true;
+  constexpr static bool Definition  = true;
+  constexpr static bool PreCheck    = true;
+};
+
 class CGInterface;
 
-class CGFilterImpl {
- private:
+struct CGFilterImpl {
+  using Support = CGFilterTrait;
+
   std::string filter;
   std::unique_ptr<CGInterface> call_graph;
   std::unique_ptr<Matcher> deep_matcher;
 
- public:
   CGFilterImpl(const std::string& filter_str, std::unique_ptr<CGInterface>&& cgraph);
 
   CGFilterImpl(const std::string& filter_str, std::unique_ptr<CGInterface>&& cgraph,
