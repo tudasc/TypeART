@@ -63,14 +63,14 @@ struct FunctionSignature {
    */
   const bool isVariadic = false;
 
-  [[nodiscard]] constexpr bool paramIsType(unsigned ArgumentNumber, const std::string& Type) const noexcept {
+  [[nodiscard]] bool paramIsType(unsigned ArgumentNumber, const std::string& Type) const noexcept {
     if (ArgumentNumber >= paramTypes.size()) {
       return isVariadic;
     }
     return paramTypes[ArgumentNumber] == Type;
   }
 
-  [[nodiscard]] constexpr bool returnIsType(const std::string& Type) const noexcept {
+  [[nodiscard]] bool returnIsType(const std::string& Type) const noexcept {
     return returnType == Type;
   }
 };
@@ -110,7 +110,6 @@ using JSONACG = MetaCG<Signature, InterDataFlow>;
 /// converts the JSON structure in a better processable structure
 ACGDataMap createDatabase(const Regex& MetaCGNode, JSONACG& MetaCg);
 
-
 struct ACGFilterTrait {
   constexpr static bool Indirect    = true;
   constexpr static bool Intrinsic   = false;
@@ -119,9 +118,8 @@ struct ACGFilterTrait {
   constexpr static bool PreCheck    = true;
 };
 
-
 class ACGFilterImpl {
-protected:
+ protected:
   using Support = ACGFilterTrait;
 
  private:
@@ -156,7 +154,7 @@ protected:
   [[nodiscard]] std::vector<const FunctionDescriptor*> getCalleesForCallsite(const FunctionDescriptor&,
                                                                              const CallBase&) const;
 
-  [[nodiscard]] std::string prepareLogMessage(const CallBase&, const Value&,  const StringRef&) const;
+  [[nodiscard]] std::string prepareLogMessage(const CallBase&, const Value&, const StringRef&) const;
 
   unsigned calculateSiteIdentifiersIfAbsent(const Function&);
 

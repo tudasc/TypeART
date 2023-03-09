@@ -40,10 +40,8 @@ enum class FilterAnalysis {
   FollowDef,  // Want analysis of the called function def
 };
 
-
 template <typename CallSiteHandler, typename SearchHandler, typename OmpHelper = omp::EmptyContext>
 class BaseFilter : public Filter, private CallSiteHandler, private SearchHandler {
-
   static_assert(std::is_default_constructible<SearchHandler>::value, "SearchHandler is not default constructible");
 
   bool malloc_mode{false};

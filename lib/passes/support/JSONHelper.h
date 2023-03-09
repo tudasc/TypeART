@@ -52,21 +52,21 @@ inline llvm::Expected<T> getJSON(const llvm::StringRef& SrcFile) {
     return ParsedJSON;
   } else {
 #if LLVM_VERSION_MAJOR < 12
-      T Result;
-      if (fromJSON(*ParsedJSON, Result)) {
-        return std::move(Result);
-      }
-      LOG_FATAL("invalid json");
-      std::exit(-1);
+    T Result;
+    if (fromJSON(*ParsedJSON, Result)) {
+      return std::move(Result);
+    }
+    LOG_FATAL("invalid json");
+    std::exit(-1);
 #else
-      llvm::json::Path::Root R("");
-      T Result;
-      if (fromJSON(*ParsedJSON, Result, R)) {
-        return std::move(Result);
-      }
-      llvm::logAllUnhandledErrors(R.getError(), ErrOStream);
-      LOG_FATAL(ErrOStream.str());
-      std::exit(-1);
+    llvm::json::Path::Root R("");
+    T Result;
+    if (fromJSON(*ParsedJSON, Result, R)) {
+      return std::move(Result);
+    }
+    llvm::logAllUnhandledErrors(R.getError(), ErrOStream);
+    LOG_FATAL(ErrOStream.str());
+    std::exit(-1);
 #endif
   }
 }
