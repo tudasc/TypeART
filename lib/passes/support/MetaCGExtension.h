@@ -35,13 +35,17 @@ struct Extension<Signature> {
   Signature signature;
 };
 
-inline bool fromJSON(const json::Value& E, Extension<Signature>& R, json::Path P) {
-  json::ObjectMapper O(E, P);
+// the fromJSON signature was changed with llvm12 so, we need support both variants - the old and the new one
+
+template <typename... Extra>
+inline bool fromJSON(const json::Value& E, Extension<Signature>& R, Extra... P) {
+  json::ObjectMapper O(E, P...);
   return O && O.map("signature", R.signature);
 }
 
-inline bool fromJSON(const json::Value& E, Signature& R, json::Path P) {
-  json::ObjectMapper O(E, P);
+template <typename... Extra>
+inline bool fromJSON(const json::Value& E, Signature& R, Extra... P) {
+  json::ObjectMapper O(E, P...);
   return O && O.map("identifier", R.identifier) && O.map("paramTypes", R.paramTypes) &&
          O.map("isVariadic", R.isVariadic) && O.map("returnType", R.returnType);
 }
@@ -68,22 +72,26 @@ struct Extension<InterDataFlow> {
   InterDataFlow ipdf;
 };
 
-inline bool fromJSON(const json::Value& E, Extension<InterDataFlow>& R, json::Path P) {
-  json::ObjectMapper O(E, P);
+template <typename... Extra>
+inline bool fromJSON(const json::Value& E, Extension<InterDataFlow>& R, Extra... P) {
+  json::ObjectMapper O(E, P...);
   return O && O.map("ipdf", R.ipdf);
 }
 
-inline bool fromJSON(const json::Value& E, InterDataFlow& R, json::Path P) {
-  json::ObjectMapper O(E, P);
-  return O && O.mapOptional("interFlow", R.interFlow) && O.mapOptional("callSites", R.callsites);
+template <typename... Extra>
+inline bool fromJSON(const json::Value& E, InterDataFlow& R, Extra... P) {
+  json::ObjectMapper O(E, P...);
+  return O && O.map("interFlow", R.interFlow) && O.map("callSites", R.callsites);
 }
 
-inline bool fromJSON(const json::Value& E, InterDataFlow::CallSite& R, json::Path P) {
-  return fromJSON(E, R.id, P);
+template <typename... Extra>
+inline bool fromJSON(const json::Value& E, InterDataFlow::CallSite& R, Extra... P) {
+  return fromJSON(E, R.id, P...);
 }
 
-inline bool fromJSON(const json::Value& E, InterDataFlow::Edge& R, json::Path P) {
-  json::ObjectMapper O(E, P);
+template <typename... Extra>
+inline bool fromJSON(const json::Value& E, InterDataFlow::Edge& R, Extra... P) {
+  json::ObjectMapper O(E, P...);
   return O && O.map("formal", R.formalArgNo) && O.map("actual", R.actualArgNo);
 }
 

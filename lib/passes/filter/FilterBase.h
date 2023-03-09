@@ -18,16 +18,15 @@
 #include "IRPath.h"
 #include "IRSearch.h"
 #include "OmpUtil.h"
+#include "compat/ADL/STLExtras.h"
 #include "compat/CallSite.h"
+#include "compat/Support/Casting.h"
 #include "support/Logger.h"
 #include "support/OmpUtil.h"
 #include "support/Util.h"
 
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Intrinsics.h"
-#if LLVM_VERSION_MAJOR < 12
-#include "compat/STLExtras.h"
-#endif
 
 #include <iterator>
 #include <type_traits>
