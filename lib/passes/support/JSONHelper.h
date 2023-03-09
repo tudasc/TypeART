@@ -41,25 +41,33 @@ inline llvm::Expected<T> getJSON(const llvm::StringRef& SrcFile) {
     LOG_FATAL(ErrOStream.str());
     std::exit(-1);
   }
+  auto ParsedJSON = llvm::json::parse(Mem.get()->getBuffer());
+  if (!ParsedJSON) {
+    llvm::logAllUnhandledErrors(ParsedJSON.takeError(), ErrOStream);
+    LOG_FATAL(ErrOStream.str());
+    std::exit(-1);
+  }
 
   if constexpr (std::is_same_v<llvm::json::Value, T>) {
-    auto ParsedJSON = llvm::json::parse(Mem.get()->getBuffer());
-    if (!ParsedJSON) {
-      llvm::logAllUnhandledErrors(ParsedJSON.takeError(), ErrOStream);
-      LOG_FATAL(ErrOStream.str());
-      std::exit(-1);
-    }
-
     return ParsedJSON;
   } else {
-    auto ParsedJSON = llvm::json::parse<T>(Mem.get()->getBuffer());
-    if (!ParsedJSON) {
-      llvm::logAllUnhandledErrors(ParsedJSON.takeError(), ErrOStream);
+#if LLVM_VERSION_MAJOR < 12
+      T Result;
+      if (fromJSON(*ParsedJSON, Result)) {
+        return std::move(Result);
+      }
+      LOG_FATAL("invalid json");
+      std::exit(-1);
+#else
+      llvm::json::Path::Root R("");
+      T Result;
+      if (fromJSON(*ParsedJSON, Result, R)) {
+        return std::move(Result);
+      }
+      llvm::logAllUnhandledErrors(R.getError(), ErrOStream);
       LOG_FATAL(ErrOStream.str());
       std::exit(-1);
-    }
-
-    return ParsedJSON;
+#endif
   }
 }
 

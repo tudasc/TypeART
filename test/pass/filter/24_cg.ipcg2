@@ -90,7 +90,10 @@
           ],
           "isVariadic": false
         },
-        "ipdf": {}
+        "ipdf": {
+          "interFlow": {},
+          "callSites": {}
+        }
       }
     },
     "foo": {
@@ -112,6 +115,7 @@
           "isVariadic": false
         },
         "ipdf": {
+          "interFlow": {},
           "callSites": {
             "ring": [
               4

@@ -27,6 +27,7 @@
           "isVariadic": false
         },
         "ipdf": {
+          "interFlow": {},
           "callSites": {
             "_Z3refRi": [
               1
@@ -54,7 +55,10 @@
           ],
           "isVariadic": false
         },
-        "ipdf": {}
+        "ipdf": {
+          "interFlow": {},
+          "callSites": {}
+        }
       }
     }
   }

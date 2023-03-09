@@ -14,6 +14,7 @@
 
 #include "analysis/MemOpData.h"
 #include "compat/CallSite.h"
+#include "compat/Support/Casting.h"
 #include "support/Error.h"
 #include "support/Logger.h"
 #include "support/TypeUtil.h"

@@ -32,7 +32,7 @@ enum VisitResult {
 template <typename T, typename CB>
 inline void solveReachable(const std::vector<T>& Range, CB&& Callback) noexcept {
   llvm::SmallPtrSet<T const*, 32> Visited{};
-  llvm::SmallVector<T const*> Worklist{};
+  llvm::SmallVector<T const*, 64> Worklist{};
 
   const auto& Enqueue = [&](T const& Entry) noexcept -> bool {
     if (Visited.insert(&Entry).second) {

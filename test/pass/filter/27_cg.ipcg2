@@ -65,7 +65,10 @@
           ],
           "isVariadic": false
         },
-        "ipdf": {}
+        "ipdf": {
+          "interFlow": {},
+          "callSites": {}
+        }
       }
     },
     "f_two": {
@@ -126,7 +129,10 @@
           ],
           "isVariadic": false
         },
-        "ipdf": {}
+        "ipdf": {
+          "interFlow": {},
+          "callSites": {}
+        }
       }
     },
     "f_three": {
@@ -194,7 +200,10 @@
           ],
           "isVariadic": false
         },
-        "ipdf": {}
+        "ipdf": {
+          "interFlow": {},
+          "callSites": {}
+        }
       }
     },
     "f_four": {
@@ -217,7 +226,10 @@
           ],
           "isVariadic": false
         },
-        "ipdf": {}
+        "ipdf": {
+          "interFlow": {},
+          "callSites": {}
+        }
       }
     },
     "foo": {
@@ -242,6 +254,7 @@
           "isVariadic": false
         },
         "ipdf": {
+          "interFlow": {},
           "callSites": {
             "f_four": [
               4,

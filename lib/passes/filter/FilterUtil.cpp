@@ -13,6 +13,7 @@
 #include "FilterUtil.h"
 
 #include "compat/CallSite.h"
+#include "compat/Support/Casting.h"
 
 #include "llvm/IR/Intrinsics.h"
 #include "llvm/Support/raw_ostream.h"

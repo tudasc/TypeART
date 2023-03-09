@@ -14,6 +14,7 @@
 #define TYPEART_FILTER_OMPUTIL_H
 
 #include "compat/CallSite.h"
+#include "compat/Support/Casting.h"
 #include "support/DefUseChain.h"
 #include "support/OmpUtil.h"
 

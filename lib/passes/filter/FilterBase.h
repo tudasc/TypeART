@@ -18,7 +18,6 @@
 #include "IRPath.h"
 #include "IRSearch.h"
 #include "OmpUtil.h"
-#include "compat/ADL/STLExtras.h"
 #include "compat/CallSite.h"
 #include "compat/Support/Casting.h"
 #include "support/Logger.h"
@@ -41,30 +40,9 @@ enum class FilterAnalysis {
   FollowDef,  // Want analysis of the called function def
 };
 
-template <typename Cls>
-struct FilterTraits {
-  template <class T>
-  using has_indirect_t = decltype(std::declval<T&>().indirect(std::declval<CallSite>(), std::declval<const Path&>()));
-  template <class T>
-  using has_intrinsic_t = decltype(std::declval<T&>().intrinsic(std::declval<CallSite>(), std::declval<const Path&>()));
-  template <class T>
-  using has_declaration_t = decltype(std::declval<T&>().decl(std::declval<CallSite>(), std::declval<const Path&>()));
-  template <class T>
-  using has_definition_t = decltype(std::declval<T&>().def(std::declval<CallSite>(), std::declval<const Path&>()));
-  template <class T>
-  using has_precheck_t = decltype(std::declval<T&>().precheck(std::declval<Value*>(), std::declval<Function*>(),
-                                                              std::declval<const FPath&>()));
-
-  constexpr static bool Indirect    = llvm::is_detected<has_indirect_t, Cls>::value;
-  constexpr static bool Intrinsic   = llvm::is_detected<has_intrinsic_t, Cls>::value;
-  constexpr static bool Declaration = llvm::is_detected<has_declaration_t, Cls>::value;
-  constexpr static bool Definition  = llvm::is_detected<has_definition_t, Cls>::value;
-  constexpr static bool PreCheck    = llvm::is_detected<has_precheck_t, Cls>::value;
-};
 
 template <typename CallSiteHandler, typename SearchHandler, typename OmpHelper = omp::EmptyContext>
 class BaseFilter : public Filter, private CallSiteHandler, private SearchHandler {
-  using Support = FilterTraits<CallSiteHandler>;
 
   static_assert(std::is_default_constructible<SearchHandler>::value, "SearchHandler is not default constructible");
 

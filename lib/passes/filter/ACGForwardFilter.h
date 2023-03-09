@@ -110,7 +110,20 @@ using JSONACG = MetaCG<Signature, InterDataFlow>;
 /// converts the JSON structure in a better processable structure
 ACGDataMap createDatabase(const Regex& MetaCGNode, JSONACG& MetaCg);
 
+
+struct ACGFilterTrait {
+  constexpr static bool Indirect    = true;
+  constexpr static bool Intrinsic   = false;
+  constexpr static bool Declaration = true;
+  constexpr static bool Definition  = true;
+  constexpr static bool PreCheck    = true;
+};
+
+
 class ACGFilterImpl {
+protected:
+  using Support = ACGFilterTrait;
+
  private:
   using functionmap_t   = llvm::ValueMap<const llvm::Function*, unsigned>;
   using identifiermap_t = llvm::ValueMap<const llvm::Instruction*, unsigned>;
