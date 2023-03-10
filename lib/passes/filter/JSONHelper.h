@@ -10,10 +10,10 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //
 
-#ifndef TYPEART_JSON_H
-#define TYPEART_JSON_H
+#ifndef TYPEART_FILTER_JSON_H
+#define TYPEART_FILTER_JSON_H
 
-#include "Error.h"
+#include "support/Error.h"
 
 #include <llvm/ADT/StringRef.h>
 #include <llvm/Support/JSON.h>
@@ -22,7 +22,7 @@
 #include <memory>
 #include <string>
 
-namespace typeart::util {
+namespace typeart::filter {
 
 template <typename T = llvm::json::Value>
 inline llvm::Expected<T> getJSON(const llvm::StringRef& SrcFile) {
@@ -71,6 +71,6 @@ inline llvm::Expected<T> getJSON(const llvm::StringRef& SrcFile) {
   }
 }
 
-}  // namespace typeart::util
+}  // namespace typeart::filter
 
-#endif  // TYPEART_JSON_H
+#endif  // TYPEART_FILTER_JSON_H

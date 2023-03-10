@@ -18,8 +18,8 @@
 #include "compat/CallSite.h"
 #include "filter/CGInterface.h"
 #include "filter/IRPath.h"
-#include "support/MetaCG.h"
-#include "support/MetaCGExtension.h"
+#include "MetaCG.h"
+#include "MetaCGExtension.h"
 
 #include <llvm/ADT/SmallPtrSet.h>
 #include <llvm/ADT/SmallVector.h>
@@ -43,7 +43,6 @@ struct OmpContext;
 
 namespace typeart::filter {
 
-using namespace util::metacg;
 
 struct FunctionSignature {
   /**
@@ -81,7 +80,7 @@ struct FunctionSignature {
 struct FunctionDescriptor {
   struct ArgumentEdge {
     /// The position of the formal argument of the callee.
-    const int formalArgumentNumber;
+    const int argumentNumber;
 
     /// reference to the callee
     const FunctionDescriptor& callee;
@@ -94,7 +93,7 @@ struct FunctionDescriptor {
   bool isDefinition = false;
 
   /// the key represents the actual argument position of the caller function (this function)
-  std::multimap<int, const ArgumentEdge> reachableFormals{};
+  std::multimap<int, const ArgumentEdge> reachableFunctionArguments{};
 
   /// maps a callsite-id to its callees
   std::multimap<uint64_t, const FunctionDescriptor*> callsiteCallees{};
@@ -105,10 +104,10 @@ struct FunctionDescriptor {
 
 using ACGDataMap = llvm::StringMap<FunctionDescriptor>;
 
-using JSONACG = MetaCG<Signature, InterDataFlow>;
+using JSONACG = metacg::MetaCG<metacg::FunctionSignature, metacg::InterDataFlow>;
 
 /// converts the JSON structure in a better processable structure
-ACGDataMap createDatabase(const Regex& MetaCGNode, JSONACG& MetaCg);
+ACGDataMap createDatabase(const Regex&, JSONACG&);
 
 struct ACGFilterTrait {
   constexpr static bool Indirect    = true;
@@ -119,26 +118,17 @@ struct ACGFilterTrait {
 };
 
 class ACGFilterImpl {
- protected:
+ public:
   using Support = ACGFilterTrait;
 
  private:
   using functionmap_t   = llvm::ValueMap<const llvm::Function*, unsigned>;
   using identifiermap_t = llvm::ValueMap<const llvm::Instruction*, unsigned>;
 
-  static constexpr auto VoidType = "i8*";
-
   FunctionOracleMatcher candidateMatcher{};
   ACGDataMap functionMap;
   functionmap_t analyzedFunctions{};
   identifiermap_t callSiteIdentifiers{};
-
-  [[nodiscard]] bool edgeReachesRelevantFormalArgument(const FunctionDescriptor::ArgumentEdge&) const;
-
-  [[nodiscard]] bool edgeMaybeReachesFormalArgument(const FunctionDescriptor::ArgumentEdge&) const;
-
-  [[nodiscard]] std::vector<FunctionDescriptor::ArgumentEdge> createEdgesForCallsite(
-      const CallBase&, const llvm::Value&, const std::vector<const FunctionDescriptor*>&) const;
 
   [[nodiscard]] FilterAnalysis analyseFlowPath(const std::vector<FunctionDescriptor::ArgumentEdge>&) const;
 
@@ -149,20 +139,10 @@ class ACGFilterImpl {
 
   [[nodiscard]] unsigned int getIdentifierForCallsite(const llvm::CallBase&) const;
 
-  [[nodiscard]] bool isFormalArgumentRelevant(const FunctionDescriptor::ArgumentEdge&) const;
-
   [[nodiscard]] std::vector<const FunctionDescriptor*> getCalleesForCallsite(const FunctionDescriptor&,
                                                                              const CallBase&) const;
 
-  [[nodiscard]] std::string prepareLogMessage(const CallBase&, const Value&, const StringRef&) const;
-
   unsigned calculateSiteIdentifiersIfAbsent(const Function&);
-
-  void logUnusedArgument(const llvm::CallBase&, const llvm::Value&) const;
-
-  void logMissingCallees(const llvm::CallBase&, const llvm::Value&) const;
-
-  void logMissingEdges(const llvm::CallBase&, const llvm::Value&) const;
 
  public:
   explicit ACGFilterImpl(ACGDataMap&& DataMap) : functionMap(std::move(DataMap)) {

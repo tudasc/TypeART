@@ -33,8 +33,8 @@
           "interFlow": {
             "lib_call_a": [
               {
-                "actual": 0,
-                "formal": 0
+                "source": 0,
+                "sink": 0
               }
             ]
           },
@@ -97,8 +97,8 @@
           "interFlow": {
             "lib_call_b": [
               {
-                "actual": 1,
-                "formal": 0
+                "source": 1,
+                "sink": 0
               }
             ]
           },
@@ -161,12 +161,12 @@
           "interFlow": {
             "__typeart_alloc": [
               {
-                "actual": 0,
-                "formal": 0
+                "source": 0,
+                "sink": 0
               },
               {
-                "actual": 1,
-                "formal": 0
+                "source": 1,
+                "sink": 0
               }
             ]
           },

@@ -53,7 +53,7 @@
         "ipdf": {
           "interFlow": {
             "MPI_Send": [
-              {"actual": 0, "formal": 0}
+              {"source": 0, "sink": 0}
             ]
           },
           "callSites": {}

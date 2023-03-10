@@ -18,9 +18,10 @@
 using namespace llvm;
 
 namespace typeart::filter {
-using namespace util::metacg;
 
 namespace detail {
+
+static constexpr auto VoidType = "i8*";
 
 /// follows all enqueued values and visits them once starting with an initial entry
 
@@ -93,8 +94,8 @@ static void insertArgumentFlow(const JSONACG::node_type& Json, FunctionDescripto
     const auto& CalleeFunction = retrieveFunction(DataMap, CallSites.getKey());
 
     for (const auto& Edge : CallSites.getValue()) {
-      FunctionDescriptor::ArgumentEdge const FlowEdge{Edge.formalArgNo, CalleeFunction};
-      Data.reachableFormals.emplace(Edge.actualArgNo, FlowEdge);
+      FunctionDescriptor::ArgumentEdge const FlowEdge{Edge.sinkArgumentNumber, CalleeFunction};
+      Data.reachableFunctionArguments.emplace(Edge.sourceArgumentNumber, FlowEdge);
     }
   });
 }
@@ -103,30 +104,30 @@ ACGDataMap createDatabase(const Regex& TargetMatcher, JSONACG& MetaCg) {
   ACGDataMap DataMap;
 
   // insert nodes first, to avoid rehashing and invalidation of references
-  llvm::for_each(MetaCg.nodes, [&](const auto& MetaCGNode) {
+  llvm::for_each(MetaCg.functionNodes, [&](const auto& MetaCGNode) {
     DataMap.try_emplace(MetaCGNode.getKey(), createFunctionNode(MetaCGNode.getValue(), TargetMatcher));
   });
 
   llvm::for_each(DataMap, [&](auto& Entry) {
-    insertCallsiteIdentifiers(MetaCg.nodes[Entry.getKey()], Entry.getValue(), DataMap);
-    insertArgumentFlow(MetaCg.nodes[Entry.getKey()], Entry.getValue(), DataMap);
+    insertCallsiteIdentifiers(MetaCg.functionNodes[Entry.getKey()], Entry.getValue(), DataMap);
+    insertArgumentFlow(MetaCg.functionNodes[Entry.getKey()], Entry.getValue(), DataMap);
   });
 
   return DataMap;
 }
 
 /// tests if an edge can reach a void* argument
-bool ACGFilterImpl::isFormalArgumentRelevant(const FunctionDescriptor::ArgumentEdge& Edge) const {
-  return Edge.callee.functionSignature.paramIsType(Edge.formalArgumentNumber, VoidType);
+inline static bool isFormalArgumentRelevant(const FunctionDescriptor::ArgumentEdge& Edge) {
+  return Edge.callee.functionSignature.paramIsType(Edge.argumentNumber, detail::VoidType);
 }
 
 /// an edge reaches a relevant formal argument
-bool ACGFilterImpl::edgeReachesRelevantFormalArgument(const FunctionDescriptor::ArgumentEdge& Edge) const {
+inline static bool edgeReachesRelevantFormalArgument(const FunctionDescriptor::ArgumentEdge& Edge)  {
   return Edge.callee.isTarget && isFormalArgumentRelevant(Edge);
 }
 
 /// declaration with relevant formal argument, could reach indirect the destination
-bool ACGFilterImpl::edgeMaybeReachesFormalArgument(const FunctionDescriptor::ArgumentEdge& Edge) const {
+inline static bool edgeMaybeReachesFormalArgument(const FunctionDescriptor::ArgumentEdge& Edge)  {
   return !Edge.callee.isTarget && !Edge.callee.isDefinition && isFormalArgumentRelevant(Edge);
 }
 
@@ -187,7 +188,7 @@ FilterAnalysis ACGFilterImpl::analyseFlowPath(const std::vector<FunctionDescript
     }
 
     // enqueue all edges that can be reached from the current callee/argument
-    const auto& ReachableFormals = make_range(Edge.callee.reachableFormals.equal_range(Edge.formalArgumentNumber));
+    const auto& ReachableFormals = make_range(Edge.callee.reachableFunctionArguments.equal_range(Edge.argumentNumber));
     for (const auto& [ActualNumber, FormalEdge] : ReachableFormals) {
       Enqueue(FormalEdge);
     }
@@ -209,9 +210,10 @@ FilterAnalysis ACGFilterImpl::analyseFlowPath(const std::vector<FunctionDescript
 }
 
 /// calculates all outgoing edges for a given parameter value of a callsite
-[[nodiscard]] std::vector<FunctionDescriptor::ArgumentEdge> ACGFilterImpl::createEdgesForCallsite(
+inline static
+std::vector<FunctionDescriptor::ArgumentEdge> createEdgesForCallsite(
     const CallBase& Site, const llvm::Value& ActualArgument,
-    const std::vector<const FunctionDescriptor*>& CalleesForCallsite) const {
+    const std::vector<const FunctionDescriptor*>& CalleesForCallsite) {
   const auto&& CorrespondingArgs =
       llvm::make_filter_range(Site.args(), [&ActualArgument](const auto& Arg) { return Arg.get() == &ActualArgument; });
 
@@ -219,7 +221,7 @@ FilterAnalysis ACGFilterImpl::analyseFlowPath(const std::vector<FunctionDescript
   for (const auto& CallSiteArg : CorrespondingArgs) {
     for (const auto& Callee : CalleesForCallsite) {
       Init.emplace_back(FunctionDescriptor::ArgumentEdge{
-          static_cast<int>(CallSiteArg.getOperandNo()) /*formal*/, *Callee /*callee*/
+          static_cast<int>(CallSiteArg.getOperandNo()) /*argumentNumber*/, *Callee /*callee*/
       });
     }
   }
@@ -227,8 +229,8 @@ FilterAnalysis ACGFilterImpl::analyseFlowPath(const std::vector<FunctionDescript
   return Init;
 }
 
-std::string ACGFilterImpl::prepareLogMessage(const CallBase& Site, const Value& ActualArgument,
-                                             const StringRef& Msg) const {
+inline static std::string prepareLogMessage(const CallBase& Site, const Value& ActualArgument,
+                                             const StringRef& Msg) {
   std::string String;
   raw_string_ostream StringStream{String};
   StringStream << "function ";
@@ -244,7 +246,7 @@ std::string ACGFilterImpl::prepareLogMessage(const CallBase& Site, const Value& 
   return String;
 }
 
-inline void ACGFilterImpl::logUnusedArgument(const llvm::CallBase& Site, const llvm::Value& ActualArgument) const {
+inline static void logUnusedArgument(const llvm::CallBase& Site, const llvm::Value& ActualArgument) {
   if (Site.getCalledOperand() == &ActualArgument) {
     LOG_DEBUG(prepareLogMessage(Site, ActualArgument, "Argument is CalledOperand of Callsite"))
     return;
@@ -261,7 +263,7 @@ inline void ACGFilterImpl::logUnusedArgument(const llvm::CallBase& Site, const l
   LOG_ERROR(prepareLogMessage(Site, ActualArgument, "Argument is not used at Callsite"))
 }
 
-inline void ACGFilterImpl::logMissingCallees(const llvm::CallBase& Site, const llvm::Value&) const {
+inline static void logMissingCallees(const llvm::CallBase& Site, const llvm::Value&) {
   std::string String;
   raw_string_ostream StringStream{String};
   StringStream << "function ";
@@ -272,7 +274,7 @@ inline void ACGFilterImpl::logMissingCallees(const llvm::CallBase& Site, const l
   LOG_WARNING(String)
 }
 
-inline void ACGFilterImpl::logMissingEdges(const llvm::CallBase& Site, const llvm::Value& ActualArgument) const {
+inline static void logMissingEdges(const llvm::CallBase& Site, const llvm::Value& ActualArgument) {
   std::string String;
   raw_string_ostream StringStream{String};
   StringStream << "function ";
@@ -302,7 +304,7 @@ FilterAnalysis ACGFilterImpl::analyseCallsite(const llvm::CallBase& Site, const 
     // the function is unreachable/dead or it was wrongly not analyzed (unsound). Therefore, we
     // conservative keep the value.
     LOG_INFO("function not in map: " << ParentFunctionName)
-    return typeart::filter::FilterAnalysis::Keep;
+    return FilterAnalysis::Keep;
   }
   const auto& FunctionData = functionMap.lookup(ParentFunctionName);
 

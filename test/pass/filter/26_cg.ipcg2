@@ -33,12 +33,12 @@
           "interFlow": {
             "f_three": [
               {
-                "actual": 0,
-                "formal": 0
+                "source": 0,
+                "sink": 0
               },
               {
-                "actual": 0,
-                "formal": 1
+                "source": 0,
+                "sink": 1
               }
             ]
           },
@@ -78,8 +78,8 @@
           "interFlow": {
             "MPI_sink": [
               {
-                "actual": 0,
-                "formal": 0
+                "source": 0,
+                "sink": 0
               }
             ]
           },
@@ -117,12 +117,12 @@
           "interFlow": {
             "f_three": [
               {
-                "actual": 1,
-                "formal": 0
+                "source": 1,
+                "sink": 0
               },
               {
-                "actual": 1,
-                "formal": 1
+                "source": 1,
+                "sink": 1
               }
             ]
           },
@@ -186,8 +186,8 @@
           "interFlow": {
             "MPI_sink": [
               {
-                "actual": 1,
-                "formal": 0
+                "source": 1,
+                "sink": 0
               }
             ]
           },

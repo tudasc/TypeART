@@ -17,13 +17,13 @@
 #include "filter/CGForwardFilter.h"
 #include "filter/CGInterface.h"
 #include "filter/Filter.h"
+#include "filter/JSONHelper.h"
 #include "filter/Matcher.h"
+#include "filter/MetaCG.h"
+#include "filter/MetaCGExtension.h"
 #include "filter/StdForwardFilter.h"
 #include "support/Configuration.h"
-#include "support/JSONHelper.h"
 #include "support/Logger.h"
-#include "support/MetaCG.h"
-#include "support/MetaCGExtension.h"
 #include "support/Table.h"
 #include "support/TypeUtil.h"
 #include "support/Util.h"
@@ -103,7 +103,6 @@ namespace filter {
 namespace detail {
 static std::unique_ptr<typeart::filter::Filter> make_filter(const MemInstFinderConfig& config) {
   using namespace typeart::filter;
-  using namespace typeart::util::metacg;
 
   const auto filter_id   = config.filter.useCallFilter ? config.filter.implementation : FilterImplementation::none;
   const std::string glob = config.filter.callFilterGlob;
@@ -124,14 +123,14 @@ static std::unique_ptr<typeart::filter::Filter> make_filter(const MemInstFinderC
 
     case FilterImplementation::cg: {
       LOG_DEBUG("Return CG filter with CG file @ " << config.filter.callFilterCgFile)
-      auto json_cg = std::make_unique<JSONCG>(util::getJSON(config.filter.callFilterCgFile).get());
+      auto json_cg = std::make_unique<JSONCG>(getJSON(config.filter.callFilterCgFile).get());
       auto matcher = std::make_unique<DefaultStringMatcher>(util::glob2regex(glob));
       return std::make_unique<CGForwardFilter>(glob, std::move(json_cg), std::move(matcher));
     }
 
     case FilterImplementation::acg: {
       LOG_DEBUG("Return ACG filter with CG file @ " << config.filter.callFilterCgFile)
-      auto json_cg = util::getJSON<JSONACG>(config.filter.callFilterCgFile).get();
+      auto json_cg = getJSON<JSONACG>(config.filter.callFilterCgFile).get();
       const Regex TargetMatcher{util::glob2regex(glob), Regex::NoFlags};
       return std::make_unique<ACGForwardFilter>(createDatabase(TargetMatcher, json_cg));
     }

@@ -31,7 +31,6 @@ target_include_directories(
          $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
          $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>
          $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/filter>
-         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/support>
 )
 
 target_include_directories(${TYPEART_PREFIX}_MemInstFinder SYSTEM PRIVATE ${LLVM_INCLUDE_DIRS})

@@ -34,8 +34,8 @@
           "interFlow": {
             "MPI_sink": [
               {
-                "actual": 2,
-                "formal": 0
+                "source": 2,
+                "sink": 0
               }
             ]
           },

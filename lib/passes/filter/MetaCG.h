@@ -10,8 +10,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //
 
-#ifndef TYPEART_METACG_H
-#define TYPEART_METACG_H
+#ifndef TYPEART_FILTER_METACG_H
+#define TYPEART_FILTER_METACG_H
 
 #include <llvm/ADT/StringMap.h>
 #include <llvm/Support/JSON.h>
@@ -20,16 +20,16 @@
 
 using namespace llvm;
 
-namespace typeart::util::metacg {
+namespace typeart::filter::metacg {
 
 template <typename>
-struct Extension;
+struct MetaFieldExtension;
 
 template <typename...>
-struct Node;
+struct FunctionNode;
 
 template <>
-struct Node<> {
+struct FunctionNode<> {
   std::vector<std::string> callees;
   std::vector<std::string> callers;
   std::vector<std::string> overrides;
@@ -41,11 +41,11 @@ struct Node<> {
 };
 
 template <typename... Mixins>
-struct Meta : public Extension<Mixins>... {};
+struct MetaField : public MetaFieldExtension<Mixins>... {};
 
-template <typename... Extensions>
-struct Node : public Node<> {
-  Meta<Extensions...> meta;
+template <typename... MetaFieldExtensions>
+struct FunctionNode : public FunctionNode<> {
+  MetaField<MetaFieldExtensions...> meta;
 };
 
 struct Version {
@@ -63,12 +63,12 @@ struct Info {
   Generator generator{};
 };
 
-template <typename... Extensions>
+template <typename... MetaFieldExtensions>
 struct MetaCG {
-  using node_type = Node<Extensions...>;
+  using node_type = FunctionNode<MetaFieldExtensions...>;
 
   Info info;
-  llvm::StringMap<node_type> nodes;
+  llvm::StringMap<node_type> functionNodes;
 };
 
 #if LLVM_VERSION_MAJOR < 12
@@ -167,7 +167,7 @@ inline bool fromJSON(const json::Value& E, Version& R, json::Path P) {
 template <typename... Extensions>
 inline bool fromJSON(const json::Value& E, MetaCG<Extensions...>& R) {
   json::ObjectMapper O(E);
-  return O && O.map("_MetaCG", R.info) && O.map("_CG", R.nodes);
+  return O && O.map("_MetaCG", R.info) && O.map("_CG", R.functionNodes);
 }
 #else
 template <typename... Extensions>
@@ -183,23 +183,37 @@ inline bool fromJSON(const json::Value& E, MetaCG<Extensions...>& R, json::Path 
 }
 #endif
 
-template <typename... Extra>
-inline bool fromJSON(const json::Value& E, Info& R, Extra... P) {
-  json::ObjectMapper O(E, P...);
+#if LLVM_VERSION_MAJOR < 12
+inline bool fromJSON(const json::Value& E, Info& R) {
+  json::ObjectMapper O(E);
   return O && O.map("version", R.version) && O.map("generator", R.generator);
 }
+#else
+inline bool fromJSON(const json::Value& E, Info& R, json::Path P) {
+  json::ObjectMapper O(E, P);
+  return O && O.map("version", R.version) && O.map("generator", R.generator);
+}
+#endif
 
-template <typename... Extra>
-inline bool fromJSON(const json::Value& E, Generator& R, Extra... P) {
-  json::ObjectMapper O(E, P...);
+#if LLVM_VERSION_MAJOR < 12
+inline bool fromJSON(const json::Value& E, Generator& R) {
+  json::ObjectMapper O(E);
   return O && O.map("version", R.version) && O.map("name", R.name);
 }
+#else
 
-template <typename... Extensions, typename... Extra>
-inline bool fromJSON(const json::Value& E, Node<Extensions...>& R, Extra... P) {
+inline bool fromJSON(const json::Value& E, Generator& R, json::Path P) {
+  json::ObjectMapper O(E, P);
+  return O && O.map("version", R.version) && O.map("name", R.name);
+}
+#endif
+
+#if LLVM_VERSION_MAJOR < 12
+template <typename... Extensions>
+inline bool fromJSON(const json::Value& E, FunctionNode<Extensions...>& R) {
   constexpr const bool HasExtensions = sizeof...(Extensions) > 0;
 
-  json::ObjectMapper O(E, P...);
+  json::ObjectMapper O(E);
 
   if (O && O.map("hasBody", R.hasBody) && O.map("doesOverride", R.doesOverride) && O.map("isVirtual", R.isVirtual) &&
       O.map("overrides", R.overrides) && O.map("overriddenBy", R.overriddenBy) && O.map("callees", R.callees) &&
@@ -211,13 +225,40 @@ inline bool fromJSON(const json::Value& E, Node<Extensions...>& R, Extra... P) {
   }
   return false;
 }
+#else
+template <typename... Extensions>
+inline bool fromJSON(const json::Value& E, FunctionNode<Extensions...>& R, json::Path P) {
+  constexpr const bool HasExtensions = sizeof...(Extensions) > 0;
 
-template <typename... Extensions, typename... Extra>
-inline bool fromJSON(const json::Value& E, Meta<Extensions...>& R, Extra... P) {
+  json::ObjectMapper O(E, P);
+
+  if (O && O.map("hasBody", R.hasBody) && O.map("doesOverride", R.doesOverride) && O.map("isVirtual", R.isVirtual) &&
+      O.map("overrides", R.overrides) && O.map("overriddenBy", R.overriddenBy) && O.map("callees", R.callees) &&
+      O.map("callers", R.callers)) {
+    if constexpr (HasExtensions) {
+      return O.map("meta", R.meta);
+    }
+    return true;
+  }
+  return false;
+}
+#endif
+
+#if LLVM_VERSION_MAJOR < 12
+template <typename... Extensions>
+inline bool fromJSON(const json::Value& E, MetaField<Extensions...>& R) {
   // as the type "Meta" is an aggregation of extensions, we need to upcast
   // Meta to every one of its base classes and call the specific fromJSON variant
-  return (fromJSON(E, static_cast<Extension<Extensions>&>(R), P...) && ...);
+  return (fromJSON(E, static_cast<MetaFieldExtension<Extensions>&>(R)) && ...);
 }
+#else
+template <typename... Extensions>
+inline bool fromJSON(const json::Value& E, MetaField<Extensions...>& R, json::Path P) {
+  // as the type "Meta" is an aggregation of extensions, we need to upcast
+  // Meta to every one of its base classes and call the specific fromJSON variant
+  return (fromJSON(E, static_cast<MetaFieldExtension<Extensions>&>(R), P) && ...);
+}
+#endif
 
-}  // namespace typeart::util::metacg
-#endif  // TYPEART_METACG_H
+}  // namespace typeart::filter::metacg
+#endif  // TYPEART_FILTER_METACG_H

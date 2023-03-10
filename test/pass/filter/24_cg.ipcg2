@@ -37,26 +37,26 @@
           "interFlow": {
             "MPI_sink": [
               {
-                "actual": 0,
-                "formal": 0
+                "source": 0,
+                "sink": 0
               }
             ],
             "ring": [
               {
-                "actual": 0,
-                "formal": 2
+                "source": 0,
+                "sink": 2
               },
               {
-                "actual": 1,
-                "formal": 0
+                "source": 1,
+                "sink": 0
               },
               {
-                "actual": 2,
-                "formal": 1
+                "source": 2,
+                "sink": 1
               },
               {
-                "actual": 3,
-                "formal": 3
+                "source": 3,
+                "sink": 3
               }
             ]
           },
