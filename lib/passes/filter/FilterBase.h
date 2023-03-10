@@ -19,7 +19,6 @@
 #include "IRSearch.h"
 #include "OmpUtil.h"
 #include "compat/CallSite.h"
-#include "compat/Support/Casting.h"
 #include "support/Logger.h"
 #include "support/OmpUtil.h"
 #include "support/Util.h"
@@ -40,16 +39,19 @@ enum class FilterAnalysis {
   FollowDef,  // Want analysis of the called function def
 };
 
-template <typename CallSiteHandler, typename SearchHandler, typename OmpHelper = omp::EmptyContext>
-class BaseFilter : public Filter, private CallSiteHandler, private SearchHandler {
-  static_assert(std::is_default_constructible<SearchHandler>::value, "SearchHandler is not default constructible");
-
+template <typename CallSiteHandler, typename Search, typename OmpHelper = omp::EmptyContext>
+class BaseFilter : public Filter {
+  CallSiteHandler handler;
+  Search search_dir{};
   bool malloc_mode{false};
   llvm::Function* start_f{nullptr};
 
  public:
+  explicit BaseFilter(const CallSiteHandler& handler) : handler(handler) {
+  }
+
   template <typename... Args>
-  explicit BaseFilter(Args&&... args) : CallSiteHandler(std::forward<Args>(args)...) {
+  explicit BaseFilter(Args&&... args) : handler(std::forward<Args>(args)...) {
   }
 
   bool filter(llvm::Value* in) override {
@@ -81,7 +83,7 @@ class BaseFilter : public Filter, private CallSiteHandler, private SearchHandler
       // is null in case of global:
       llvm::Function* currentF = fpath.getCurrentFunc();
       if (currentF != nullptr) {
-        auto status = CallSiteHandler::precheck(current, currentF, fpath);
+        auto status = handler.precheck(current, currentF, fpath);
         switch (status) {
           case FilterAnalysis::Filter:
             fpath.pop();
@@ -196,7 +198,7 @@ class BaseFilter : public Filter, private CallSiteHandler, private SearchHandler
     }
 
     if (!skip) {
-      const auto successors = SearchHandler::search(current, path);
+      const auto successors = search_dir.search(current, path);
       for (auto* successor : successors) {
         if constexpr (OmpHelper::WithOmp) {
           if (OmpHelper::isTaskRelatedStore(successor)) {
@@ -222,75 +224,74 @@ class BaseFilter : public Filter, private CallSiteHandler, private SearchHandler
   }
 
   FilterAnalysis callsite(llvm::Value* val, const Path& path) {
-    if (!llvm::isa<llvm::InvokeInst, llvm::CallInst>(val)) {
-      return FilterAnalysis::Continue;
-    }
-
     CallSite site(val);
-    const auto callee        = site.getCalledFunction();
-    const bool indirect_call = callee == nullptr;
+    if (site.isCall() || site.isInvoke()) {
+      const auto callee        = site.getCalledFunction();
+      const bool indirect_call = callee == nullptr;
 
-    // Indirect calls (sth. like function pointers)
-    if (indirect_call) {
-      if constexpr (CallSiteHandler::Support::Indirect) {
-        auto status = CallSiteHandler::indirect(site, path);
-        LOG_DEBUG("Indirect call: " << util::try_demangle(site))
-        return status;
-      } else {
-        LOG_DEBUG("Indirect call, keep: " << util::try_demangle(site))
-        return FilterAnalysis::Keep;
-      }
-    }
-
-    const bool is_decl      = callee->isDeclaration();
-    const bool is_intrinsic = site.getIntrinsicID() != Intrinsic::not_intrinsic;
-
-    // Handle decl
-    if (is_decl) {
-      if (is_intrinsic) {
-        if constexpr (CallSiteHandler::Support::Intrinsic) {
-          auto status = CallSiteHandler::intrinsic(site, path);
-          LOG_DEBUG("Intrinsic call: " << util::try_demangle(site))
+      // Indirect calls (sth. like function pointers)
+      if (indirect_call) {
+        if constexpr (CallSiteHandler::Support::Indirect) {
+          auto status = handler.indirect(site, path);
+          LOG_DEBUG("Indirect call: " << util::try_demangle(site))
           return status;
         } else {
-          LOG_DEBUG("Skip intrinsic: " << util::try_demangle(site))
-          return FilterAnalysis::Skip;
+          LOG_DEBUG("Indirect call, keep: " << util::try_demangle(site))
+          return FilterAnalysis::Keep;
         }
       }
 
-      if constexpr (OmpHelper::WithOmp) {
-        // here we handle microtask executor functions:
-        if (OmpHelper::isOmpExecutor(site)) {
-          LOG_DEBUG("Omp executor, follow microtask: " << util::try_demangle(site))
-          return FilterAnalysis::FollowDef;
+      const bool is_decl      = callee->isDeclaration();
+      const bool is_intrinsic = site.getIntrinsicID() != Intrinsic::not_intrinsic;
+
+      // Handle decl
+      if (is_decl) {
+        if (is_intrinsic) {
+          if constexpr (CallSiteHandler::Support::Intrinsic) {
+            auto status = handler.intrinsic(site, path);
+            LOG_DEBUG("Intrinsic call: " << util::try_demangle(site))
+            return status;
+          } else {
+            LOG_DEBUG("Skip intrinsic: " << util::try_demangle(site))
+            return FilterAnalysis::Skip;
+          }
         }
 
-        if (OmpHelper::isOmpHelper(site)) {
-          LOG_DEBUG("Omp helper, skip: " << util::try_demangle(site))
-          return FilterAnalysis::Skip;
-        }
-      }
+        if constexpr (OmpHelper::WithOmp) {
+          // here we handle microtask executor functions:
+          if (OmpHelper::isOmpExecutor(site)) {
+            LOG_DEBUG("Omp executor, follow microtask: " << util::try_demangle(site))
+            return FilterAnalysis::FollowDef;
+          }
 
-      // Handle decl (like MPI calls)
-      if constexpr (CallSiteHandler::Support::Declaration) {
-        auto status = CallSiteHandler::decl(site, path);
-        LOG_DEBUG("Decl call: " << util::try_demangle(site))
-        return status;
+          if (OmpHelper::isOmpHelper(site)) {
+            LOG_DEBUG("Omp helper, skip: " << util::try_demangle(site))
+            return FilterAnalysis::Skip;
+          }
+        }
+
+        // Handle decl (like MPI calls)
+        if constexpr (CallSiteHandler::Support::Declaration) {
+          auto status = handler.decl(site, path);
+          LOG_DEBUG("Decl call: " << util::try_demangle(site))
+          return status;
+        } else {
+          LOG_DEBUG("Declaration, keep: " << util::try_demangle(site))
+          return FilterAnalysis::Keep;
+        }
       } else {
-        LOG_DEBUG("Declaration, keep: " << util::try_demangle(site))
-        return FilterAnalysis::Keep;
-      }
-    } else {
-      // Handle definitions
-      if constexpr (CallSiteHandler::Support::Definition) {
-        auto status = CallSiteHandler::def(site, path);
-        LOG_DEBUG("Defined call: " << util::try_demangle(site))
-        return status;
-      } else {
-        LOG_DEBUG("Definition, keep: " << util::try_demangle(site))
-        return FilterAnalysis::Keep;
+        // Handle definitions
+        if constexpr (CallSiteHandler::Support::Definition) {
+          auto status = handler.def(site, path);
+          LOG_DEBUG("Defined call: " << util::try_demangle(site))
+          return status;
+        } else {
+          LOG_DEBUG("Definition, keep: " << util::try_demangle(site))
+          return FilterAnalysis::Keep;
+        }
       }
     }
+    return FilterAnalysis::Continue;
   }
 };
 

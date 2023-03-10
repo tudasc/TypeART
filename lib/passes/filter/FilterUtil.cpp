@@ -13,7 +13,6 @@
 #include "FilterUtil.h"
 
 #include "compat/CallSite.h"
-#include "compat/Support/Casting.h"
 
 #include "llvm/IR/Intrinsics.h"
 #include "llvm/Support/raw_ostream.h"
@@ -36,12 +35,8 @@ FunctionAnalysis::FunctionCounts FunctionAnalysis::analyze(Function* f) {
 
   for (auto& BB : *f) {
     for (auto& I : BB) {
-      if (!llvm::isa<llvm::InvokeInst, llvm::CallInst>(I)) {
-        continue;
-      }
-
       CallSite site(&I);
-      {
+      if (site.isCall() || site.isInvoke()) {
         const auto callee        = site.getCalledFunction();
         const bool indirect_call = callee == nullptr;
 

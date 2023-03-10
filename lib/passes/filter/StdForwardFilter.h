@@ -45,7 +45,6 @@ struct StdFilterTrait {
 
 struct ForwardFilterImpl {
   using Support = StdFilterTrait;
-
   std::unique_ptr<Matcher> matcher;
   std::unique_ptr<Matcher> deep_matcher;
   FunctionOracleMatcher oracle;  // TODO make set flexible
