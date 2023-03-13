@@ -68,7 +68,7 @@ inline bool fromJSON(const json::Value& E, FunctionSignature& R, json::Path P) {
 
 struct InterDataFlow {
   struct CallSite {
-    int64_t id{};
+    int64_t siteIdentifier{};
   };
 
   struct Edge {
@@ -114,11 +114,11 @@ inline bool fromJSON(const json::Value& E, InterDataFlow& R, json::Path P) {
 
 #if LLVM_VERSION_MAJOR < 12
 inline bool fromJSON(const json::Value& E, InterDataFlow::CallSite& R) {
-  return fromJSON(E, R.id);
+  return fromJSON(E, R.siteIdentifier);
 }
 #else
 inline bool fromJSON(const json::Value& E, InterDataFlow::CallSite& R, json::Path P) {
-  return fromJSON(E, R.id, P);
+  return fromJSON(E, R.siteIdentifier, P);
 }
 #endif
 

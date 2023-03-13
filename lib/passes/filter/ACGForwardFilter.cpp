@@ -82,7 +82,7 @@ static void insertCallsiteIdentifiers(const JSONACG::node_type& json, FunctionDe
     const auto& calleeFunction = retrieveFunction(dataMap, callSites.getKey());
 
     for (const auto& identifier : callSites.getValue()) {
-      data.callsiteCallees.emplace(identifier.id, &calleeFunction);
+      data.callsiteCallees.emplace(identifier.siteIdentifier, &calleeFunction);
     }
   });
 }
