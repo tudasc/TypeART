@@ -23,6 +23,10 @@ using namespace llvm;
 
 namespace typeart::filter::metacg {
 
+template <typename>
+struct MetaField;
+
+
 struct FunctionSignature {
   std::string identifier;
   std::vector<std::string> paramTypes;
@@ -31,19 +35,18 @@ struct FunctionSignature {
 };
 
 template <>
-struct MetaFieldExtension<FunctionSignature> {
+struct MetaField<FunctionSignature> {
   FunctionSignature signature;
 };
 
-// the fromJSON signature was changed with llvm12 so, we need support both variants - the old and the new one
 
 #if LLVM_VERSION_MAJOR < 12
-inline bool fromJSON(const json::Value& E, MetaFieldExtension<FunctionSignature>& R) {
+inline bool fromJSON(const json::Value& E, MetaField<FunctionSignature>& R) {
   json::ObjectMapper O(E);
   return O && O.map("signature", R.signature);
 }
 #else
-inline bool fromJSON(const json::Value& E, MetaFieldExtension<FunctionSignature>& R, json::Path P) {
+inline bool fromJSON(const json::Value& E, MetaField<FunctionSignature>& R, json::Path P) {
   json::ObjectMapper O(E, P);
   return O && O.map("signature", R.signature);
 }
@@ -81,17 +84,17 @@ struct InterDataFlow {
 };
 
 template <>
-struct MetaFieldExtension<InterDataFlow> {
+struct MetaField<InterDataFlow> {
   InterDataFlow ipdf;
 };
 
 #if LLVM_VERSION_MAJOR < 12
-inline bool fromJSON(const json::Value& E, MetaFieldExtension<InterDataFlow>& R) {
+inline bool fromJSON(const json::Value& E, MetaField<InterDataFlow>& R) {
   json::ObjectMapper O(E);
   return O && O.map("ipdf", R.ipdf);
 }
 #else
-inline bool fromJSON(const json::Value& E, MetaFieldExtension<InterDataFlow>& R, json::Path P) {
+inline bool fromJSON(const json::Value& E, MetaField<InterDataFlow>& R, json::Path P) {
   json::ObjectMapper O(E, P);
   return O && O.map("ipdf", R.ipdf);
 }
@@ -130,6 +133,29 @@ inline bool fromJSON(const json::Value& E, InterDataFlow::Edge& R, json::Path P)
   return O && O.map("sink", R.sinkArgumentNumber) && O.map("source", R.sourceArgumentNumber);
 }
 #endif
+
+
+
+/// an aggregation to allow the usage of multiple extensions
+template <typename... Mixins>
+struct MetaFieldGroup : public MetaField<Mixins>... {};
+
+#if LLVM_VERSION_MAJOR < 12
+template <typename... Extensions>
+inline bool fromJSON(const json::Value& E, MetaFieldGroup<Extensions...>& R) {
+  // as the type "Meta" is an aggregation of extensions, we need to upcast
+  // Meta to every one of its base classes and call the specific fromJSON variant
+  return (fromJSON(E, static_cast<MetaField<Extensions>&>(R)) && ...);
+}
+#else
+template <typename... Extensions>
+inline bool fromJSON(const json::Value& E, MetaFieldGroup<Extensions...>& R, json::Path P) {
+  // as the type "Meta" is an aggregation of extensions, we need to upcast
+  // Meta to every one of its base classes and call the specific fromJSON variant
+  return (fromJSON(E, static_cast<MetaField<Extensions>&>(R), P) && ...);
+}
+#endif
+
 
 }  // namespace typeart::filter::metacg
 #endif  // TYPEART_FILTER_METACG_EXTENSION_H

@@ -104,7 +104,7 @@ struct FunctionDescriptor {
 
 using ACGDataMap = llvm::StringMap<FunctionDescriptor>;
 
-using JSONACG = metacg::MetaCG<metacg::FunctionSignature, metacg::InterDataFlow>;
+using JSONACG = metacg::MetaCG<metacg::MetaFieldGroup<metacg::FunctionSignature, metacg::InterDataFlow>>;
 
 /// converts the JSON structure in a better processable structure
 ACGDataMap createDatabase(const Regex&, JSONACG&);

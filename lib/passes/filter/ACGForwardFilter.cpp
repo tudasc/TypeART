@@ -334,8 +334,7 @@ std::vector<const FunctionDescriptor*> ACGFilterImpl::getCalleesForCallsite(cons
   return {callees.begin(), callees.end()};
 }
 
-/// identifiers all callsites of a function and stores additionally the highest used identifier as metadata field
-/// at the function. if the function metadata field already exists, its value is returned
+/// identifies all callsites of a function and returns the number of callsites of the given function
 unsigned ACGFilterImpl::calculateSiteIdentifiersIfAbsent(const llvm::Function& function) {
   if (analyzedFunctions.count(&function) != 0) {
     return analyzedFunctions[&function];
