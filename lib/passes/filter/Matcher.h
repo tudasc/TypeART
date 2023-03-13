@@ -70,26 +70,26 @@ class DefaultStringMatcher final : public Matcher {
  public:
   explicit DefaultStringMatcher(const std::string& regex) : matcher(regex, Regex::NoFlags) {
   }
-  [[nodiscard]] MatchResult match(llvm::CallSite Site) const noexcept override {
-    if (const auto* Function = Site.getCalledFunction()) {
-      return DefaultStringMatcher::match(*Function);
+  [[nodiscard]] MatchResult match(llvm::CallSite site) const noexcept override {
+    if (const auto* function = site.getCalledFunction()) {
+      return DefaultStringMatcher::match(*function);
     }
     return MatchResult::NoMatch;
   }
 
-  [[nodiscard]] MatchResult match(const llvm::CallBase& Site) const noexcept override {
-    if (const auto* Function = Site.getCalledFunction()) {
-      return DefaultStringMatcher::match(*Function);
+  [[nodiscard]] MatchResult match(const llvm::CallBase& site) const noexcept override {
+    if (const auto* function = site.getCalledFunction()) {
+      return DefaultStringMatcher::match(*function);
     }
     return MatchResult::NoMatch;
   }
 
-  [[nodiscard]] MatchResult match(const llvm::Function& Function) const noexcept override {
-    return DefaultStringMatcher::match(Function.getName());
+  [[nodiscard]] MatchResult match(const llvm::Function& function) const noexcept override {
+    return DefaultStringMatcher::match(function.getName());
   }
 
-  [[nodiscard]] MatchResult match(const llvm::StringRef& Function) const noexcept override {
-    const auto f_name  = util::demangle(Function);
+  [[nodiscard]] MatchResult match(const llvm::StringRef& function) const noexcept override {
+    const auto f_name  = util::demangle(function);
     const bool matched = matcher.match(f_name);
     if (!matched) {
       return MatchResult::NoMatch;
@@ -107,26 +107,26 @@ class FunctionOracleMatcher final : public Matcher {
                                                 {"scanf"},  {"strtol"},       {"srand"}};
 
  public:
-  [[nodiscard]] MatchResult match(llvm::CallSite Site) const noexcept override {
-    if (const auto* Function = Site.getCalledFunction()) {
-      return FunctionOracleMatcher::match(*Function);
+  [[nodiscard]] MatchResult match(llvm::CallSite site) const noexcept override {
+    if (const auto* function = site.getCalledFunction()) {
+      return FunctionOracleMatcher::match(*function);
     }
     return MatchResult::NoMatch;
   }
 
-  [[nodiscard]] MatchResult match(const llvm::CallBase& Site) const noexcept override {
-    if (const auto* Function = Site.getCalledFunction()) {
-      return FunctionOracleMatcher::match(*Function);
+  [[nodiscard]] MatchResult match(const llvm::CallBase& site) const noexcept override {
+    if (const auto* function = site.getCalledFunction()) {
+      return FunctionOracleMatcher::match(*function);
     }
     return MatchResult::NoMatch;
   }
 
-  [[nodiscard]] MatchResult match(const llvm::Function& Function) const noexcept override {
-    return FunctionOracleMatcher::match(Function.getName());
+  [[nodiscard]] MatchResult match(const llvm::Function& function) const noexcept override {
+    return FunctionOracleMatcher::match(function.getName());
   }
 
-  [[nodiscard]] MatchResult match(const llvm::StringRef& Function) const noexcept override {
-    const auto f_name = util::demangle(Function);
+  [[nodiscard]] MatchResult match(const llvm::StringRef& function) const noexcept override {
+    const auto f_name = util::demangle(function);
     const llvm::StringRef f_name_ref{f_name};
     if (continue_set.count(f_name) > 0) {
       return MatchResult::ShouldContinue;

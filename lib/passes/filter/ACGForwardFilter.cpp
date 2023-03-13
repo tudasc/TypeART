@@ -21,8 +21,6 @@ namespace typeart::filter {
 
 namespace detail {
 
-static constexpr auto VoidType = "i8*";
-
 /// follows all enqueued values and visits them once starting with an initial entry
 
 enum VisitResult {
@@ -31,26 +29,26 @@ enum VisitResult {
 };
 
 template <typename T, typename CB>
-inline void solveReachable(const std::vector<T>& Range, CB&& Callback) noexcept {
-  llvm::SmallPtrSet<T const*, 32> Visited{};
-  llvm::SmallVector<T const*, 64> Worklist{};
+inline void solveReachable(const std::vector<T>& range, CB&& callback) noexcept {
+  llvm::SmallPtrSet<T const*, 32> visited{};
+  llvm::SmallVector<T const*, 64> worklist{};
 
-  const auto& Enqueue = [&](T const& Entry) noexcept -> bool {
-    if (Visited.insert(&Entry).second) {
-      Worklist.push_back(&Entry);
+  const auto& enqueue = [&](T const& entry) noexcept -> bool {
+    if (visited.insert(&entry).second) {
+      worklist.push_back(&entry);
       return true;
     }
     return false;
   };
 
-  for (const auto& Item : Range) {
-    Enqueue(Item);
+  for (const auto& item : range) {
+    enqueue(item);
   }
 
-  while (!Worklist.empty()) {
-    T const* CurrentValue    = Worklist.pop_back_val();
-    VisitResult const Status = Callback(*CurrentValue, Enqueue);
-    switch (Status) {
+  while (!worklist.empty()) {
+    T const* currentValue    = worklist.pop_back_val();
+    VisitResult const status = callback(*currentValue, enqueue);
+    switch (status) {
       case VR_Continue:
         break;
       case VR_Stop:
@@ -60,93 +58,94 @@ inline void solveReachable(const std::vector<T>& Range, CB&& Callback) noexcept 
 }
 }  // namespace detail
 
-static FunctionDescriptor createFunctionNode(const JSONACG::node_type& JSON, const Regex& TargetMatcher) {
-  const auto& Signature          = JSON.meta.signature;
-  const bool IsTargetOfInterrest = TargetMatcher.match(Signature.identifier);
+static FunctionDescriptor createFunctionNode(const JSONACG::node_type& json, const llvm::Regex& targetMatcher) {
+  const auto& signature          = json.meta.signature;
+  const bool isTargetOfInterrest = targetMatcher.match(signature.identifier);
 
-  return {IsTargetOfInterrest,
-          JSON.hasBody,
+  return {isTargetOfInterrest,
+          json.hasBody,
           {},
           {},
-          {Signature.identifier, Signature.paramTypes, Signature.returnType, Signature.isVariadic}};
+          {signature.identifier, signature.paramTypes, signature.returnType, signature.isVariadic}};
 }
 
-static FunctionDescriptor const& retrieveFunction(const ACGDataMap& DataMap, const StringRef& FunctionName) {
-  assert(DataMap.count(FunctionName) && "Found an edge to an undefined callee");
-  if (DataMap.count(FunctionName) == 0) {
-    throw std::runtime_error("Found an edge to an undefined callee: " + FunctionName.str());
+static FunctionDescriptor const& retrieveFunction(const ACGDataMap& dataMap, const llvm::StringRef& functionName) {
+  assert(dataMap.count(functionName) && "Found an edge to an undefined callee");
+  if (dataMap.count(functionName) == 0) {
+    throw std::runtime_error("Found an edge to an undefined callee: " + functionName.str());
   }
-  return DataMap.find(FunctionName)->second;
+  return dataMap.find(functionName)->second;
 }
 
-static void insertCallsiteIdentifiers(const JSONACG::node_type& Json, FunctionDescriptor& Data, ACGDataMap& DataMap) {
-  llvm::for_each(Json.meta.ipdf.callsites, [&](const auto& CallSites) {
-    const auto& CalleeFunction = retrieveFunction(DataMap, CallSites.getKey());
+static void insertCallsiteIdentifiers(const JSONACG::node_type& json, FunctionDescriptor& data, ACGDataMap& dataMap) {
+  llvm::for_each(json.meta.ipdf.callsites, [&](const auto& callSites) {
+    const auto& calleeFunction = retrieveFunction(dataMap, callSites.getKey());
 
-    for (const auto& Identifier : CallSites.getValue()) {
-      Data.callsiteCallees.emplace(Identifier.id, &CalleeFunction);
+    for (const auto& identifier : callSites.getValue()) {
+      data.callsiteCallees.emplace(identifier.id, &calleeFunction);
     }
   });
 }
 
-static void insertArgumentFlow(const JSONACG::node_type& Json, FunctionDescriptor& Data, ACGDataMap& DataMap) {
-  llvm::for_each(Json.meta.ipdf.interFlow, [&](const auto& CallSites) {
-    const auto& CalleeFunction = retrieveFunction(DataMap, CallSites.getKey());
+static void insertArgumentFlow(const JSONACG::node_type& json, FunctionDescriptor& data, ACGDataMap& dataMap) {
+  llvm::for_each(json.meta.ipdf.interFlow, [&](const auto& callSites) {
+    const auto& calleeFunction = retrieveFunction(dataMap, callSites.getKey());
 
-    for (const auto& Edge : CallSites.getValue()) {
-      FunctionDescriptor::ArgumentEdge const FlowEdge{Edge.sinkArgumentNumber, CalleeFunction};
-      Data.reachableFunctionArguments.emplace(Edge.sourceArgumentNumber, FlowEdge);
+    for (const auto& edge : callSites.getValue()) {
+      FunctionDescriptor::ArgumentEdge const flowEdge{edge.sinkArgumentNumber, calleeFunction};
+      data.reachableFunctionArguments.emplace(edge.sourceArgumentNumber, flowEdge);
     }
   });
 }
 
-ACGDataMap createDatabase(const Regex& TargetMatcher, JSONACG& MetaCg) {
-  ACGDataMap DataMap;
+ACGDataMap createDatabase(const Regex& targetMatcher, JSONACG& metaCg) {
+  ACGDataMap dataMap;
 
   // insert nodes first, to avoid rehashing and invalidation of references
-  llvm::for_each(MetaCg.functionNodes, [&](const auto& MetaCGNode) {
-    DataMap.try_emplace(MetaCGNode.getKey(), createFunctionNode(MetaCGNode.getValue(), TargetMatcher));
+  llvm::for_each(metaCg.functionNodes, [&](const auto& metaCgNode) {
+    dataMap.try_emplace(metaCgNode.getKey(), createFunctionNode(metaCgNode.getValue(), targetMatcher));
   });
 
-  llvm::for_each(DataMap, [&](auto& Entry) {
-    insertCallsiteIdentifiers(MetaCg.functionNodes[Entry.getKey()], Entry.getValue(), DataMap);
-    insertArgumentFlow(MetaCg.functionNodes[Entry.getKey()], Entry.getValue(), DataMap);
+  llvm::for_each(dataMap, [&](auto& entry) {
+    insertCallsiteIdentifiers(metaCg.functionNodes[entry.getKey()], entry.getValue(), dataMap);
+    insertArgumentFlow(metaCg.functionNodes[entry.getKey()], entry.getValue(), dataMap);
   });
 
-  return DataMap;
+  return dataMap;
 }
 
 /// tests if an edge can reach a void* argument
-inline static bool isFormalArgumentRelevant(const FunctionDescriptor::ArgumentEdge& Edge) {
-  return Edge.callee.functionSignature.paramIsType(Edge.argumentNumber, detail::VoidType);
+inline static bool isFormalArgumentRelevant(const FunctionDescriptor::ArgumentEdge& edge) {
+  constexpr auto voidType = "i8*";
+  return edge.callee.functionSignature.paramIsType(edge.argumentNumber, voidType);
 }
 
 /// an edge reaches a relevant formal argument
-inline static bool edgeReachesRelevantFormalArgument(const FunctionDescriptor::ArgumentEdge& Edge)  {
-  return Edge.callee.isTarget && isFormalArgumentRelevant(Edge);
+inline static bool edgeReachesRelevantFormalArgument(const FunctionDescriptor::ArgumentEdge& edge) {
+  return edge.callee.isTarget && isFormalArgumentRelevant(edge);
 }
 
 /// declaration with relevant formal argument, could reach indirect the destination
-inline static bool edgeMaybeReachesFormalArgument(const FunctionDescriptor::ArgumentEdge& Edge)  {
-  return !Edge.callee.isTarget && !Edge.callee.isDefinition && isFormalArgumentRelevant(Edge);
+inline static bool edgeMaybeReachesFormalArgument(const FunctionDescriptor::ArgumentEdge& edge) {
+  return !edge.callee.isTarget && !edge.callee.isDefinition && isFormalArgumentRelevant(edge);
 }
 
 template <typename RangeT>
-inline FilterAnalysis ACGFilterImpl::ACGFilterImpl::analyseMaybeCandidates(const RangeT&& MaybeCandidates) const {
-  bool HasContinue = false;
-  bool HasSkip     = false;
+inline FilterAnalysis ACGFilterImpl::ACGFilterImpl::analyseMaybeCandidates(const RangeT&& maybeCandidates) const {
+  bool hasContinue = false;
+  bool hasSkip     = false;
 
-  for (const auto& Candidate : MaybeCandidates) {
-    switch (candidateMatcher.match(Candidate)) {
+  for (const auto& candidate : maybeCandidates) {
+    switch (candidateMatcher.match(candidate)) {
       case Matcher::MatchResult::Match:
         return FilterAnalysis::Keep;
 
       case Matcher::MatchResult::ShouldContinue:
-        HasContinue = true;
+        hasContinue = true;
         break;
 
       case Matcher::MatchResult::ShouldSkip:
-        HasSkip = true;
+        hasSkip = true;
         break;
 
       case Matcher::MatchResult::NoMatch:
@@ -156,11 +155,11 @@ inline FilterAnalysis ACGFilterImpl::ACGFilterImpl::analyseMaybeCandidates(const
   }
 
   // prioritize a continue
-  if (HasContinue) {
+  if (hasContinue) {
     return FilterAnalysis::Continue;
   }
 
-  if (HasSkip) {
+  if (hasSkip) {
     return FilterAnalysis::Skip;
   }
 
@@ -168,41 +167,41 @@ inline FilterAnalysis ACGFilterImpl::ACGFilterImpl::analyseMaybeCandidates(const
   return FilterAnalysis::Continue;
 }
 
-FilterAnalysis ACGFilterImpl::analyseFlowPath(const std::vector<FunctionDescriptor::ArgumentEdge>& InitialEdges) const {
+FilterAnalysis ACGFilterImpl::analyseFlowPath(const std::vector<FunctionDescriptor::ArgumentEdge>& initialEdges) const {
   enum class ReachabilityResult { reaches, maybe_reaches, never_reaches };
   using namespace typeart::filter::detail;
 
   /// contains declarations which have at least one argument that is reachable and relevant
-  StringSet MaybeCandidates;
+  StringSet maybeCandidates;
 
-  ReachabilityResult Result = ReachabilityResult::never_reaches;
-  solveReachable(InitialEdges, [&](const FunctionDescriptor::ArgumentEdge& Edge, auto const& Enqueue) -> VisitResult {
-    if (edgeReachesRelevantFormalArgument(Edge)) {
-      Result = ReachabilityResult::reaches;
+  ReachabilityResult result = ReachabilityResult::never_reaches;
+  solveReachable(initialEdges, [&](const FunctionDescriptor::ArgumentEdge& edge, auto const& enqueue) -> VisitResult {
+    if (edgeReachesRelevantFormalArgument(edge)) {
+      result = ReachabilityResult::reaches;
       return VR_Stop;
     }
 
-    if (edgeMaybeReachesFormalArgument(Edge)) {
-      Result = ReachabilityResult::maybe_reaches;
-      MaybeCandidates.insert(Edge.callee.functionSignature.identifier);
+    if (edgeMaybeReachesFormalArgument(edge)) {
+      result = ReachabilityResult::maybe_reaches;
+      maybeCandidates.insert(edge.callee.functionSignature.identifier);
     }
 
     // enqueue all edges that can be reached from the current callee/argument
-    const auto& ReachableFormals = make_range(Edge.callee.reachableFunctionArguments.equal_range(Edge.argumentNumber));
-    for (const auto& [ActualNumber, FormalEdge] : ReachableFormals) {
-      Enqueue(FormalEdge);
+    const auto& reachableFormals = make_range(edge.callee.reachableFunctionArguments.equal_range(edge.argumentNumber));
+    for (const auto& [ActualNumber, FormalEdge] : reachableFormals) {
+      enqueue(FormalEdge);
     }
 
     return VR_Continue;
   });
 
-  switch (Result) {
+  switch (result) {
     // check also the other call-sites
     case ReachabilityResult::never_reaches:
       return FilterAnalysis::Continue;
 
     case ReachabilityResult::maybe_reaches:
-      return analyseMaybeCandidates(MaybeCandidates.keys());
+      return analyseMaybeCandidates(maybeCandidates.keys());
 
     case ReachabilityResult::reaches:
       return FilterAnalysis::Keep;
@@ -210,179 +209,178 @@ FilterAnalysis ACGFilterImpl::analyseFlowPath(const std::vector<FunctionDescript
 }
 
 /// calculates all outgoing edges for a given parameter value of a callsite
-inline static
-std::vector<FunctionDescriptor::ArgumentEdge> createEdgesForCallsite(
-    const CallBase& Site, const llvm::Value& ActualArgument,
-    const std::vector<const FunctionDescriptor*>& CalleesForCallsite) {
-  const auto&& CorrespondingArgs =
-      llvm::make_filter_range(Site.args(), [&ActualArgument](const auto& Arg) { return Arg.get() == &ActualArgument; });
+inline static std::vector<FunctionDescriptor::ArgumentEdge> createEdgesForCallsite(
+    const llvm::CallBase& site, const llvm::Value& actualArgument,
+    const std::vector<const FunctionDescriptor*>& calleesForCallsite) {
+  const auto&& correspondingArgs =
+      llvm::make_filter_range(site.args(), [&actualArgument](const auto& arg) { return arg.get() == &actualArgument; });
 
-  std::vector<FunctionDescriptor::ArgumentEdge> Init;
-  for (const auto& CallSiteArg : CorrespondingArgs) {
-    for (const auto& Callee : CalleesForCallsite) {
-      Init.emplace_back(FunctionDescriptor::ArgumentEdge{
-          static_cast<int>(CallSiteArg.getOperandNo()) /*argumentNumber*/, *Callee /*callee*/
+  std::vector<FunctionDescriptor::ArgumentEdge> init;
+  for (const auto& callSiteArg : correspondingArgs) {
+    for (const auto& callee : calleesForCallsite) {
+      init.emplace_back(FunctionDescriptor::ArgumentEdge{
+          static_cast<int>(callSiteArg.getOperandNo()) /*argumentNumber*/, *callee /*callee*/
       });
     }
   }
 
-  return Init;
+  return init;
 }
 
-inline static std::string prepareLogMessage(const CallBase& Site, const Value& ActualArgument,
-                                             const StringRef& Msg) {
-  std::string String;
-  raw_string_ostream StringStream{String};
-  StringStream << "function ";
-  Site.getFunction()->printAsOperand(StringStream, false);
-  StringStream << ": argument ";
-  ActualArgument.printAsOperand(StringStream, false);
-  StringStream << ": callsite ";
-  Site.print(StringStream, true);
-  StringStream << " (";
-  Site.getDebugLoc().print(StringStream);
-  StringStream << "): " << Msg;
+inline static std::string prepareLogMessage(const llvm::CallBase& site, const llvm::Value& actualArgument,
+                                            const llvm::StringRef& msg) {
+  std::string string;
+  raw_string_ostream stringStream{string};
+  stringStream << "function ";
+  site.getFunction()->printAsOperand(stringStream, false);
+  stringStream << ": argument ";
+  actualArgument.printAsOperand(stringStream, false);
+  stringStream << ": callsite ";
+  site.print(stringStream, true);
+  stringStream << " (";
+  site.getDebugLoc().print(stringStream);
+  stringStream << "): " << msg;
 
-  return String;
+  return string;
 }
 
-inline static void logUnusedArgument(const llvm::CallBase& Site, const llvm::Value& ActualArgument) {
-  if (Site.getCalledOperand() == &ActualArgument) {
-    LOG_DEBUG(prepareLogMessage(Site, ActualArgument, "Argument is CalledOperand of Callsite"))
+inline static void logUnusedArgument(const llvm::CallBase& site, const llvm::Value& actualArgument) {
+  if (site.getCalledOperand() == &actualArgument) {
+    LOG_DEBUG(prepareLogMessage(site, actualArgument, "Argument is CalledOperand of Callsite"))
     return;
   }
 
   // this can happen when the IRSearch finds a store-instruction and adds
   // the pointer operand to the successors.
-  if (llvm::is_contained(Site.users(), &ActualArgument)) {
-    LOG_DEBUG(prepareLogMessage(Site, ActualArgument, "Argument is User of Callsite"))
+  if (llvm::is_contained(site.users(), &actualArgument)) {
+    LOG_DEBUG(prepareLogMessage(site, actualArgument, "Argument is User of Callsite"))
     return;
   }
 
   // this is a serious problem within the dataflow analysis
-  LOG_ERROR(prepareLogMessage(Site, ActualArgument, "Argument is not used at Callsite"))
+  LOG_ERROR(prepareLogMessage(site, actualArgument, "Argument is not used at Callsite"))
 }
 
-inline static void logMissingCallees(const llvm::CallBase& Site, const llvm::Value&) {
-  std::string String;
-  raw_string_ostream StringStream{String};
-  StringStream << "function ";
-  Site.getFunction()->printAsOperand(StringStream, false);
-  StringStream << ": no callees found for callsite ";
-  Site.print(StringStream, true);
+inline static void logMissingCallees(const llvm::CallBase& site, const llvm::Value&) {
+  std::string string;
+  raw_string_ostream stringStream{string};
+  stringStream << "function ";
+  site.getFunction()->printAsOperand(stringStream, false);
+  stringStream << ": no callees found for callsite ";
+  site.print(stringStream, true);
 
-  LOG_WARNING(String)
+  LOG_WARNING(string)
 }
 
-inline static void logMissingEdges(const llvm::CallBase& Site, const llvm::Value& ActualArgument) {
-  std::string String;
-  raw_string_ostream StringStream{String};
-  StringStream << "function ";
-  Site.getFunction()->printAsOperand(StringStream, false);
-  StringStream << ": no edges found for argument ";
-  ActualArgument.printAsOperand(StringStream, false);
-  StringStream << " @ ";
-  Site.print(StringStream, true);
+inline static void logMissingEdges(const llvm::CallBase& site, const llvm::Value& actualArgument) {
+  std::string string;
+  raw_string_ostream stringStream{string};
+  stringStream << "function ";
+  site.getFunction()->printAsOperand(stringStream, false);
+  stringStream << ": no edges found for argument ";
+  actualArgument.printAsOperand(stringStream, false);
+  stringStream << " @ ";
+  site.print(stringStream, true);
 
-  LOG_WARNING(String)
+  LOG_WARNING(string)
 }
 
-FilterAnalysis ACGFilterImpl::analyseCallsite(const llvm::CallBase& Site, const Path& Path) const {
-  const llvm::Value* ActualArgument = Path.getEndPrev().getValue();
-  assert(ActualArgument != nullptr && "Argument should not be null");
+FilterAnalysis ACGFilterImpl::analyseCallsite(const llvm::CallBase& site, const Path& path) const {
+  const llvm::Value* actualArgument = path.getEndPrev().getValue();
+  assert(actualArgument != nullptr && "Argument should not be null");
 
-  if (!Site.hasArgument(ActualArgument)) {
-    logUnusedArgument(Site, *ActualArgument);
+  if (!site.hasArgument(actualArgument)) {
+    logUnusedArgument(site, *actualArgument);
     return FilterAnalysis::Continue;
   }
 
   /// the parent function of the callsite
-  const auto& ParentFunctionName = Site.getFunction()->getName();
-  if (functionMap.count(ParentFunctionName) == 0) {
+  const auto& parentFunctionName = site.getFunction()->getName();
+  if (functionMap.count(parentFunctionName) == 0) {
     // This can happen when the (parent) function was not analyzed in the first place.
     // Which means that the parent function is not reachable from a program entry point. Either
     // the function is unreachable/dead or it was wrongly not analyzed (unsound). Therefore, we
     // conservative keep the value.
-    LOG_INFO("function not in map: " << ParentFunctionName)
+    LOG_INFO("function not in map: " << parentFunctionName)
     return FilterAnalysis::Keep;
   }
-  const auto& FunctionData = functionMap.lookup(ParentFunctionName);
+  const auto& functionData = functionMap.lookup(parentFunctionName);
 
-  const auto& Callees = getCalleesForCallsite(FunctionData, Site);
-  if (Callees.empty()) {
+  const auto& callees = getCalleesForCallsite(functionData, site);
+  if (callees.empty()) {
     // it is unlikely, but possible that a callsite was not analyzed in the first place.
     // this is often the result of an unsound analysis, therefore we want a conservative fallback
-    logMissingCallees(Site, *ActualArgument);
+    logMissingCallees(site, *actualArgument);
     return FilterAnalysis::Keep;
   }
 
-  const auto InitialEdges = createEdgesForCallsite(Site, *ActualArgument, Callees);
-  if (InitialEdges.empty()) {
+  const auto initialEdges = createEdgesForCallsite(site, *actualArgument, callees);
+  if (initialEdges.empty()) {
     // no initial edges is likely an error in the callgraph file, keep the value in those cases
-    logMissingEdges(Site, *ActualArgument);
+    logMissingEdges(site, *actualArgument);
     return FilterAnalysis::Keep;
   }
 
-  return analyseFlowPath(InitialEdges);
+  return analyseFlowPath(initialEdges);
 }
 
-std::vector<const FunctionDescriptor*> ACGFilterImpl::getCalleesForCallsite(const FunctionDescriptor& FunctionData,
-                                                                            const CallBase& Site) const {
-  const auto Identifier     = getIdentifierForCallsite(Site);
-  const auto& MapEntryRange = make_range(FunctionData.callsiteCallees.equal_range(Identifier));
+std::vector<const FunctionDescriptor*> ACGFilterImpl::getCalleesForCallsite(const FunctionDescriptor& functionData,
+                                                                            const llvm::CallBase& site) const {
+  const auto identifier     = getIdentifierForCallsite(site);
+  const auto& mapEntryRange = make_range(functionData.callsiteCallees.equal_range(identifier));
 
-  const auto& Callees = map_range(MapEntryRange, [](const auto& Entry) { return Entry.second; });
+  const auto& callees = map_range(mapEntryRange, [](const auto& entry) { return entry.second; });
 
-  return {Callees.begin(), Callees.end()};
+  return {callees.begin(), callees.end()};
 }
 
 /// identifiers all callsites of a function and stores additionally the highest used identifier as metadata field
 /// at the function. if the function metadata field already exists, its value is returned
-unsigned ACGFilterImpl::calculateSiteIdentifiersIfAbsent(const Function& Function) {
-  if (analyzedFunctions.count(&Function) != 0) {
-    return analyzedFunctions[&Function];
+unsigned ACGFilterImpl::calculateSiteIdentifiersIfAbsent(const llvm::Function& function) {
+  if (analyzedFunctions.count(&function) != 0) {
+    return analyzedFunctions[&function];
   }
 
-  unsigned CallSiteIdentifier = 0;
-  for (const auto& Instruction : llvm::instructions(Function)) {
-    if (llvm::isa<llvm::CallBase>(&Instruction)) {
-      callSiteIdentifiers[&Instruction] = ++CallSiteIdentifier;
+  unsigned callSiteIdentifier = 0;
+  for (const auto& instruction : llvm::instructions(function)) {
+    if (llvm::isa<llvm::CallBase>(&instruction)) {
+      callSiteIdentifiers[&instruction] = ++callSiteIdentifier;
     }
   }
 
-  analyzedFunctions[&Function] = CallSiteIdentifier;
-  return CallSiteIdentifier;
+  analyzedFunctions[&function] = callSiteIdentifier;
+  return callSiteIdentifier;
 }
 
-unsigned int ACGFilterImpl::getIdentifierForCallsite(const llvm::CallBase& Site) const {
-  const auto FoundAt = callSiteIdentifiers.find(&Site);
-  assert((FoundAt != callSiteIdentifiers.end()) && "identifier for callsite is missing");
-  return FoundAt->second;
+unsigned int ACGFilterImpl::getIdentifierForCallsite(const llvm::CallBase& site) const {
+  const auto foundAt = callSiteIdentifiers.find(&site);
+  assert((foundAt != callSiteIdentifiers.end()) && "identifier for callsite is missing");
+  return foundAt->second;
 }
 
-FilterAnalysis ACGFilterImpl::precheck(llvm::Value* In, llvm::Function* Start, const FPath& Fpath) {
-  assert(Start != nullptr && "pre-check in FilterBase::DFSFuncFilter failed");
+FilterAnalysis ACGFilterImpl::precheck(llvm::Value* currentValue, llvm::Function* start, const FPath& fpath) {
+  assert(start != nullptr && "pre-check in FilterBase::DFSFuncFilter failed");
 
   // use the precheck-callback to identify all callsites within a function
   // preferably this would be implemented as a pass, but that would require
   // structural changes for TypeART.
-  const auto NumberOfCallSites = calculateSiteIdentifiersIfAbsent(*Start);
-  if (NumberOfCallSites == 0) {
+  const auto numberOfCallSites = calculateSiteIdentifiersIfAbsent(*start);
+  if (numberOfCallSites == 0) {
     return FilterAnalysis::Filter;
   }
 
-  if (!Fpath.empty()) {
+  if (!fpath.empty()) {
     return FilterAnalysis::Continue;
   }
 
   // These conditions (temp alloc and alloca reaches task)
   // are only interesting if filter just started (aka fpath is empty)
-  if (isTempAlloc(In)) {
-    LOG_DEBUG("Alloca is a temporary " << *In);
+  if (isTempAlloc(currentValue)) {
+    LOG_DEBUG("Alloca is a temporary " << *currentValue);
     return FilterAnalysis::Filter;
   }
 
-  if (auto* alloc = llvm::dyn_cast<AllocaInst>(In)) {
+  if (auto* alloc = llvm::dyn_cast<AllocaInst>(currentValue)) {
     if (alloc->getAllocatedType()->isStructTy() && omp::OmpContext::allocaReachesTask(alloc)) {
       LOG_DEBUG("Alloca reaches task call " << *alloc)
       return FilterAnalysis::Filter;
@@ -392,19 +390,19 @@ FilterAnalysis ACGFilterImpl::precheck(llvm::Value* In, llvm::Function* Start, c
   return FilterAnalysis::Continue;
 }
 
-FilterAnalysis ACGFilterImpl::decl(const CallSite& Site, const Path& Path) {
-  calculateSiteIdentifiersIfAbsent(*Site->getFunction());
-  return analyseCallsite(*llvm::cast<llvm::CallBase>(Site.getInstruction()), Path);
+FilterAnalysis ACGFilterImpl::decl(const CallSite& site, const Path& path) {
+  calculateSiteIdentifiersIfAbsent(*site->getFunction());
+  return analyseCallsite(*llvm::cast<llvm::CallBase>(site.getInstruction()), path);
 }
 
-FilterAnalysis ACGFilterImpl::def(const CallSite& Site, const Path& Path) {
-  calculateSiteIdentifiersIfAbsent(*Site->getFunction());
-  return analyseCallsite(*llvm::cast<llvm::CallBase>(Site.getInstruction()), Path);
+FilterAnalysis ACGFilterImpl::def(const CallSite& site, const Path& path) {
+  calculateSiteIdentifiersIfAbsent(*site->getFunction());
+  return analyseCallsite(*llvm::cast<llvm::CallBase>(site.getInstruction()), path);
 }
 
-FilterAnalysis ACGFilterImpl::indirect(const CallSite& Site, const Path& Path) {
-  calculateSiteIdentifiersIfAbsent(*Site->getFunction());
-  return analyseCallsite(*llvm::cast<llvm::CallBase>(Site.getInstruction()), Path);
+FilterAnalysis ACGFilterImpl::indirect(const CallSite& site, const Path& path) {
+  calculateSiteIdentifiersIfAbsent(*site->getFunction());
+  return analyseCallsite(*llvm::cast<llvm::CallBase>(site.getInstruction()), path);
 }
 
 }  // namespace typeart::filter

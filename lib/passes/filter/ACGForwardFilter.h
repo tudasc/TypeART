@@ -121,6 +121,17 @@ class ACGFilterImpl {
  public:
   using Support = ACGFilterTrait;
 
+  explicit ACGFilterImpl(ACGDataMap&& dataMap) : functionMap(std::move(dataMap)) {
+  }
+
+  [[nodiscard]] FilterAnalysis precheck(llvm::Value*, llvm::Function*, const FPath&);
+
+  [[nodiscard]] FilterAnalysis decl(const llvm::CallSite&, const Path&);
+
+  [[nodiscard]] FilterAnalysis def(const llvm::CallSite&, const Path&);
+
+  [[nodiscard]] FilterAnalysis indirect(const llvm::CallSite&, const Path&);
+
  private:
   using functionmap_t   = llvm::ValueMap<const llvm::Function*, unsigned>;
   using identifiermap_t = llvm::ValueMap<const llvm::Instruction*, unsigned>;
@@ -140,21 +151,9 @@ class ACGFilterImpl {
   [[nodiscard]] unsigned int getIdentifierForCallsite(const llvm::CallBase&) const;
 
   [[nodiscard]] std::vector<const FunctionDescriptor*> getCalleesForCallsite(const FunctionDescriptor&,
-                                                                             const CallBase&) const;
+                                                                             const llvm::CallBase&) const;
 
-  unsigned calculateSiteIdentifiersIfAbsent(const Function&);
-
- public:
-  explicit ACGFilterImpl(ACGDataMap&& DataMap) : functionMap(std::move(DataMap)) {
-  }
-
-  [[nodiscard]] FilterAnalysis precheck(llvm::Value*, llvm::Function*, const FPath&);
-
-  [[nodiscard]] FilterAnalysis decl(const llvm::CallSite&, const Path&);
-
-  [[nodiscard]] FilterAnalysis def(const llvm::CallSite&, const Path&);
-
-  [[nodiscard]] FilterAnalysis indirect(const llvm::CallSite&, const Path&);
+  unsigned calculateSiteIdentifiersIfAbsent(const llvm::Function&);
 };
 
 using ACGForwardFilter = BaseFilter<ACGFilterImpl, DefaultSearch, omp::OmpContext>;

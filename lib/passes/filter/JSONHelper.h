@@ -25,47 +25,49 @@
 namespace typeart::filter {
 
 template <typename T = llvm::json::Value>
-inline llvm::Expected<T> getJSON(const llvm::StringRef& SrcFile) {
-  std::string Err;
-  llvm::raw_string_ostream ErrOStream(Err);
+inline llvm::Expected<T> getJSON(const llvm::StringRef& srcFile) {
+  std::string err;
+  llvm::raw_string_ostream errOStream(err);
 
-  if (SrcFile.empty()) {
-    ErrOStream << "CG File not set!";
-    LOG_FATAL(ErrOStream.str());
+  if (srcFile.empty()) {
+    errOStream << "CG File not set!";
+    LOG_FATAL(errOStream.str());
     std::exit(-1);
   }
 
-  const auto& Mem = llvm::MemoryBuffer::getFile(SrcFile);
-  if (!Mem) {
-    ErrOStream << Mem.getError().message();
-    LOG_FATAL(ErrOStream.str());
+  const auto& mem = llvm::MemoryBuffer::getFile(srcFile);
+  if (!mem) {
+    errOStream << mem.getError().message();
+    LOG_FATAL(errOStream.str());
     std::exit(-1);
   }
-  auto ParsedJSON = llvm::json::parse(Mem.get()->getBuffer());
-  if (!ParsedJSON) {
-    llvm::logAllUnhandledErrors(ParsedJSON.takeError(), ErrOStream);
-    LOG_FATAL(ErrOStream.str());
+
+  // it's easier to not use llvm::json::parse<T>() here
+  auto parsedJSON = llvm::json::parse(mem.get()->getBuffer());
+  if (!parsedJSON) {
+    llvm::logAllUnhandledErrors(parsedJSON.takeError(), errOStream);
+    LOG_FATAL(errOStream.str());
     std::exit(-1);
   }
 
   if constexpr (std::is_same_v<llvm::json::Value, T>) {
-    return ParsedJSON;
+    return parsedJSON;
   } else {
 #if LLVM_VERSION_MAJOR < 12
-    T Result;
-    if (fromJSON(*ParsedJSON, Result)) {
-      return std::move(Result);
+    T result;
+    if (fromJSON(*parsedJSON, result)) {
+      return std::move(result);
     }
     LOG_FATAL("invalid json");
     std::exit(-1);
 #else
-    llvm::json::Path::Root R("");
-    T Result;
-    if (fromJSON(*ParsedJSON, Result, R)) {
-      return std::move(Result);
+    llvm::json::Path::Root root("");
+    T result;
+    if (fromJSON(*parsedJSON, result, root)) {
+      return std::move(result);
     }
-    llvm::logAllUnhandledErrors(R.getError(), ErrOStream);
-    LOG_FATAL(ErrOStream.str());
+    llvm::logAllUnhandledErrors(root.getError(), errOStream);
+    LOG_FATAL(errOStream.str());
     std::exit(-1);
 #endif
   }
