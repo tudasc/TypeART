@@ -61,15 +61,15 @@ struct FunctionSignature {
    */
   const bool isVariadic = false;
 
-  [[nodiscard]] bool paramIsType(unsigned ArgumentNumber, const std::string& Type) const noexcept {
-    if (ArgumentNumber >= paramTypes.size()) {
+  [[nodiscard]] bool paramIsType(unsigned argumentNumber, const std::string& type) const noexcept {
+    if (argumentNumber >= paramTypes.size()) {
       return isVariadic;
     }
-    return paramTypes[ArgumentNumber] == Type;
+    return paramTypes[argumentNumber] == type;
   }
 
-  [[nodiscard]] bool returnIsType(const std::string& Type) const noexcept {
-    return returnType == Type;
+  [[nodiscard]] bool returnIsType(const std::string& type) const noexcept {
+    return returnType == type;
   }
 };
 
@@ -132,8 +132,8 @@ class ACGFilterImpl {
   [[nodiscard]] FilterAnalysis indirect(const llvm::CallSite&, const Path&);
 
  private:
-  using functionmap_t   = llvm::ValueMap<const llvm::Function*, unsigned>;
-  using identifiermap_t = llvm::ValueMap<const llvm::Instruction*, unsigned>;
+  using functionmap_t   = std::map<const llvm::Function*, unsigned>;
+  using identifiermap_t = std::map<const llvm::Instruction*, unsigned>;
 
   FunctionOracleMatcher candidateMatcher{};
   ACGDataMap functionMap;
