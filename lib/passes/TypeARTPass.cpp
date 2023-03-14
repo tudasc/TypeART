@@ -287,7 +287,7 @@ void TypeArtPass::printStats(llvm::raw_ostream& out) {
       return " [Stack]";
     }
 
-    return " [both modes disabled]";
+    return " [Nop mode]";
     // happens when both heap and stack phases are disabled
     // llvm_unreachable("Did not find heap or stack, or combination thereof!");
   };
