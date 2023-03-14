@@ -30,10 +30,10 @@ enum VisitResult {
 
 template <typename T, typename CB>
 inline void solveReachable(const std::vector<T>& range, CB&& callback) noexcept {
-  llvm::SmallPtrSet<T const*, 32> visited{};
-  llvm::SmallVector<T const*, 64> worklist{};
+  llvm::SmallPtrSet<const T*, 32> visited{};
+  llvm::SmallVector<const T*, 64> worklist{};
 
-  const auto& enqueue = [&](T const& entry) noexcept -> bool {
+  const auto& enqueue = [&](const T& entry) noexcept -> bool {
     if (visited.insert(&entry).second) {
       worklist.push_back(&entry);
       return true;
@@ -46,8 +46,8 @@ inline void solveReachable(const std::vector<T>& range, CB&& callback) noexcept 
   }
 
   while (!worklist.empty()) {
-    T const* currentValue    = worklist.pop_back_val();
-    VisitResult const status = callback(*currentValue, enqueue);
+    const T* currentValue    = worklist.pop_back_val();
+    const VisitResult status = callback(*currentValue, enqueue);
     switch (status) {
       case VR_Continue:
         break;
@@ -69,7 +69,7 @@ static FunctionDescriptor createFunctionNode(const JSONACG::node_type& json, con
           {signature.identifier, signature.paramTypes, signature.returnType, signature.isVariadic}};
 }
 
-static FunctionDescriptor const& retrieveFunction(const ACGDataMap& dataMap, const llvm::StringRef& functionName) {
+static const FunctionDescriptor& retrieveFunction(const ACGDataMap& dataMap, const llvm::StringRef& functionName) {
   assert(dataMap.count(functionName) && "Found an edge to an undefined callee");
   if (dataMap.count(functionName) == 0) {
     throw std::runtime_error("Found an edge to an undefined callee: " + functionName.str());
@@ -115,19 +115,19 @@ ACGDataMap createDatabase(const Regex& targetMatcher, JSONACG& metaCg) {
 }
 
 /// tests if an edge can reach a void* argument
-inline static bool isFormalArgumentRelevant(const FunctionDescriptor::ArgumentEdge& edge) {
+inline static bool isSinkArgumentRelevant(const FunctionDescriptor::ArgumentEdge& edge) {
   constexpr auto voidType = "i8*";
   return edge.callee.functionSignature.paramIsType(edge.argumentNumber, voidType);
 }
 
 /// an edge reaches a relevant formal argument
-inline static bool edgeReachesRelevantFormalArgument(const FunctionDescriptor::ArgumentEdge& edge) {
-  return edge.callee.isTarget && isFormalArgumentRelevant(edge);
+inline static bool edgeReachesRelevantSinkArgument(const FunctionDescriptor::ArgumentEdge& edge) {
+  return edge.callee.isTarget && isSinkArgumentRelevant(edge);
 }
 
 /// declaration with relevant formal argument, could reach indirect the destination
-inline static bool edgeMaybeReachesFormalArgument(const FunctionDescriptor::ArgumentEdge& edge) {
-  return !edge.callee.isTarget && !edge.callee.isDefinition && isFormalArgumentRelevant(edge);
+inline static bool edgeMaybeReachesSinkArgument(const FunctionDescriptor::ArgumentEdge& edge) {
+  return !edge.callee.isTarget && !edge.callee.isDefinition && isSinkArgumentRelevant(edge);
 }
 
 template <typename RangeT>
@@ -175,13 +175,13 @@ FilterAnalysis ACGFilterImpl::analyseFlowPath(const std::vector<FunctionDescript
   StringSet maybeCandidates;
 
   ReachabilityResult result = ReachabilityResult::never_reaches;
-  solveReachable(initialEdges, [&](const FunctionDescriptor::ArgumentEdge& edge, auto const& enqueue) -> VisitResult {
-    if (edgeReachesRelevantFormalArgument(edge)) {
+  solveReachable(initialEdges, [&](const FunctionDescriptor::ArgumentEdge& edge, const auto& enqueue) -> VisitResult {
+    if (edgeReachesRelevantSinkArgument(edge)) {
       result = ReachabilityResult::reaches;
       return VR_Stop;
     }
 
-    if (edgeMaybeReachesFormalArgument(edge)) {
+    if (edgeMaybeReachesSinkArgument(edge)) {
       result = ReachabilityResult::maybe_reaches;
       maybeCandidates.insert(edge.callee.functionSignature.identifier);
     }

@@ -209,7 +209,7 @@ inline bool fromJSON(const json::Value& E, Generator& R, json::Path P) {
 #if LLVM_VERSION_MAJOR < 12
 template <typename MetaField>
 inline bool fromJSON(const json::Value& E, FunctionNode<MetaField>& R) {
-  constexpr const bool hasExtensions = !std::is_void_v<MetaField>;
+  constexpr bool hasExtensions = !std::is_void_v<MetaField>;
 
   json::ObjectMapper O(E);
 
@@ -226,7 +226,7 @@ inline bool fromJSON(const json::Value& E, FunctionNode<MetaField>& R) {
 #else
 template <typename MetaField>
 inline bool fromJSON(const json::Value& E, FunctionNode<MetaField>& R, json::Path P) {
-  constexpr const bool hasExtensions = !std::is_void_v<MetaField>;
+  constexpr bool hasExtensions = !std::is_void_v<MetaField>;
 
   json::ObjectMapper O(E, P);
 
