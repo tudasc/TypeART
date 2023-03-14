@@ -103,6 +103,8 @@ namespace filter {
 namespace detail {
 static std::unique_ptr<typeart::filter::Filter> make_filter(const MemInstFinderConfig& config) {
   using namespace typeart::filter;
+  using namespace typeart::filter::util;
+  using namespace typeart::util;
 
   const auto filter_id   = config.filter.useCallFilter ? config.filter.implementation : FilterImplementation::none;
   const std::string glob = config.filter.callFilterGlob;
@@ -115,9 +117,9 @@ static std::unique_ptr<typeart::filter::Filter> make_filter(const MemInstFinderC
 
     case FilterImplementation::standard: {
       LOG_DEBUG("Return default filter")
-      auto matcher         = std::make_unique<DefaultStringMatcher>(util::glob2regex(glob));
+      auto matcher         = std::make_unique<DefaultStringMatcher>(glob2regex(glob));
       const auto deep_glob = config.filter.callFilterDeepGlob;
-      auto deep_matcher    = std::make_unique<DefaultStringMatcher>(util::glob2regex(deep_glob));
+      auto deep_matcher    = std::make_unique<DefaultStringMatcher>(glob2regex(deep_glob));
       return std::make_unique<StandardForwardFilter>(std::move(matcher), std::move(deep_matcher));
     }
 
@@ -129,7 +131,7 @@ static std::unique_ptr<typeart::filter::Filter> make_filter(const MemInstFinderC
         std::exit(-1);
       }
       auto json_cg = std::make_unique<JSONCG>(json_cg_ex.get());
-      auto matcher = std::make_unique<DefaultStringMatcher>(util::glob2regex(glob));
+      auto matcher = std::make_unique<DefaultStringMatcher>(glob2regex(glob));
       return std::make_unique<CGForwardFilter>(glob, std::move(json_cg), std::move(matcher));
     }
 
@@ -140,7 +142,7 @@ static std::unique_ptr<typeart::filter::Filter> make_filter(const MemInstFinderC
         LOG_FATAL("Cannot open JSON file: " << config.filter.callFilterCgFile)
         std::exit(-1);
       }
-      const Regex TargetMatcher{util::glob2regex(glob), Regex::NoFlags};
+      const Regex TargetMatcher{glob2regex(glob), Regex::NoFlags};
       return std::make_unique<ACGForwardFilter>(createDatabase(TargetMatcher, json_cg_ex.get()));
     }
   }

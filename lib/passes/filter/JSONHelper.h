@@ -22,7 +22,7 @@
 #include <memory>
 #include <string>
 
-namespace typeart::filter {
+namespace typeart::filter::util {
 
 template <typename T = llvm::json::Value>
 inline llvm::Expected<T> getJSON(const llvm::StringRef& srcFile) {
