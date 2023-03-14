@@ -41,6 +41,7 @@ class Matcher {
   virtual ~Matcher() = default;
 };
 
+namespace detail {
 template <Matcher::MatchResult Result>
 class StaticMatcher final : public Matcher {
  public:
@@ -60,9 +61,10 @@ class StaticMatcher final : public Matcher {
     return Result;
   };
 };
+}  // namespace detail
 
-using NoMatcher  = StaticMatcher<Matcher::MatchResult::NoMatch>;
-using AnyMatcher = StaticMatcher<Matcher::MatchResult::Match>;
+using NoMatcher  = detail::StaticMatcher<Matcher::MatchResult::NoMatch>;
+using AnyMatcher = detail::StaticMatcher<Matcher::MatchResult::Match>;
 
 class DefaultStringMatcher final : public Matcher {
   Regex matcher;
