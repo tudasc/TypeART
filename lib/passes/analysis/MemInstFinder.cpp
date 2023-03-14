@@ -123,16 +123,25 @@ static std::unique_ptr<typeart::filter::Filter> make_filter(const MemInstFinderC
 
     case FilterImplementation::cg: {
       LOG_DEBUG("Return CG filter with CG file @ " << config.filter.callFilterCgFile)
-      auto json_cg = std::make_unique<JSONCG>(getJSON(config.filter.callFilterCgFile).get());
+      auto json_cg_ex = getJSON(config.filter.callFilterCgFile);
+      if (!json_cg_ex) {
+        LOG_FATAL("Cannot open JSON file: " << config.filter.callFilterCgFile)
+        std::exit(-1);
+      }
+      auto json_cg = std::make_unique<JSONCG>(json_cg_ex.get());
       auto matcher = std::make_unique<DefaultStringMatcher>(util::glob2regex(glob));
       return std::make_unique<CGForwardFilter>(glob, std::move(json_cg), std::move(matcher));
     }
 
     case FilterImplementation::acg: {
       LOG_DEBUG("Return ACG filter with CG file @ " << config.filter.callFilterCgFile)
-      auto json_cg = getJSON<JSONACG>(config.filter.callFilterCgFile).get();
+      auto json_cg_ex = getJSON<JSONACG>(config.filter.callFilterCgFile);
+      if (!json_cg_ex) {
+        LOG_FATAL("Cannot open JSON file: " << config.filter.callFilterCgFile)
+        std::exit(-1);
+      }
       const Regex TargetMatcher{util::glob2regex(glob), Regex::NoFlags};
-      return std::make_unique<ACGForwardFilter>(createDatabase(TargetMatcher, json_cg));
+      return std::make_unique<ACGForwardFilter>(createDatabase(TargetMatcher, json_cg_ex.get()));
     }
   }
 }
