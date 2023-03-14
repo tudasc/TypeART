@@ -15,11 +15,11 @@
 
 #include "FilterBase.h"
 #include "Matcher.h"
+#include "MetaCG.h"
+#include "MetaCGExtension.h"
 #include "compat/CallSite.h"
 #include "filter/CGInterface.h"
 #include "filter/IRPath.h"
-#include "MetaCG.h"
-#include "MetaCGExtension.h"
 
 #include <llvm/ADT/SmallPtrSet.h>
 #include <llvm/ADT/SmallVector.h>
@@ -42,7 +42,6 @@ struct OmpContext;
 }  // namespace typeart::filter::omp
 
 namespace typeart::filter {
-
 
 struct FunctionSignature {
   /**

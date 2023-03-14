@@ -67,7 +67,6 @@ struct MetaCG {
   llvm::StringMap<node_type> functionNodes;
 };
 
-
 // the fromJSON signature was changed with llvm12 so, we need support both variants - the old and the new one
 
 #if LLVM_VERSION_MAJOR < 12
@@ -206,7 +205,6 @@ inline bool fromJSON(const json::Value& E, Generator& R, json::Path P) {
   return O && O.map("version", R.version) && O.map("name", R.name);
 }
 #endif
-
 
 #if LLVM_VERSION_MAJOR < 12
 template <typename MetaField>

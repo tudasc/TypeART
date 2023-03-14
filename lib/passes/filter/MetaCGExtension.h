@@ -26,7 +26,6 @@ namespace typeart::filter::metacg {
 template <typename>
 struct MetaField;
 
-
 struct FunctionSignature {
   std::string identifier;
   std::vector<std::string> paramTypes;
@@ -38,7 +37,6 @@ template <>
 struct MetaField<FunctionSignature> {
   FunctionSignature signature;
 };
-
 
 #if LLVM_VERSION_MAJOR < 12
 inline bool fromJSON(const json::Value& E, MetaField<FunctionSignature>& R) {
@@ -134,8 +132,6 @@ inline bool fromJSON(const json::Value& E, InterDataFlow::Edge& R, json::Path P)
 }
 #endif
 
-
-
 /// an aggregation to allow the usage of multiple extensions
 template <typename... Mixins>
 struct MetaFieldGroup : public MetaField<Mixins>... {};
@@ -155,7 +151,6 @@ inline bool fromJSON(const json::Value& E, MetaFieldGroup<Extensions...>& R, jso
   return (fromJSON(E, static_cast<MetaField<Extensions>&>(R), P) && ...);
 }
 #endif
-
 
 }  // namespace typeart::filter::metacg
 #endif  // TYPEART_FILTER_METACG_EXTENSION_H
