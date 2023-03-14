@@ -132,13 +132,13 @@ class ACGFilterImpl {
   [[nodiscard]] FilterAnalysis indirect(const llvm::CallSite&, const Path&);
 
  private:
-  using functionmap_t   = std::map<const llvm::Function*, unsigned>;
-  using identifiermap_t = std::map<const llvm::Instruction*, unsigned>;
+  using FUNCTIONMAP   = std::map<const llvm::Function*, unsigned>;
+  using IDENTIFIERMAP = std::map<const llvm::Instruction*, unsigned>;
 
   FunctionOracleMatcher candidateMatcher{};
   ACGDataMap functionMap;
-  functionmap_t analyzedFunctions{};
-  identifiermap_t callSiteIdentifiers{};
+  FUNCTIONMAP analyzedFunctions{};
+  IDENTIFIERMAP callSiteIdentifiers{};
 
   [[nodiscard]] FilterAnalysis analyseFlowPath(const std::vector<FunctionDescriptor::ArgumentEdge>&) const;
 
