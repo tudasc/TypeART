@@ -1,5 +1,5 @@
 // clang-format off
-// RUN: %c-to-llvm %s | %apply-typeart --typeart-stack --typeart-filter --typeart-filter-implementation=acg --typeart-filter-cg-file=%p/04_cg.ipcg2 -S 2>&1 | %filecheck %s
+// RUN: %c-to-llvm %s | %apply-typeart --typeart-stack --typeart-filter --typeart-filter-implementation=acg --typeart-filter-cg-file=%p/04_cg.ipcg2 -S 2>&1 | %filecheck %s --check-prefix=CHECK-default
 // RUN: %c-to-llvm %s | %apply-typeart --typeart-stack --typeart-filter --typeart-filter-implementation=cg --typeart-filter-cg-file=%p/04_cg.ipcg -S 2>&1 | %filecheck %s
 // RUN: %c-to-llvm %s | %apply-typeart --typeart-stack --typeart-filter -S 2>&1 | %filecheck %s --check-prefix=CHECK-default
 // clang-format on
@@ -12,12 +12,12 @@ void foo() {
   bar(&a);
   aar(&b);
 }
-// CG / ACG:
+// CG:
 // CHECK: > Stack Memory
 // CHECK-NEXT: Alloca                 :  2.00
 // CHECK-NEXT: Stack call filtered %  : 50.00
 
-// Standard filter
+// Standard filter  / ACG:
 // CHECK-default: > Stack Memory
 // CHECK-default-NEXT: Alloca                 :  2.00
 // CHECK-default-NEXT: Stack call filtered %  :  0.00

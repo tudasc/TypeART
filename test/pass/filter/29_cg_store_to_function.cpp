@@ -13,4 +13,4 @@ void foo(int r) {
 
 // CHECK: > Stack Memory
 // CHECK-NEXT: Alloca                      :   1.00
-// CHECK-NEXT: Stack call filtered %       : 100.00
+// CHECK-NEXT: Stack call filtered %       :   0.00
