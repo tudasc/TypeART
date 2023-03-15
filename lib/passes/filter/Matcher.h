@@ -30,11 +30,11 @@ class Matcher {
   Matcher& operator=(const Matcher&) = default;
   Matcher& operator=(Matcher&&) = default;
 
-  [[nodiscard]] virtual MatchResult match(llvm::CallSite Site) const = 0;
+  [[nodiscard]] virtual MatchResult match(llvm::CallSite) const = 0;
 
-  [[nodiscard]] virtual MatchResult match(const llvm::CallBase& Site) const = 0;
+  [[nodiscard]] virtual MatchResult match(const llvm::CallBase&) const = 0;
 
-  [[nodiscard]] virtual MatchResult match(const llvm::Function& Function) const = 0;
+  [[nodiscard]] virtual MatchResult match(const llvm::Function&) const = 0;
 
   [[nodiscard]] virtual MatchResult match(const llvm::StringRef&) const = 0;
 
@@ -67,10 +67,10 @@ using NoMatcher  = detail::StaticMatcher<Matcher::MatchResult::NoMatch>;
 using AnyMatcher = detail::StaticMatcher<Matcher::MatchResult::Match>;
 
 class DefaultStringMatcher final : public Matcher {
-  Regex matcher;
+  Regex matcher_;
 
  public:
-  explicit DefaultStringMatcher(const std::string& regex) : matcher(regex, Regex::NoFlags) {
+  explicit DefaultStringMatcher(const std::string& regex) : matcher_(regex, Regex::NoFlags) {
   }
   [[nodiscard]] MatchResult match(llvm::CallSite site) const noexcept override {
     if (const auto* function = site.getCalledFunction()) {
@@ -92,7 +92,7 @@ class DefaultStringMatcher final : public Matcher {
 
   [[nodiscard]] MatchResult match(const llvm::StringRef& function) const noexcept override {
     const auto f_name  = util::demangle(function);
-    const bool matched = matcher.match(f_name);
+    const bool matched = matcher_.match(f_name);
     if (!matched) {
       return MatchResult::NoMatch;
     }
@@ -101,12 +101,12 @@ class DefaultStringMatcher final : public Matcher {
 };
 
 class FunctionOracleMatcher final : public Matcher {
-  const MemOps mem_operations{};
-  llvm::SmallDenseSet<llvm::StringRef> continue_set{{"sqrt"}, {"cos"}, {"sin"},    {"pow"},  {"fabs"},
-                                                    {"abs"},  {"log"}, {"fscanf"}, {"cbrt"}, {"gettimeofday"}};
-  llvm::SmallDenseSet<llvm::StringRef> skip_set{{"printf"}, {"sprintf"},      {"snprintf"}, {"fprintf"},
-                                                {"puts"},   {"__cxa_atexit"}, {"fopen"},    {"fclose"},
-                                                {"scanf"},  {"strtol"},       {"srand"}};
+  const MemOps mem_operations_{};
+  llvm::SmallDenseSet<llvm::StringRef> continue_set_{{"sqrt"}, {"cos"}, {"sin"},    {"pow"},  {"fabs"},
+                                                     {"abs"},  {"log"}, {"fscanf"}, {"cbrt"}, {"gettimeofday"}};
+  llvm::SmallDenseSet<llvm::StringRef> skip_set_{{"printf"}, {"sprintf"},      {"snprintf"}, {"fprintf"},
+                                                 {"puts"},   {"__cxa_atexit"}, {"fopen"},    {"fclose"},
+                                                 {"scanf"},  {"strtol"},       {"srand"}};
 
  public:
   [[nodiscard]] MatchResult match(llvm::CallSite site) const noexcept override {
@@ -130,16 +130,16 @@ class FunctionOracleMatcher final : public Matcher {
   [[nodiscard]] MatchResult match(const llvm::StringRef& function) const noexcept override {
     const auto f_name = util::demangle(function);
     const llvm::StringRef f_name_ref{f_name};
-    if (continue_set.count(f_name) > 0) {
+    if (continue_set_.count(f_name) > 0) {
       return MatchResult::ShouldContinue;
     }
-    if (skip_set.count(f_name) > 0) {
+    if (skip_set_.count(f_name) > 0) {
       return MatchResult::ShouldSkip;
     }
     if (f_name_ref.startswith("__typeart_")) {
       return MatchResult::ShouldSkip;
     }
-    if (mem_operations.kind(f_name)) {
+    if (mem_operations_.kind(f_name)) {
       return MatchResult::ShouldSkip;
     }
     if (f_name_ref.startswith("__ubsan") || f_name_ref.startswith("__asan") || f_name_ref.startswith("__msan")) {

@@ -51,27 +51,27 @@ struct FunctionSignature {
   /**
    * the types of the formal arguments
    */
-  const std::vector<std::string> paramTypes{};
+  const std::vector<std::string> param_types{};
   /**
    * the type of the return value
    */
-  const std::string returnType{};
+  const std::string return_type{};
   /**
    * indicates that this function may accept an arbitrary number of formal arguments
    */
-  const bool isVariadic = false;
+  const bool is_variadic = false;
 
   template <typename TypeID>
-  [[nodiscard]] inline bool paramIsType(unsigned argumentNumber, TypeID&& isType) const noexcept {
-    if (argumentNumber >= paramTypes.size()) {
-      return isVariadic;
+  [[nodiscard]] inline bool paramIsType(unsigned argument_number, TypeID&& is_type) const noexcept {
+    if (argument_number >= param_types.size()) {
+      return is_variadic;
     }
-    return isType(paramTypes[argumentNumber]);
+    return is_type(param_types[argument_number]);
   }
 
   template <typename TypeID>
-  [[nodiscard]] inline bool returnIsType(TypeID&& isType) const noexcept {
-    return isType(returnType);
+  [[nodiscard]] inline bool returnIsType(TypeID&& is_type) const noexcept {
+    return is_type(return_type);
   }
 };
 
@@ -85,35 +85,35 @@ struct FunctionSignature {
 struct FunctionDescriptor {
   struct ArgumentEdge {
     /// The position of the (sink) argument of the callee.
-    const int argumentNumber;
+    const int argument_number;
 
     /// reference to the callee
     const FunctionDescriptor& callee;
   };
 
   /// conservatively assume a function is a target unless defined otherwise
-  bool isTarget = true;
+  bool is_target = true;
 
   /// assume a function has no definition unless defined otherwise
-  bool isDefinition = false;
+  bool is_definition = false;
 
   /// the key represents the source argument position of the caller function (this function)
   /// the values represent reachable functions (with the corresponding argument number)
-  std::multimap<int, const ArgumentEdge> reachableFunctionArguments{};
+  std::multimap<int, const ArgumentEdge> reachable_function_arguments{};
 
   /// maps a callsite-id to its callees
-  std::multimap<uint64_t, const FunctionDescriptor*> callsiteCallees{};
+  std::multimap<uint64_t, const FunctionDescriptor*> callsite_callees{};
 
   /// signature of the function
-  FunctionSignature functionSignature;
+  FunctionSignature function_signature;
 };
 
 using ACGDataMap = llvm::StringMap<FunctionDescriptor>;
 
-using JSONACG = metacg::MetaCG<metacg::MetaFieldGroup<metacg::FunctionSignature, metacg::InterDataFlow>>;
+using JsonACG = metacg::MetaCG<metacg::MetaFieldGroup<metacg::FunctionSignature, metacg::InterDataFlow>>;
 
 /// converts the JSON structure in a better processable structure
-ACGDataMap createDatabase(const Regex&, JSONACG&);
+ACGDataMap createDatabase(const Regex&, JsonACG&);
 
 struct ACGFilterTrait {
   constexpr static bool Indirect    = true;
@@ -127,7 +127,7 @@ class ACGFilterImpl {
  public:
   using Support = ACGFilterTrait;
 
-  explicit ACGFilterImpl(ACGDataMap&& dataMap) : functionMap(std::move(dataMap)) {
+  explicit ACGFilterImpl(ACGDataMap&& data_map) : functionMap_(std::move(data_map)) {
   }
 
   [[nodiscard]] FilterAnalysis precheck(llvm::Value*, llvm::Function*, const FPath&);
@@ -139,13 +139,13 @@ class ACGFilterImpl {
   [[nodiscard]] FilterAnalysis indirect(const llvm::CallSite&, const Path&);
 
  private:
-  using FUNCTIONMAP   = std::map<const llvm::Function*, unsigned>;
-  using IDENTIFIERMAP = std::map<const llvm::Instruction*, unsigned>;
+  using FunctionMap   = std::map<const llvm::Function*, unsigned>;
+  using IdentifierMap = std::map<const llvm::Instruction*, unsigned>;
 
-  FunctionOracleMatcher candidateMatcher{};
-  ACGDataMap functionMap;
-  FUNCTIONMAP analyzedFunctions{};
-  IDENTIFIERMAP callSiteIdentifiers{};
+  FunctionOracleMatcher candidateMatcher_{};
+  ACGDataMap functionMap_;
+  FunctionMap analyzedFunctions_{};
+  IdentifierMap callSiteIdentifiers_{};
 
   [[nodiscard]] FilterAnalysis analyseFlowPath(const std::vector<FunctionDescriptor::ArgumentEdge>&) const;
 

@@ -137,13 +137,13 @@ static std::unique_ptr<typeart::filter::Filter> make_filter(const MemInstFinderC
 
     case FilterImplementation::acg: {
       LOG_DEBUG("Return ACG filter with CG file @ " << config.filter.callFilterCgFile)
-      auto json_cg_ex = getJSON<JSONACG>(config.filter.callFilterCgFile);
+      auto json_cg_ex = getJSON<JsonACG>(config.filter.callFilterCgFile);
       if (!json_cg_ex) {
         LOG_FATAL("Cannot open JSON file: " << config.filter.callFilterCgFile)
         std::exit(-1);
       }
-      const Regex TargetMatcher{glob2regex(glob), Regex::NoFlags};
-      return std::make_unique<ACGForwardFilter>(createDatabase(TargetMatcher, json_cg_ex.get()));
+      const Regex target_matcher{glob2regex(glob), Regex::NoFlags};
+      return std::make_unique<ACGForwardFilter>(createDatabase(target_matcher, json_cg_ex.get()));
     }
   }
 }

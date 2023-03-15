@@ -25,37 +25,37 @@
 namespace typeart::filter::util {
 
 template <typename T = llvm::json::Value>
-inline llvm::Expected<T> getJSON(const llvm::StringRef& srcFile) {
+inline llvm::Expected<T> getJSON(const llvm::StringRef& src_file) {
   std::string err;
-  llvm::raw_string_ostream errOStream(err);
+  llvm::raw_string_ostream err_ostream(err);
 
-  if (srcFile.empty()) {
-    errOStream << "CG File not set!";
-    LOG_FATAL(errOStream.str());
+  if (src_file.empty()) {
+    err_ostream << "CG File not set!";
+    LOG_FATAL(err_ostream.str());
     std::exit(-1);
   }
 
-  const auto& mem = llvm::MemoryBuffer::getFile(srcFile);
+  const auto& mem = llvm::MemoryBuffer::getFile(src_file);
   if (!mem) {
-    errOStream << mem.getError().message();
-    LOG_FATAL(errOStream.str());
+    err_ostream << mem.getError().message();
+    LOG_FATAL(err_ostream.str());
     std::exit(-1);
   }
 
   // it's easier to not use llvm::json::parse<T>() here
-  auto parsedJSON = llvm::json::parse(mem.get()->getBuffer());
-  if (!parsedJSON) {
-    llvm::logAllUnhandledErrors(parsedJSON.takeError(), errOStream);
-    LOG_FATAL(errOStream.str());
+  auto parsed_json = llvm::json::parse(mem.get()->getBuffer());
+  if (!parsed_json) {
+    llvm::logAllUnhandledErrors(parsed_json.takeError(), err_ostream);
+    LOG_FATAL(err_ostream.str());
     std::exit(-1);
   }
 
   if constexpr (std::is_same_v<llvm::json::Value, T>) {
-    return parsedJSON;
+    return parsed_json;
   } else {
 #if LLVM_VERSION_MAJOR < 12
     T result;
-    if (fromJSON(*parsedJSON, result)) {
+    if (fromJSON(*parsed_json, result)) {
       return std::move(result);
     }
     LOG_FATAL("invalid json");
@@ -63,16 +63,16 @@ inline llvm::Expected<T> getJSON(const llvm::StringRef& srcFile) {
 #else
     llvm::json::Path::Root root("");
     T result;
-    if (fromJSON(*parsedJSON, result, root)) {
+    if (fromJSON(*parsed_json, result, root)) {
       return std::move(result);
     }
-    llvm::logAllUnhandledErrors(root.getError(), errOStream);
-    LOG_FATAL(errOStream.str());
+    llvm::logAllUnhandledErrors(root.getError(), err_ostream);
+    LOG_FATAL(err_ostream.str());
     std::exit(-1);
 #endif
   }
 }
 
-}  // namespace typeart::filter
+}  // namespace typeart::filter::util
 
 #endif  // TYPEART_FILTER_JSON_H

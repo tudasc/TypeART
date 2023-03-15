@@ -28,9 +28,9 @@ struct MetaField;
 
 struct FunctionSignature {
   std::string identifier;
-  std::vector<std::string> paramTypes;
-  std::string returnType;
-  bool isVariadic = false;
+  std::vector<std::string> param_types;
+  std::string return_type;
+  bool is_variadic = false;
 };
 
 template <>
@@ -53,32 +53,32 @@ inline bool fromJSON(const json::Value& E, MetaField<FunctionSignature>& R, json
 #if LLVM_VERSION_MAJOR < 12
 inline bool fromJSON(const json::Value& E, FunctionSignature& R) {
   json::ObjectMapper O(E);
-  return O && O.map("identifier", R.identifier) && O.map("paramTypes", R.paramTypes) &&
-         O.map("isVariadic", R.isVariadic) && O.map("returnType", R.returnType);
+  return O && O.map("identifier", R.identifier) && O.map("paramTypes", R.param_types) &&
+         O.map("isVariadic", R.is_variadic) && O.map("returnType", R.return_type);
 }
 #else
 inline bool fromJSON(const json::Value& E, FunctionSignature& R, json::Path P) {
   json::ObjectMapper O(E, P);
-  return O && O.map("identifier", R.identifier) && O.map("paramTypes", R.paramTypes) &&
-         O.map("isVariadic", R.isVariadic) && O.map("returnType", R.returnType);
+  return O && O.map("identifier", R.identifier) && O.map("paramTypes", R.param_types) &&
+         O.map("isVariadic", R.is_variadic) && O.map("returnType", R.return_type);
 }
 #endif
 
 struct InterDataFlow {
   struct CallSite {
-    int64_t siteIdentifier{};
+    int64_t site_identifier{};
   };
 
   struct Edge {
     /// position number of the source function
-    int sourceArgumentNumber{};
+    int source_argument_number{};
 
     /// position number of the destination function
-    int sinkArgumentNumber{};
+    int sink_argument_number{};
   };
 
   llvm::StringMap<std::vector<CallSite>> callsites{};
-  llvm::StringMap<std::vector<Edge>> interFlow{};
+  llvm::StringMap<std::vector<Edge>> inter_flow{};
 };
 
 template <>
@@ -101,34 +101,34 @@ inline bool fromJSON(const json::Value& E, MetaField<InterDataFlow>& R, json::Pa
 #if LLVM_VERSION_MAJOR < 12
 inline bool fromJSON(const json::Value& E, InterDataFlow& R) {
   json::ObjectMapper O(E);
-  return O && O.map("interFlow", R.interFlow) && O.map("callSites", R.callsites);
+  return O && O.map("interFlow", R.inter_flow) && O.map("callSites", R.callsites);
 }
 #else
 inline bool fromJSON(const json::Value& E, InterDataFlow& R, json::Path P) {
   json::ObjectMapper O(E, P);
-  return O && O.map("interFlow", R.interFlow) && O.map("callSites", R.callsites);
+  return O && O.map("interFlow", R.inter_flow) && O.map("callSites", R.callsites);
 }
 #endif
 
 #if LLVM_VERSION_MAJOR < 12
 inline bool fromJSON(const json::Value& E, InterDataFlow::CallSite& R) {
-  return fromJSON(E, R.siteIdentifier);
+  return fromJSON(E, R.site_identifier);
 }
 #else
 inline bool fromJSON(const json::Value& E, InterDataFlow::CallSite& R, json::Path P) {
-  return fromJSON(E, R.siteIdentifier, P);
+  return fromJSON(E, R.site_identifier, P);
 }
 #endif
 
 #if LLVM_VERSION_MAJOR < 12
 inline bool fromJSON(const json::Value& E, InterDataFlow::Edge& R) {
   json::ObjectMapper O(E);
-  return O && O.map("sink", R.sinkArgumentNumber) && O.map("source", R.sourceArgumentNumber);
+  return O && O.map("sink", R.sink_argument_number) && O.map("source", R.source_argument_number);
 }
 #else
 inline bool fromJSON(const json::Value& E, InterDataFlow::Edge& R, json::Path P) {
   json::ObjectMapper O(E, P);
-  return O && O.map("sink", R.sinkArgumentNumber) && O.map("source", R.sourceArgumentNumber);
+  return O && O.map("sink", R.sink_argument_number) && O.map("source", R.source_argument_number);
 }
 #endif
 

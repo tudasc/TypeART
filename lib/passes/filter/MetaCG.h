@@ -31,11 +31,11 @@ struct FunctionNode<void> {
   std::vector<std::string> callees;
   std::vector<std::string> callers;
   std::vector<std::string> overrides;
-  std::vector<std::string> overriddenBy;
+  std::vector<std::string> overridden_by;
 
-  bool doesOverride = false;
-  bool hasBody      = false;
-  bool isVirtual    = false;
+  bool does_override = false;
+  bool has_body      = false;
+  bool is_virtual    = false;
 };
 
 /// a function node with meta fields is basically an extension of a normal function node
@@ -64,7 +64,7 @@ struct MetaCG {
   using node_type = FunctionNode<MetaField>;
 
   Info info;
-  llvm::StringMap<node_type> functionNodes;
+  llvm::StringMap<node_type> function_nodes;
 };
 
 // the fromJSON signature was changed with llvm12 so, we need support both variants - the old and the new one
@@ -165,7 +165,7 @@ inline bool fromJSON(const json::Value& E, Version& R, json::Path P) {
 template <typename MetaField>
 inline bool fromJSON(const json::Value& E, MetaCG<MetaField>& R) {
   json::ObjectMapper O(E);
-  return O && O.map("_MetaCG", R.info) && O.map("_CG", R.functionNodes);
+  return O && O.map("_MetaCG", R.info) && O.map("_CG", R.function_nodes);
 }
 #else
 template <typename MetaField>
@@ -173,7 +173,7 @@ inline bool fromJSON(const json::Value& E, MetaCG<MetaField>& R, json::Path P) {
   json::ObjectMapper O(E, P);
 
   if (O && O.map("_MetaCG", R.info)) {
-    return O.map("_CG", R.functionNodes);
+    return O.map("_CG", R.function_nodes);
   }
 
   P.report("only MetaCG version 2.x format is supported");
@@ -209,36 +209,30 @@ inline bool fromJSON(const json::Value& E, Generator& R, json::Path P) {
 #if LLVM_VERSION_MAJOR < 12
 template <typename MetaField>
 inline bool fromJSON(const json::Value& E, FunctionNode<MetaField>& R) {
-  constexpr bool hasExtensions = !std::is_void_v<MetaField>;
-
   json::ObjectMapper O(E);
+  return fromJSON<void>(E, R) && O && O.map("meta", R.meta);
+}
 
-  if (O && O.map("hasBody", R.hasBody) && O.map("doesOverride", R.doesOverride) && O.map("isVirtual", R.isVirtual) &&
-      O.map("overrides", R.overrides) && O.map("overriddenBy", R.overriddenBy) && O.map("callees", R.callees) &&
-      O.map("callers", R.callers)) {
-    if constexpr (hasExtensions) {
-      return O.map("meta", R.meta);
-    }
-    return true;
-  }
-  return false;
+template <>
+inline bool fromJSON(const json::Value& E, FunctionNode<void>& R) {
+  json::ObjectMapper O(E);
+  return O && O.map("hasBody", R.has_body) && O.map("doesOverride", R.does_override) &&
+         O.map("isVirtual", R.is_virtual) && O.map("overrides", R.overrides) &&
+         O.map("overriddenBy", R.overridden_by) && O.map("callees", R.callees) && O.map("callers", R.callers);
 }
 #else
 template <typename MetaField>
 inline bool fromJSON(const json::Value& E, FunctionNode<MetaField>& R, json::Path P) {
-  constexpr bool hasExtensions = !std::is_void_v<MetaField>;
-
   json::ObjectMapper O(E, P);
+  return fromJSON<void>(E, R, P) && O && O.map("meta", R.meta);
+}
 
-  if (O && O.map("hasBody", R.hasBody) && O.map("doesOverride", R.doesOverride) && O.map("isVirtual", R.isVirtual) &&
-      O.map("overrides", R.overrides) && O.map("overriddenBy", R.overriddenBy) && O.map("callees", R.callees) &&
-      O.map("callers", R.callers)) {
-    if constexpr (hasExtensions) {
-      return O.map("meta", R.meta);
-    }
-    return true;
-  }
-  return false;
+template <>
+inline bool fromJSON(const json::Value& E, FunctionNode<void>& R, json::Path P) {
+  json::ObjectMapper O(E, P);
+  return O && O.map("hasBody", R.has_body) && O.map("doesOverride", R.does_override) &&
+         O.map("isVirtual", R.is_virtual) && O.map("overrides", R.overrides) &&
+         O.map("overriddenBy", R.overridden_by) && O.map("callees", R.callees) && O.map("callers", R.callers);
 }
 #endif
 
