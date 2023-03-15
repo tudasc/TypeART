@@ -114,18 +114,20 @@ ACGDataMap createDatabase(const Regex& targetMatcher, JSONACG& metaCg) {
   return dataMap;
 }
 
-/// tests if an edge can reach a void* argument
+/// tests if an edge can reach a pointer argument
 inline static bool isSinkArgumentRelevant(const FunctionDescriptor::ArgumentEdge& edge) {
-  constexpr auto voidType = "i8*";
-  return edge.callee.functionSignature.paramIsType(edge.argumentNumber, voidType);
+  return edge.callee.functionSignature.paramIsType(edge.argumentNumber, [](const llvm::StringRef& type) {
+    // this is a conservative implementation (currently structs with pointers are ignored)
+    return type.endswith("*") || type == "ptr";
+  });
 }
 
-/// an edge reaches a relevant formal argument
+/// an edge reaches a relevant sink argument
 inline static bool edgeReachesRelevantSinkArgument(const FunctionDescriptor::ArgumentEdge& edge) {
   return edge.callee.isTarget && isSinkArgumentRelevant(edge);
 }
 
-/// declaration with relevant formal argument, could reach indirect the destination
+/// declaration with relevant sink argument, could reach indirect the destination
 inline static bool edgeMaybeReachesSinkArgument(const FunctionDescriptor::ArgumentEdge& edge) {
   return !edge.callee.isTarget && !edge.callee.isDefinition && isSinkArgumentRelevant(edge);
 }

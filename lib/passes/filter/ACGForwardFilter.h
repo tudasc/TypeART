@@ -61,24 +61,30 @@ struct FunctionSignature {
    */
   const bool isVariadic = false;
 
-  [[nodiscard]] bool paramIsType(unsigned argumentNumber, const std::string& type) const noexcept {
+  template <typename TypeID>
+  [[nodiscard]] inline bool paramIsType(unsigned argumentNumber, TypeID&& isType) const noexcept {
     if (argumentNumber >= paramTypes.size()) {
       return isVariadic;
     }
-    return paramTypes[argumentNumber] == type;
+    return isType(paramTypes[argumentNumber]);
   }
 
-  [[nodiscard]] bool returnIsType(const std::string& type) const noexcept {
-    return returnType == type;
+  template <typename TypeID>
+  [[nodiscard]] inline bool returnIsType(TypeID&& isType) const noexcept {
+    return isType(returnType);
   }
 };
 
-// ipdf fulfills 2 different tasks:
-//  1) possible callees based on the annotated callsite-id
-//  2) flow-through arguments, used for argument-based flow calculation
+// ipdf fulfills two different tasks:
+//  1) possible callees based on the annotated callsite-id.
+//     these are used to determine which functions can be reached from a given callsite.
+//
+//  2) function argument based inter-procedural dataflow.
+//     this is used to model which other function arguments can be reached (the sink-arguments)
+//     from a given function argument (the source-argument)
 struct FunctionDescriptor {
   struct ArgumentEdge {
-    /// The position of the formal argument of the callee.
+    /// The position of the (sink) argument of the callee.
     const int argumentNumber;
 
     /// reference to the callee
@@ -91,7 +97,8 @@ struct FunctionDescriptor {
   /// assume a function has no definition unless defined otherwise
   bool isDefinition = false;
 
-  /// the key represents the actual argument position of the caller function (this function)
+  /// the key represents the source argument position of the caller function (this function)
+  /// the values represent reachable functions (with the corresponding argument number)
   std::multimap<int, const ArgumentEdge> reachableFunctionArguments{};
 
   /// maps a callsite-id to its callees
