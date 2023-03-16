@@ -150,14 +150,14 @@ struct MetaFieldGroup : public MetaField<Extensions>... {
  private:
 #if LLVM_VERSION_MAJOR < 12
   friend inline bool fromJSON(const json::Value& E, MetaFieldGroup& R) {
-    // call every fromJSON specialisation for every super MetaField, this is possible as every
-    // extension itself is a template specialisation.
+    // call every fromJSON specialization for every super MetaField, this is possible as every
+    // extension itself is a template specialization.
     return (fromJSON<Extensions>(E, R) && ...);
   }
 #else
   friend inline bool fromJSON(const json::Value& E, MetaFieldGroup& R, json::Path P) {
-    // call every fromJSON specialisation for every super MetaField, this is possible as every
-    // extension itself is a template specialisation.
+    // call every fromJSON specialization for every super MetaField, this is possible as every
+    // extension itself is a template specialization.
     return (fromJSON<Extensions>(E, R, P) && ...);
   }
 #endif
