@@ -26,6 +26,14 @@ namespace typeart::filter::metacg {
 template <typename>
 struct MetaField;
 
+#if LLVM_VERSION_MAJOR < 12
+template <typename Extension>
+inline bool fromJSON(const json::Value& E, MetaField<Extension>& R);
+#else
+template <typename Extension>
+inline bool fromJSON(const json::Value& E, MetaField<Extension>& R, json::Path P);
+#endif
+
 struct FunctionSignature {
   std::string identifier;
   std::vector<std::string> param_types;
@@ -39,11 +47,13 @@ struct MetaField<FunctionSignature> {
 };
 
 #if LLVM_VERSION_MAJOR < 12
+template <>
 inline bool fromJSON(const json::Value& E, MetaField<FunctionSignature>& R) {
   json::ObjectMapper O(E);
   return O && O.map("signature", R.signature);
 }
 #else
+template <>
 inline bool fromJSON(const json::Value& E, MetaField<FunctionSignature>& R, json::Path P) {
   json::ObjectMapper O(E, P);
   return O && O.map("signature", R.signature);
@@ -87,11 +97,13 @@ struct MetaField<InterDataFlow> {
 };
 
 #if LLVM_VERSION_MAJOR < 12
+template <>
 inline bool fromJSON(const json::Value& E, MetaField<InterDataFlow>& R) {
   json::ObjectMapper O(E);
   return O && O.map("ipdf", R.ipdf);
 }
 #else
+template <>
 inline bool fromJSON(const json::Value& E, MetaField<InterDataFlow>& R, json::Path P) {
   json::ObjectMapper O(E, P);
   return O && O.map("ipdf", R.ipdf);
@@ -133,24 +145,23 @@ inline bool fromJSON(const json::Value& E, InterDataFlow::Edge& R, json::Path P)
 #endif
 
 /// an aggregation to allow the usage of multiple extensions
-template <typename... Mixins>
-struct MetaFieldGroup : public MetaField<Mixins>... {};
-
+template <typename... Extensions>
+struct MetaFieldGroup : public MetaField<Extensions>... {
+ private:
 #if LLVM_VERSION_MAJOR < 12
-template <typename... Extensions>
-inline bool fromJSON(const json::Value& E, MetaFieldGroup<Extensions...>& R) {
-  // as the type "Meta" is an aggregation of extensions, we need to upcast
-  // Meta to every one of its base classes and call the specific fromJSON variant
-  return (fromJSON(E, static_cast<MetaField<Extensions>&>(R)) && ...);
-}
+  friend inline bool fromJSON(const json::Value& E, MetaFieldGroup& R) {
+    // call every fromJSON specialisation for every super MetaField, this is possible as every
+    // extension itself is a template specialisation.
+    return (fromJSON<Extensions>(E, R) && ...);
+  }
 #else
-template <typename... Extensions>
-inline bool fromJSON(const json::Value& E, MetaFieldGroup<Extensions...>& R, json::Path P) {
-  // as the type "Meta" is an aggregation of extensions, we need to upcast
-  // Meta to every one of its base classes and call the specific fromJSON variant
-  return (fromJSON(E, static_cast<MetaField<Extensions>&>(R), P) && ...);
-}
+  friend inline bool fromJSON(const json::Value& E, MetaFieldGroup& R, json::Path P) {
+    // call every fromJSON specialisation for every super MetaField, this is possible as every
+    // extension itself is a template specialisation.
+    return (fromJSON<Extensions>(E, R, P) && ...);
+  }
 #endif
+};
 
 }  // namespace typeart::filter::metacg
 #endif  // TYPEART_FILTER_METACG_EXTENSION_H
