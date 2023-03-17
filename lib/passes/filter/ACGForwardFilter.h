@@ -115,6 +115,12 @@ using JsonACG = metacg::MetaCG<metacg::MetaFieldGroup<metacg::FunctionSignature,
 /// converts the JSON structure in a better processable structure
 ACGDataMap createDatabase(const Regex&, JsonACG&);
 
+/// calculates the identifier for a function node in the acg
+class FunctionIdentification {
+ public:
+  std::string getIdentifierForFunction(const llvm::Function& function) const;
+};
+
 class CallSiteIdentification {
   /// stores the number of callsites within a functions
   std::map<const llvm::Function*, unsigned> analyzedFunctions_{};
@@ -152,6 +158,7 @@ class ACGFilterImpl {
   [[nodiscard]] FilterAnalysis indirect(const llvm::CallSite&, const Path&);
 
  private:
+  FunctionIdentification functionIdentification_{};
   CallSiteIdentification callSiteIdentification_{};
   FunctionOracleMatcher candidateMatcher_{};
   ACGDataMap functionMap_;

@@ -14,6 +14,8 @@
 
 #include <llvm/IR/InstIterator.h>
 #include <llvm/IR/IntrinsicInst.h>
+#include <llvm/IR/ModuleSummaryIndex.h>
+#include <llvm/Support/SHA1.h>
 
 using namespace llvm;
 
@@ -56,13 +58,14 @@ inline void solveReachable(const std::vector<T>& range, CB&& callback) noexcept 
     }
   }
 }
+
 }  // namespace detail
 
 static FunctionDescriptor createFunctionNode(const JsonACG::node_type& json, const llvm::Regex& target_matcher) {
-  const auto& signature             = json.meta.signature;
-  const bool is_target_of_interrest = target_matcher.match(signature.identifier);
+  const auto& signature            = json.meta.signature;
+  const bool is_target_of_interest = target_matcher.match(signature.identifier);
 
-  return {is_target_of_interrest,
+  return {is_target_of_interest,
           json.has_body,
           {},
           {},
@@ -130,6 +133,32 @@ inline static bool edgeReachesRelevantSinkArgument(const FunctionDescriptor::Arg
 /// declaration with relevant sink argument, could reach indirect the destination
 inline static bool edgeMaybeReachesSinkArgument(const FunctionDescriptor::ArgumentEdge& edge) {
   return !edge.callee.is_target && !edge.callee.is_definition && isSinkArgumentRelevant(edge);
+}
+
+static std::string calculateModuleHashSuffix(const llvm::Module& module) {
+  llvm::SHA1 hasher;
+  hasher.update(module.getSourceFileName());
+
+  const std::string hex_hash = llvm::toHex(hasher.final());
+
+  // Convert hash to Decimal to avoid problems with demangler
+  // see also https://reviews.llvm.org/D93747
+  const llvm::APInt int_hash{160, hex_hash, 16};
+
+  // avoid using APInt::toString as it creates sometimes invalid results (unclear why this happens)
+  llvm::SmallVector<char, 64> vec_hash;
+  int_hash.toStringUnsigned(vec_hash, 10);
+
+  const llvm::Twine hash_suffix = llvm::Twine(".__uniq.") + vec_hash;
+  return hash_suffix.str();
+}
+
+std::string FunctionIdentification::getIdentifierForFunction(const Function& function) const {
+  if (!function.hasInternalLinkage()) {
+    return function.getName().str();
+  }
+
+  return (llvm::Twine(function.getName()) + calculateModuleHashSuffix(*function.getParent())).str();
 }
 
 unsigned CallSiteIdentification::calculateCallsiteIdentifiersIfAbsent(const llvm::Function& function) {
@@ -321,7 +350,7 @@ FilterAnalysis ACGFilterImpl::analyseCallsite(const llvm::CallBase& site, const 
   }
 
   /// the parent function of the callsite
-  const auto& parent_function_name = site.getFunction()->getName();
+  const auto& parent_function_name = functionIdentification_.getIdentifierForFunction(*site.getFunction());
   if (functionMap_.count(parent_function_name) == 0) {
     // This can happen when the (parent) function was not analyzed in the first place.
     // Which means that the parent function is not reachable from a program entry point. Either
