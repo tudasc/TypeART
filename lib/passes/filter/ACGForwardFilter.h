@@ -115,6 +115,19 @@ using JsonACG = metacg::MetaCG<metacg::MetaFieldGroup<metacg::FunctionSignature,
 /// converts the JSON structure in a better processable structure
 ACGDataMap createDatabase(const Regex&, JsonACG&);
 
+class CallSiteIdentification {
+  /// stores the number of callsites within a functions
+  std::map<const llvm::Function*, unsigned> analyzedFunctions_{};
+  // stores the identifier of a callsite
+  std::map<const llvm::CallBase*, unsigned> callSiteIdentifiers_{};
+
+ public:
+  /// identifies all callsites of a function and returns the number of callsites of the given function
+  unsigned calculateCallsiteIdentifiersIfAbsent(const llvm::Function&);
+  /// returns the identifier for a call-site
+  [[nodiscard]] unsigned getIdentifierForCallsite(const llvm::CallBase&) const;
+};
+
 struct ACGFilterTrait {
   constexpr static bool Indirect    = true;
   constexpr static bool Intrinsic   = false;
@@ -139,13 +152,9 @@ class ACGFilterImpl {
   [[nodiscard]] FilterAnalysis indirect(const llvm::CallSite&, const Path&);
 
  private:
-  using FunctionMap   = std::map<const llvm::Function*, unsigned>;
-  using IdentifierMap = std::map<const llvm::Instruction*, unsigned>;
-
+  CallSiteIdentification callSiteIdentification_{};
   FunctionOracleMatcher candidateMatcher_{};
   ACGDataMap functionMap_;
-  FunctionMap analyzedFunctions_{};
-  IdentifierMap callSiteIdentifiers_{};
 
   [[nodiscard]] FilterAnalysis analyseFlowPath(const std::vector<FunctionDescriptor::ArgumentEdge>&) const;
 
@@ -154,12 +163,8 @@ class ACGFilterImpl {
 
   [[nodiscard]] FilterAnalysis analyseCallsite(const llvm::CallBase&, const Path&) const;
 
-  [[nodiscard]] unsigned int getIdentifierForCallsite(const llvm::CallBase&) const;
-
   [[nodiscard]] std::vector<const FunctionDescriptor*> getCalleesForCallsite(const FunctionDescriptor&,
                                                                              const llvm::CallBase&) const;
-
-  unsigned calculateSiteIdentifiersIfAbsent(const llvm::Function&);
 };
 
 using ACGForwardFilter = BaseFilter<ACGFilterImpl, DefaultSearch, omp::OmpContext>;

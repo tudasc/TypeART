@@ -132,6 +132,28 @@ inline static bool edgeMaybeReachesSinkArgument(const FunctionDescriptor::Argume
   return !edge.callee.is_target && !edge.callee.is_definition && isSinkArgumentRelevant(edge);
 }
 
+unsigned CallSiteIdentification::calculateCallsiteIdentifiersIfAbsent(const llvm::Function& function) {
+  if (analyzedFunctions_.count(&function) != 0) {
+    return analyzedFunctions_[&function];
+  }
+
+  unsigned call_site_identifier = 0;
+  for (const auto& instruction : llvm::instructions(function)) {
+    if (const auto& call_base = llvm::dyn_cast<llvm::CallBase>(&instruction)) {
+      callSiteIdentifiers_[call_base] = ++call_site_identifier;
+    }
+  }
+
+  analyzedFunctions_[&function] = call_site_identifier;
+  return call_site_identifier;
+}
+
+unsigned CallSiteIdentification::getIdentifierForCallsite(const llvm::CallBase& site) const {
+  const auto found_at = callSiteIdentifiers_.find(&site);
+  assert((found_at != callSiteIdentifiers_.end()) && "identifier for callsite is missing");
+  return found_at->second;
+}
+
 template <typename RangeT>
 inline FilterAnalysis ACGFilterImpl::ACGFilterImpl::analyseMaybeCandidates(const RangeT&& maybe_candidates) const {
   bool has_continue = false;
@@ -330,35 +352,12 @@ FilterAnalysis ACGFilterImpl::analyseCallsite(const llvm::CallBase& site, const 
 
 std::vector<const FunctionDescriptor*> ACGFilterImpl::getCalleesForCallsite(const FunctionDescriptor& function_data,
                                                                             const llvm::CallBase& site) const {
-  const auto identifier       = getIdentifierForCallsite(site);
+  const auto identifier       = callSiteIdentification_.getIdentifierForCallsite(site);
   const auto& map_entry_range = make_range(function_data.callsite_callees.equal_range(identifier));
 
   const auto& callees = map_range(map_entry_range, [](const auto& entry) { return entry.second; });
 
   return {callees.begin(), callees.end()};
-}
-
-/// identifies all callsites of a function and returns the number of callsites of the given function
-unsigned ACGFilterImpl::calculateSiteIdentifiersIfAbsent(const llvm::Function& function) {
-  if (analyzedFunctions_.count(&function) != 0) {
-    return analyzedFunctions_[&function];
-  }
-
-  unsigned call_site_identifier = 0;
-  for (const auto& instruction : llvm::instructions(function)) {
-    if (llvm::isa<llvm::CallBase>(&instruction)) {
-      callSiteIdentifiers_[&instruction] = ++call_site_identifier;
-    }
-  }
-
-  analyzedFunctions_[&function] = call_site_identifier;
-  return call_site_identifier;
-}
-
-unsigned int ACGFilterImpl::getIdentifierForCallsite(const llvm::CallBase& site) const {
-  const auto found_at = callSiteIdentifiers_.find(&site);
-  assert((found_at != callSiteIdentifiers_.end()) && "identifier for callsite is missing");
-  return found_at->second;
 }
 
 FilterAnalysis ACGFilterImpl::precheck(llvm::Value* current_value, llvm::Function* start, const FPath& fpath) {
@@ -367,7 +366,7 @@ FilterAnalysis ACGFilterImpl::precheck(llvm::Value* current_value, llvm::Functio
   // use the precheck-callback to identify all callsites within a function
   // preferably this would be implemented as a pass, but that would require
   // structural changes for TypeART.
-  const auto number_of_call_sites = calculateSiteIdentifiersIfAbsent(*start);
+  const auto number_of_call_sites = callSiteIdentification_.calculateCallsiteIdentifiersIfAbsent(*start);
   if (number_of_call_sites == 0) {
     return FilterAnalysis::Filter;
   }
@@ -394,17 +393,17 @@ FilterAnalysis ACGFilterImpl::precheck(llvm::Value* current_value, llvm::Functio
 }
 
 FilterAnalysis ACGFilterImpl::decl(const CallSite& site, const Path& path) {
-  calculateSiteIdentifiersIfAbsent(*site->getFunction());
+  callSiteIdentification_.calculateCallsiteIdentifiersIfAbsent(*site->getFunction());
   return analyseCallsite(*llvm::cast<llvm::CallBase>(site.getInstruction()), path);
 }
 
 FilterAnalysis ACGFilterImpl::def(const CallSite& site, const Path& path) {
-  calculateSiteIdentifiersIfAbsent(*site->getFunction());
+  callSiteIdentification_.calculateCallsiteIdentifiersIfAbsent(*site->getFunction());
   return analyseCallsite(*llvm::cast<llvm::CallBase>(site.getInstruction()), path);
 }
 
 FilterAnalysis ACGFilterImpl::indirect(const CallSite& site, const Path& path) {
-  calculateSiteIdentifiersIfAbsent(*site->getFunction());
+  callSiteIdentification_.calculateCallsiteIdentifiersIfAbsent(*site->getFunction());
   return analyseCallsite(*llvm::cast<llvm::CallBase>(site.getInstruction()), path);
 }
 
