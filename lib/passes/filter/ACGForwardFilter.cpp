@@ -149,7 +149,7 @@ static std::string calculateModuleHashSuffix(const llvm::Module& module) {
   llvm::SmallVector<char, 64> vec_hash;
   int_hash.toStringUnsigned(vec_hash, 10);
 
-  const llvm::Twine hash_suffix = llvm::Twine(".__uniq.") + vec_hash;
+  const llvm::Twine hash_suffix = llvm::Twine("._argcg.") + vec_hash;
   return hash_suffix.str();
 }
 
