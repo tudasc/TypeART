@@ -400,12 +400,23 @@ function typeart_main_compile_fn() {
     # if no object file is specified, use filename(typeart_source_file).o
     typeart_object_file="${out_basename}".o
   fi
+
+  local typeart_config_heap=""
+  if [ -n "${typeart_cmdline_args_heap}" ]; then
+    typeart_config_heap="--typeart-config=${typeart_cmdline_args_heap}"
+  fi
+
+  local typeart_config_stack=""
+  if [ -n "${typeart_cmdline_args_stack}" ]; then
+    typeart_config_stack="--typeart-config=${typeart_cmdline_args_stack}"
+  fi
+
   # shellcheck disable=SC2086
   typeart_compiler_fn "${out_basename}"_base.ll ${typeart_wrapper_more_args} ${typeart_includes} ${typeart_san_flags} \
     ${typeart_to_llvm_flags} ${typeart_to_llvm_more_flags} "${typeart_source_file}" -o - |
-    typeart_opt_fn "${out_basename}"_heap.ll ${typeart_plugin} ${typeart_heap_mode} ${typeart_heap_mode_args} ${typeart_cmdline_args_heap} |
+    typeart_opt_fn "${out_basename}"_heap.ll ${typeart_plugin} ${typeart_heap_mode} ${typeart_heap_mode_args} ${typeart_config_heap} |
     typeart_opt_fn "${out_basename}"_opt.ll ${typeart_optimize} |
-    typeart_opt_fn "${out_basename}"_stack.ll ${typeart_plugin} ${typeart_stack_mode} ${typeart_stack_mode_args} ${typeart_cmdline_args_stack} |
+    typeart_opt_fn "${out_basename}"_stack.ll ${typeart_plugin} ${typeart_stack_mode} ${typeart_stack_mode_args} ${typeart_config_stack} |
     typeart_tu_out_fn
 }
 
