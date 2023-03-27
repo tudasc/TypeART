@@ -194,6 +194,7 @@ function typeart_handle_binary_fn() {
 }
 
 function typeart_parse_typeart_cmd_line_fn() {
+  local typeart_temp_filter_args="";
   typeart_other_args=""
 
   while (("$#")); do
@@ -219,12 +220,17 @@ function typeart_parse_typeart_cmd_line_fn() {
       typeart_cmdline_args_stack="${1##-typeart-stack-config=}"
       shift
       ;;
+    --typeart-filter | --typeart-filter=* | --typeart-filter-*)
+      typeart_temp_filter_args+=" $1"
+      shift
+      ;;
     *) # preserve other arguments
       typeart_other_args+=" $1"
       shift
       ;;
     esac
   done
+  typeart_stack_mode+="$typeart_temp_filter_args"
 }
 
 # shellcheck disable=SC2034
