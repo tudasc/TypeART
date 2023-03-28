@@ -196,8 +196,8 @@ function typeart_handle_binary_fn() {
 
 function typeart_parse_typeart_cmd_line_fn() {
   # save existing args from typeart_global_env_var_init_fn
-  local typeart_env_config_heap=" $typeart_cmdline_args_heap"
-  local typeart_env_config_stack=" $typeart_cmdline_args_stack"
+  local typeart_config_heap="$typeart_cmdline_args_heap"
+  local typeart_config_stack="$typeart_cmdline_args_stack"
 
   typeart_cmdline_args_heap=""
   typeart_cmdline_args_stack=""
@@ -205,6 +205,19 @@ function typeart_parse_typeart_cmd_line_fn() {
 
   while (("$#")); do
     case "$1" in
+    --typeart-heap-config=*)
+      typeart_config_heap="--typeart-config=${1##*=}"
+      shift
+      ;;
+    --typeart-stack-config=*)
+      typeart_config_stack="--typeart-config=${1##*=}"
+      shift
+      ;;
+    --typeart-config=*)
+      typeart_config_heap="$1"
+      typeart_config_stack="$1"
+      shift
+      ;;
     --typeart-heap | --typeart-heap=*)
       typeart_heap_mode="$1"
       shift
@@ -213,28 +226,11 @@ function typeart_parse_typeart_cmd_line_fn() {
       typeart_stack_mode="$1"
       shift
       ;;
-    --typeart-config=*)
-      typeart_env_config_heap=""
-      typeart_cmdline_args_heap+=" $1"
-      typeart_env_config_stack=""
-      typeart_cmdline_args_stack+=" $1"
-      shift
-      ;;
-    --typeart-heap-config=*)
-      typeart_env_config_heap=""
-      typeart_cmdline_args_heap+=" --typeart-config=${1##*=}"
-      shift
-      ;;
-    --typeart-stack-config=*)
-      typeart_env_config_stack=""
-      typeart_cmdline_args_stack+=" --typeart-config=${1##*=}"
-      shift
-      ;;
     --typeart-filter | --typeart-filter=* | --typeart-filter-*)
       typeart_cmdline_args_stack+=" $1"
       shift
       ;;
-    --typeart | --typeart-* | --typeart=* )
+    --typeart | --typeart=* | --typeart-* )
       typeart_cmdline_args_heap+=" $1"
       typeart_cmdline_args_stack+=" $1"
       shift
@@ -246,8 +242,8 @@ function typeart_parse_typeart_cmd_line_fn() {
     esac
   done
 
-  typeart_cmdline_args_heap="${typeart_env_config_heap}${typeart_cmdline_args_heap}"
-  typeart_cmdline_args_stack="${typeart_env_config_stack}${typeart_cmdline_args_stack}"
+  typeart_cmdline_args_heap+=" ${typeart_config_heap}"
+  typeart_cmdline_args_stack+=" ${typeart_config_stack}"
 }
 
 # shellcheck disable=SC2034
