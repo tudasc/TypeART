@@ -80,9 +80,6 @@ function typeart_global_init_fn() {
   readonly typeart_heap_mode_args="--typeart-stack=false --typeart-stats"
   readonly typeart_stack_mode_args="--typeart-heap=false --typeart-stats @TYPEART_CALLFILTER@"
 
-  # Used for values passed to wrapper:
-  typeart_heap_mode="--typeart-heap=true"
-  typeart_stack_mode="--typeart-stack=true"
   typeart_global_env_var_init_fn
 
   readonly typeart_to_llvm_flags="-O1 -Xclang -disable-llvm-passes -c -emit-llvm"
@@ -195,6 +192,10 @@ function typeart_handle_binary_fn() {
 }
 
 function typeart_parse_typeart_cmd_line_fn() {
+  # per default both heap-mode and stack-mode are enabled
+  local typeart_mode_heap="--typeart-heap=true"
+  local typeart_mode_stack="--typeart-stack=true"
+
   # save existing args from typeart_global_env_var_init_fn
   local typeart_config_heap="$typeart_cmdline_args_heap"
   local typeart_config_stack="$typeart_cmdline_args_stack"
@@ -219,11 +220,11 @@ function typeart_parse_typeart_cmd_line_fn() {
       shift
       ;;
     --typeart-heap | --typeart-heap=*)
-      typeart_heap_mode="$1"
+      typeart_mode_heap="$1"
       shift
       ;;
     --typeart-stack | --typeart-stack=*)
-      typeart_stack_mode="$1"
+      typeart_mode_stack="$1"
       shift
       ;;
     --typeart-filter | --typeart-filter=* | --typeart-filter-*)
@@ -242,8 +243,8 @@ function typeart_parse_typeart_cmd_line_fn() {
     esac
   done
 
-  typeart_cmdline_args_heap+=" ${typeart_config_heap}"
-  typeart_cmdline_args_stack+=" ${typeart_config_stack}"
+  typeart_cmdline_args_heap+=" ${typeart_mode_heap} ${typeart_config_heap}"
+  typeart_cmdline_args_stack+=" ${typeart_mode_stack} ${typeart_config_stack}"
 }
 
 # shellcheck disable=SC2034
@@ -417,9 +418,9 @@ function typeart_main_compile_fn() {
   # shellcheck disable=SC2086
   typeart_compiler_fn "${out_basename}"_base.ll ${typeart_wrapper_more_args} ${typeart_includes} ${typeart_san_flags} \
     ${typeart_to_llvm_flags} ${typeart_to_llvm_more_flags} "${typeart_source_file}" -o - |
-    typeart_opt_fn "${out_basename}"_heap.ll ${typeart_plugin} ${typeart_heap_mode} ${typeart_heap_mode_args} ${typeart_cmdline_args_heap} |
+    typeart_opt_fn "${out_basename}"_heap.ll ${typeart_plugin} ${typeart_heap_mode_args} ${typeart_cmdline_args_heap} |
     typeart_opt_fn "${out_basename}"_opt.ll ${typeart_optimize} |
-    typeart_opt_fn "${out_basename}"_stack.ll ${typeart_plugin} ${typeart_stack_mode} ${typeart_stack_mode_args} ${typeart_cmdline_args_stack} |
+    typeart_opt_fn "${out_basename}"_stack.ll ${typeart_plugin} ${typeart_stack_mode_args} ${typeart_cmdline_args_stack} |
     typeart_tu_out_fn
 }
 
