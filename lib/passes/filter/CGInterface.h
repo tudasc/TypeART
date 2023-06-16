@@ -73,8 +73,6 @@ class JSONCG final : public CGInterface {
 
   std::vector<std::string> get_decl_only() override;
 
-  static std::unique_ptr<JSONCG> getJSON(const std::string& fileName);
-
  private:
   void construct_call_information(const std::string& entry_caller, const llvm::json::Object& j);
 };

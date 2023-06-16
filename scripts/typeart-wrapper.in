@@ -13,15 +13,18 @@
 #
 
 function typeart_global_env_var_init_fn() {
+  typeart_cmdline_args_heap=""
+  typeart_cmdline_args_stack=""
+
   if [ -n "${TYPEART_WRAPPER_CONFIG+x}" ]; then
-    typeart_cmdline_args_heap="${TYPEART_WRAPPER_CONFIG}"
-    typeart_cmdline_args_stack="${TYPEART_WRAPPER_CONFIG}"
+    typeart_cmdline_args_heap="--typeart-config=${TYPEART_WRAPPER_CONFIG}"
+    typeart_cmdline_args_stack="--typeart-config=${TYPEART_WRAPPER_CONFIG}"
   fi
   if [ -n "${TYPEART_WRAPPER_HEAP_CONFIG+x}" ]; then
-    typeart_cmdline_args_heap="${TYPEART_WRAPPER_HEAP_CONFIG}"
+    typeart_cmdline_args_heap="--typeart-config=${TYPEART_WRAPPER_HEAP_CONFIG}"
   fi
   if [ -n "${TYPEART_WRAPPER_STACK_CONFIG+x}" ]; then
-    typeart_cmdline_args_stack="${TYPEART_WRAPPER_STACK_CONFIG}"
+    typeart_cmdline_args_stack="--typeart-config=${TYPEART_WRAPPER_STACK_CONFIG}"
   fi
 
   # shellcheck disable=SC2153
@@ -74,12 +77,9 @@ function typeart_global_init_fn() {
 
   # shellcheck disable=SC2027
   readonly typeart_plugin="-load "${typeart_pass}" -typeart"
-  readonly typeart_stack_mode_args="--typeart-heap=false --typeart-stack --typeart-stats @TYPEART_CALLFILTER@"
-  readonly typeart_heap_mode_args="--typeart-heap=true --typeart-stats"
+  readonly typeart_heap_mode_args="--typeart-stack=false --typeart-stats"
+  readonly typeart_stack_mode_args="--typeart-heap=false --typeart-stats @TYPEART_CALLFILTER@"
 
-  # Used for values passed to wrapper:
-  typeart_cmdline_args_heap=""
-  typeart_cmdline_args_stack=""
   typeart_global_env_var_init_fn
 
   readonly typeart_to_llvm_flags="-O1 -Xclang -disable-llvm-passes -c -emit-llvm"
@@ -89,7 +89,7 @@ function typeart_global_init_fn() {
   fi
 }
 
-function typeart_is_typeart_linking_fn() {
+function typeart_is_linking_fn() {
   local arg=""
   for arg in "$@"; do
     case "$arg" in
@@ -192,21 +192,48 @@ function typeart_handle_binary_fn() {
 }
 
 function typeart_parse_typeart_cmd_line_fn() {
+  # per default both heap-mode and stack-mode are enabled
+  local typeart_mode_heap="--typeart-heap=true"
+  local typeart_mode_stack="--typeart-stack=true"
+
+  # save existing args from typeart_global_env_var_init_fn
+  local typeart_config_heap="$typeart_cmdline_args_heap"
+  local typeart_config_stack="$typeart_cmdline_args_stack"
+
+  typeart_cmdline_args_heap=""
+  typeart_cmdline_args_stack=""
   typeart_other_args=""
 
   while (("$#")); do
     case "$1" in
-    --typeart-config=*)
-      typeart_cmdline_args_heap="${1##-typeart-config=}"
-      typeart_cmdline_args_stack="${1##-typeart-config=}"
-      shift
-      ;;
     --typeart-heap-config=*)
-      typeart_cmdline_args_heap="${1##-typeart-heap-config=}"
+      typeart_config_heap="--typeart-config=${1##*=}"
       shift
       ;;
     --typeart-stack-config=*)
-      typeart_cmdline_args_stack="${1##-typeart-stack-config=}"
+      typeart_config_stack="--typeart-config=${1##*=}"
+      shift
+      ;;
+    --typeart-config=*)
+      typeart_config_heap="$1"
+      typeart_config_stack="$1"
+      shift
+      ;;
+    --typeart-heap | --typeart-heap=*)
+      typeart_mode_heap="$1"
+      shift
+      ;;
+    --typeart-stack | --typeart-stack=*)
+      typeart_mode_stack="$1"
+      shift
+      ;;
+    --typeart-filter | --typeart-filter=* | --typeart-filter-*)
+      typeart_cmdline_args_stack+=" $1"
+      shift
+      ;;
+    --typeart | --typeart=* | --typeart-* )
+      typeart_cmdline_args_heap+=" $1"
+      typeart_cmdline_args_stack+=" $1"
       shift
       ;;
     *) # preserve other arguments
@@ -215,6 +242,9 @@ function typeart_parse_typeart_cmd_line_fn() {
       ;;
     esac
   done
+
+  typeart_cmdline_args_heap+=" ${typeart_mode_heap} ${typeart_config_heap}"
+  typeart_cmdline_args_stack+=" ${typeart_mode_stack} ${typeart_config_stack}"
 }
 
 # shellcheck disable=SC2034
@@ -384,6 +414,7 @@ function typeart_main_compile_fn() {
     # if no object file is specified, use filename(typeart_source_file).o
     typeart_object_file="${out_basename}".o
   fi
+
   # shellcheck disable=SC2086
   typeart_compiler_fn "${out_basename}"_base.ll ${typeart_wrapper_more_args} ${typeart_includes} ${typeart_san_flags} \
     ${typeart_to_llvm_flags} ${typeart_to_llvm_more_flags} "${typeart_source_file}" -o - |
@@ -405,7 +436,7 @@ function typeart_main_driver_fn() {
     return 0
   fi
 
-  typeart_is_typeart_linking_fn "$@"
+  typeart_is_linking_fn "$@"
   local -r typeart_linking=$?
   typeart_has_source_fn "$@"
   local -r with_source=$?

@@ -1,0 +1,245 @@
+{
+  "_MetaCG": {
+    "version": "2.0",
+    "generator": {
+      "version": "0.0",
+      "name": "TypeART-tests"
+    }
+  },
+  "_CG": {
+    "f_one": {
+      "isVirtual": false,
+      "doesOverride": false,
+      "overrides": [],
+      "overriddenBy": [],
+      "hasBody": true,
+      "callers": [
+        "foo"
+      ],
+      "callees": [
+        "f_three"
+      ],
+      "meta": {
+        "signature": {
+          "identifier": "f_one",
+          "returnType": "void",
+          "paramTypes": [
+            "i32*",
+            "i32*"
+          ],
+          "isVariadic": false
+        },
+        "ipdf": {
+          "interFlow": {
+            "f_three": [
+              {
+                "source": 0,
+                "sink": 0
+              },
+              {
+                "source": 0,
+                "sink": 1
+              }
+            ]
+          },
+          "callSites": {
+            "f_three": [
+              1
+            ]
+          }
+        }
+      }
+    },
+    "f_three": {
+      "isVirtual": false,
+      "doesOverride": false,
+      "overrides": [],
+      "overriddenBy": [],
+      "hasBody": true,
+      "callers": [
+        "f_one",
+        "f_two",
+        "foo"
+      ],
+      "callees": [
+        "MPI_sink"
+      ],
+      "meta": {
+        "signature": {
+          "identifier": "f_three",
+          "returnType": "void",
+          "paramTypes": [
+            "i32*",
+            "i32*"
+          ],
+          "isVariadic": false
+        },
+        "ipdf": {
+          "interFlow": {
+            "MPI_sink": [
+              {
+                "source": 0,
+                "sink": 0
+              }
+            ]
+          },
+          "callSites": {
+            "MPI_sink": [
+              1
+            ]
+          }
+        }
+      }
+    },
+    "f_two": {
+      "isVirtual": false,
+      "doesOverride": false,
+      "overrides": [],
+      "overriddenBy": [],
+      "hasBody": true,
+      "callers": [
+        "foo"
+      ],
+      "callees": [
+        "f_three"
+      ],
+      "meta": {
+        "signature": {
+          "identifier": "f_two",
+          "returnType": "void",
+          "paramTypes": [
+            "i32*",
+            "i32*"
+          ],
+          "isVariadic": false
+        },
+        "ipdf": {
+          "interFlow": {
+            "f_three": [
+              {
+                "source": 1,
+                "sink": 0
+              },
+              {
+                "source": 1,
+                "sink": 1
+              }
+            ]
+          },
+          "callSites": {
+            "f_three": [
+              1
+            ]
+          }
+        }
+      }
+    },
+    "MPI_sink": {
+      "isVirtual": false,
+      "doesOverride": false,
+      "overrides": [],
+      "overriddenBy": [],
+      "hasBody": false,
+      "callers": [
+        "f_four",
+        "f_three"
+      ],
+      "callees": [],
+      "meta": {
+        "signature": {
+          "identifier": "MPI_sink",
+          "returnType": "void",
+          "paramTypes": [
+            "i8*"
+          ],
+          "isVariadic": false
+        },
+        "ipdf": {
+          "interFlow": {},
+          "callSites": {}
+        }
+      }
+    },
+    "f_four": {
+      "isVirtual": false,
+      "doesOverride": false,
+      "overrides": [],
+      "overriddenBy": [],
+      "hasBody": true,
+      "callers": [
+        "foo"
+      ],
+      "callees": [
+        "MPI_sink"
+      ],
+      "meta": {
+        "signature": {
+          "identifier": "f_four",
+          "returnType": "void",
+          "paramTypes": [
+            "i32*",
+            "i32*"
+          ],
+          "isVariadic": false
+        },
+        "ipdf": {
+          "interFlow": {
+            "MPI_sink": [
+              {
+                "source": 1,
+                "sink": 0
+              }
+            ]
+          },
+          "callSites": {
+            "MPI_sink": [
+              1
+            ]
+          }
+        }
+      }
+    },
+    "foo": {
+      "isVirtual": false,
+      "doesOverride": false,
+      "overrides": [],
+      "overriddenBy": [],
+      "hasBody": true,
+      "callers": [
+      ],
+      "callees": [
+        "f_four",
+        "f_one",
+        "f_three",
+        "f_two"
+      ],
+      "meta": {
+        "signature": {
+          "identifier": "foo",
+          "returnType": "void",
+          "paramTypes": [],
+          "isVariadic": false
+        },
+        "ipdf": {
+          "interFlow": {},
+          "callSites": {
+            "f_four": [
+              1
+            ],
+            "f_one": [
+              1,
+              2
+            ],
+            "f_three": [
+              1
+            ],
+            "f_two": [
+              1,
+              3
+            ]
+          }
+        }
+      }
+    }
+  }
+}

@@ -169,26 +169,4 @@ void JSONCG::construct_call_information(const std::string& entry_caller, const l
     }
   }
 }
-
-std::unique_ptr<JSONCG> JSONCG::getJSON(const std::string& fileName) {
-  using namespace llvm;
-  auto memBuffer = MemoryBuffer::getFile(fileName);
-
-  if (memBuffer) {
-    auto json = llvm::json::parse(memBuffer.get()->getBuffer());
-
-    if (!json) {
-      std::string str;
-      llvm::raw_string_ostream ostr(str);
-      ostr << json.takeError();
-      LOG_FATAL(ostr.str());
-      exit(-1);
-    }
-
-    return std::make_unique<JSONCG>(json.get());
-  }
-  LOG_FATAL("No CG file provided / file cannot be found: " << fileName);
-  return nullptr;
-}
-
 }  // namespace typeart::filter
