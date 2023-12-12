@@ -28,6 +28,7 @@ set(RUNTIME_LIB_SOURCES
     Runtime.h
     ${TYPEART_META_SOURCE}
     $<$<BOOL:${TYPEART_MPI_LOGGER}>:../support/MPILogger.cpp>
+    CudaSupport.cpp
 )
 
 add_library(${TYPEART_PREFIX}_Runtime SHARED ${RUNTIME_LIB_SOURCES})
@@ -50,6 +51,8 @@ target_link_libraries(
           $<$<BOOL:${TYPEART_ABSEIL}>:absl::btree>
           $<$<BOOL:${TYPEART_SAFEPTR}>:sf::pointer>
           $<$<NOT:$<BOOL:${TYPEART_DISABLE_THREAD_SAFETY}>>:Threads::Threads>
+#          $<$<BOOL:${CUDAToolkit_FOUND}>:CUDA::cudart>
+          $<$<BOOL:${CUDAToolkit_FOUND}>:CUDA::cuda_driver>
 )
 
 target_include_directories(
@@ -72,6 +75,7 @@ target_compile_definitions(
           $<$<BOOL:${TYPEART_ABSEIL}>:TYPEART_ABSEIL>
           $<$<BOOL:${TYPEART_SAFEPTR}>:USE_SAFEPTR>
           $<$<BOOL:${TYPEART_DISABLE_THREAD_SAFETY}>:TYPEART_DISABLE_THREAD_SAFETY>
+          $<$<BOOL:${CUDAToolkit_FOUND}>:TYPEART_HAS_CUDA>
 )
 
 typeart_target_compile_options(${TYPEART_PREFIX}_Runtime)
