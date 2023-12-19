@@ -85,8 +85,12 @@ InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
 
     switch (kind) {
       case MemOpKind::CudaMallocLike: {
+#if LLVM_VERSION_MAJOR > 13
+        auto* load_inst = IRB.CreateLoad(pointer->getType()->getPointerElementType(), pointer);
+#else
         auto* load_inst = IRB.CreateLoad(pointer);
-        pointer         = IRB.CreateBitCast(load_inst, instr_helper->getTypeFor(IType::ptr));
+#endif
+        pointer = IRB.CreateBitCast(load_inst, instr_helper->getTypeFor(IType::ptr));
         [[fallthrough]];  // need elementCount from below, nothing else
       }
       case MemOpKind::AlignedAllocLike:
