@@ -37,6 +37,8 @@ config.asan=@TYPEARTPASS_ASAN@
 config.ubsan=@TYPEARTPASS_UBSAN@
 config.coverage=@TYPEART_COVERAGE@
 
+config.python_interp = "@Python3_EXECUTABLE@"
+
 # Let the main config do the real work.
 config.loaded_site_config = True
 lit_config.load_config(config, "@TYPEARTPASS_PROJECT_DIR@/test/lit.cfg")
