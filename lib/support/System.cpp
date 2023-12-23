@@ -183,7 +183,7 @@ std::optional<SourceLocation> SourceLocation::create(const void* addr, intptr_t 
 
     if (sloc_helper.hasAddr2line()) {
       std::ostringstream command;
-      command << "addr2line --demangle=auto -f -e " << proc.exe() << " " << addr;
+      command << "addr2line --demangle=auto -f -e " << proc.exe() << " " << std::hex << addr;
       auto addr2line = system::CommandPipe::create(command.str());
       if (addr2line) {
         return addr2line;
