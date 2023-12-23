@@ -1,5 +1,7 @@
 typeart_find_llvm_progs(TYPEART_FILECHECK_EXEC "FileCheck-${LLVM_VERSION_MAJOR};FileCheck" ABORT_IF_MISSING)
 
+find_package(Python3 COMPONENTS Interpreter)
+
 if(LLVM_EXTERNAL_LIT)
   cmake_path(GET LLVM_EXTERNAL_LIT PARENT_PATH LLVM_EXTERNAL_LIT_DIR)
 endif()
