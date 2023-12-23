@@ -39,6 +39,8 @@ config.coverage=@TYPEART_COVERAGE@
 config.cuda_used=@TYPEARTPASS_CUDA@
 config.cuda_runnable=@TYPEARTPASS_CUDA_RUNNABLE@
 
+config.python_interp = "@Python3_EXECUTABLE@"
+
 # Let the main config do the real work.
 config.loaded_site_config = True
 lit_config.load_config(config, "@TYPEARTPASS_PROJECT_DIR@/test/lit.cfg")

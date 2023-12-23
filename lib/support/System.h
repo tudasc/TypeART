@@ -41,7 +41,7 @@ struct SourceLocation {
   std::string file;
   std::string line;
 
-  static std::optional<SourceLocation> create(const void* addr);
+  static std::optional<SourceLocation> create(const void* addr, intptr_t offset_ptr = 1);
 };
 
 }  // namespace typeart

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # RUN: chmod +x %s
-# RUN: %s %wrapper-ir-viewer %wrapper-cc %S | %filecheck %s
+# RUN: %s %wrapper-ir-viewer %wrapper-cc %S %python-interp | %filecheck %s
 
 
 function exists() {
@@ -14,6 +14,8 @@ function exists() {
 
 cd "$3"
 
+python_interp="$4"
+
 # CHECK: 0
 # CHECK: 0
 # CHECK: 0
@@ -23,7 +25,7 @@ exists 12_ir_viewer_target_heap.ll
 exists 12_ir_viewer_target_opt.ll
 exists 12_ir_viewer_target_stack.ll
 
-python $1 -s -w "$2" 12_ir_viewer_target.c -- -g
+"$python_interp" $1 -s -w "$2" 12_ir_viewer_target.c -- -g
 # CHECK: 1
 # CHECK: 1
 # CHECK: 1
@@ -35,7 +37,7 @@ exists 12_ir_viewer_target_opt.ll
 exists 12_ir_viewer_target_stack.ll
 exists 12_ir_viewer_target-types-ir-viewer.yaml
 
-python $1 -c 12_ir_viewer_target.c
+"$python_interp" $1 -c 12_ir_viewer_target.c
 # CHECK: 0
 # CHECK: 0
 # CHECK: 0
