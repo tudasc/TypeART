@@ -20,6 +20,7 @@ set(RUNTIME_LIB_SOURCES
     CallbackInterface.h
     RuntimeData.h
     RuntimeInterface.h
+    CudaRuntimeInterface.h
     TypeResolution.cpp
     AllocationTracking.cpp
     AllocationTracking.h
@@ -102,6 +103,12 @@ set(TARGETS_EXPORT_NAME ${CONFIG_NAME}Targets)
 install(FILES RuntimeInterface.h
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}
 )
+
+if(${CUDAToolkit_FOUND})
+  install(FILES CudaRuntimeInterface.h
+          DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}
+  )
+endif ()
 
 install(
   TARGETS ${TYPEART_PREFIX}_Runtime

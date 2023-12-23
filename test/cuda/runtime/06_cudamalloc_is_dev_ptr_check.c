@@ -9,7 +9,7 @@
 // CHECK: Not device ptr
 // CHECK: Not device ptr
 
-#include "../../lib/runtime/RuntimeInterface.h"
+#include "../../lib/runtime/CudaRuntimeInterface.h"
 
 #include <stdio.h>
 
