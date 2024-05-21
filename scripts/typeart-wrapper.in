@@ -398,9 +398,12 @@ function typeart_main_link_fn() {
   typeart_parse_link_objects_fn "$@"
   if [ "$typeart_found_cuda" == 1 ]; then
     typeart_link_objs="${typeart_link_objs} ${typeart_cuda_link_objs}"
+    local local_cuda_link=${typeart_cuda_ldflags}
+  else
+    local local_cuda_link=""
   fi
   # shellcheck disable=SC2086 disable=SC2068
-  $typeart_compiler ${typeart_includes} ${typeart_ldflags} ${typeart_cuda_ldflags} ${typeart_link_more_args} ${typeart_link_objs}
+  $typeart_compiler ${typeart_includes} ${typeart_ldflags} ${local_cuda_link} ${typeart_link_more_args} ${typeart_link_objs}
 }
 
 # shellcheck disable=SC2068

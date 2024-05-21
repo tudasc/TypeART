@@ -278,10 +278,15 @@ bool MemInstFinderPass::runOnModule(Module& module) {
 }  // namespace typeart
 
 bool MemInstFinderPass::runOnFunction(llvm::Function& function) {
-  if (function.isDeclaration() || function.getName().startswith("__typeart")) {
+  const auto f_name = util::demangle(function.getName());
+  StringRef f_name_ref{f_name};
+  if (function.isDeclaration() || f_name_ref.startswith("__typeart")) {
     return false;
   }
-
+  if (f_name_ref.startswith("__ubsan") || f_name_ref.startswith("__asan") || f_name_ref.startswith("__msan") ||
+      f_name_ref.startswith("__tsan")) {
+    return false;
+  }
   LOG_DEBUG("Running on function: " << function.getName())
 
   mOpsCollector.collect(function);

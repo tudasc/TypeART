@@ -114,6 +114,8 @@ IFunc ifunc_for_function(IFunc general_type, llvm::Value* value) {
         return IFunc::heap_cuda;
       case IFunc::free:
         return IFunc::free_cuda;
+      case IFunc::stack:
+        return IFunc::stack;
       default:
         llvm_unreachable("IFunc not supported for CUDA.");
     }
