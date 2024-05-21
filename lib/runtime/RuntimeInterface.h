@@ -186,8 +186,6 @@ typeart_status typeart_get_subtype(const void* base_addr, size_t offset, const t
  */
 typeart_status typeart_get_return_address(const void* addr, const void** return_addr);
 
-typeart_status typeart_cuda_is_device_ptr(const void* addr, bool* is_device_ptr_flag);
-
 /**
  * Tries to return file, function and line of a memory address from the current process.
  * Needs (1) either llvm-symbolizer or addr2line to be installed, and (2) target code should be compiled debug

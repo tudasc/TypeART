@@ -2,8 +2,8 @@
 
 // REQUIRES: cuda
 
-// CHECK: call i32 @cudaFree(i8* [[CU_POINTER:%[0-9a-z]+]])
-// CHECK-NEXT: __typeart_free_cuda(i8* [[CU_POINTER]])
+// CHECK: call i32 @cudaFree(i8* {{.*}}[[CU_POINTER:%[0-9a-z]+]])
+// CHECK-NEXT: __typeart_free_cuda(i8* {{.*}}[[CU_POINTER]])
 
 int main() {
   float* d_x;

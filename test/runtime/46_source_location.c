@@ -65,7 +65,7 @@ int main(int argc, char** argv) {
 // CHECK: Address check OK
 // CHECK: Loc File:{{.*}}46_source_location.c
 // CHECK: Loc Function: main
-// CHECK: Loc Line: {{[0-9]+}}
+// CHECK: Loc Line: 33
 // CHECK: Address check OK
 // CHECK: Address check OK
 // CHECK: Address check OK

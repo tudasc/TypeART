@@ -3,7 +3,7 @@
 // REQUIRES: cuda
 
 // CHECK: [[CU_POINTER:%[0-9a-z]+]] = bitcast float** [[ALLOCA_POINTER:%[0-9a-z]+]] to i8**
-// CHECK-NEXT: call i32 @cudaMallocHost(i8** [[CU_POINTER]], i64 80)
+// CHECK-NEXT: call i32 @cudaMallocHost(i8** {{.*}}[[CU_POINTER]], i64 {{.*}}80)
 // CHECK-NEXT: [[LOAD_POINTER:%[0-9a-z]+]] = load float*, float** [[ALLOCA_POINTER]]
 // CHECK-NEXT: [[TA_POINTER:%[0-9a-z]+]] = bitcast float* [[LOAD_POINTER]] to i8*
 // CHECK-NEXT: __typeart_alloc_cuda(i8* [[TA_POINTER]], i32 5, i64 20)
