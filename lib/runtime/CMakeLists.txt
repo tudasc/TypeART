@@ -52,7 +52,7 @@ target_link_libraries(
           $<$<BOOL:${TYPEART_ABSEIL}>:absl::btree>
           $<$<BOOL:${TYPEART_SAFEPTR}>:sf::pointer>
           $<$<NOT:$<BOOL:${TYPEART_DISABLE_THREAD_SAFETY}>>:Threads::Threads>
-#          $<$<BOOL:${CUDAToolkit_FOUND}>:CUDA::cudart>
+          $<$<BOOL:${CUDAToolkit_FOUND}>:CUDA::cudart>
           $<$<BOOL:${CUDAToolkit_FOUND}>:CUDA::cuda_driver>
 )
 
