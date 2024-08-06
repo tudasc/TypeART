@@ -13,6 +13,7 @@
 #ifndef TYPEART_SYSTEM_H
 #define TYPEART_SYSTEM_H
 
+#include <cstdint>
 #include <optional>
 #include <string>
 #include <string_view>

@@ -68,7 +68,6 @@ inline bool is_dim3_init(llvm::Function& func) {
 inline bool is_cuda_function(llvm::Function& func) {
   const auto f_name        = util::try_demangle(func);
   const auto function_name = llvm::StringRef(f_name);
-  LOG_FATAL(f_name);
   return function_name.startswith("cuda");
 }
 
