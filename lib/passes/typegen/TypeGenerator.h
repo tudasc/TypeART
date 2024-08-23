@@ -15,6 +15,7 @@
 
 #include "TypeDatabase.h"
 
+#include <llvm/IR/Value.h>
 #include <memory>
 #include <string>
 #include <system_error>
@@ -29,6 +30,8 @@ namespace typeart {
 
 class TypeGenerator {
  public:
+  [[nodiscard]] virtual int getOrRegisterType(llvm::Value*) = 0;
+
   [[nodiscard]] virtual int getOrRegisterType(llvm::Type* type, const llvm::DataLayout& layout) = 0;
 
   [[nodiscard]] virtual int getTypeID(llvm::Type* type, const llvm::DataLayout& layout) const = 0;

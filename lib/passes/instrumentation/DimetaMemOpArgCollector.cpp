@@ -10,7 +10,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //
 
-#include "MemOpArgCollector.h"
+#include "DimetaMemOpArgCollector.h"
 
 #include "Instrumentation.h"
 #include "InstrumentationHelper.h"
@@ -39,11 +39,11 @@ using namespace llvm;
 
 namespace typeart {
 
-MemOpArgCollector::MemOpArgCollector(TypeGenerator* tm, InstrumentationHelper& instr)
+DimetaMemOpArgCollector::DimetaMemOpArgCollector(TypeGenerator* tm, InstrumentationHelper& instr)
     : ArgumentCollector(), type_m(tm), instr_helper(&instr) {
 }
 
-HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
+HeapArgList DimetaMemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
   HeapArgList list;
   list.reserve(mallocs.size());
   const llvm::DataLayout& dl = instr_helper->getModule()->getDataLayout();
@@ -56,40 +56,9 @@ HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
 
     // Number of bytes allocated
     auto mallocArg = malloc_call->getOperand(0);
-    int typeId     = type_m->getOrRegisterType(malloc_call->getType()->getPointerElementType(),
-                                               dl);  // retrieveTypeID(tu::getVoidType(c));
-    if (typeId == TYPEART_UNKNOWN_TYPE) {
-      LOG_ERROR("Unknown heap type. Not instrumenting. " << util::dump(*malloc_call));
-      // TODO notify caller that we skipped: via lambda callback function
-      continue;
-    }
 
-    // Number of bytes per element, 1 for void*
-    unsigned typeSize = tu::getTypeSizeInBytes(malloc_call->getType()->getPointerElementType(), dl);
-
-    // Use the first cast as the determining type (if there is any)
-    if (primaryBitcast != nullptr) {
-      auto* dstPtrType = primaryBitcast->getDestTy()->getPointerElementType();
-
-      typeSize = tu::getTypeSizeInBytes(dstPtrType, dl);
-
-      // Resolve arrays
-      // TODO: Write tests for this case
-      if (dstPtrType->isArrayTy()) {
-        dstPtrType = tu::getArrayElementType(dstPtrType);
-      }
-
-      typeId = type_m->getOrRegisterType(dstPtrType, dl);
-      if (typeId == TYPEART_UNKNOWN_TYPE) {
-        LOG_ERROR("Target type of casted allocation is unknown. Not instrumenting. " << util::dump(*malloc_call));
-        LOG_ERROR("Cast: " << util::dump(*primaryBitcast));
-        LOG_ERROR("Target type: " << util::dump(*dstPtrType));
-        // TODO notify caller that we skipped: via lambda callback function
-        continue;
-      }
-    } else {
-      LOG_WARNING("Primary bitcast is null. malloc: " << util::dump(*malloc_call))
-    }
+    int typeId        = type_m->getOrRegisterType(malloc_call);  // FIXME
+    unsigned typeSize = 1;                                       // FIXME
 
     auto* typeIdConst    = instr_helper->getConstantFor(IType::type_id, typeId);
     Value* typeSizeConst = instr_helper->getConstantFor(IType::extent, typeSize);
@@ -142,7 +111,7 @@ HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
   return list;
 }
 
-FreeArgList MemOpArgCollector::collectFree(const FreeDataList& frees) {
+FreeArgList DimetaMemOpArgCollector::collectFree(const FreeDataList& frees) {
   FreeArgList list;
   list.reserve(frees.size());
   for (const FreeData& fdata : frees) {
@@ -169,7 +138,7 @@ FreeArgList MemOpArgCollector::collectFree(const FreeDataList& frees) {
   return list;
 }
 
-StackArgList MemOpArgCollector::collectStack(const AllocaDataList& allocs) {
+StackArgList DimetaMemOpArgCollector::collectStack(const AllocaDataList& allocs) {
   using namespace llvm;
   StackArgList list;
   list.reserve(allocs.size());
@@ -215,7 +184,7 @@ StackArgList MemOpArgCollector::collectStack(const AllocaDataList& allocs) {
   return list;
 }
 
-GlobalArgList MemOpArgCollector::collectGlobal(const GlobalDataList& globals) {
+GlobalArgList DimetaMemOpArgCollector::collectGlobal(const GlobalDataList& globals) {
   GlobalArgList list;
   list.reserve(globals.size());
   const llvm::DataLayout& dl = instr_helper->getModule()->getDataLayout();

@@ -9,6 +9,7 @@ set(PASS_SOURCES
   instrumentation/InstrumentationHelper.cpp
   instrumentation/TypeARTFunctions.cpp
   instrumentation/MemOpArgCollector.cpp
+  instrumentation/DimetaMemOpArgCollector.cpp
   instrumentation/MemOpInstrumentation.cpp
   instrumentation/Instrumentation.cpp
   ../support/FileConfiguration.cpp
@@ -19,7 +20,7 @@ typeart_make_llvm_module(
   ${TYPEART_PREFIX}_TransformPass "${PASS_SOURCES}"
   LINK_LIBS typeart::MemInstFinder
             typeart::TypesStatic
-            typeart::TypeGenStatic
+            typeart::TypeGenDimetaStatic
   INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}
                ${PROJECT_SOURCE_DIR}/lib/
                ${PROJECT_SOURCE_DIR}/lib/passes/

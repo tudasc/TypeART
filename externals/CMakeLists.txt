@@ -21,3 +21,5 @@ endif()
 if (TYPEART_SAFEPTR)
   add_subdirectory(safe_ptr)
 endif()
+
+add_subdirectory(dimeta)
