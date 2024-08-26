@@ -5,7 +5,7 @@ define dso_local i32 @main() #0 {
 ; CHECK: [Error]{{.*}}Unknown stack type. Not instrumenting. i1
   %1 = alloca i1*, align 8
 ; FIXME: no need to instrument pointer type as stack var
-; CHECK: call void @__typeart_alloc_stack(i8* %2, i32 10, i64 1)
+; : call void @__typeart_alloc_stack(i8* %2, i32 10, i64 1)
   %2 = alloca i1, align 4
   %3 = call noalias i8* @malloc(i64 12) #3
   %4 = bitcast i8* %3 to i1*

@@ -1,7 +1,7 @@
 FetchContent_Declare(
   llvm-ditype
   GIT_REPOSITORY https://github.com/ahueck/llvm-di-type
-  GIT_TAG devel
+  GIT_TAG feat/typeart
   GIT_SHALLOW 1
 )
 
