@@ -1,5 +1,5 @@
 // clang-format off
-// RUN: rm %type_file | %c-to-llvm %s | %apply-typeart -S 2>&1; cat %type_file | %filecheck %s
+// RUN: rm %tu_yaml | %c-to-llvm %s | %apply-typeart -S 2>&1; cat %tu_yaml | %filecheck %s
 // clang-format on
 
 // Note: This test assumes standard alignment on a 64bit system. Non-standard alignment may lead to failure.
@@ -61,7 +61,7 @@ int main(int argc, char** argv) {
 }
 
 // CHECK: - id:              256
-// CHECK: name:            struct.s1_t
+// CHECK: name:            {{(struct.)?}}s1_t
 // CHECK:         extent:          16
 // CHECK: member_count:    2
 // CHECK: offsets:         [ 0, 8 ]
@@ -69,7 +69,7 @@ int main(int argc, char** argv) {
 // CHECK: sizes:           [ 3, 1 ]
 
 // CHECK: - id:              257
-// CHECK: name:            struct.s2_t
+// CHECK: name:            {{(struct.)?}}s2_t
 // CHECK:         extent:          32
 // CHECK: member_count:    3
 // CHECK: offsets:         [ 0, 16, 24 ]
@@ -77,7 +77,7 @@ int main(int argc, char** argv) {
 // CHECK: sizes:           [ 1, 1, 1 ]
 
 // CHECK: - id:              258
-// CHECK: name:            struct.s3_t
+// CHECK: name:            {{(struct.)?}}s3_t
 // CHECK:         extent:          64
 // CHECK: member_count:    3
 // CHECK: offsets:         [ 0, 32, 40 ]

@@ -15,7 +15,6 @@
 #include "Commandline.h"
 #include "TypeARTConfiguration.h"
 #include "analysis/MemInstFinder.h"
-#include "instrumentation/DimetaMemOpArgCollector.h"
 #include "instrumentation/MemOpArgCollector.h"
 #include "instrumentation/MemOpInstrumentation.h"
 #include "instrumentation/TypeARTFunctions.h"
@@ -140,7 +139,7 @@ bool TypeArtPass::doInitialization(Module& m) {
 
   instrumentation_helper.setModule(m);
 
-  auto arg_collector = std::make_unique<DimetaMemOpArgCollector>(typeManager.get(), instrumentation_helper);
+  auto arg_collector                   = std::make_unique<MemOpArgCollector>(typeManager.get(), instrumentation_helper);
   const bool instrument_stack_lifetime = (*pass_config)[config::ConfigStdArgs::stack_lifetime];
   auto mem_instrument =
       std::make_unique<MemOpInstrumentation>(functions, instrumentation_helper, instrument_stack_lifetime);

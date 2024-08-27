@@ -14,10 +14,12 @@
 #define TYPEART_TYPEGENERATOR_H
 
 #include "TypeDatabase.h"
+#include "analysis/MemOpData.h"
 
 #include <llvm/IR/Value.h>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <system_error>
 #include <utility>
 
@@ -30,23 +32,20 @@ namespace typeart {
 
 class TypeGenerator {
  public:
-  [[nodiscard]] virtual int getOrRegisterType(llvm::Value*) = 0;
-
-  [[nodiscard]] virtual int getOrRegisterType(llvm::Type* type, const llvm::DataLayout& layout) = 0;
-
-  [[nodiscard]] virtual int getTypeID(llvm::Type* type, const llvm::DataLayout& layout) const = 0;
+  [[nodiscard]] virtual int getOrRegisterType(const MallocData&) = 0;
+  [[nodiscard]] virtual int getOrRegisterType(const AllocaData&) = 0;
+  [[nodiscard]] virtual int getOrRegisterType(const GlobalData&) = 0;
 
   [[nodiscard]] virtual const TypeDatabase& getTypeDatabase() const = 0;
 
-  [[nodiscard]] virtual std::pair<bool, std::error_code> load() = 0;
-
+  [[nodiscard]] virtual std::pair<bool, std::error_code> load()        = 0;
   [[nodiscard]] virtual std::pair<bool, std::error_code> store() const = 0;
 
   virtual ~TypeGenerator() = default;
 };
 
 // This doesn't immediately load the file, call load/store after
-std::unique_ptr<TypeGenerator> make_typegen(const std::string& file);
+std::unique_ptr<TypeGenerator> make_typegen(std::string_view file);
 
 }  // namespace typeart
 

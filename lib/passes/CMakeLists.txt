@@ -9,7 +9,6 @@ set(PASS_SOURCES
   instrumentation/InstrumentationHelper.cpp
   instrumentation/TypeARTFunctions.cpp
   instrumentation/MemOpArgCollector.cpp
-  instrumentation/DimetaMemOpArgCollector.cpp
   instrumentation/MemOpInstrumentation.cpp
   instrumentation/Instrumentation.cpp
   ../support/FileConfiguration.cpp

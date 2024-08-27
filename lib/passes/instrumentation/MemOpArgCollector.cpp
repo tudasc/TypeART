@@ -56,40 +56,17 @@ HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
 
     // Number of bytes allocated
     auto mallocArg = malloc_call->getOperand(0);
-    int typeId     = type_m->getOrRegisterType(malloc_call->getType()->getPointerElementType(),
-                                               dl);  // retrieveTypeID(tu::getVoidType(c));
+
+    const int typeId = type_m->getOrRegisterType(mdata);
+    unsigned typeSize{1};
     if (typeId == TYPEART_UNKNOWN_TYPE) {
-      LOG_ERROR("Unknown heap type. Not instrumenting. " << util::dump(*malloc_call));
-      // TODO notify caller that we skipped: via lambda callback function
+      LOG_ERROR("Target type of casted allocation is unknown. Not instrumenting. " << util::dump(*malloc_call));
       continue;
-    }
-
-    // Number of bytes per element, 1 for void*
-    unsigned typeSize = tu::getTypeSizeInBytes(malloc_call->getType()->getPointerElementType(), dl);
-
-    // Use the first cast as the determining type (if there is any)
-    if (primaryBitcast != nullptr) {
-      auto* dstPtrType = primaryBitcast->getDestTy()->getPointerElementType();
-
-      typeSize = tu::getTypeSizeInBytes(dstPtrType, dl);
-
-      // Resolve arrays
-      // TODO: Write tests for this case
-      if (dstPtrType->isArrayTy()) {
-        dstPtrType = tu::getArrayElementType(dstPtrType);
-      }
-
-      typeId = type_m->getOrRegisterType(dstPtrType, dl);
-      if (typeId == TYPEART_UNKNOWN_TYPE) {
-        LOG_ERROR("Target type of casted allocation is unknown. Not instrumenting. " << util::dump(*malloc_call));
-        LOG_ERROR("Cast: " << util::dump(*primaryBitcast));
-        LOG_ERROR("Target type: " << util::dump(*dstPtrType));
-        // TODO notify caller that we skipped: via lambda callback function
-        continue;
-      }
     } else {
-      LOG_WARNING("Primary bitcast is null. malloc: " << util::dump(*malloc_call))
+      typeSize = type_m->getTypeDatabase().getTypeSize(typeId);
     }
+
+    LOG_FATAL("Type " << typeId << " with " << typeSize)
 
     auto* typeIdConst    = instr_helper->getConstantFor(IType::type_id, typeId);
     Value* typeSizeConst = instr_helper->getConstantFor(IType::extent, typeSize);
@@ -177,15 +154,25 @@ StackArgList MemOpArgCollector::collectStack(const AllocaDataList& allocs) {
 
   for (const AllocaData& adata : allocs) {
     ArgMap arg_map;
-    auto alloca           = adata.alloca;
-    Type* elementType     = alloca->getAllocatedType();
+    auto alloca       = adata.alloca;
+    Type* elementType = alloca->getAllocatedType();
+
+    const int typeId  = type_m->getOrRegisterType(adata);
+    unsigned typeSize = type_m->getTypeDatabase().getTypeSize(typeId);
+    LOG_FATAL("Alloca Type " << typeId << " with " << typeSize)
+
+    if (typeId == TYPEART_UNKNOWN_TYPE) {
+      LOG_ERROR("Unknown stack type. Not instrumenting. " << util::dump(*elementType));
+      continue;
+    }
+
     Value* numElementsVal = nullptr;
     // The length can be specified statically through the array type or as a separate argument.
     // Both cases are handled here.
     if (adata.is_vla) {
-      numElementsVal = alloca->getArraySize();
       // This should not happen in generated IR code
       assert(!elementType->isArrayTy() && "VLAs of array types are currently not supported.");
+      numElementsVal = alloca->getArraySize();
     } else {
       size_t arraySize = adata.array_size;
       if (elementType->isArrayTy()) {
@@ -196,12 +183,7 @@ StackArgList MemOpArgCollector::collectStack(const AllocaDataList& allocs) {
     }
 
     // unsigned typeSize = tu::getTypeSizeInBytes(elementType, dl);
-    int typeId = type_m->getOrRegisterType(elementType, dl);
-
-    if (typeId == TYPEART_UNKNOWN_TYPE) {
-      LOG_ERROR("Unknown stack type. Not instrumenting. " << util::dump(*elementType));
-      continue;
-    }
+    // int typeId = type_m->getOrRegisterType(elementType, dl);
 
     auto* typeIdConst = instr_helper->getConstantFor(IType::type_id, typeId);
 
@@ -231,7 +213,10 @@ GlobalArgList MemOpArgCollector::collectGlobal(const GlobalDataList& globals) {
       type        = tu::getArrayElementType(type);
     }
 
-    int typeId = type_m->getOrRegisterType(type, dl);
+    // int typeId = type_m->getOrRegisterType(type, dl);
+    const int typeId  = type_m->getOrRegisterType(gdata);
+    unsigned typeSize = type_m->getTypeDatabase().getTypeSize(typeId);
+    LOG_FATAL("Global Type " << typeId << " with " << typeSize)
 
     if (typeId == TYPEART_UNKNOWN_TYPE) {
       LOG_ERROR("Unknown global type. Not instrumenting. " << util::dump(*type));
