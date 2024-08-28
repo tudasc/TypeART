@@ -1,5 +1,6 @@
 // clang-format off
 // RUN: rm %tu_yaml | %c-to-llvm %s | %apply-typeart -S 2>&1; cat %tu_yaml | %filecheck %s
+// RUN: rm %tu_yaml | %c-to-llvm %s | %apply-typeart --typeart-typegen=dimeta -S 2>&1; cat %tu_yaml | %filecheck %s
 // clang-format on
 
 // Note: This test assumes standard alignment on a 64bit system. Non-standard alignment may lead to failure.

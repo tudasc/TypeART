@@ -2,6 +2,8 @@
 
 #include "TypeIDGenerator.h"
 #include "dimeta/DimetaTypeGen.h"
+#include "ir/IRTypeGen.h"
+#include "support/Logger.h"
 #include "typelib/TypeDB.h"
 #include "typelib/TypeIO.h"
 #include "typelib/TypeInterface.h"
@@ -44,7 +46,15 @@ const TypeDatabase& TypeIDGenerator::getTypeDatabase() const {
 }  // namespace typeart::types
 
 namespace typeart {
-std::unique_ptr<TypeGenerator> make_typegen(std::string_view file) {
-  return types::make_dimeta_typeidgen(file);
+std::unique_ptr<TypeGenerator> make_typegen(std::string_view file, TypegenImplementation impl) {
+  switch (impl) {
+    case typeart::TypegenImplementation::DIMETA:
+      LOG_DEBUG("Loading Dimeta type parser")
+      return types::make_dimeta_typeidgen(file);
+    default:
+      break;
+  }
+  LOG_DEBUG("Loading IR type parser")
+  return make_ir_typeidgen(file);
 }
 }  // namespace typeart

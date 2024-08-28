@@ -20,10 +20,6 @@ class TypeIDGenerator : public TypeGenerator {
  public:
   explicit TypeIDGenerator(std::string file_);
 
-  [[nodiscard]] virtual int getOrRegisterType(const MallocData&) = 0;
-  [[nodiscard]] virtual int getOrRegisterType(const AllocaData&) = 0;
-  [[nodiscard]] virtual int getOrRegisterType(const GlobalData&) = 0;
-
   [[nodiscard]] virtual const TypeDatabase& getTypeDatabase() const override;
 
   [[nodiscard]] virtual std::pair<bool, std::error_code> load() override;

@@ -30,6 +30,8 @@ class DataLayout;
 
 namespace typeart {
 
+enum class TypegenImplementation { IR, DIMETA };
+
 class TypeGenerator {
  public:
   [[nodiscard]] virtual int getOrRegisterType(const MallocData&) = 0;
@@ -45,7 +47,7 @@ class TypeGenerator {
 };
 
 // This doesn't immediately load the file, call load/store after
-std::unique_ptr<TypeGenerator> make_typegen(std::string_view file);
+std::unique_ptr<TypeGenerator> make_typegen(std::string_view file, TypegenImplementation impl);
 
 }  // namespace typeart
 

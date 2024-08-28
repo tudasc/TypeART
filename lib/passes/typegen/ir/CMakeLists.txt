@@ -1,6 +1,7 @@
 set(TYPEGEN_SOURCES
   TypeManager.cpp
   TypeManager.h
+  IRTypeGen.h
   ../TypeGenerator.h
   ../TypeGenerator.cpp
   VectorTypeHandler.cpp

@@ -1,7 +1,7 @@
 #ifndef TYPEART_DIMETATYPEGENERATOR_H
 #define TYPEART_DIMETATYPEGENERATOR_H
 
-#include "../TypeGenerator.h"
+#include "typegen/TypeGenerator.h"
 
 #include <memory>
 #include <string_view>

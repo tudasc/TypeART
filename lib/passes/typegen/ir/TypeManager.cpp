@@ -12,16 +12,17 @@
 
 #include "TypeManager.h"
 
+#include "IRTypeGen.h"
 #include "StructTypeHandler.h"
 #include "VectorTypeHandler.h"
 #include "support/Logger.h"
 #include "support/TypeUtil.h"
 #include "support/Util.h"
 #include "typegen/TypeIDGenerator.h"
-#include "typelib/TypeIO.h"
 #include "typelib/TypeInterface.h"
 
 #include "llvm/ADT/None.h"
+#include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DataLayout.h"
@@ -34,6 +35,8 @@
 #include "llvm/Support/raw_ostream.h"
 
 #include <cassert>
+#include <cstddef>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -41,8 +44,8 @@ namespace typeart {
 
 namespace tu = typeart::util::type;
 
-std::unique_ptr<TypeGenerator> make_typegen(const std::string& file) {
-  return std::make_unique<TypeManager>(file);
+std::unique_ptr<TypeGenerator> make_ir_typeidgen(std::string_view file) {
+  return std::make_unique<TypeManager>(std::string{file});
 }
 
 using namespace llvm;
@@ -312,7 +315,12 @@ int TypeManager::getOrRegisterType(const AllocaData& adata) {
   auto alloca                = adata.alloca;
   const llvm::DataLayout& dl = alloca->getModule()->getDataLayout();
   Type* elementType          = alloca->getAllocatedType();
-  int typeId                 = getOrRegisterType(elementType, dl);
+
+  if (elementType->isArrayTy()) {
+    // arraySize   = arraySize * tu::getArrayLengthFlattened(elementType);
+    elementType = tu::getArrayElementType(elementType);
+  }
+  int typeId = getOrRegisterType(elementType, dl);
   return typeId;
 }
 

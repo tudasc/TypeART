@@ -14,6 +14,7 @@
 
 #include "analysis/MemInstFinder.h"
 #include "support/Logger.h"
+#include "typegen/TypeGenerator.h"
 
 #include "llvm/Support/CommandLine.h"
 
@@ -66,6 +67,12 @@ static cl::opt<ConfigStdArgTypes::stack_ty> cl_typeart_instrument_stack(Commandl
 static cl::opt<ConfigStdArgTypes::stack_lifetime_ty> cl_typeart_instrument_stack_lifetime(
     CommandlineStdArgs::stack_lifetime, cl::desc(ConfigStdArgDescriptions::stack_lifetime),
     cl::init(ConfigStdArgValues::stack_lifetime), cl::cat(typeart_category));
+
+static cl::opt<typeart::TypegenImplementation> cl_typeart_typegen_implementation(
+    CommandlineStdArgs::typegen, cl::desc(ConfigStdArgDescriptions::typegen),
+    cl::values(clEnumValN(typeart::TypegenImplementation::IR, "ir", "Standard IR based type parser (default)"),
+               clEnumValN(typeart::TypegenImplementation::DIMETA, "dimeta", "Metadata-based parser")),
+    cl::Hidden, cl::init(typeart::TypegenImplementation::IR), cl::cat(typeart_category));
 
 static cl::OptionCategory typeart_analysis_category(
     "TypeART memory instruction finder", "These options control which memory instructions are collected/filtered.");
@@ -167,6 +174,7 @@ CommandLineOptions::CommandLineOptions() {
       make_entry(ConfigStdArgs::global, cl_typeart_instrument_global),
       make_entry(ConfigStdArgs::stack, cl_typeart_instrument_stack),
       make_entry(ConfigStdArgs::stack_lifetime, cl_typeart_instrument_stack_lifetime),
+      make_entry(ConfigStdArgs::typegen, cl_typeart_typegen_implementation),
       make_entry(ConfigStdArgs::filter, cl_typeart_call_filter),
       make_entry(ConfigStdArgs::filter_impl, cl_typeart_call_filter_implementation),
       make_entry(ConfigStdArgs::filter_glob, cl_typeart_call_filter_glob),
@@ -185,6 +193,7 @@ CommandLineOptions::CommandLineOptions() {
       make_occurr_entry(ConfigStdArgs::global, cl_typeart_instrument_global),
       make_occurr_entry(ConfigStdArgs::stack, cl_typeart_instrument_stack),
       make_occurr_entry(ConfigStdArgs::stack_lifetime, cl_typeart_instrument_stack_lifetime),
+      make_entry(ConfigStdArgs::typegen, cl_typeart_typegen_implementation),
       make_occurr_entry(ConfigStdArgs::filter, cl_typeart_call_filter),
       make_occurr_entry(ConfigStdArgs::filter_impl, cl_typeart_call_filter_implementation),
       make_occurr_entry(ConfigStdArgs::filter_glob, cl_typeart_call_filter_glob),

@@ -13,13 +13,10 @@
 #ifndef LLVM_MUST_SUPPORT_TYPEMANAGER_H
 #define LLVM_MUST_SUPPORT_TYPEMANAGER_H
 
-#include "../TypeIDGenerator.h"
-#include "typelib/TypeDB.h"
+#include "typegen/TypeIDGenerator.h"
 
-#include "llvm/ADT/StringMap.h"
-
-#include <cstddef>
-#include <string>
+#include <memory>
+#include <string_view>
 
 namespace llvm {
 class DataLayout;

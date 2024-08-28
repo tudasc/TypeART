@@ -18,6 +18,7 @@
 #include "instrumentation/MemOpArgCollector.h"
 #include "instrumentation/MemOpInstrumentation.h"
 #include "instrumentation/TypeARTFunctions.h"
+#include "support/Configuration.h"
 #include "support/FileConfiguration.h"
 #include "support/Logger.h"
 #include "support/Table.h"
@@ -127,7 +128,9 @@ bool TypeArtPass::doInitialization(Module& m) {
   const std::string types_file =
       pass_config->getValueOr(config::ConfigStdArgs::types, {config::ConfigStdArgValues::types});
 
-  typeManager = make_typegen(types_file);
+  const TypegenImplementation typesgen_parser =
+      pass_config->getValueOr(config::ConfigStdArgs::typegen, {config::ConfigStdArgValues::typegen});
+  typeManager = make_typegen(types_file, typesgen_parser);
 
   LOG_DEBUG("Propagating type infos.");
   const auto [loaded, error] = typeManager->load();
