@@ -193,7 +193,7 @@ CommandLineOptions::CommandLineOptions() {
       make_occurr_entry(ConfigStdArgs::global, cl_typeart_instrument_global),
       make_occurr_entry(ConfigStdArgs::stack, cl_typeart_instrument_stack),
       make_occurr_entry(ConfigStdArgs::stack_lifetime, cl_typeart_instrument_stack_lifetime),
-      make_entry(ConfigStdArgs::typegen, cl_typeart_typegen_implementation),
+      make_occurr_entry(ConfigStdArgs::typegen, cl_typeart_typegen_implementation),
       make_occurr_entry(ConfigStdArgs::filter, cl_typeart_call_filter),
       make_occurr_entry(ConfigStdArgs::filter_impl, cl_typeart_call_filter_implementation),
       make_occurr_entry(ConfigStdArgs::filter_glob, cl_typeart_call_filter_glob),
