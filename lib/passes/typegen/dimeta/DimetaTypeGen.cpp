@@ -269,16 +269,16 @@ class DimetaTypeManager final : public TypeIDGenerator {
     return TYPEART_UNKNOWN_TYPE;
   }
 
-  int getOrRegisterType(const MallocData& data) override {
-    return getOrRegisterType(data.call);
+  TypeIdentifier getOrRegisterType(const MallocData& data) override {
+    return {getOrRegisterType(data.call), 0};
   }
 
-  int getOrRegisterType(const AllocaData& data) override {
-    return getOrRegisterType(data.alloca);
+  TypeIdentifier getOrRegisterType(const AllocaData& data) override {
+    return {getOrRegisterType(data.alloca), 0};
   }
 
-  int getOrRegisterType(const GlobalData& data) override {
-    return getOrRegisterType(data.global);
+  TypeIdentifier getOrRegisterType(const GlobalData& data) override {
+    return {getOrRegisterType(data.global), 0};
   }
 
   ~DimetaTypeManager() = default;

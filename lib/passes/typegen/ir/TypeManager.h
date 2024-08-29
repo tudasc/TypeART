@@ -33,9 +33,9 @@ class TypeManager final : public types::TypeIDGenerator {
   [[nodiscard]] int getOrRegisterType(llvm::Type* type, const llvm::DataLayout& dl);
   [[nodiscard]] int getTypeID(llvm::Type* type, const llvm::DataLayout& dl) const;
   [[nodiscard]] int getOrRegisterType(llvm::Value* type);
-  [[nodiscard]] virtual int getOrRegisterType(const MallocData&) override;
-  [[nodiscard]] virtual int getOrRegisterType(const AllocaData&) override;
-  [[nodiscard]] virtual int getOrRegisterType(const GlobalData&) override;
+  [[nodiscard]] TypeIdentifier getOrRegisterType(const MallocData&) override;
+  [[nodiscard]] TypeIdentifier getOrRegisterType(const AllocaData&) override;
+  [[nodiscard]] TypeIdentifier getOrRegisterType(const GlobalData&) override;
 
  protected:
   [[nodiscard]] int getOrRegisterStruct(llvm::StructType* type, const llvm::DataLayout& dl);

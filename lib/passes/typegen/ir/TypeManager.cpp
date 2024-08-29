@@ -268,7 +268,7 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
   return id;
 }
 
-int TypeManager::getOrRegisterType(const MallocData& mdata) {
+TypeIdentifier TypeManager::getOrRegisterType(const MallocData& mdata) {
   auto malloc_call            = mdata.call;
   const llvm::DataLayout& dl  = malloc_call->getModule()->getDataLayout();
   Value* pointer              = malloc_call;
@@ -281,8 +281,8 @@ int TypeManager::getOrRegisterType(const MallocData& mdata) {
   if (typeId == TYPEART_UNKNOWN_TYPE) {
     LOG_ERROR("Unknown heap type. Not instrumenting. " << util::dump(*malloc_call));
     // TODO notify caller that we skipped: via lambda callback function
-    return TYPEART_UNKNOWN_TYPE;
-  }
+    return {};
+  };
 
   // Number of bytes per element, 1 for void*
   unsigned typeSize = tu::getTypeSizeInBytes(malloc_call->getType()->getPointerElementType(), dl);
@@ -308,10 +308,10 @@ int TypeManager::getOrRegisterType(const MallocData& mdata) {
   } else {
     LOG_WARNING("Primary bitcast is null. malloc: " << util::dump(*malloc_call))
   }
-  return typeId;
+  return {typeId, 0};
 }
 
-int TypeManager::getOrRegisterType(const AllocaData& adata) {
+TypeIdentifier TypeManager::getOrRegisterType(const AllocaData& adata) {
   auto alloca                = adata.alloca;
   const llvm::DataLayout& dl = alloca->getModule()->getDataLayout();
   Type* elementType          = alloca->getAllocatedType();
@@ -321,10 +321,10 @@ int TypeManager::getOrRegisterType(const AllocaData& adata) {
     elementType = tu::getArrayElementType(elementType);
   }
   int typeId = getOrRegisterType(elementType, dl);
-  return typeId;
+  return {typeId, 0};
 }
 
-int TypeManager::getOrRegisterType(const GlobalData& gdata) {
+TypeIdentifier TypeManager::getOrRegisterType(const GlobalData& gdata) {
   auto global                = gdata.global;
   const llvm::DataLayout& dl = global->getParent()->getDataLayout();
   auto type                  = global->getValueType();
@@ -334,7 +334,7 @@ int TypeManager::getOrRegisterType(const GlobalData& gdata) {
   }
 
   int typeId = getOrRegisterType(type, dl);
-  return typeId;
+  return {typeId, 0};
 }
 
 }  // namespace typeart

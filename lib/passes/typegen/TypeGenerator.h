@@ -15,7 +15,9 @@
 
 #include "TypeDatabase.h"
 #include "analysis/MemOpData.h"
+#include "typelib/TypeInterface.h"
 
+#include <cstddef>
 #include <llvm/IR/Value.h>
 #include <memory>
 #include <string>
@@ -32,11 +34,16 @@ namespace typeart {
 
 enum class TypegenImplementation { IR, DIMETA };
 
+struct TypeIdentifier final {
+  int type_id{TYPEART_UNKNOWN_TYPE};
+  size_t num_elements{1};  // > 1 for array-like type allocation
+};
+
 class TypeGenerator {
  public:
-  [[nodiscard]] virtual int getOrRegisterType(const MallocData&) = 0;
-  [[nodiscard]] virtual int getOrRegisterType(const AllocaData&) = 0;
-  [[nodiscard]] virtual int getOrRegisterType(const GlobalData&) = 0;
+  [[nodiscard]] virtual TypeIdentifier getOrRegisterType(const MallocData&) = 0;
+  [[nodiscard]] virtual TypeIdentifier getOrRegisterType(const AllocaData&) = 0;
+  [[nodiscard]] virtual TypeIdentifier getOrRegisterType(const GlobalData&) = 0;
 
   [[nodiscard]] virtual const TypeDatabase& getTypeDatabase() const = 0;
 

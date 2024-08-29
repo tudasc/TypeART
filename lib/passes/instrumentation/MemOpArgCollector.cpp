@@ -57,7 +57,7 @@ HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
     // Number of bytes allocated
     auto mallocArg = malloc_call->getOperand(0);
 
-    const int typeId = type_m->getOrRegisterType(mdata);
+    const auto [typeId, num_elements] = type_m->getOrRegisterType(mdata);
     unsigned typeSize{1};
     if (typeId == TYPEART_UNKNOWN_TYPE) {
       LOG_ERROR("Target type of casted allocation is unknown. Not instrumenting. " << util::dump(*malloc_call));
@@ -157,8 +157,8 @@ StackArgList MemOpArgCollector::collectStack(const AllocaDataList& allocs) {
     auto alloca       = adata.alloca;
     Type* elementType = alloca->getAllocatedType();
 
-    const int typeId  = type_m->getOrRegisterType(adata);
-    unsigned typeSize = type_m->getTypeDatabase().getTypeSize(typeId);
+    const auto [typeId, num_elements] = type_m->getOrRegisterType(adata);
+    unsigned typeSize                 = type_m->getTypeDatabase().getTypeSize(typeId);
     LOG_FATAL("Alloca Type " << typeId << " with " << typeSize)
 
     if (typeId == TYPEART_UNKNOWN_TYPE) {
@@ -214,8 +214,8 @@ GlobalArgList MemOpArgCollector::collectGlobal(const GlobalDataList& globals) {
     }
 
     // int typeId = type_m->getOrRegisterType(type, dl);
-    const int typeId  = type_m->getOrRegisterType(gdata);
-    unsigned typeSize = type_m->getTypeDatabase().getTypeSize(typeId);
+    const auto [typeId, num_elements] = type_m->getOrRegisterType(gdata);
+    unsigned typeSize                 = type_m->getTypeDatabase().getTypeSize(typeId);
     LOG_FATAL("Global Type " << typeId << " with " << typeSize)
 
     if (typeId == TYPEART_UNKNOWN_TYPE) {
