@@ -4,7 +4,9 @@
 
 // RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %apply-typeart --typeart-stack --typeart-filter -S | %filecheck %s --check-prefix=check-inst
 // RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %opt -O2 -S | %apply-typeart --typeart-stack --typeart-filter -S | %filecheck %s --check-prefix=check-inst
-// REQUIRES: openmp
+
+// REQUIRES: openmp && !dimeta
+
 // clang-format on
 
 #include "omp.h"

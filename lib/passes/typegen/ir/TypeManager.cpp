@@ -114,20 +114,27 @@ int TypeManager::getOrRegisterVector(llvm::VectorType* type, const llvm::DataLay
   const auto [element_id, element_type, element_name] = element_data.getValue();
   const auto [vector_name, vector_bytes, vector_size] = vector_data.getValue();
 
-  std::vector<int> memberTypeIDs{element_id};
-  std::vector<size_t> arraySizes{vector_size};
-  std::vector<size_t> offsets{0};
+  std::vector<int> memberTypeIDs;
+  std::vector<size_t> arraySizes;
+  std::vector<size_t> offsets;
 
   size_t elementSize = tu::type::getTypeSizeInBytes(element_type, dl);
-  size_t usableBytes = vector_size * elementSize;
+
+  for (int i = 0; i < vector_size; ++i) {
+    memberTypeIDs.push_back(element_id);
+    arraySizes.push_back(1);
+    offsets.push_back(i * elementSize);
+  }
+
+  // size_t usableBytes = vector_size * elementSize;
 
   // Add padding bytes explicitly
-  if (vector_bytes > usableBytes) {
-    size_t padding = vector_bytes - usableBytes;
-    memberTypeIDs.push_back(TYPEART_INT8);
-    arraySizes.push_back(padding);
-    offsets.push_back(usableBytes);
-  }
+  // if (vector_bytes > usableBytes) {
+  //   size_t padding = vector_bytes - usableBytes;
+  //   memberTypeIDs.push_back(TYPEART_INT8);
+  //   arraySizes.push_back(padding);
+  //   offsets.push_back(usableBytes);
+  // }
 
   StructTypeInfo vecTypeInfo{id,      vector_name,   vector_bytes, memberTypeIDs.size(),
                              offsets, memberTypeIDs, arraySizes,   StructTypeFlag::LLVM_VECTOR};
