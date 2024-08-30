@@ -316,12 +316,15 @@ TypeIdentifier TypeManager::getOrRegisterType(const AllocaData& adata) {
   const llvm::DataLayout& dl = alloca->getModule()->getDataLayout();
   Type* elementType          = alloca->getAllocatedType();
 
+  auto arraySize = adata.array_size == 0 ? 1 : adata.array_size;
   if (elementType->isArrayTy()) {
-    // arraySize   = arraySize * tu::getArrayLengthFlattened(elementType);
+    arraySize   = arraySize * tu::getArrayLengthFlattened(elementType);
     elementType = tu::getArrayElementType(elementType);
   }
+
   int typeId = getOrRegisterType(elementType, dl);
-  return {typeId, 0};
+
+  return {typeId, arraySize};
 }
 
 TypeIdentifier TypeManager::getOrRegisterType(const GlobalData& gdata) {
@@ -329,12 +332,14 @@ TypeIdentifier TypeManager::getOrRegisterType(const GlobalData& gdata) {
   const llvm::DataLayout& dl = global->getParent()->getDataLayout();
   auto type                  = global->getValueType();
 
+  size_t num_elements{1};
   if (type->isArrayTy()) {
-    type = tu::getArrayElementType(type);
+    num_elements = tu::getArrayLengthFlattened(type);
+    type         = tu::getArrayElementType(type);
   }
 
   int typeId = getOrRegisterType(type, dl);
-  return {typeId, 0};
+  return {typeId, num_elements};
 }
 
 }  // namespace typeart

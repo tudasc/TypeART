@@ -14,6 +14,7 @@
 #include "Dimeta.h"
 #include "DimetaData.h"
 #include "support/Logger.h"
+#include "typegen/TypeGenerator.h"
 #include "typelib/TypeDB.h"
 #include "typelib/TypeDatabase.h"
 #include "typelib/TypeIO.h"
@@ -68,11 +69,16 @@ size_t array_size(const Type& type) {
   if constexpr (std::is_same_v<Type, typename dimeta::QualifiedCompound>) {
     return std::max(type.array_size, std::uint64_t(1));
   } else {
-    return std::visit(
-        overload{
-            [&](const dimeta::QualifiedFundamental& f) -> size_t { return std::max(f.array_size, std::uint64_t(1)); },
-            [&](const dimeta::QualifiedCompound& q) -> size_t { return std::max(q.array_size, std::uint64_t(1)); }},
-        type);
+    return std::visit(overload{[&](const dimeta::QualifiedFundamental& f) -> size_t {
+                                 if (f.is_vector) {
+                                   return std::uint64_t(1);
+                                 }
+                                 return std::max(f.array_size, std::uint64_t(1));
+                               },
+                               [&](const dimeta::QualifiedCompound& q) -> size_t {
+                                 return std::max(q.array_size, std::uint64_t(1));
+                               }},
+                      type);
   }
 }
 
@@ -161,11 +167,13 @@ class DimetaTypeManager final : public TypeIDGenerator {
         std::visit(overload{[&](const dimeta::QualifiedFundamental& f) -> int {
                               LOG_FATAL("QualFunda " << f.type.name)
                               if (f.is_vector) {
+                                LOG_FATAL("Vec type found")
                                 assert(!f.typedef_name.empty() && "Vector types need to be typedef'ed for now!");
 
                                 const auto vec_name    = f.typedef_name;
                                 const auto existing_id = fetch_id(vec_name);
                                 if (existing_id) {
+                                  LOG_FATAL("Vec type found with id " << existing_id.value())
                                   return existing_id.value();
                                 }
 
@@ -173,16 +181,22 @@ class DimetaTypeManager final : public TypeIDGenerator {
                                 StructTypeInfo struct_info;
                                 struct_info.type_id = id;
                                 struct_info.name    = vec_name;
+                                struct_info.extent  = f.type.extent * std::max<int>(1, f.array_size);
 
-                                struct_info.extent = f.type.extent * std::max<int>(1, f.array_size);
+                                const auto vec_member_id = get_builtin_typeid(f, top_level).value();
                                 // FIXME assume vector offsets are "packed":
-                                for (int i = 0; i < f.array_size; ++i) {
+                                for (decltype(f.array_size) i = 0; i < f.array_size; ++i) {
                                   struct_info.offsets.push_back(i * f.type.extent);
                                   struct_info.array_sizes.push_back(1);
+                                  struct_info.member_types.push_back(vec_member_id);
                                 }
 
                                 struct_info.num_members = f.array_size;
                                 struct_info.flag        = StructTypeFlag::LLVM_VECTOR;
+
+                                LOG_FATAL("Registered Vec type found with id " << id)
+                                typeDB.registerStruct(struct_info);
+                                structMap.insert({struct_info.name, id});
 
                                 return id;
                               }
@@ -242,43 +256,44 @@ class DimetaTypeManager final : public TypeIDGenerator {
     return type_id;
   }
 
-  [[nodiscard]] int getOrRegisterType(llvm::Value* type) {
+  [[nodiscard]] TypeIdentifier getOrRegisterType(llvm::Value* type) {
     if (auto call = llvm::dyn_cast<llvm::CallBase>(type)) {
       auto val = dimeta::located_type_for(call);
 
       if (val) {
         LOG_FATAL("Registering")
 
-        return getOrRegister(val->type, true);
+        return {getOrRegister(val->type, true), array_size(val->type)};
       }
     } else if (auto alloc = llvm::dyn_cast<llvm::AllocaInst>(type)) {
       auto val = dimeta::located_type_for(alloc);
       if (val) {
         LOG_FATAL("Registering alloca")
-
-        return getOrRegister(val->type, true);
+        const auto type_id = getOrRegister(val->type, true);
+        return {type_id, array_size(val->type)};
       }
     } else if (auto global = llvm::dyn_cast<llvm::GlobalVariable>(type)) {
       auto val = dimeta::located_type_for(global);
       if (val) {
         LOG_FATAL("Registering global")
 
-        return getOrRegister(val->type, true);
+        return {getOrRegister(val->type, true), array_size(val->type)};
       }
     }
-    return TYPEART_UNKNOWN_TYPE;
+    return {TYPEART_UNKNOWN_TYPE, 0};
   }
 
   TypeIdentifier getOrRegisterType(const MallocData& data) override {
-    return {getOrRegisterType(data.call), 0};
+    return getOrRegisterType(data.call);
   }
 
   TypeIdentifier getOrRegisterType(const AllocaData& data) override {
-    return {getOrRegisterType(data.alloca), 0};
+    const auto alloc_type = getOrRegisterType(data.alloca);
+    return {alloc_type.type_id, alloc_type.num_elements * data.array_size};
   }
 
   TypeIdentifier getOrRegisterType(const GlobalData& data) override {
-    return {getOrRegisterType(data.global), 0};
+    return getOrRegisterType(data.global);
   }
 
   ~DimetaTypeManager() = default;

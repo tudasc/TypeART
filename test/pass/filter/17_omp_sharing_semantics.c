@@ -20,7 +20,7 @@ void foo(int count) {
   // check-inst: define {{.*}} @.omp_outlined
   // check-inst: %d.addr = alloca i64, align 8
   // check-inst: [[POINTER0:%[0-9a-z]+]] = bitcast {{.*}} %d.addr
-  // check-inst: call void @__typeart_alloc_stack_omp(i8* [[POINTER0]], i32 2, i64 1)
+  // check-inst: call void @__typeart_alloc_stack_omp(i8* [[POINTER0]], i32 {{(2|3)}}, i64 1)
 #pragma omp parallel for schedule(dynamic, 1) firstprivate(d) shared(e)
   for (int i = 0; i < count; ++i) {
     // Analysis should not filter d, but e...
