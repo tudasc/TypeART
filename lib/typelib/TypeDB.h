@@ -25,7 +25,7 @@ namespace typeart {
 
 class TypeDB final : public TypeDatabase {
  public:
-  void clear();
+  void clear() override;
 
   void registerStruct(const StructTypeInfo& struct_type) override;
 

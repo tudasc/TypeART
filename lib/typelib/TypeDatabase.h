@@ -38,6 +38,8 @@ class TypeDatabase {
  public:
   virtual void registerStruct(const StructTypeInfo& struct_info) = 0;
 
+  virtual void clear() = 0;
+
   [[nodiscard]] virtual bool isUnknown(int type_id) const = 0;
 
   [[nodiscard]] virtual bool isValid(int type_id) const = 0;

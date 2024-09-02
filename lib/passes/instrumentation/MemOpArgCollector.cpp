@@ -50,7 +50,6 @@ HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
   for (const MallocData& mdata : mallocs) {
     ArgMap arg_map;
     const auto malloc_call = mdata.call;
-    auto kind              = mdata.kind;
 
     const auto [type_id, num_elements] = type_m->getOrRegisterType(mdata);
 
@@ -71,7 +70,7 @@ HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
     Value* realloc_ptr{nullptr};
     Value* pointer = malloc_call;
 
-    switch (kind) {
+    switch (mdata.kind) {
       case MemOpKind::NewLike:
         [[fallthrough]];
       case MemOpKind::MallocLike:

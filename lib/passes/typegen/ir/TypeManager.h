@@ -29,7 +29,7 @@ namespace typeart {
 
 class TypeManager final : public types::TypeIDGenerator {
  public:
-  explicit TypeManager(std::string file);
+  using types::TypeIDGenerator::TypeIDGenerator;
   [[nodiscard]] int getOrRegisterType(llvm::Type* type, const llvm::DataLayout& dl);
   [[nodiscard]] int getTypeID(llvm::Type* type, const llvm::DataLayout& dl) const;
   [[nodiscard]] int getOrRegisterType(llvm::Value* type);

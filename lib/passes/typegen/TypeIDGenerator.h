@@ -2,10 +2,12 @@
 #define TYPEART_TYPEIDGENERATOR_H
 
 #include "TypeGenerator.h"
-#include "typelib/TypeDB.h"
+// #include "typelib/TypeDB.h"
+#include "typelib/TypeDatabase.h"
 
 #include "llvm/ADT/StringMap.h"
 
+#include <memory>
 #include <string>
 
 namespace typeart::types {
@@ -13,12 +15,12 @@ namespace typeart::types {
 class TypeIDGenerator : public TypeGenerator {
  protected:
   std::string file;
-  TypeDB typeDB;
+  std::unique_ptr<TypeDatabase> typeDB;
   llvm::StringMap<int> structMap;
   size_t structCount{0};
 
  public:
-  explicit TypeIDGenerator(std::string file_);
+  explicit TypeIDGenerator(std::string file_, std::unique_ptr<TypeDatabase> database_of_types);
 
   [[nodiscard]] virtual const TypeDatabase& getTypeDatabase() const override;
 

@@ -8,7 +8,8 @@
 
 namespace typeart::types {
 
-std::unique_ptr<TypeGenerator> make_dimeta_typeidgen(std::string_view file);
+std::unique_ptr<TypeGenerator> make_dimeta_typeidgen(std::string_view file,
+                                                     std::unique_ptr<TypeDatabase> database_of_types);
 
 }  // namespace typeart::types
 

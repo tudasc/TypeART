@@ -15,12 +15,8 @@
 #include "DimetaData.h"
 #include "support/Logger.h"
 #include "typegen/TypeGenerator.h"
-#include "typelib/TypeDB.h"
 #include "typelib/TypeDatabase.h"
-#include "typelib/TypeIO.h"
 #include "typelib/TypeInterface.h"
-
-#include "llvm/ADT/StringMap.h"
 
 #include <cassert>
 #include <cstddef>
@@ -89,16 +85,22 @@ std::optional<typeart_builtin_type> get_builtin_typeid(const dimeta::QualifiedFu
   using namespace dimeta;
 
   const auto [ptr_type_id, count] = typeid_if_ptr(type);
+
+  // const bool root_pointer_alloc = top_level && count > 1;
+  // const bool pointer_alloc      = !top_level && count > 0;
+  // if (root_pointer_alloc || pointer_alloc) {
+  //   LOG_FATAL((top_level ? "Top level, ptr ptr" : "NOT Top level, ptr ptr"));
+  //   return ptr_type_id.value();
+  // }
+
   if (top_level) {
     if (count > 1) {
       LOG_FATAL("Top level, ptr ptr")
       return ptr_type_id.value();
     }
-  } else {
-    if (count > 0) {
-      LOG_FATAL("NOT Top level, ptr ptr")
-      return ptr_type_id.value();
-    }
+  } else if (count > 0) {
+    LOG_FATAL("NOT Top level, ptr ptr")
+    return ptr_type_id.value();
   }
 
   switch (encoding) {
@@ -147,14 +149,16 @@ std::optional<typeart_builtin_type> get_builtin_typeid(const dimeta::QualifiedFu
 
 class DimetaTypeManager final : public TypeIDGenerator {
  public:
-  explicit DimetaTypeManager(std::string file_) : TypeIDGenerator(std::move(file_)) {
-  }
+  // explicit DimetaTypeManager(std::string file_) : TypeIDGenerator(std::move(file_)) {
+  // }
+
+  using TypeIDGenerator::TypeIDGenerator;
 
   int getOrRegister(const dimeta::QualifiedType& type, bool top_level = false) {
     const auto fetch_id = [&](const auto name) -> std::optional<int> {
       if (auto it = structMap.find(name); it != structMap.end()) {
         const auto type_id = it->second;
-        if (!typeDB.isUserDefinedType(type_id)) {
+        if (!typeDB->isUserDefinedType(type_id)) {
           LOG_ERROR("Expected user defined struct type " << name << " for type id: " << type_id);
           return TYPEART_UNKNOWN_TYPE;
         }
@@ -195,7 +199,7 @@ class DimetaTypeManager final : public TypeIDGenerator {
                                 struct_info.flag        = StructTypeFlag::LLVM_VECTOR;
 
                                 LOG_FATAL("Registered Vec type found with id " << id)
-                                typeDB.registerStruct(struct_info);
+                                typeDB->registerStruct(struct_info);
                                 structMap.insert({struct_info.name, id});
 
                                 return id;
@@ -244,7 +248,7 @@ class DimetaTypeManager final : public TypeIDGenerator {
                                 struct_info.array_sizes.push_back(array_size(member->member));
                               }
 
-                              typeDB.registerStruct(struct_info);
+                              typeDB->registerStruct(struct_info);
 
                               structMap.insert({struct_info.name, id});
 
@@ -258,6 +262,7 @@ class DimetaTypeManager final : public TypeIDGenerator {
 
   [[nodiscard]] TypeIdentifier getOrRegisterType(llvm::Value* type) {
     if (auto call = llvm::dyn_cast<llvm::CallBase>(type)) {
+      LOG_FATAL("Registering call")
       auto val = dimeta::located_type_for(call);
 
       if (val) {
@@ -299,8 +304,9 @@ class DimetaTypeManager final : public TypeIDGenerator {
   ~DimetaTypeManager() = default;
 };
 
-std::unique_ptr<typeart::TypeGenerator> make_dimeta_typeidgen(std::string_view file) {
-  return std::make_unique<typeart::types::DimetaTypeManager>(std::string{file});
+std::unique_ptr<typeart::TypeGenerator> make_dimeta_typeidgen(std::string_view file,
+                                                              std::unique_ptr<TypeDatabase> database_of_types) {
+  return std::make_unique<typeart::types::DimetaTypeManager>(std::string{file}, std::move(database_of_types));
 }
 
 }  // namespace typeart::types
