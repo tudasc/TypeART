@@ -22,6 +22,8 @@ class TypeIDGenerator : public TypeGenerator {
  public:
   explicit TypeIDGenerator(std::string file_, std::unique_ptr<TypeDatabase> database_of_types);
 
+  virtual void registerModule(const ModuleData&) override;
+
   [[nodiscard]] virtual const TypeDatabase& getTypeDatabase() const override;
 
   [[nodiscard]] virtual std::pair<bool, std::error_code> load() override;

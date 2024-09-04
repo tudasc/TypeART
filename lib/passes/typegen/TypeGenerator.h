@@ -39,8 +39,13 @@ struct TypeIdentifier final {
   size_t num_elements{1};  // > 1 for array-like type allocation
 };
 
+struct ModuleData {
+  llvm::Module* module;
+};
+
 class TypeGenerator {
  public:
+  virtual void registerModule(const ModuleData&)                            = 0;
   [[nodiscard]] virtual TypeIdentifier getOrRegisterType(const MallocData&) = 0;
   [[nodiscard]] virtual TypeIdentifier getOrRegisterType(const AllocaData&) = 0;
   [[nodiscard]] virtual TypeIdentifier getOrRegisterType(const GlobalData&) = 0;

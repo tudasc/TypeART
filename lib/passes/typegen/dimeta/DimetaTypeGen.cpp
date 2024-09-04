@@ -222,22 +222,32 @@ class DimetaTypeManager final : public TypeIDGenerator {
                                 }
                               }
 
-                              const auto existing_id = fetch_id(name);
+                              bool is_forward_declaration = false;
+                              const auto existing_id      = fetch_id(name);
                               if (existing_id) {
-                                return existing_id.value();
+                                const auto* struct_info = typeDB->getStructInfo(existing_id.value());
+                                if (struct_info->flag == StructTypeFlag::FWD_DECL) {
+                                  is_forward_declaration = true;
+                                } else {
+                                  return existing_id.value();
+                                }
                               }
 
-                              const int id = reserveNextTypeId();
+                              const int id = is_forward_declaration ? existing_id.value() : reserveNextTypeId();
                               StructTypeInfo struct_info;
                               struct_info.type_id = id;
                               struct_info.name    = name;
+                              if (q.is_forward_decl) {
+                                struct_info.flag = StructTypeFlag::FWD_DECL;
+                              } else {
+                                struct_info.flag = StructTypeFlag::USER_DEFINED;
+                              }
 
                               struct_info.extent = compound.extent * std::max<int>(1, q.array_size);
                               LOG_FATAL(compound.extent << " " << std::max<int>(1, q.array_size))
                               struct_info.offsets     = compound.offsets;
                               //   struct_info.array_sizes = compound.sizes;
                               struct_info.num_members = compound.bases.size() + compound.members.size();
-                              struct_info.flag        = StructTypeFlag::USER_DEFINED;
 
                               for (const auto& base : compound.bases) {
                                 struct_info.member_types.push_back(getOrRegister(base->base));
@@ -248,7 +258,7 @@ class DimetaTypeManager final : public TypeIDGenerator {
                                 struct_info.array_sizes.push_back(array_size(member->member));
                               }
 
-                              typeDB->registerStruct(struct_info);
+                              typeDB->registerStruct(struct_info, is_forward_declaration);
 
                               structMap.insert({struct_info.name, id});
 
@@ -262,7 +272,7 @@ class DimetaTypeManager final : public TypeIDGenerator {
 
   [[nodiscard]] TypeIdentifier getOrRegisterType(llvm::Value* type) {
     if (auto call = llvm::dyn_cast<llvm::CallBase>(type)) {
-      LOG_FATAL("Registering call")
+      LOG_FATAL(*type)
       auto val = dimeta::located_type_for(call);
 
       if (val) {
@@ -286,6 +296,19 @@ class DimetaTypeManager final : public TypeIDGenerator {
       }
     }
     return {TYPEART_UNKNOWN_TYPE, 0};
+  }
+
+  void registerModule(const ModuleData& module) override {
+    using namespace dimeta;
+    // std::optional<CompileUnitTypeList> compile_unit_types(const llvm::Module*)
+    auto cu_types_list = dimeta::compile_unit_types(module.module).value_or(dimeta::CompileUnitTypeList{});
+
+    for (const auto& cu : cu_types_list) {
+      const QualifiedTypeList& list = cu.types;
+      for (const auto& cu_type : list) {
+        getOrRegister(cu_type);
+      }
+    }
   }
 
   TypeIdentifier getOrRegisterType(const MallocData& data) override {

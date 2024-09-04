@@ -141,6 +141,8 @@ bool TypeArtPass::doInitialization(Module& m) {
   }
 
   instrumentation_helper.setModule(m);
+  ModuleData mdata{&m};
+  typeManager->registerModule(mdata);
 
   auto arg_collector                   = std::make_unique<MemOpArgCollector>(typeManager.get(), instrumentation_helper);
   const bool instrument_stack_lifetime = (*pass_config)[config::ConfigStdArgs::stack_lifetime];
