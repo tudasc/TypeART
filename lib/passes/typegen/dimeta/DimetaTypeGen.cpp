@@ -208,6 +208,12 @@ class DimetaTypeManager final : public TypeIDGenerator {
                             },
                             [&](const dimeta::QualifiedCompound& q) -> int {
                               LOG_FATAL("QualCompound " << q.type.name)
+                              using namespace dimeta;
+                              if (q.type.name.empty() && q.type.type == CompoundType::Tag::kUnknown) {
+                                LOG_FATAL("Potentially pointer to (member) function, skipping.")
+                                return TYPEART_UNKNOWN_TYPE;
+                              }
+
                               const auto& compound = q.type;
                               const auto name      = compound.identifier.empty() ? compound.name : compound.identifier;
 
@@ -270,7 +276,7 @@ class DimetaTypeManager final : public TypeIDGenerator {
     return type_id;
   }
 
-  [[nodiscard]] TypeIdentifier getOrRegisterType(llvm::Value* type) {
+  [[nodiscard]] TypeIdentifier getOrRegisterTypeValue(llvm::Value* type) {
     if (auto call = llvm::dyn_cast<llvm::CallBase>(type)) {
       LOG_FATAL(*type)
       auto val = dimeta::located_type_for(call);
@@ -312,16 +318,17 @@ class DimetaTypeManager final : public TypeIDGenerator {
   }
 
   TypeIdentifier getOrRegisterType(const MallocData& data) override {
-    return getOrRegisterType(data.call);
+    return getOrRegisterTypeValue(data.call);
   }
 
   TypeIdentifier getOrRegisterType(const AllocaData& data) override {
-    const auto alloc_type = getOrRegisterType(data.alloca);
+    LOG_FATAL("Start register alloca \"" << *data.alloca << "\"")
+    const auto alloc_type = getOrRegisterTypeValue(data.alloca);
     return {alloc_type.type_id, alloc_type.num_elements * data.array_size};
   }
 
   TypeIdentifier getOrRegisterType(const GlobalData& data) override {
-    return getOrRegisterType(data.global);
+    return getOrRegisterTypeValue(data.global);
   }
 
   ~DimetaTypeManager() = default;

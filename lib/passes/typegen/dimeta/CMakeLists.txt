@@ -3,6 +3,7 @@ set(TYPEGEN_DIMETA_SOURCES
   ../TypeIDGenerator.h
   ../TypeGenerator.cpp
   DimetaTypeGen.cpp
+  DimetaTypeGen.h
 )
 
 add_library(${TYPEART_PREFIX}_TypeGenDimetaStatic OBJECT ${TYPEGEN_DIMETA_SOURCES})
