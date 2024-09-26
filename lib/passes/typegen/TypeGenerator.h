@@ -18,6 +18,7 @@
 #include "typelib/TypeInterface.h"
 
 #include <cstddef>
+#include <cstdint>
 #include <llvm/IR/Value.h>
 #include <memory>
 #include <string>
@@ -36,7 +37,7 @@ enum class TypegenImplementation { IR, DIMETA };
 
 struct TypeIdentifier final {
   int type_id{TYPEART_UNKNOWN_TYPE};
-  size_t num_elements{1};  // > 1 for array-like type allocation
+  std::uint64_t num_elements{1};  // > 1 for array-like type allocation
 };
 
 struct ModuleData {

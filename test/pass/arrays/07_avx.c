@@ -1,4 +1,4 @@
-// RUN: rm %tu_yaml && %c-to-llvm -mavx %s | %opt -O2 -S | %apply-typeart --typeart-stack -S 2>&1 | %filecheck %s
+// RUN: %remove %tu_yaml && %c-to-llvm -mavx %s | %opt -O2 -S | %apply-typeart --typeart-stack -S 2>&1 | %filecheck %s
 
 #include <immintrin.h>
 

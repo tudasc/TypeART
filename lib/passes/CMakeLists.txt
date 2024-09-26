@@ -20,6 +20,7 @@ typeart_make_llvm_module(
   LINK_LIBS typeart::MemInstFinder
             typeart::TypesStatic
             typeart::TypeGenDimetaStatic
+            dimeta::Types
             typeart::TypeGenStatic
   INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}
                ${PROJECT_SOURCE_DIR}/lib/

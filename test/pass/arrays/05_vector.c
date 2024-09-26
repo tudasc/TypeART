@@ -1,5 +1,5 @@
 // clang-format off
-// RUN: rm %tu_yaml && %c-to-llvm %s | %apply-typeart --typeart-stack -S 2>&1 | %filecheck %s
+// RUN: %remove %tu_yaml && %c-to-llvm %s | %apply-typeart --typeart-stack -S 2>&1 | %filecheck %s
 // clang-format on
 
 typedef float float2 __attribute__((ext_vector_type(2)));

@@ -1,4 +1,4 @@
-// RUN: rm %tu_yaml
+// RUN: %remove %tu_yaml
 // RUN: %c-to-llvm %s | %apply-typeart
 // RUN: cat %tu_yaml | %filecheck %s
 

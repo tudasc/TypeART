@@ -60,19 +60,28 @@ std::pair<std::optional<typeart_builtin_type>, int> typeid_if_ptr(const Type& ty
 }
 
 template <typename Type>
-size_t array_size(const Type& type) {
+dimeta::ArraySize array_size(const Type& type) {
   using namespace dimeta;
-  if constexpr (std::is_same_v<Type, typename dimeta::QualifiedCompound>) {
-    return std::max(type.array_size, std::uint64_t(1));
+
+  if constexpr (std::is_same_v<Type, typename dimeta::QualifiedCompound> ||
+                std::is_same_v<Type, typename dimeta::QualifiedFundamental>) {
+    
+    const auto array_size_factor = type.array_size.empty() ? 1 : type.array_size.at(0);
+    LOG_FATAL(array_size_factor)
+    return array_size_factor;
   } else {
     return std::visit(overload{[&](const dimeta::QualifiedFundamental& f) -> size_t {
                                  if (f.is_vector) {
                                    return std::uint64_t(1);
                                  }
-                                 return std::max(f.array_size, std::uint64_t(1));
+                                 const auto array_size_factor = f.array_size.empty() ? 1 : f.array_size.at(0);
+                                 LOG_FATAL(array_size_factor)
+                                 return array_size_factor;
                                },
                                [&](const dimeta::QualifiedCompound& q) -> size_t {
-                                 return std::max(q.array_size, std::uint64_t(1));
+                                 const auto array_size_factor = q.array_size.empty() ? 1 : q.array_size.at(0);
+                                 LOG_FATAL(array_size_factor)
+                                 return array_size_factor;
                                }},
                       type);
   }
@@ -158,8 +167,8 @@ class DimetaTypeManager final : public TypeIDGenerator {
     const auto fetch_id = [&](const auto name) -> std::optional<int> {
       if (auto it = structMap.find(name); it != structMap.end()) {
         const auto type_id = it->second;
-        if (!typeDB->isUserDefinedType(type_id)) {
-          LOG_ERROR("Expected user defined struct type " << name << " for type id: " << type_id);
+        if (!typeDB->isUserDefinedType(type_id) && !typeDB->isVectorType(type_id)) {
+          LOG_ERROR("Expected user defined struct/vector type " << name << " for type id: " << type_id);
           return TYPEART_UNKNOWN_TYPE;
         }
         return type_id;
@@ -183,19 +192,20 @@ class DimetaTypeManager final : public TypeIDGenerator {
 
                                 const int id = reserveNextTypeId();
                                 StructTypeInfo struct_info;
-                                struct_info.type_id = id;
-                                struct_info.name    = vec_name;
-                                struct_info.extent  = f.type.extent * std::max<int>(1, f.array_size);
+                                struct_info.type_id          = id;
+                                struct_info.name             = vec_name;
+                                const auto array_size_factor = array_size(f);
+                                struct_info.extent           = f.type.extent * array_size_factor;
 
                                 const auto vec_member_id = get_builtin_typeid(f, top_level).value();
                                 // FIXME assume vector offsets are "packed":
-                                for (decltype(f.array_size) i = 0; i < f.array_size; ++i) {
+                                for (std::uint64_t i = 0; i < array_size_factor; ++i) {
                                   struct_info.offsets.push_back(i * f.type.extent);
                                   struct_info.array_sizes.push_back(1);
                                   struct_info.member_types.push_back(vec_member_id);
                                 }
 
-                                struct_info.num_members = f.array_size;
+                                struct_info.num_members = array_size_factor;
                                 struct_info.flag        = StructTypeFlag::LLVM_VECTOR;
 
                                 LOG_FATAL("Registered Vec type found with id " << id)
@@ -249,8 +259,9 @@ class DimetaTypeManager final : public TypeIDGenerator {
                                 struct_info.flag = StructTypeFlag::USER_DEFINED;
                               }
 
-                              struct_info.extent = compound.extent * std::max<int>(1, q.array_size);
-                              LOG_FATAL(compound.extent << " " << std::max<int>(1, q.array_size))
+                              const auto array_size_factor = array_size(q);
+                              struct_info.extent           = compound.extent * array_size_factor;
+                              LOG_FATAL(compound.extent << " " << array_size_factor)
                               struct_info.offsets     = compound.offsets;
                               //   struct_info.array_sizes = compound.sizes;
                               struct_info.num_members = compound.bases.size() + compound.members.size();
@@ -278,7 +289,7 @@ class DimetaTypeManager final : public TypeIDGenerator {
 
   [[nodiscard]] TypeIdentifier getOrRegisterTypeValue(llvm::Value* type) {
     if (auto call = llvm::dyn_cast<llvm::CallBase>(type)) {
-      LOG_FATAL(*type)
+      // LOG_FATAL(*type)
       auto val = dimeta::located_type_for(call);
 
       if (val) {
@@ -291,7 +302,9 @@ class DimetaTypeManager final : public TypeIDGenerator {
       if (val) {
         LOG_FATAL("Registering alloca")
         const auto type_id = getOrRegister(val->type, true);
-        return {type_id, array_size(val->type)};
+        const auto array_size_val =  array_size(val->type);
+        LOG_FATAL(array_size_val)
+        return {type_id,array_size_val};
       }
     } else if (auto global = llvm::dyn_cast<llvm::GlobalVariable>(type)) {
       auto val = dimeta::located_type_for(global);
@@ -307,6 +320,7 @@ class DimetaTypeManager final : public TypeIDGenerator {
   void registerModule(const ModuleData& module) override {
     using namespace dimeta;
     // std::optional<CompileUnitTypeList> compile_unit_types(const llvm::Module*)
+    LOG_FATAL("Register module types")
     auto cu_types_list = dimeta::compile_unit_types(module.module).value_or(dimeta::CompileUnitTypeList{});
 
     for (const auto& cu : cu_types_list) {
@@ -315,6 +329,7 @@ class DimetaTypeManager final : public TypeIDGenerator {
         getOrRegister(cu_type);
       }
     }
+    LOG_FATAL("Done: Register module types")
   }
 
   TypeIdentifier getOrRegisterType(const MallocData& data) override {
@@ -324,7 +339,7 @@ class DimetaTypeManager final : public TypeIDGenerator {
   TypeIdentifier getOrRegisterType(const AllocaData& data) override {
     LOG_FATAL("Start register alloca \"" << *data.alloca << "\"")
     const auto alloc_type = getOrRegisterTypeValue(data.alloca);
-    return {alloc_type.type_id, alloc_type.num_elements * data.array_size};
+    return {alloc_type.type_id, alloc_type.num_elements };
   }
 
   TypeIdentifier getOrRegisterType(const GlobalData& data) override {
