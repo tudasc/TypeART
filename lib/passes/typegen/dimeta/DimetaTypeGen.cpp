@@ -27,6 +27,7 @@
 #include <llvm/IR/Instructions.h>
 #include <llvm/Support/Casting.h>
 #include <memory>
+#include <string>
 #include <type_traits>
 
 namespace llvm {
@@ -65,24 +66,29 @@ dimeta::ArraySize array_size(const Type& type) {
 
   if constexpr (std::is_same_v<Type, typename dimeta::QualifiedCompound> ||
                 std::is_same_v<Type, typename dimeta::QualifiedFundamental>) {
-    
+    if (type.is_vector) {
+      return std::uint64_t(1);
+    }
     const auto array_size_factor = type.array_size.empty() ? 1 : type.array_size.at(0);
     LOG_FATAL(array_size_factor)
     return array_size_factor;
   } else {
-    return std::visit(overload{[&](const dimeta::QualifiedFundamental& f) -> size_t {
-                                 if (f.is_vector) {
-                                   return std::uint64_t(1);
-                                 }
-                                 const auto array_size_factor = f.array_size.empty() ? 1 : f.array_size.at(0);
-                                 LOG_FATAL(array_size_factor)
-                                 return array_size_factor;
-                               },
-                               [&](const dimeta::QualifiedCompound& q) -> size_t {
-                                 const auto array_size_factor = q.array_size.empty() ? 1 : q.array_size.at(0);
-                                 LOG_FATAL(array_size_factor)
-                                 return array_size_factor;
-                               }},
+    return std::visit(overload{[&](const dimeta::QualifiedFundamental& f) -> size_t { return array_size(f); },
+                               [&](const dimeta::QualifiedCompound& q) -> size_t { return array_size(q); }},
+                      type);
+  }
+}
+
+template <typename Type>
+std::string name_or_typedef_of(const Type& type) {
+  using namespace dimeta;
+
+  if constexpr (std::is_same_v<Type, typename dimeta::QualifiedCompound> ||
+                std::is_same_v<Type, typename dimeta::QualifiedFundamental>) {
+    return type.type.name.empty() ? type.typedef_name : type.type.name;
+  } else {
+    return std::visit(overload{[&](const dimeta::QualifiedFundamental& f) { return name_or_typedef_of(f); },
+                               [&](const dimeta::QualifiedCompound& q) { return name_or_typedef_of(q); }},
                       type);
   }
 }
@@ -167,10 +173,10 @@ class DimetaTypeManager final : public TypeIDGenerator {
     const auto fetch_id = [&](const auto name) -> std::optional<int> {
       if (auto it = structMap.find(name); it != structMap.end()) {
         const auto type_id = it->second;
-        if (!typeDB->isUserDefinedType(type_id) && !typeDB->isVectorType(type_id)) {
-          LOG_ERROR("Expected user defined struct/vector type " << name << " for type id: " << type_id);
-          return TYPEART_UNKNOWN_TYPE;
-        }
+        // if (!typeDB->isUserDefinedType(type_id) && !typeDB->isVectorType(type_id)) {
+        // LOG_ERROR("Expected user defined struct/vector type " << name << " for type id: " << type_id);
+        // return TYPEART_UNKNOWN_TYPE;
+        // }
         return type_id;
       }
       return {};
@@ -217,17 +223,16 @@ class DimetaTypeManager final : public TypeIDGenerator {
                               return get_builtin_typeid(f, top_level).value();
                             },
                             [&](const dimeta::QualifiedCompound& q) -> int {
-                              LOG_FATAL("QualCompound " << q.type.name)
-                              using namespace dimeta;
+                              const std::string name_or_typedef = name_or_typedef_of(q);
+                              LOG_FATAL("QualCompound \"" << name_or_typedef << "\"") using namespace dimeta;
                               if (q.type.name.empty() && q.type.type == CompoundType::Tag::kUnknown) {
                                 LOG_FATAL("Potentially pointer to (member) function, skipping.")
                                 return TYPEART_UNKNOWN_TYPE;
                               }
 
-                              const auto& compound = q.type;
-                              const auto name      = compound.identifier.empty() ? compound.name : compound.identifier;
-
+                              const auto& compound            = q.type;
                               const auto [ptr_type_id, count] = typeid_if_ptr(q);
+                              
                               if (top_level) {
                                 if (count > 1) {
                                   return ptr_type_id.value();
@@ -239,7 +244,7 @@ class DimetaTypeManager final : public TypeIDGenerator {
                               }
 
                               bool is_forward_declaration = false;
-                              const auto existing_id      = fetch_id(name);
+                              const auto existing_id      = fetch_id(name_or_typedef);
                               if (existing_id) {
                                 const auto* struct_info = typeDB->getStructInfo(existing_id.value());
                                 if (struct_info->flag == StructTypeFlag::FWD_DECL) {
@@ -252,7 +257,7 @@ class DimetaTypeManager final : public TypeIDGenerator {
                               const int id = is_forward_declaration ? existing_id.value() : reserveNextTypeId();
                               StructTypeInfo struct_info;
                               struct_info.type_id = id;
-                              struct_info.name    = name;
+                              struct_info.name    = name_or_typedef;
                               if (q.is_forward_decl) {
                                 struct_info.flag = StructTypeFlag::FWD_DECL;
                               } else {
@@ -301,10 +306,10 @@ class DimetaTypeManager final : public TypeIDGenerator {
       auto val = dimeta::located_type_for(alloc);
       if (val) {
         LOG_FATAL("Registering alloca")
-        const auto type_id = getOrRegister(val->type, true);
-        const auto array_size_val =  array_size(val->type);
+        const auto type_id        = getOrRegister(val->type, true);
+        const auto array_size_val = array_size(val->type);
         LOG_FATAL(array_size_val)
-        return {type_id,array_size_val};
+        return {type_id, array_size_val};
       }
     } else if (auto global = llvm::dyn_cast<llvm::GlobalVariable>(type)) {
       auto val = dimeta::located_type_for(global);
@@ -339,7 +344,7 @@ class DimetaTypeManager final : public TypeIDGenerator {
   TypeIdentifier getOrRegisterType(const AllocaData& data) override {
     LOG_FATAL("Start register alloca \"" << *data.alloca << "\"")
     const auto alloc_type = getOrRegisterTypeValue(data.alloca);
-    return {alloc_type.type_id, alloc_type.num_elements };
+    return {alloc_type.type_id, alloc_type.num_elements};
   }
 
   TypeIdentifier getOrRegisterType(const GlobalData& data) override {
