@@ -224,7 +224,8 @@ class DimetaTypeManager final : public TypeIDGenerator {
                             },
                             [&](const dimeta::QualifiedCompound& q) -> int {
                               const std::string name_or_typedef = name_or_typedef_of(q);
-                              LOG_FATAL("QualCompound \"" << name_or_typedef << "\"") using namespace dimeta;
+                              LOG_FATAL("QualCompound \"" << name_or_typedef << "\"");
+                              using namespace dimeta;
                               if (q.type.name.empty() && q.type.type == CompoundType::Tag::kUnknown) {
                                 LOG_FATAL("Potentially pointer to (member) function, skipping.")
                                 return TYPEART_UNKNOWN_TYPE;
@@ -232,7 +233,7 @@ class DimetaTypeManager final : public TypeIDGenerator {
 
                               const auto& compound            = q.type;
                               const auto [ptr_type_id, count] = typeid_if_ptr(q);
-                              
+
                               if (top_level) {
                                 if (count > 1) {
                                   return ptr_type_id.value();
@@ -264,7 +265,7 @@ class DimetaTypeManager final : public TypeIDGenerator {
                                 struct_info.flag = StructTypeFlag::USER_DEFINED;
                               }
 
-                              const auto array_size_factor = array_size(q);
+                              const auto array_size_factor = 1; //array_size(q);
                               struct_info.extent           = compound.extent * array_size_factor;
                               LOG_FATAL(compound.extent << " " << array_size_factor)
                               struct_info.offsets     = compound.offsets;
