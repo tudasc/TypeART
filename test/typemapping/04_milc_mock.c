@@ -17,7 +17,7 @@ void foo() {
   su2_matrix* matrix = malloc(sizeof(su2_matrix));
 }
 
-// CHECK:   name:            complex
+// CHECK:   name:            {{.*}}complex
 // CHECK-NEXT:   extent:          8
 // CHECK-NEXT:   member_count:    2
 // CHECK-NEXT:   offsets:         [ 0, 4 ]

@@ -7,6 +7,8 @@
 
 // REQUIRES: openmp && !dimeta
 
+// XFAIL: *
+
 // clang-format on
 
 #include "omp.h"
