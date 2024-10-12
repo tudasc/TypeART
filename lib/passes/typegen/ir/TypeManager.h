@@ -13,13 +13,10 @@
 #ifndef LLVM_MUST_SUPPORT_TYPEMANAGER_H
 #define LLVM_MUST_SUPPORT_TYPEMANAGER_H
 
-#include "TypeGenerator.h"
-#include "typelib/TypeDB.h"
+#include "typegen/TypeIDGenerator.h"
 
-#include "llvm/ADT/StringMap.h"
-
-#include <cstddef>
-#include <string>
+#include <memory>
+#include <string_view>
 
 namespace llvm {
 class DataLayout;
@@ -30,24 +27,19 @@ class VectorType;
 
 namespace typeart {
 
-class TypeManager final : public TypeGenerator {
-  std::string file;
-  TypeDB typeDB;
-  llvm::StringMap<int> structMap;
-  size_t structCount;
-
+class TypeManager final : public types::TypeIDGenerator {
  public:
-  explicit TypeManager(std::string file);
-  [[nodiscard]] std::pair<bool, std::error_code> load() override;
-  [[nodiscard]] std::pair<bool, std::error_code> store() const override;
-  [[nodiscard]] int getOrRegisterType(llvm::Type* type, const llvm::DataLayout& dl) override;
-  [[nodiscard]] int getTypeID(llvm::Type* type, const llvm::DataLayout& dl) const override;
-  [[nodiscard]] const TypeDatabase& getTypeDatabase() const override;
+  using types::TypeIDGenerator::TypeIDGenerator;
+  [[nodiscard]] int getOrRegisterType(llvm::Type* type, const llvm::DataLayout& dl);
+  [[nodiscard]] int getTypeID(llvm::Type* type, const llvm::DataLayout& dl) const;
+  [[nodiscard]] int getOrRegisterType(llvm::Value* type);
+  [[nodiscard]] TypeIdentifier getOrRegisterType(const MallocData&) override;
+  [[nodiscard]] TypeIdentifier getOrRegisterType(const AllocaData&) override;
+  [[nodiscard]] TypeIdentifier getOrRegisterType(const GlobalData&) override;
 
- private:
+ protected:
   [[nodiscard]] int getOrRegisterStruct(llvm::StructType* type, const llvm::DataLayout& dl);
   [[nodiscard]] int getOrRegisterVector(llvm::VectorType* type, const llvm::DataLayout& dl);
-  [[nodiscard]] int reserveNextId();
 };
 
 }  // namespace typeart

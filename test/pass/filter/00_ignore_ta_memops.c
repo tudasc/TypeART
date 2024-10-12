@@ -16,7 +16,9 @@ int main(int argc, char** argv) {
   return 0;
 }
 
-// CHECK: call void @__typeart_alloc(
+// This is added with legacy type parser:
+// : call void @__typeart_alloc(
+
 // CHECK: call void @__typeart_free(
 
 // CHECK-NOT: call void @__typeart_leave_scope

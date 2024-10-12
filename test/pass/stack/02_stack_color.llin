@@ -1,5 +1,7 @@
 ; RUN: %apply-typeart --typeart-stack --typeart-stack-lifetime -S < %s | %filecheck %s
 
+; REQUIRES: !dimeta
+
 ; Adapted from LLVM codegen test suite
 
 ; CHECK: call void @llvm.lifetime.start.p0i8(i64 -1, i8* %b)

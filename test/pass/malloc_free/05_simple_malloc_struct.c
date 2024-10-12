@@ -1,5 +1,5 @@
 // clang-format off
-// RUN: %c-to-llvm %s | %apply-typeart -S 2>&1 | %filecheck %s
+// RUN: %remove %tu_yaml && %c-to-llvm %s | %apply-typeart -S 2>&1 | %filecheck %s
 // clang-format on
 #include <stdlib.h>
 typedef struct ms {

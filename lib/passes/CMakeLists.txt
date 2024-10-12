@@ -19,6 +19,8 @@ typeart_make_llvm_module(
   ${TYPEART_PREFIX}_TransformPass "${PASS_SOURCES}"
   LINK_LIBS typeart::MemInstFinder
             typeart::TypesStatic
+            typeart::TypeGenDimetaStatic
+            dimeta::Types
             typeart::TypeGenStatic
   INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}
                ${PROJECT_SOURCE_DIR}/lib/

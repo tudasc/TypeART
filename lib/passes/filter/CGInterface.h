@@ -28,11 +28,11 @@ class CGInterface {
  public:
   enum class ReachabilityResult { reaches, maybe_reaches, never_reaches, unknown };
 
-  CGInterface()                   = default;
-  CGInterface(const CGInterface&) = default;
-  CGInterface(CGInterface&&)      = default;
+  CGInterface()                              = default;
+  CGInterface(const CGInterface&)            = default;
+  CGInterface(CGInterface&&)                 = default;
   CGInterface& operator=(const CGInterface&) = default;
-  CGInterface& operator=(CGInterface&&) = default;
+  CGInterface& operator=(CGInterface&&)      = default;
 
   /**
    * \brief Checks if a path exists from source to target

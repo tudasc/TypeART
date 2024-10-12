@@ -81,7 +81,7 @@ LLVM_YAML_IS_SEQUENCE_VECTOR(typeart::StructTypeInfo)
 
 namespace typeart::io {
 
-llvm::ErrorOr<bool> load(TypeDB* typeDB, const std::string& file) {
+llvm::ErrorOr<bool> load(TypeDatabase* typeDB, const std::string& file) {
   using namespace llvm;
   ErrorOr<std::unique_ptr<MemoryBuffer>> memBuffer = MemoryBuffer::getFile(file);
 
@@ -104,7 +104,7 @@ llvm::ErrorOr<bool> load(TypeDB* typeDB, const std::string& file) {
   return !in.error();
 }
 
-llvm::ErrorOr<bool> store(const TypeDB* typeDB, const std::string& file) {
+llvm::ErrorOr<bool> store(const TypeDatabase* typeDB, const std::string& file) {
   using namespace llvm;
 
   std::error_code error;

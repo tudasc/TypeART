@@ -12,7 +12,7 @@
 
 #include "VectorTypeHandler.h"
 
-#include "TypeGenerator.h"
+#include "TypeManager.h"
 #include "support/Logger.h"
 #include "support/Util.h"
 #include "typelib/TypeDatabase.h"

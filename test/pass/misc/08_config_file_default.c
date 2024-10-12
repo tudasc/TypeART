@@ -8,6 +8,7 @@
 // CHECK-NEXT: global:          false
 // CHECK-NEXT: stats:           false
 // CHECK-NEXT: stack-lifetime:  true
+// CHECK-NEXT: typegen:         ir
 // CHECK-NEXT: filter:          true
 // CHECK-NEXT: call-filter:
 // CHECK-NEXT:   implementation:  std

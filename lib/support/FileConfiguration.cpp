@@ -12,6 +12,8 @@
 
 #include "FileConfiguration.h"
 
+#include "support/Configuration.h"
+
 #include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/FileSystem.h"
@@ -31,6 +33,7 @@ struct ConfigurationOptions {
   bool global{ConfigStdArgValues::global};
   bool statistics{ConfigStdArgValues::stats};
   bool stack_lifetime{ConfigStdArgValues::stack_lifetime};
+  std::string typegen{ConfigStdArgValues::typegen};
   bool filter{true};
   struct CallFilter {
     std::string implementation{ConfigStdArgValues::filter_impl};
@@ -73,6 +76,7 @@ ConfigurationOptions map2config(const FileOptionsMap& mapping) {
   make_entry(ConfigStdArgs::analysis_filter_heap_alloc, conf_file.analysis_configuration.filter_heap_alloc);
   make_entry(ConfigStdArgs::analysis_filter_pointer_alloc, conf_file.analysis_configuration.filter_pointer_alloc);
   make_entry(ConfigStdArgs::analysis_filter_alloca_non_array, conf_file.analysis_configuration.filter_alloca_non_array);
+  make_entry(ConfigStdArgs::typegen, conf_file.typegen);
   return conf_file;
 }
 
@@ -91,6 +95,7 @@ FileOptionsMap config2map(const ConfigurationOptions& conf_file) {
       make_entry(ConfigStdArgs::global, conf_file.global),
       make_entry(ConfigStdArgs::stack, conf_file.stack),
       make_entry(ConfigStdArgs::stack_lifetime, conf_file.stack_lifetime),
+      make_entry(ConfigStdArgs::typegen, conf_file.typegen),
       make_entry(ConfigStdArgs::filter, conf_file.filter),
       make_entry(ConfigStdArgs::filter_impl, conf_file.call_filter_configuration.implementation),
       make_entry(ConfigStdArgs::filter_glob, conf_file.call_filter_configuration.glob),
@@ -251,6 +256,7 @@ struct llvm::yaml::MappingTraits<typeart::config::file::ConfigurationOptions> {
     yml_io.mapOptional(ConfigStdArgs::global, info.global);
     yml_io.mapOptional(ConfigStdArgs::stats, info.statistics);
     yml_io.mapOptional(ConfigStdArgs::stack_lifetime, info.stack_lifetime);
+    yml_io.mapRequired(ConfigStdArgs::typegen, info.typegen);
     yml_io.mapRequired(ConfigStdArgs::filter, info.filter);
     yml_io.mapOptional("call-filter", info.call_filter_configuration);
     yml_io.mapOptional("analysis", info.analysis_configuration);
