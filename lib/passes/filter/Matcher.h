@@ -24,11 +24,11 @@ namespace typeart::filter {
 class Matcher {
  public:
   enum class MatchResult : int { Match, NoMatch, ShouldSkip, ShouldContinue };
-  Matcher()               = default;
-  Matcher(const Matcher&) = default;
-  Matcher(Matcher&&)      = default;
+  Matcher()                          = default;
+  Matcher(const Matcher&)            = default;
+  Matcher(Matcher&&)                 = default;
   Matcher& operator=(const Matcher&) = default;
-  Matcher& operator=(Matcher&&) = default;
+  Matcher& operator=(Matcher&&)      = default;
 
   virtual MatchResult match(llvm::CallSite) const = 0;
 

@@ -22,11 +22,11 @@ namespace typeart::filter {
 
 class Filter {
  public:
-  Filter()              = default;
-  Filter(const Filter&) = default;
-  Filter(Filter&&)      = default;
+  Filter()                         = default;
+  Filter(const Filter&)            = default;
+  Filter(Filter&&)                 = default;
   Filter& operator=(const Filter&) = default;
-  Filter& operator=(Filter&&) = default;
+  Filter& operator=(Filter&&)      = default;
 
   virtual bool filter(llvm::Value*)                 = 0;
   virtual void setStartingFunction(llvm::Function*) = 0;
