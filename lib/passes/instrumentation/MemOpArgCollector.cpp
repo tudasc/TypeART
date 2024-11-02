@@ -60,7 +60,7 @@ HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
 
     const auto type_size = type_m->getTypeDatabase().getTypeSize(type_id);
 
-    LOG_FATAL("Type " << type_id << " with " << type_size << " and num elems " << num_elements)
+    LOG_DEBUG("Type " << type_id << " with " << type_size << " and num elems " << num_elements)
 
     auto* type_id_const    = instr_helper->getConstantFor(IType::type_id, type_id);
     Value* type_size_const = instr_helper->getConstantFor(IType::extent, type_size);
@@ -162,7 +162,7 @@ StackArgList MemOpArgCollector::collectStack(const AllocaDataList& allocs) {
 
     const auto type_size = type_m->getTypeDatabase().getTypeSize(type_id);
 
-    LOG_FATAL("Alloca Type " << type_id << " with " << type_size << " and num elems " << num_elements)
+    LOG_DEBUG("Alloca Type " << type_id << " with " << type_size << " and num elems " << num_elements)
 
     Value* num_elements_val{nullptr};
     // The length can be specified statically through the array type or as a separate argument.
@@ -204,7 +204,7 @@ GlobalArgList MemOpArgCollector::collectGlobal(const GlobalDataList& globals) {
     }
 
     auto type_size = type_m->getTypeDatabase().getTypeSize(type_id);
-    LOG_FATAL("Global Type " << type_id << " with " << type_size << " and num elems " << num_elements)
+    LOG_DEBUG("Global Type " << type_id << " with " << type_size << " and num elems " << num_elements)
 
     auto* type_id_const      = instr_helper->getConstantFor(IType::type_id, type_id);
     auto* num_elements_const = instr_helper->getConstantFor(IType::extent, num_elements);

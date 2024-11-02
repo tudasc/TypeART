@@ -96,7 +96,21 @@ dimeta::ArraySize array_size(const Type& type) {
 
 template <typename Type>
 std::string name_or_typedef_of(const Type& type) {
-  return detail::apply_func(type, [](const auto& t) { return t.type.name.empty() ? t.typedef_name : t.type.name; });
+  return detail::apply_func(type, [](const auto& qual_type) {
+    const bool no_name = qual_type.type.name.empty();
+    if constexpr (std::is_same_v<Type, typename dimeta::QualifiedCompound>) {
+      const bool no_identifier = qual_type.type.identifier.empty();
+      if (no_identifier && no_name) {
+        return qual_type.typedef_name;
+      }
+      if (no_identifier) {
+        return qual_type.type.name;
+      }
+      return qual_type.type.identifier;
+    }
+
+    return no_name ? qual_type.typedef_name : qual_type.type.name;
+  });
 }
 
 std::optional<typeart_builtin_type> get_builtin_typeid(const dimeta::QualifiedFundamental& type,
@@ -341,7 +355,7 @@ class DimetaTypeManager final : public TypeIDGenerator {
   }
 
   TypeIdentifier getOrRegisterType(const GlobalData& data) override {
-    // LOG_INFO("Start register global \"" << *data.global << "\"")
+    // LOG_INFO("Start register global \"" << *data.global << IR"\"")
     return getOrRegisterTypeValue(data.global);
   }
 

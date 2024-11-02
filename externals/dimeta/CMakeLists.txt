@@ -1,11 +1,11 @@
 FetchContent_Declare(
-  llvm-ditype
-  GIT_REPOSITORY https://github.com/ahueck/llvm-di-type
+  llvm-dimeta
+  GIT_REPOSITORY https://github.com/ahueck/llvm-dimeta
   GIT_TAG feat/typeart
   GIT_SHALLOW 1
 )
 
-FetchContent_MakeAvailable(llvm-ditype)
+FetchContent_MakeAvailable(llvm-dimeta)
 
 mark_as_advanced(
   DIMETA_USE_HEAPALLOCSITE

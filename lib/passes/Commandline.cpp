@@ -70,9 +70,9 @@ static cl::opt<ConfigStdArgTypes::stack_lifetime_ty> cl_typeart_instrument_stack
 
 static cl::opt<typeart::TypegenImplementation> cl_typeart_typegen_implementation(
     CommandlineStdArgs::typegen, cl::desc(ConfigStdArgDescriptions::typegen),
-    cl::values(clEnumValN(typeart::TypegenImplementation::IR, "ir", "Standard IR based type parser (default)"),
-               clEnumValN(typeart::TypegenImplementation::DIMETA, "dimeta", "Metadata-based parser")),
-    cl::Hidden, cl::init(typeart::TypegenImplementation::IR), cl::cat(typeart_category));
+    cl::values(clEnumValN(typeart::TypegenImplementation::IR, "ir", "Standard IR based type parser"),
+               clEnumValN(typeart::TypegenImplementation::DIMETA, "dimeta", "Metadata-based parser (default)")),
+    cl::Hidden, cl::init(typeart::TypegenImplementation::DIMETA), cl::cat(typeart_category));
 
 static cl::OptionCategory typeart_analysis_category(
     "TypeART memory instruction finder", "These options control which memory instructions are collected/filtered.");
