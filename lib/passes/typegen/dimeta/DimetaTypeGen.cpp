@@ -309,10 +309,11 @@ class DimetaTypeManager final : public TypeIDGenerator {
         return {getOrRegister(val->type, true), array_size(val->type)};
       }
     } else if (auto* alloc = llvm::dyn_cast<llvm::AllocaInst>(type)) {
+      LOG_DEBUG("Alloca found")
       auto val = dimeta::located_type_for(alloc);
       if (val) {
         LOG_DEBUG("Registering alloca")
-        const auto type_id        = getOrRegister(val->type, true);
+        const auto type_id        = getOrRegister(val->type, false);
         const auto array_size_val = array_size(val->type);
         LOG_DEBUG(array_size_val)
         return {type_id, array_size_val};

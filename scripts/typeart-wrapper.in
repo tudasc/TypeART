@@ -82,7 +82,7 @@ function typeart_global_init_fn() {
   typeart_cmdline_args_stack=""
   typeart_global_env_var_init_fn
 
-  readonly typeart_to_llvm_flags="-O1 -Xclang -disable-llvm-passes -c -emit-llvm"
+  readonly typeart_to_llvm_flags="-g -O1 -Xclang -disable-llvm-passes -c -emit-llvm"
   typeart_to_llvm_more_flags=""
   if [ ${typeart_wrapper_emit_ir} == 1 ]; then
     typeart_to_llvm_more_flags="-fno-discard-value-names"

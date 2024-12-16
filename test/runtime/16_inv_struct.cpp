@@ -31,9 +31,10 @@ int main() {
 
   return 0;
 }
+// clang-format off
 // main()
-// CHECK: [Trace] Alloc [[POINTER:0x[0-9a-f]+]] [[typeid:2[5-9][0-9]]] struct.S1 16 1 ([[ALLOC_FROM:0x[0-9a-f]+]]) H
-// CHECK: [Trace] Free [[POINTER]] [[typeid]] struct.S1 16 1 ([[ALLOC_FROM]])
+// CHECK: [Trace] Alloc [[POINTER:0x[0-9a-f]+]] [[typeid:2[5-9][0-9]]] {{(struct.)?}}{{(_ZTS2S1|S1)}} 16 1 ([[ALLOC_FROM:0x[0-9a-f]+]]) H
+// CHECK: [Trace] Free [[POINTER]] [[typeid]] {{(struct.)?}}{{(_ZTS2S1|S1)}} 16 1 ([[ALLOC_FROM]])
 // foo()
-// CHECK: [Trace] Alloc [[POINTER:0x[0-9a-f]+]] [[typeid:2[5-9][0-9]]] struct.S1 16 1 ([[ALLOC_FROM:0x[0-9a-f]+]]) H
-// CHECK: [Trace] Free [[POINTER]] [[typeid]] struct.S1 16 1 ([[ALLOC_FROM]])
+// CHECK: [Trace] Alloc [[POINTER:0x[0-9a-f]+]] [[typeid:2[5-9][0-9]]] {{(struct.)?}}{{(_ZTS2S1|S1)}} 16 1 ([[ALLOC_FROM:0x[0-9a-f]+]]) H
+// CHECK: [Trace] Free [[POINTER]] [[typeid]] {{(struct.)?}}{{(_ZTS2S1|S1)}} 16 1 ([[ALLOC_FROM]])

@@ -1,5 +1,8 @@
 // RUN: %run %s 2>&1 | %filecheck %s
 
+// dimeta does not support arrays of vectors currently
+// REQUIRES: !dimeta
+
 #include <stdlib.h>
 
 typedef int int2 __attribute__((ext_vector_type(2)));

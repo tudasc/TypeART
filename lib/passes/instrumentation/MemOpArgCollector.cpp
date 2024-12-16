@@ -54,7 +54,7 @@ HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
     const auto [type_id, num_elements] = type_m->getOrRegisterType(mdata);
 
     if (type_id == TYPEART_UNKNOWN_TYPE) {
-      LOG_ERROR("Target type of casted allocation is unknown. Not instrumenting. " << util::dump(*malloc_call));
+      LOG_DEBUG("Target type of casted allocation is unknown. Not instrumenting. " << util::dump(*malloc_call));
       continue;
     }
 
@@ -156,7 +156,7 @@ StackArgList MemOpArgCollector::collectStack(const AllocaDataList& allocs) {
     const auto [type_id, num_elements] = type_m->getOrRegisterType(adata);
 
     if (type_id == TYPEART_UNKNOWN_TYPE) {
-      LOG_ERROR("Unknown stack type. Not instrumenting. " << util::dump(*alloca));
+      LOG_DEBUG("Unknown stack type. Not instrumenting. " << util::dump(*alloca));
       continue;
     }
 
@@ -199,7 +199,7 @@ GlobalArgList MemOpArgCollector::collectGlobal(const GlobalDataList& globals) {
     const auto [type_id, num_elements] = type_m->getOrRegisterType(gdata);
 
     if (type_id == TYPEART_UNKNOWN_TYPE) {
-      LOG_ERROR("Unknown global type. Not instrumenting. " << util::dump(*global));
+      LOG_DEBUG("Unknown global type. Not instrumenting. " << util::dump(*global));
       continue;
     }
 

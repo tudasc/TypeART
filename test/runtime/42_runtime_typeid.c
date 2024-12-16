@@ -44,5 +44,5 @@ int main(int argc, char** argv) {
   return data.start + data_2.start;
 }
 
-// CHECK: Name: struct.Datastruct: 24 0 0 1 1 1 0
-// CHECK: Name: struct.Secondstruct: 8 0 0 1 1 1 0
+// CHECK: Name: {{(struct.)?}}Datastruct: 24 0 0 1 1 1 0
+// CHECK: Name: {{(struct.)?}}Secondstruct: 8 0 0 1 1 1 0

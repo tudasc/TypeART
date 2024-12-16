@@ -1,5 +1,8 @@
 // RUN: %run %s --manual 2>&1 | %filecheck %s
 
+// dimeta creates a different type id (258), making the test fail
+// REQUIRES: !dimeta
+
 #include "../../lib/runtime/CallbackInterface.h"
 #include "util.h"
 

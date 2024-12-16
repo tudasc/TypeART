@@ -180,7 +180,7 @@ function toolchain_init() {
 
 function source_to_llvm() {
   $compiler ${omp_flags} ${typeart_includes} ${typeart_san_flags} \
-    -O1 ${compile_flags} -Xclang -disable-llvm-passes -S -emit-llvm "${source_file}" -o -
+    -O1 -g ${compile_flags} -Xclang -disable-llvm-passes -S -emit-llvm "${source_file}" -o -
 }
 
 function apply_typeart() {
