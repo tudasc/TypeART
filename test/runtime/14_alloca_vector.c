@@ -1,8 +1,5 @@
 // RUN: %run %s 2>&1 | %filecheck %s
 
-// dimeta does not support arrays of vectors currently
-// REQUIRES: !dimeta
-
 #include <stdlib.h>
 
 typedef int int2 __attribute__((ext_vector_type(2)));
@@ -36,25 +33,25 @@ void malloc_vector(int n) {
 int main(int argc, char** argv) {
   // CHECK: [Trace] TypeART Runtime Trace
 
-  // CHECK: [Trace] Alloc 0x{{.*}} vec2:int32 8 2
-  // CHECK: [Trace] Alloc 0x{{.*}} vec2:float 8 2
-  // CHECK: [Trace] Alloc 0x{{.*}} vec3:double 32 2
+  // CHECK: [Trace] Alloc 0x{{.*}} {{(vec2:int32|int2)}} 8 2
+  // CHECK: [Trace] Alloc 0x{{.*}} {{(vec2:float|float2)}} 8 2
+  // CHECK: [Trace] Alloc 0x{{.*}} {{(vec3:double|double3)}} 32 2
   // CHECK: [Trace] Free 0x{{.*}}
   // CHECK: [Trace] Free 0x{{.*}}
   // CHECK: [Trace] Free 0x{{.*}}
   alloc_vector_arrays();
 
-  // CHECK: [Trace] Alloc 0x{{.*}} vec2:int32 8 4
-  // CHECK: [Trace] Alloc 0x{{.*}} vec2:float 8 4
-  // CHECK: [Trace] Alloc 0x{{.*}} vec3:double 32 4
+  // CHECK: [Trace] Alloc 0x{{.*}} {{(vec2:int32|int2)}} 8 4
+  // CHECK: [Trace] Alloc 0x{{.*}} {{(vec2:float|float2)}} 8 4
+  // CHECK: [Trace] Alloc 0x{{.*}} {{(vec3:double|double3)}} 32 4
   // CHECK: [Trace] Free 0x{{.*}}
   // CHECK: [Trace] Free 0x{{.*}}
   // CHECK: [Trace] Free 0x{{.*}}
   alloc_vector_vlas(4);
 
-  // CHECK: [Trace] Alloc 0x{{.*}} vec2:int32 8 8
-  // CHECK: [Trace] Alloc 0x{{.*}} vec2:float 8 8
-  // CHECK: [Trace] Alloc 0x{{.*}} vec3:double 32 8
+  // CHECK: [Trace] Alloc 0x{{.*}} {{(vec2:int32|int2)}} 8 8
+  // CHECK: [Trace] Alloc 0x{{.*}} {{(vec2:float|float2)}} 8 8
+  // CHECK: [Trace] Alloc 0x{{.*}} {{(vec3:double|double3)}} 32 8
   // CHECK: [Trace] Free 0x{{.*}}
   // CHECK: [Trace] Free 0x{{.*}}
   // CHECK: [Trace] Free 0x{{.*}}

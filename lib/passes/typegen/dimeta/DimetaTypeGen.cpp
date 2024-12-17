@@ -21,6 +21,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <iterator>
 #include <llvm/ADT/STLExtras.h>
 #include <llvm/IR/GlobalVariable.h>
 #include <llvm/IR/InstrTypes.h>
@@ -83,10 +84,39 @@ auto apply_func(const Type& type, Func&& handle_qualified_type) {
 }  // namespace detail
 
 template <typename Type>
-dimeta::ArraySize array_size(const Type& type) {
-  return detail::apply_func(type, [](const auto& t) {
+dimeta::ArraySize vector_num_elements(const Type& type) {
+  return detail::apply_func(type, [](const auto& t) -> dimeta::Extent {
     if (t.is_vector) {
-      return std::uint64_t(1);
+      int pos{-1};
+      // Find kVector tag-position to determine vector size
+      for (const auto& qualifier : t.qual) {
+        if (qualifier == dimeta::Qualifier::kVector) {
+          pos++;
+          break;
+        } 
+        if (qualifier == dimeta::Qualifier::kArray) {
+          pos++;
+        }
+      }
+      if (pos == -1) {
+        return 1;
+      }
+      return t.array_size.at(pos);
+    }
+
+    return 1;
+  });
+}
+
+template <typename Type>
+dimeta::ArraySize array_size(const Type& type) {
+  return detail::apply_func(type, [](const auto& t) -> dimeta::Extent {
+    if (t.array_size.size() > 1 || (t.is_vector && t.array_size.size() > 2)) {
+      LOG_ERROR("Unsupported array size number count > 1 for array type or > 2 for vector")
+    }
+    // Vector array-size does not count towards array type-size
+    if(t.is_vector && t.array_size.size() == 1) {
+      return 1;
     }
     const auto array_size_factor = t.array_size.empty() ? 1 : t.array_size.at(0);
 
@@ -199,20 +229,20 @@ class DimetaTypeManager final : public TypeIDGenerator {
 
     const int id = reserveNextTypeId();
     StructTypeInfo struct_info;
-    struct_info.type_id          = id;
-    struct_info.name             = vec_name;
-    const auto array_size_factor = array_size(f);
-    struct_info.extent           = f.type.extent * array_size_factor;
+    struct_info.type_id     = id;
+    struct_info.name        = vec_name;
+    const auto num_elements = vector_num_elements(f);
+    struct_info.extent      = f.vector_size;  // f.type.extent * array_size_factor;
 
     const auto vec_member_id = get_builtin_typeid(f, top_level).value();
     // FIXME assume vector offsets are "packed":
-    for (std::uint64_t i = 0; i < array_size_factor; ++i) {
+    for (std::uint64_t i = 0; i < num_elements; ++i) {
       struct_info.offsets.push_back(i * f.type.extent);
       struct_info.array_sizes.push_back(1);
       struct_info.member_types.push_back(vec_member_id);
     }
 
-    struct_info.num_members = array_size_factor;
+    struct_info.num_members = num_elements;
     struct_info.flag        = StructTypeFlag::LLVM_VECTOR;
 
     LOG_DEBUG("Registering vector-like type with id " << id)
