@@ -190,6 +190,7 @@ function source_to_llvm() {
 }
 
 function apply_typeart() {
+  ta_more_args+=" -fPIC"
   source_to_llvm |
     $opt_tool ${typeart_plugin} ${typeart_combined_mode_args} ${ta_more_args}
 }
@@ -242,7 +243,7 @@ function make_with_optim() {
 }
 
 function compile() {
-  local llc_flags="--filetype=obj"
+  local llc_flags="--filetype=obj --relocation-model=pic"
   if [ "$optimize" == " " ]; then
     make_no_optim
   else
@@ -251,7 +252,8 @@ function compile() {
 }
 
 function main_link() {
-  $compiler ${omp_flags} ${threads_flags} ${typeart_san_flags} ${typeart_ldflags} "${object_file}" -o "${exe_file}"
+  more_link_flags="-fPIC"
+  $compiler ${more_link_flags} ${omp_flags} ${threads_flags} ${typeart_san_flags} ${typeart_ldflags} "${object_file}" -o "${exe_file}"
 }
 
 function execute() {

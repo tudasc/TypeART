@@ -65,7 +65,7 @@ bool TypeDB::isStructType(int type_id) const {
 
 bool TypeDB::isUserDefinedType(int type_id) const {
   const auto* structInfo = getStructInfo(type_id);
-  LOG_FATAL(structInfo->name << " " << static_cast<int>(structInfo->flag) << " "
+  LOG_DEBUG(structInfo->name << " " << static_cast<int>(structInfo->flag) << " "
                              << (static_cast<int>(structInfo->flag) == static_cast<int>(StructTypeFlag::USER_DEFINED)))
   return (structInfo != nullptr) &&
          (static_cast<int>(structInfo->flag) == static_cast<int>(StructTypeFlag::USER_DEFINED));
@@ -73,7 +73,7 @@ bool TypeDB::isUserDefinedType(int type_id) const {
 
 bool TypeDB::isVectorType(int type_id) const {
   const auto* structInfo = getStructInfo(type_id);
-  LOG_FATAL(structInfo->name << " " << static_cast<int>(structInfo->flag) << " "
+  LOG_DEBUG(structInfo->name << " " << static_cast<int>(structInfo->flag) << " "
                              << (static_cast<int>(structInfo->flag) == static_cast<int>(StructTypeFlag::LLVM_VECTOR)))
   return (structInfo != nullptr) &&
          (static_cast<int>(structInfo->flag) == static_cast<int>(StructTypeFlag::LLVM_VECTOR));
