@@ -81,14 +81,14 @@ jobs:
 
       - name: Prepare artifact
         run: |
-          mkdir -p artifact/bench
-          mv test-bench/build/*_build.log artifact/bench
-          mv test-bench/artifact-${{ matrix.llvm-version }} artifact/bench
+          mkdir -p artifact
+          mv test-bench/build/*_build.log artifact
+          mv test-bench/artifact/* artifact
 
       - name: Upload test-bench artifact
         uses: actions/upload-artifact@v4
         with:
-          name: typeart-ci-ext
+          name: typeart-ci-ext-${{ matrix.llvm-version }}-${{ matrix.preset.name }}
           path: artifact
 
   run-AD-testbench:
@@ -150,14 +150,14 @@ jobs:
 
       - name: Prepare artifact
         run: |
-          mkdir -p artifact/ad-bench
-          mv ad-test-bench/build/*_build.log artifact/ad-bench
-          mv ad-test-bench/artifact-${{ matrix.llvm-version }} artifact/ad-bench
+          mkdir -p artifact
+          mv ad-test-bench/build/*_build.log artifact
+          mv ad-test-bench/artifact-${{ matrix.llvm-version }}/* artifact
 
       - name: Upload AD test-bench artifact
         uses: actions/upload-artifact@v4
         with:
-          name: typeart-ci-ext-ad
+          name: typeart-ci-ext-ad-${{ matrix.llvm-version }}-${{ matrix.preset.name }}
           path: artifact
 
   run-OMP-testbench:
@@ -229,12 +229,12 @@ jobs:
 
       - name: Prepare artifact
         run: |
-          mkdir -p artifact/bench
-          mv omp-test-bench/build/*_build.log artifact/bench
-          mv omp-test-bench/artifact-${{ matrix.llvm-version }} artifact/bench
+          mkdir -p artifact
+          mv omp-test-bench/build/*_build.log artifact
+          mv omp-test-bench/artifact-${{ matrix.llvm-version }}/* artifact
 
       - name: Upload omp-test-bench artifact
         uses: actions/upload-artifact@v4
         with:
-          name: typeart-ci-ext-omp
+          name: typeart-ci-ext-omp-${{ matrix.llvm-version }}-${{ matrix.preset.name }}
           path: artifact

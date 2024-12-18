@@ -112,26 +112,13 @@ jobs:
         if: matrix.preset.coverage
         run: cmake --build build --target typeart-lcov-html
 
-      - name: Prepare coverage artifact
-        if: matrix.preset.coverage
-        run: |
-          mkdir -p artifact/${{ matrix.preset.name }}-${{ matrix.llvm-version }}
-          mv build/profiles/ artifact/${{ matrix.preset.name }}-${{ matrix.llvm-version }}
-
-      - name: Upload test coverage artifact
-        if: matrix.preset.coverage
-        uses: actions/upload-artifact@v4
-        with:
-          name: typeart-ci-coverage
-          path: artifact
-
       - name: Coveralls (parallel)
         if: matrix.preset.coverage
         uses: coverallsapp/github-action@master
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path-to-lcov: build/typeart.coverage
-          flag-name: ${{ matrix.preset.name }}-${{ matrix.llvm-version }}
+          flag-name: ${{ matrix.preset.name }}-${{ matrix.llvm-version }}-${{ matrix.typeart-typegen-legacy }}
           parallel: true
 
   finish-coverage:
