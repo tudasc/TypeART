@@ -89,7 +89,7 @@ function typeart_global_init_fn() {
   fi
 }
 
-function typeart_is_typeart_linking_fn() {
+function typeart_is_linking_fn() {
   local arg=""
   for arg in "$@"; do
     case "$arg" in
@@ -238,6 +238,9 @@ function typeart_parse_cmd_line_fn() {
     case "$1" in
     -O?)
       typeart_optimize=$1
+      shift 1
+      ;;
+    -g)
       shift 1
       ;;
     -MT)
@@ -405,7 +408,7 @@ function typeart_main_driver_fn() {
     return 0
   fi
 
-  typeart_is_typeart_linking_fn "$@"
+  typeart_is_linking_fn "$@"
   local -r typeart_linking=$?
   typeart_has_source_fn "$@"
   local -r with_source=$?
