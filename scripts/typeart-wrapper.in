@@ -72,8 +72,14 @@ function typeart_global_init_fn() {
                    -l$<TARGET_FILE_BASE_NAME:typeart::Runtime>"
   readonly typeart_san_flags="@TYPEART_SAN_FLAGS@"
 
+  typeart_plugin="-load "${typeart_pass}" -typeart"
   # shellcheck disable=SC2027
-  readonly typeart_plugin="-load "${typeart_pass}" -typeart"
+  case "${TYPEART_TEST_LEGACY_IR}" in
+  on | ON | 1 | true | TRUE)
+    typeart_plugin+=" --typeart-typegen=ir"
+    ;;
+  esac
+
   readonly typeart_stack_mode_args="--typeart-heap=false --typeart-stack --typeart-stats @TYPEART_CALLFILTER@"
   readonly typeart_heap_mode_args="--typeart-heap=true --typeart-stats"
 

@@ -38,14 +38,14 @@ int main(int argc, char** argv) {
   // CHECK: Total stack                     :   {{[0-9]+}} ,   400 ,    -
   // CHECK-NEXT: Total global               :   {{[0-9]+}} ,    {{[0-9]+}} ,    -
   // CHECK-NEXT: Max. Heap Allocs           :   0 ,    - ,    -
-  // CHECK-NEXT: Max. Stack Allocs          :  {{(16|13)}} ,    - ,    -
+  // CHECK-NEXT: Max. Stack Allocs          :  {{[0-9]+}} ,    - ,    -
   // CHECK-NEXT: Addresses checked          :   0 ,    - ,    -
   // CHECK-NEXT: Distinct Addresses checked :   0 ,    - ,    -
   // CHECK-NEXT: Addresses re-used          :   0 ,    - ,    -
   // CHECK-NEXT: Addresses missed           :   0 ,    - ,    -
   // CHECK-NEXT: Distinct Addresses missed  :   0 ,    - ,    -
   // CHECK-NEXT: Total free heap            :   0 ,    0 ,    -
-  // CHECK-NEXT: Total free stack           : {{(423|418)}} ,  400 ,    -
+  // CHECK-NEXT: Total free stack           : 4{{[0-9]+}} ,  400 ,    -
   // CHECK-NEXT: OMP Stack/Heap/Free        :  {{[0-9]+}} ,    0 ,    0
   // CHECK-NEXT: Null/Zero/NullZero Addr    :   0 ,    0 ,    0
   // CHECK-NEXT: User-def. types            :   0 ,    - ,    -

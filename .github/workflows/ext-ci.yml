@@ -83,7 +83,7 @@ jobs:
         run: |
           mkdir -p artifact
           mv test-bench/build/*_build.log artifact
-          mv test-bench/artifact/* artifact
+          mv test-bench/artifact-${{ matrix.llvm-version }}/* artifact
 
       - name: Upload test-bench artifact
         uses: actions/upload-artifact@v4

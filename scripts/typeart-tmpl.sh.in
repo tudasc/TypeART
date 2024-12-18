@@ -143,7 +143,13 @@ function global_init() {
                    -l$<TARGET_FILE_BASE_NAME:typeart::Runtime>"
 
   # shellcheck disable=SC2027
-  readonly typeart_plugin="-load "${typeart_pass}" -typeart"
+  typeart_plugin="-load "${typeart_pass}" -typeart"
+  case "${TYPEART_TEST_LEGACY_IR}" in
+  on | ON | 1 | true | TRUE)
+    typeart_plugin+=" --typeart-typegen=ir"
+    ;;
+  esac
+
   readonly typeart_stack_mode_args="-typeart-heap=false -typeart-stack -typeart-stats"
   readonly typeart_heap_mode_args="-typeart-heap=true -typeart-stats"
   readonly typeart_combined_mode_args="${typeart_heap_mode_args} -typeart-stack"
