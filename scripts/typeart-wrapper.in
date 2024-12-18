@@ -303,6 +303,11 @@ function typeart_parse_cmd_line_fn() {
     esac
   done
 
+  if [ ${typeart_found_fpic} == 0 ]; then
+    typeart_found_fpic=1
+    typeart_wrapper_more_args+=" -fPIC"
+  fi
+
   if [ -z "${typeart_optimize}" ]; then
     typeart_optimize=-O0
   fi
