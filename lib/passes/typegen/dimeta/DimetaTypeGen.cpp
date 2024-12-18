@@ -93,7 +93,7 @@ dimeta::ArraySize vector_num_elements(const Type& type) {
         if (qualifier == dimeta::Qualifier::kVector) {
           pos++;
           break;
-        } 
+        }
         if (qualifier == dimeta::Qualifier::kArray) {
           pos++;
         }
@@ -115,7 +115,7 @@ dimeta::ArraySize array_size(const Type& type) {
       LOG_ERROR("Unsupported array size number count > 1 for array type or > 2 for vector")
     }
     // Vector array-size does not count towards array type-size
-    if(t.is_vector && t.array_size.size() == 1) {
+    if (t.is_vector && t.array_size.size() == 1) {
       return 1;
     }
     const auto array_size_factor = t.array_size.empty() ? 1 : t.array_size.at(0);
