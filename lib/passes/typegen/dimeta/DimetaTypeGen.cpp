@@ -161,6 +161,7 @@ std::optional<typeart_builtin_type> get_builtin_typeid(const dimeta::QualifiedFu
       return TYPEART_UNKNOWN_TYPE;
     case FundamentalType::Encoding::kVoid:
       return TYPEART_INT8;
+    case FundamentalType::Encoding::kUTFChar:
     case FundamentalType::Encoding::kChar:
     case FundamentalType::Encoding::kSignedChar:
     case FundamentalType::Encoding::kUnsignedChar:
@@ -180,6 +181,7 @@ std::optional<typeart_builtin_type> get_builtin_typeid(const dimeta::QualifiedFu
           return TYPEART_UNKNOWN_TYPE;
       }
     }
+    case FundamentalType::Encoding::kComplex:
     case FundamentalType::Encoding::kFloat: {
       switch (extent) {
         case 4:
