@@ -12,10 +12,10 @@ env:
 
 jobs:
   format-check:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Format source code
         run: |
@@ -24,7 +24,7 @@ jobs:
             -a \( -name "*.c" -o -name "*.cpp" -o -name "*.h" \) \
             -not -path "*/lulesh/*" -not -path "*/CallSite.h" \
             -print0 \
-            | xargs -0 clang-format-12 -i
+            | xargs -0 clang-format-14 -i
 
       - name: Format check
         run: |
@@ -32,19 +32,20 @@ jobs:
           git status --porcelain --untracked-files=no | xargs -o -I {} test -z \"{}\"
 
   codespell:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     steps:
-      - uses: actions/checkout@v3
-      - uses: codespell-project/actions-codespell@master
+      - uses: actions/checkout@v4
+      - uses: codespell-project/actions-codespell@v2
 
   lit-suite:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     strategy:
       fail-fast: false
       matrix:
-        llvm-version: [ 10, 11, 12 ]
+        llvm-version: [ 14 ]
+        typeart-typegen-legacy: [ 0, 1 ]
         preset:
           - name: ci-thread-safe-safeptr
           - name: ci-thread-safe
@@ -60,7 +61,7 @@ jobs:
             skip_test: true
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Update apt
         run: sudo apt-get update
@@ -91,6 +92,7 @@ jobs:
           sudo ln -f -s /usr/bin/clang++-${{ matrix.llvm-version }} /usr/bin/clang++
           echo "LLVM_CMAKE_DIR=/usr/lib/llvm-${{ matrix.llvm-version }}/cmake" >> $GITHUB_ENV
           echo "EXTERNAL_LIT=/usr/lib/llvm-${{ matrix.llvm-version }}/build/utils/lit/lit.py" >> $GITHUB_ENV
+          echo "TYPEART_TEST_LEGACY_IR=${{ matrix.typeart-typegen-legacy }}" >> $GITHUB_ENV
 
       - name: Configure TypeART
         run: cmake -B build --preset ${{ matrix.preset.name }} -DLLVM_DIR=${LLVM_CMAKE_DIR} -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT}
@@ -110,31 +112,18 @@ jobs:
         if: matrix.preset.coverage
         run: cmake --build build --target typeart-lcov-html
 
-      - name: Prepare coverage artifact
-        if: matrix.preset.coverage
-        run: |
-          mkdir -p artifact/${{ matrix.preset.name }}-${{ matrix.llvm-version }}
-          mv build/profiles/ artifact/${{ matrix.preset.name }}-${{ matrix.llvm-version }}
-
-      - name: Upload test coverage artifact
-        if: matrix.preset.coverage
-        uses: actions/upload-artifact@v3
-        with:
-          name: typeart-ci-coverage
-          path: artifact
-
       - name: Coveralls (parallel)
         if: matrix.preset.coverage
         uses: coverallsapp/github-action@master
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path-to-lcov: build/typeart.coverage
-          flag-name: ${{ matrix.preset.name }}-${{ matrix.llvm-version }}
+          flag-name: ${{ matrix.preset.name }}-${{ matrix.llvm-version }}-${{ matrix.typeart-typegen-legacy }}
           parallel: true
 
   finish-coverage:
     needs: lit-suite
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Coveralls Finished
         uses: coverallsapp/github-action@master

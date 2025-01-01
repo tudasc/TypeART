@@ -10,4 +10,4 @@ int main(void) {
 // CHECK:      TypeArtPass [Heap & Stack]
 // CHECK-NEXT: Malloc :   0
 // CHECK-NEXT: Free   :   0
-// CHECK-NEXT: Alloca :   1
+// CHECK-NEXT: Alloca :   {{(1|0)}}

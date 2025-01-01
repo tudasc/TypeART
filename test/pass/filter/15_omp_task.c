@@ -26,7 +26,7 @@ void foo() {
 // CHECK: TypeArtPass [Heap & Stack]
 // CHECK-NEXT: Malloc :   0
 // CHECK-NEXT: Free   :   0
-// CHECK-NEXT: Alloca :   2
+// CHECK-NEXT: Alloca :   {{(2|1)}}
 // CHECK-NEXT: Global :   0
 
 // CHECK-opt: TypeArtPass [Heap & Stack]

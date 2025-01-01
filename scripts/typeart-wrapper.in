@@ -72,8 +72,14 @@ function typeart_global_init_fn() {
                    -l$<TARGET_FILE_BASE_NAME:typeart::Runtime>"
   readonly typeart_san_flags="@TYPEART_SAN_FLAGS@"
 
+  typeart_plugin="-load "${typeart_pass}" -typeart"
   # shellcheck disable=SC2027
-  readonly typeart_plugin="-load "${typeart_pass}" -typeart"
+  case "${TYPEART_TEST_LEGACY_IR}" in
+  on | ON | 1 | true | TRUE)
+    typeart_plugin+=" --typeart-typegen=ir"
+    ;;
+  esac
+
   readonly typeart_stack_mode_args="--typeart-heap=false --typeart-stack --typeart-stats @TYPEART_CALLFILTER@"
   readonly typeart_heap_mode_args="--typeart-heap=true --typeart-stats"
 
@@ -82,14 +88,14 @@ function typeart_global_init_fn() {
   typeart_cmdline_args_stack=""
   typeart_global_env_var_init_fn
 
-  readonly typeart_to_llvm_flags="-O1 -Xclang -disable-llvm-passes -c -emit-llvm"
+  readonly typeart_to_llvm_flags="-g -O1 -Xclang -disable-llvm-passes -c -emit-llvm"
   typeart_to_llvm_more_flags=""
   if [ ${typeart_wrapper_emit_ir} == 1 ]; then
     typeart_to_llvm_more_flags="-fno-discard-value-names"
   fi
 }
 
-function typeart_is_typeart_linking_fn() {
+function typeart_is_linking_fn() {
   local arg=""
   for arg in "$@"; do
     case "$arg" in
@@ -240,6 +246,9 @@ function typeart_parse_cmd_line_fn() {
       typeart_optimize=$1
       shift 1
       ;;
+    -g)
+      shift 1
+      ;;
     -MT)
       if [ -n "$2" ]; then
         typeart_wrapper_more_args+=" $1 $2"
@@ -299,6 +308,11 @@ function typeart_parse_cmd_line_fn() {
       ;;
     esac
   done
+
+  if [ ${typeart_found_fpic} == 0 ]; then
+    typeart_found_fpic=1
+    typeart_wrapper_more_args+=" -fPIC"
+  fi
 
   if [ -z "${typeart_optimize}" ]; then
     typeart_optimize=-O0
@@ -405,7 +419,7 @@ function typeart_main_driver_fn() {
     return 0
   fi
 
-  typeart_is_typeart_linking_fn "$@"
+  typeart_is_linking_fn "$@"
   local -r typeart_linking=$?
   typeart_has_source_fn "$@"
   local -r with_source=$?

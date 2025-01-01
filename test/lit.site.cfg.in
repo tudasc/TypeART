@@ -1,6 +1,9 @@
 @LIT_SITE_CFG_IN_HEADER@
 
 import sys
+import os
+
+config.environment['TYPEART_TEST_LEGACY_IR'] = os.getenv('TYPEART_TEST_LEGACY_IR', '0')
 
 # LLVM toolchain:
 config.clang_cpp = "@TYPEART_CLANGCXX_EXEC@"

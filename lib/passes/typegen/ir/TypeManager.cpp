@@ -12,31 +12,40 @@
 
 #include "TypeManager.h"
 
+#include "IRTypeGen.h"
 #include "StructTypeHandler.h"
 #include "VectorTypeHandler.h"
 #include "support/Logger.h"
 #include "support/TypeUtil.h"
 #include "support/Util.h"
-#include "typelib/TypeIO.h"
 #include "typelib/TypeInterface.h"
 
 #include "llvm/ADT/None.h"
+#include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/IR/Constants.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/DerivedTypes.h"
+#include "llvm/IR/Instructions.h"
+#include "llvm/IR/Module.h"
 #include "llvm/IR/Type.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/TypeSize.h"
 #include "llvm/Support/raw_ostream.h"
 
 #include <cassert>
+#include <cstddef>
+#include <string>
 #include <utility>
 #include <vector>
 
 namespace typeart {
 
-std::unique_ptr<TypeGenerator> make_typegen(const std::string& file) {
-  return std::make_unique<TypeManager>(file);
+namespace tu = typeart::util::type;
+
+std::unique_ptr<TypeGenerator> make_ir_typeidgen(std::string_view file,
+                                                 std::unique_ptr<TypeDatabase> database_of_types) {
+  return std::make_unique<TypeManager>(std::string{file}, std::move(database_of_types));
 }
 
 using namespace llvm;
@@ -82,7 +91,7 @@ llvm::Optional<typeart_builtin_type> get_builtin_typeid(llvm::Type* type) {
 int TypeManager::getOrRegisterVector(llvm::VectorType* type, const llvm::DataLayout& dl) {
   namespace tu = typeart::util;
 
-  VectorTypeHandler handler{&structMap, &typeDB, type, dl, *this};
+  VectorTypeHandler handler{&structMap, typeDB.get(), type, dl, *this};
   const auto type_id = handler.getID();
   if (type_id) {
     return type_id.getValue();
@@ -100,61 +109,43 @@ int TypeManager::getOrRegisterVector(llvm::VectorType* type, const llvm::DataLay
     return TYPEART_UNKNOWN_TYPE;
   }
 
-  const int id = reserveNextId();
+  const int id = reserveNextTypeId();
 
   const auto [element_id, element_type, element_name] = element_data.getValue();
   const auto [vector_name, vector_bytes, vector_size] = vector_data.getValue();
 
-  std::vector<int> memberTypeIDs{element_id};
-  std::vector<size_t> arraySizes{vector_size};
-  std::vector<size_t> offsets{0};
+  std::vector<int> memberTypeIDs;
+  std::vector<size_t> arraySizes;
+  std::vector<size_t> offsets;
 
   size_t elementSize = tu::type::getTypeSizeInBytes(element_type, dl);
-  size_t usableBytes = vector_size * elementSize;
+
+  for (unsigned long i = 0; i < vector_size; ++i) {
+    memberTypeIDs.push_back(element_id);
+    arraySizes.push_back(1);
+    offsets.push_back(i * elementSize);
+  }
+
+  // size_t usableBytes = vector_size * elementSize;
 
   // Add padding bytes explicitly
-  if (vector_bytes > usableBytes) {
-    size_t padding = vector_bytes - usableBytes;
-    memberTypeIDs.push_back(TYPEART_INT8);
-    arraySizes.push_back(padding);
-    offsets.push_back(usableBytes);
-  }
+  // if (vector_bytes > usableBytes) {
+  //   size_t padding = vector_bytes - usableBytes;
+  //   memberTypeIDs.push_back(TYPEART_INT8);
+  //   arraySizes.push_back(padding);
+  //   offsets.push_back(usableBytes);
+  // }
 
   StructTypeInfo vecTypeInfo{id,      vector_name,   vector_bytes, memberTypeIDs.size(),
                              offsets, memberTypeIDs, arraySizes,   StructTypeFlag::LLVM_VECTOR};
-  typeDB.registerStruct(vecTypeInfo);
+  typeDB->registerStruct(vecTypeInfo);
   structMap.insert({vector_name, id});
   return id;
 }
 
-TypeManager::TypeManager(std::string file) : file(std::move(file)), structCount(0) {
-}
-
-const TypeDatabase& TypeManager::getTypeDatabase() const {
-  return typeDB;
-}
-
-std::pair<bool, std::error_code> TypeManager::load() {
-  //  TypeIO cio(&typeDB);
-  // std::error_code error;
-  auto loaded        = io::load(&typeDB, file);
-  std::error_code ec = loaded.getError();
-  if (ec) {
-    return {false, ec};
-  }
-  structMap.clear();
-  for (const auto& structInfo : typeDB.getStructList()) {
-    structMap.insert({structInfo.name, structInfo.type_id});
-  }
-  structCount = structMap.size();
-  return {true, ec};
-}
-
-std::pair<bool, std::error_code> TypeManager::store() const {
-  auto stored        = io::store(&typeDB, file);
-  std::error_code ec = stored.getError();
-  return {!static_cast<bool>(ec), ec};
-}
+// TypeManager::TypeManager(std::string file, std::unique_ptr<TypeDatabase> database_of_types)
+//     : types::TypeIDGenerator(std::move(file), std::move(database_of_types)) {
+// }
 
 int TypeManager::getTypeID(llvm::Type* type, const DataLayout& dl) const {
   auto builtin_id = get_builtin_typeid(type);
@@ -169,7 +160,7 @@ int TypeManager::getTypeID(llvm::Type* type, const DataLayout& dl) const {
     case llvm::Type::FixedVectorTyID:
 #endif
     {
-      VectorTypeHandler handle{&structMap, &typeDB, dyn_cast<VectorType>(type), dl, *this};
+      VectorTypeHandler handle{&structMap, typeDB.get(), dyn_cast<VectorType>(type), dl, *this};
       const auto type_id = handle.getID();
       if (type_id) {
         return type_id.getValue();
@@ -177,7 +168,7 @@ int TypeManager::getTypeID(llvm::Type* type, const DataLayout& dl) const {
       break;
     }
     case llvm::Type::StructTyID: {
-      StructTypeHandler handle{&structMap, &typeDB, dyn_cast<StructType>(type)};
+      StructTypeHandler handle{&structMap, typeDB.get(), dyn_cast<StructType>(type)};
       const auto type_id = handle.getID();
       if (type_id) {
         return type_id.getValue();
@@ -223,7 +214,7 @@ int TypeManager::getOrRegisterType(llvm::Type* type, const llvm::DataLayout& dl)
 int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLayout& dl) {
   namespace tu = typeart::util;
 
-  StructTypeHandler handle{&structMap, &typeDB, type};
+  StructTypeHandler handle{&structMap, typeDB.get(), type};
   const auto type_id = handle.getID();
   if (type_id) {
     return type_id.getValue();
@@ -232,7 +223,7 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
   const auto name = handle.getName();
 
   // Get next ID and register struct:
-  const int id = reserveNextId();
+  const int id = reserveNextTypeId();
 
   size_t n = type->getStructNumElements();
 
@@ -279,16 +270,81 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
   size_t numBytes = layout->getSizeInBytes();
 
   StructTypeInfo structInfo{id, name, numBytes, n, offsets, memberTypeIDs, arraySizes, StructTypeFlag::USER_DEFINED};
-  typeDB.registerStruct(structInfo);
+  typeDB->registerStruct(structInfo);
 
   structMap.insert({name, id});
   return id;
 }
 
-int TypeManager::reserveNextId() {
-  int id = static_cast<int>(TYPEART_NUM_RESERVED_IDS) + structCount;
-  structCount++;
-  return id;
+TypeIdentifier TypeManager::getOrRegisterType(const MallocData& mdata) {
+  auto malloc_call            = mdata.call;
+  const llvm::DataLayout& dl  = malloc_call->getModule()->getDataLayout();
+  BitCastInst* primaryBitcast = mdata.primary;
+
+  int typeId = getOrRegisterType(malloc_call->getType()->getPointerElementType(),
+                                 dl);  // retrieveTypeID(tu::getVoidType(c));
+  if (typeId == TYPEART_UNKNOWN_TYPE) {
+    LOG_ERROR("Unknown heap type. Not instrumenting. " << util::dump(*malloc_call));
+    // TODO notify caller that we skipped: via lambda callback function
+    return {};
+  };
+
+  // Number of bytes per element, 1 for void*
+  unsigned typeSize = tu::getTypeSizeInBytes(malloc_call->getType()->getPointerElementType(), dl);
+
+  // Use the first cast as the determining type (if there is any)
+  if (primaryBitcast != nullptr) {
+    auto* dstPtrType = primaryBitcast->getDestTy()->getPointerElementType();
+
+    typeSize = tu::getTypeSizeInBytes(dstPtrType, dl);
+
+    // Resolve arrays
+    // TODO: Write tests for this case
+    if (dstPtrType->isArrayTy()) {
+      dstPtrType = tu::getArrayElementType(dstPtrType);
+    }
+
+    typeId = getOrRegisterType(dstPtrType, dl);
+    if (typeId == TYPEART_UNKNOWN_TYPE) {
+      LOG_ERROR("Target type of casted allocation is unknown. Not instrumenting. " << util::dump(*malloc_call));
+      LOG_ERROR("Cast: " << util::dump(*primaryBitcast));
+      LOG_ERROR("Target type: " << util::dump(*dstPtrType));
+    }
+  } else {
+    LOG_WARNING("Primary bitcast is null. malloc: " << util::dump(*malloc_call))
+  }
+  return {typeId, 0};
+}
+
+TypeIdentifier TypeManager::getOrRegisterType(const AllocaData& adata) {
+  auto alloca                = adata.alloca;
+  const llvm::DataLayout& dl = alloca->getModule()->getDataLayout();
+  Type* elementType          = alloca->getAllocatedType();
+
+  auto arraySize = adata.array_size == 0 ? 1 : adata.array_size;
+  if (elementType->isArrayTy()) {
+    arraySize   = arraySize * tu::getArrayLengthFlattened(elementType);
+    elementType = tu::getArrayElementType(elementType);
+  }
+
+  int typeId = getOrRegisterType(elementType, dl);
+
+  return {typeId, arraySize};
+}
+
+TypeIdentifier TypeManager::getOrRegisterType(const GlobalData& gdata) {
+  auto global                = gdata.global;
+  const llvm::DataLayout& dl = global->getParent()->getDataLayout();
+  auto type                  = global->getValueType();
+
+  size_t num_elements{1};
+  if (type->isArrayTy()) {
+    num_elements = tu::getArrayLengthFlattened(type);
+    type         = tu::getArrayElementType(type);
+  }
+
+  int typeId = getOrRegisterType(type, dl);
+  return {typeId, num_elements};
 }
 
 }  // namespace typeart

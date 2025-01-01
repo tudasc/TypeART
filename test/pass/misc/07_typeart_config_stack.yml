@@ -4,6 +4,7 @@ heap: false
 stack: true
 global: false
 stack-lifetime: false
+typegen: "dimeta"
 filter: false
 call-filter:
   implementation: "std"

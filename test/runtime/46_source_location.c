@@ -1,4 +1,4 @@
-// RUN: %run  %s --compile_flags "-g" 2>&1 | %filecheck %s
+// RUN: %run  %s --compile_flags "-fdebug-default-version=4" 2>&1 | %filecheck %s
 
 #include "../../lib/runtime/RuntimeInterface.h"
 

@@ -35,9 +35,8 @@ void foo() {
 }
 
 // Standard filter
-// CHECK: > Stack Memory
-// CHECK-NEXT: Alloca                 :  12.00
-// CHECK-NEXT: Stack call filtered %  :  91.67
+// CHECK: TypeArtPass [Heap & Stack]
+// CHECK: Alloca :   1
 
 // with opt only "d" in foo is tracked
 // CHECK-opt: > Stack Memory
