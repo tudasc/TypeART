@@ -1,5 +1,5 @@
 // clang-format off
-// RUN: %c-to-llvm %s | %apply-typeart -S | %apply-typeart -typeart-stack -typeart-heap=false -typeart-call-filter -S 2>&1 | %filecheck %s
+// RUN: %c-to-llvm %s | %apply-typeart -S | %apply-typeart --typeart-stack --typeart-heap=false --typeart-filter -S 2>&1 | %filecheck %s
 // clang-format on
 
 #include <stdlib.h>
@@ -16,7 +16,9 @@ int main(int argc, char** argv) {
   return 0;
 }
 
-// CHECK: call void @__typeart_alloc(
+// This is added with legacy type parser:
+// : call void @__typeart_alloc(
+
 // CHECK: call void @__typeart_free(
 
 // CHECK-NOT: call void @__typeart_leave_scope

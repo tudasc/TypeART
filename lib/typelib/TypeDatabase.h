@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2022 TypeART Authors
+// Copyright (c) 2017-2025 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -21,7 +21,7 @@
 
 namespace typeart {
 
-enum class StructTypeFlag : int { USER_DEFINED = 1, LLVM_VECTOR = 2 };
+enum class StructTypeFlag : int { USER_DEFINED = 1, LLVM_VECTOR = 2, FWD_DECL = 4 };
 
 struct StructTypeInfo {
   int type_id;
@@ -36,7 +36,9 @@ struct StructTypeInfo {
 
 class TypeDatabase {
  public:
-  virtual void registerStruct(const StructTypeInfo& struct_info) = 0;
+  virtual void registerStruct(const StructTypeInfo& struct_info, bool overwrite = false) = 0;
+
+  virtual void clear() = 0;
 
   [[nodiscard]] virtual bool isUnknown(int type_id) const = 0;
 
@@ -55,6 +57,8 @@ class TypeDatabase {
   [[nodiscard]] virtual const std::string& getTypeName(int type_id) const = 0;
 
   [[nodiscard]] virtual const StructTypeInfo* getStructInfo(int type_id) const = 0;
+
+  [[nodiscard]] virtual StructTypeInfo* getStructInfo(int type_id) = 0;
 
   [[nodiscard]] virtual size_t getTypeSize(int type_id) const = 0;
 

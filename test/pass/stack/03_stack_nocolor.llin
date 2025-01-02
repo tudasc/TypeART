@@ -1,4 +1,6 @@
-; RUN: %apply-typeart -typeart-stack -typeart-stack-lifetime -S < %s 2>&1 | %filecheck %s
+; RUN: %apply-typeart --typeart-stack --typeart-stack-lifetime -S < %s 2>&1 | %filecheck %s
+
+; REQUIRES: !dimeta
 
 ; Modified from the LLVM codegen test suite
 

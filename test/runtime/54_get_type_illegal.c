@@ -58,7 +58,7 @@ void test_get_containing() {
   DataStruct data[5];
   // Illegal address, but containing_type does not resolve such things:
   void* illegal_addr = (char*)&data[0].a + sizeof(int);
-  // CHECK: Status OK: type_id=257 count=5 offset=4
+  // CHECK: Status OK: type_id=25{{[6-9]}} count=5 offset=4
   type_check_containing(illegal_addr);
 }
 

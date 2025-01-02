@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2022 TypeART Authors
+// Copyright (c) 2017-2025 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -28,7 +28,7 @@ class DataLayout;
 namespace typeart {
 
 class TypeDatabase;
-class TypeGenerator;
+class TypeManager;
 
 struct VectorTypeHandler {
   // To avoid problems with padding bytes due to alignment, vector types are represented as structs rather than static
@@ -39,7 +39,7 @@ struct VectorTypeHandler {
 
   llvm::VectorType* type;
   const llvm::DataLayout& dl;
-  const TypeGenerator& m;
+  const TypeManager& m;
 
   struct VectorData {
     std::string vec_name;

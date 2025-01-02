@@ -1,5 +1,7 @@
-; RUN: cat %s | %apply-typeart -typeart-stack -typeart-filter-pointer-alloca=false -S 2>&1 | %filecheck %s
-; RUN: cat %s | %apply-typeart -typeart-stack -typeart-call-filter -typeart-filter-pointer-alloca=false -S 2>&1 | %filecheck %s -check-prefix=CHECK-FILTER-EXP
+; RUN: cat %s | %apply-typeart --typeart-stack --typeart-analysis-filter-pointer-alloca=false -S 2>&1 | %filecheck %s
+; RUN: cat %s | %apply-typeart --typeart-stack --typeart-filter --typeart-analysis-filter-pointer-alloca=false -S 2>&1 | %filecheck %s -check-prefix=CHECK-FILTER-EXP
+
+; REQUIRES: !dimeta
 
 ; ModuleID = '01_alloca.c'
 source_filename = "01_alloca.c"

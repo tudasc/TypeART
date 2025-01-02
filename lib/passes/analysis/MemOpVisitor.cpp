@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2022 TypeART Authors
+// Copyright (c) 2017-2025 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -146,7 +146,7 @@ std::pair<MallocGeps, MallocBcasts> collectRelevantMallocUsers(llvm::CallBase& c
     // Pointer is first stored, then loaded and subsequently casted
     if (auto storeInst = dyn_cast<StoreInst>(user)) {
       auto storeAddr = storeInst->getPointerOperand();
-      for (auto storeUser : storeAddr->users()) {  // TODO: Ensure that load occurs ofter store?
+      for (auto storeUser : storeAddr->users()) {  // TODO: Ensure that load occurs after store?
         if (auto loadInst = dyn_cast<LoadInst>(storeUser)) {
           for (auto loadUser : loadInst->users()) {
             if (auto bcastInst = dyn_cast<BitCastInst>(loadUser)) {

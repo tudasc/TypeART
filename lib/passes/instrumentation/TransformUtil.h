@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2022 TypeART Authors
+// Copyright (c) 2017-2025 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -62,7 +62,7 @@ struct StackCounter {
 
       const auto all_preds_have_counter = llvm::all_of(
           llvm::predecessors(I->getParent()), [&allocCounts](const auto* bb) { return allocCounts.count(bb) > 0; });
-      if (all_preds_have_counter) {
+      if (!all_preds_have_counter) {
         auto* cond = irb->CreateICmpNE(counter_load, instr_helper->getConstantFor(IType::stack_count), "__ta_cond");
         auto* then_term = SplitBlockAndInsertIfThen(cond, I, false);
         irb->SetInsertPoint(then_term);

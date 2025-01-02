@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2022 TypeART Authors
+// Copyright (c) 2017-2025 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -65,14 +65,18 @@ bool TypeDB::isStructType(int type_id) const {
 
 bool TypeDB::isUserDefinedType(int type_id) const {
   const auto* structInfo = getStructInfo(type_id);
+  LOG_DEBUG(structInfo->name << " " << static_cast<int>(structInfo->flag) << " "
+                             << (static_cast<int>(structInfo->flag) == static_cast<int>(StructTypeFlag::USER_DEFINED)))
   return (structInfo != nullptr) &&
-         ((static_cast<int>(structInfo->flag) & static_cast<int>(StructTypeFlag::USER_DEFINED)) != 0);
+         (static_cast<int>(structInfo->flag) == static_cast<int>(StructTypeFlag::USER_DEFINED));
 }
 
 bool TypeDB::isVectorType(int type_id) const {
   const auto* structInfo = getStructInfo(type_id);
+  LOG_DEBUG(structInfo->name << " " << static_cast<int>(structInfo->flag) << " "
+                             << (static_cast<int>(structInfo->flag) == static_cast<int>(StructTypeFlag::LLVM_VECTOR)))
   return (structInfo != nullptr) &&
-         ((static_cast<int>(structInfo->flag) & static_cast<int>(StructTypeFlag::LLVM_VECTOR)) != 0);
+         (static_cast<int>(structInfo->flag) == static_cast<int>(StructTypeFlag::LLVM_VECTOR));
 }
 
 bool TypeDB::isValid(int type_id) const {
@@ -82,7 +86,7 @@ bool TypeDB::isValid(int type_id) const {
   return typeid_to_list_index.find(type_id) != typeid_to_list_index.end();
 }
 
-void TypeDB::registerStruct(const StructTypeInfo& struct_type) {
+void TypeDB::registerStruct(const StructTypeInfo& struct_type, bool overwrite) {
   if (isValid(struct_type.type_id) || !isStructType(struct_type.type_id)) {
     if (isBuiltinType(struct_type.type_id)) {
       LOG_ERROR("Built-in type ID used for struct " << struct_type.name);
@@ -91,8 +95,14 @@ void TypeDB::registerStruct(const StructTypeInfo& struct_type) {
     } else if (isUnknown(struct_type.type_id)) {
       LOG_ERROR("Type ID is reserved for unknown types. Struct: " << struct_type.name);
     } else {
-      LOG_ERROR("Struct type ID already registered for " << struct_type.name << ". Conflicting struct is "
-                                                         << getStructInfo(struct_type.type_id)->name);
+      if (!overwrite) {
+        LOG_ERROR("Struct type ID already registered for " << struct_type.name << ". Conflicting struct is "
+                                                           << getStructInfo(struct_type.type_id)->name);
+        return;
+      }
+      LOG_DEBUG("Overwrite struct " << struct_type.name)
+      auto& info = *getStructInfo(struct_type.type_id);
+      info       = struct_type;
     }
     return;
   }
@@ -129,6 +139,14 @@ size_t TypeDB::getTypeSize(int type_id) const {
 }
 
 const StructTypeInfo* TypeDB::getStructInfo(int type_id) const {
+  const auto index_iter = typeid_to_list_index.find(type_id);
+  if (index_iter != typeid_to_list_index.end()) {
+    return &struct_info_vec[index_iter->second];
+  }
+  return nullptr;
+}
+
+StructTypeInfo* TypeDB::getStructInfo(int type_id) {
   const auto index_iter = typeid_to_list_index.find(type_id);
   if (index_iter != typeid_to_list_index.end()) {
     return &struct_info_vec[index_iter->second];

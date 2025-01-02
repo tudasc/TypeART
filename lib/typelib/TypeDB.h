@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2022 TypeART Authors
+// Copyright (c) 2017-2025 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -25,9 +25,9 @@ namespace typeart {
 
 class TypeDB final : public TypeDatabase {
  public:
-  void clear();
+  void clear() override;
 
-  void registerStruct(const StructTypeInfo& struct_type) override;
+  void registerStruct(const StructTypeInfo& struct_type, bool overwrite = false) override;
 
   bool isUnknown(int type_id) const override;
 
@@ -46,6 +46,7 @@ class TypeDB final : public TypeDatabase {
   const std::string& getTypeName(int type_id) const override;
 
   const StructTypeInfo* getStructInfo(int type_id) const override;
+  [[nodiscard]] StructTypeInfo* getStructInfo(int type_id) override;
 
   size_t getTypeSize(int type_id) const override;
 

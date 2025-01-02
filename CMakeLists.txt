@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 
 project(typeart
-  VERSION 1.8
+  VERSION 1.9
   HOMEPAGE_URL https://github.com/tudasc/TypeART
   DESCRIPTION "LLVM-based type and memory allocation tracking sanitizer"
 )
@@ -15,7 +15,7 @@ endif()
 
 if(TYPEART_IS_TOP_LEVEL)
   set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-  set(CMAKE_VERBOSE_MAKEFILE OFF)
+  set(CMAKE_VERBOSE_MAKEFILE ON)
 endif()
 
 set(CMAKE_CXX_STANDARD 17)

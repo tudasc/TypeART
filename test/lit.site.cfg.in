@@ -1,6 +1,9 @@
 @LIT_SITE_CFG_IN_HEADER@
 
 import sys
+import os
+
+config.environment['TYPEART_TYPEGEN_IR'] = os.getenv('TYPEART_TYPEGEN_IR', '0')
 
 # LLVM toolchain:
 config.clang_cpp = "@TYPEART_CLANGCXX_EXEC@"
@@ -10,6 +13,7 @@ config.opt_args = "@TYPEART_OPT_ARGS@"
 config.llc = "@TYPEART_LLC_EXEC@"
 config.filecheck = "@TYPEART_FILECHECK_EXEC@"
 
+config.typeart_project_dir = "@TYPEARTPASS_PROJECT_DIR@"
 config.typeart_base_lib_dir = "@TYPEARTPASS_BASE_LIBRARY_DIR@"
 config.typeart_obj_root = "@TYPEARTPASS_BINARY_DIR@"
 config.typeart_lib_dir = "@TYPEARTPASS_LIBRARY_DIR@"
@@ -35,6 +39,8 @@ config.tsan=@TYPEARTPASS_TSAN@
 config.asan=@TYPEARTPASS_ASAN@
 config.ubsan=@TYPEARTPASS_UBSAN@
 config.coverage=@TYPEART_COVERAGE@
+
+config.python_interp = "@Python3_EXECUTABLE@"
 
 # Let the main config do the real work.
 config.loaded_site_config = True

@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2022 TypeART Authors
+// Copyright (c) 2017-2025 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -19,6 +19,7 @@
 #include "filter/Filter.h"
 #include "filter/Matcher.h"
 #include "filter/StdForwardFilter.h"
+#include "support/Configuration.h"
 #include "support/Logger.h"
 #include "support/Table.h"
 #include "support/TypeUtil.h"
@@ -58,6 +59,25 @@ ALWAYS_ENABLED_STATISTIC(NumCallFilteredGlobals, "Number of filtered globals");
 
 namespace typeart::analysis {
 
+struct MemInstFinderConfig {
+  struct Filter {
+    bool useCallFilter{false};
+    FilterImplementation implementation{FilterImplementation::standard};
+    std::string callFilterGlob{"*MPI_*"};
+    std::string callFilterDeepGlob{"MPI_*"};
+    std::string callFilterCgFile{};
+    bool filterNonArrayAlloca{false};
+    bool filterMallocAllocPair{false};
+    bool filterGlobal{true};
+    bool filterPointerAlloca{false};
+  };
+
+  bool collect_heap{false};
+  bool collect_alloca{false};
+  bool collect_global{false};
+  Filter filter;
+};
+
 namespace filter {
 class CallFilter {
   std::unique_ptr<typeart::filter::Filter> fImpl;
@@ -81,24 +101,24 @@ namespace detail {
 static std::unique_ptr<typeart::filter::Filter> make_filter(const MemInstFinderConfig& config) {
   using namespace typeart::filter;
   const auto filter_id   = config.filter.implementation;
-  const std::string glob = config.filter.ClCallFilterGlob;
+  const std::string glob = config.filter.callFilterGlob;
 
-  if (filter_id == FilterImplementation::none || !config.filter.ClUseCallFilter) {
+  if (filter_id == FilterImplementation::none || !config.filter.useCallFilter) {
     LOG_DEBUG("Return no-op filter")
     return std::make_unique<NoOpFilter>();
   } else if (filter_id == FilterImplementation::cg) {
-    if (config.filter.ClCallFilterCGFile.empty()) {
+    if (config.filter.callFilterCgFile.empty()) {
       LOG_FATAL("CG File not set!");
       std::exit(1);
     }
-    LOG_DEBUG("Return CG filter with CG file @ " << config.filter.ClCallFilterCGFile)
-    auto json_cg = JSONCG::getJSON(config.filter.ClCallFilterCGFile);
+    LOG_DEBUG("Return CG filter with CG file @ " << config.filter.callFilterCgFile)
+    auto json_cg = JSONCG::getJSON(config.filter.callFilterCgFile);
     auto matcher = std::make_unique<DefaultStringMatcher>(util::glob2regex(glob));
     return std::make_unique<CGForwardFilter>(glob, std::move(json_cg), std::move(matcher));
   } else {
     LOG_DEBUG("Return default filter")
     auto matcher         = std::make_unique<DefaultStringMatcher>(util::glob2regex(glob));
-    const auto deep_glob = config.filter.ClCallFilterDeepGlob;
+    const auto deep_glob = config.filter.callFilterDeepGlob;
     auto deep_matcher    = std::make_unique<DefaultStringMatcher>(util::glob2regex(deep_glob));
     return std::make_unique<StandardForwardFilter>(std::move(matcher), std::move(deep_matcher));
   }
@@ -150,8 +170,8 @@ class MemInstFinderPass : public MemInstFinder {
  public:
   explicit MemInstFinderPass(const MemInstFinderConfig&);
   bool runOnModule(llvm::Module&) override;
-  bool hasFunctionData(const llvm::Function&) const override;
-  const FunctionData& getFunctionData(const llvm::Function&) const override;
+  [[nodiscard]] bool hasFunctionData(const llvm::Function&) const override;
+  [[nodiscard]] const FunctionData& getFunctionData(const llvm::Function&) const override;
   const GlobalDataList& getModuleGlobals() const override;
   void printStats(llvm::raw_ostream&) const override;
   // void configure(MemInstFinderConfig&) override;
@@ -169,7 +189,7 @@ bool MemInstFinderPass::runOnModule(Module& module) {
   mOpsCollector.collectGlobals(module);
   auto& globals = mOpsCollector.globals;
   NumDetectedGlobals += globals.size();
-  if (config.filter.ClFilterGlobal) {
+  if (config.filter.filterGlobal) {
     globals.erase(llvm::remove_if(
                       globals,
                       [&](const auto gdata) {  // NOLINT
@@ -288,7 +308,7 @@ bool MemInstFinderPass::runOnFunction(llvm::Function& function) {
 
   NumDetectedAllocs += mOpsCollector.allocas.size();
 
-  if (config.filter.ClFilterNonArrayAlloca) {
+  if (config.filter.filterNonArrayAlloca) {
     auto& allocs = mOpsCollector.allocas;
     allocs.erase(llvm::remove_if(allocs,
                                  [&](const auto& data) {
@@ -301,7 +321,7 @@ bool MemInstFinderPass::runOnFunction(llvm::Function& function) {
                  allocs.end());
   }
 
-  if (config.filter.ClFilterMallocAllocPair) {
+  if (config.filter.filterMallocAllocPair) {
     auto& allocs  = mOpsCollector.allocas;
     auto& mallocs = mOpsCollector.mallocs;
 
@@ -337,7 +357,7 @@ bool MemInstFinderPass::runOnFunction(llvm::Function& function) {
                  allocs.end());
   }
 
-  if (config.filter.ClFilterPointerAlloca) {
+  if (config.filter.filterPointerAlloca) {
     auto& allocs = mOpsCollector.allocas;
     allocs.erase(llvm::remove_if(allocs,
                                  [&](const auto& data) {
@@ -351,7 +371,7 @@ bool MemInstFinderPass::runOnFunction(llvm::Function& function) {
                  allocs.end());
   }
 
-  if (config.filter.ClUseCallFilter) {
+  if (config.filter.useCallFilter) {
     auto& allocs = mOpsCollector.allocas;
     allocs.erase(llvm::remove_if(allocs,
                                  [&](const auto& data) {
@@ -404,7 +424,7 @@ void MemInstFinderPass::printStats(llvm::raw_ostream& out) const {
   Table stats("MemInstFinderPass");
   stats.wrap_header = true;
   stats.wrap_length = true;
-  stats.put(Row::make("Filter string", config.filter.ClCallFilterGlob));
+  stats.put(Row::make("Filter string", config.filter.callFilterGlob));
   stats.put(Row::make_row("> Heap Memory"));
   stats.put(Row::make("Heap alloc", NumDetectedHeap.getValue()));
   stats.put(Row::make("Heap call filtered %", call_filter_heap_p));
@@ -437,8 +457,24 @@ const GlobalDataList& MemInstFinderPass::getModuleGlobals() const {
   return mOpsCollector.globals;
 }
 
-std::unique_ptr<MemInstFinder> create_finder(const MemInstFinderConfig& config) {
-  return std::make_unique<MemInstFinderPass>(config);
+std::unique_ptr<MemInstFinder> create_finder(const config::Configuration& config) {
+  using typeart::config::ConfigStdArgs;
+  const auto meminst_config = [&config]() {
+    return analysis::MemInstFinderConfig{
+        config[ConfigStdArgs::heap],                                                                    //
+        config[ConfigStdArgs::stack],                                                                   //
+        config[ConfigStdArgs::global],                                                                  //
+        analysis::MemInstFinderConfig::Filter{config[ConfigStdArgs::filter],                            //
+                                              config[ConfigStdArgs::filter_impl],                       //
+                                              config[ConfigStdArgs::filter_glob],                       //
+                                              config[ConfigStdArgs::filter_glob_deep],                  //
+                                              config[ConfigStdArgs::filter_cg_file],                    //
+                                              config[ConfigStdArgs::analysis_filter_alloca_non_array],  //
+                                              config[ConfigStdArgs::analysis_filter_heap_alloc],        //
+                                              config[ConfigStdArgs::analysis_filter_global],            //
+                                              config[ConfigStdArgs::analysis_filter_pointer_alloc]}};   //
+  }();
+  return std::make_unique<MemInstFinderPass>(meminst_config);
 }
 
 }  // namespace typeart::analysis

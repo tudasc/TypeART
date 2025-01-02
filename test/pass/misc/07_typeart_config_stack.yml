@@ -1,0 +1,18 @@
+---
+types: "types_config.yaml"
+heap: false
+stack: true
+global: false
+stack-lifetime: false
+typegen: "dimeta"
+filter: false
+call-filter:
+  implementation: "std"
+  glob: "*MPI_*"
+  glob-deep: "MPI_*"
+  cg-file: "path/.../cg.file"
+analysis:
+  filter-global: true
+  filter-heap-alloca: true
+  filter-pointer-alloca: true
+  filter-non-array-alloca: false

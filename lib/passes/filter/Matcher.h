@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2022 TypeART Authors
+// Copyright (c) 2017-2025 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -24,11 +24,11 @@ namespace typeart::filter {
 class Matcher {
  public:
   enum class MatchResult : int { Match, NoMatch, ShouldSkip, ShouldContinue };
-  Matcher()               = default;
-  Matcher(const Matcher&) = default;
-  Matcher(Matcher&&)      = default;
+  Matcher()                          = default;
+  Matcher(const Matcher&)            = default;
+  Matcher(Matcher&&)                 = default;
   Matcher& operator=(const Matcher&) = default;
-  Matcher& operator=(Matcher&&) = default;
+  Matcher& operator=(Matcher&&)      = default;
 
   virtual MatchResult match(llvm::CallSite) const = 0;
 

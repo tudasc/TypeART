@@ -1,4 +1,4 @@
-// RUN: %run %s -typeart-stack-array-only=true 2>&1 | %filecheck %s
+// RUN: %run %s --typeart-analysis-filter-non-array-alloca=true 2>&1 | %filecheck %s
 
 #include "../struct_defs.h"
 #include "util.h"
@@ -7,7 +7,7 @@
 #include <stdlib.h>
 
 int main(int argc, char** argv) {
-  // CHECK: [Trace] Alloc 0x{{.*}} struct.s_int_t 4 1
+  // CHECK: [Trace] Alloc 0x{{.*}} {{(struct.)?}}s_int_t 4 1
   s_int* a = malloc(sizeof(s_int));
   // CHECK: Ok
   check_struct(a, "struct.s_int_t", 1);
@@ -20,7 +20,7 @@ int main(int argc, char** argv) {
   // CHECK: [Trace] Free 0x{{.*}}
   free(a);
 
-  // CHECK: [Trace] Alloc 0x{{.*}} struct.s_builtins_t 16 1
+  // CHECK: [Trace] Alloc 0x{{.*}} {{(struct.)?}}s_builtins_t 16 1
   s_builtins* b = malloc(sizeof(s_builtins));
   // CHECK: Ok
   check_struct(b, "struct.s_builtins_t", 1);
@@ -43,7 +43,7 @@ int main(int argc, char** argv) {
   // CHECK: [Trace] Free 0x{{.*}}
   free(b);
 
-  // CHECK: [Trace] Alloc 0x{{.*}} struct.s_arrays_t 72 1
+  // CHECK: [Trace] Alloc 0x{{.*}} {{(struct.)?}}s_arrays_t 72 1
   s_arrays* c = malloc(sizeof(s_arrays));
   // CHECK: Ok
   check_struct(c, "struct.s_arrays_t", 1);
@@ -68,7 +68,7 @@ int main(int argc, char** argv) {
   // CHECK: [Trace] Free 0x{{.*}}
   free(c);
 
-  // CHECK: [Trace] Alloc 0x{{.*}} struct.s_ptrs_t 32 1
+  // CHECK: [Trace] Alloc 0x{{.*}} {{(struct.)?}}s_ptrs_t 32 1
   s_ptrs* d = malloc(sizeof(s_ptrs));
   // CHECK: Ok
   check_struct(d, "struct.s_ptrs_t", 1);
@@ -87,7 +87,7 @@ int main(int argc, char** argv) {
   // CHECK: [Trace] Free 0x{{.*}}
   free(d);
 
-  // CHECK: [Trace] Alloc 0x{{.*}} struct.s_mixed_simple_t 48 1
+  // CHECK: [Trace] Alloc 0x{{.*}} {{(struct.)?}}s_mixed_simple_t 48 1
   s_mixed_simple* e = malloc(sizeof(s_mixed_simple));
   // CHECK: Ok
   check_struct(e, "struct.s_mixed_simple_t", 1);

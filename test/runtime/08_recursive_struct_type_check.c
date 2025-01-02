@@ -1,4 +1,4 @@
-// RUN: %run %s -typeart-stack-array-only=true 2>&1 | %filecheck %s
+// RUN: %run %s --typeart-analysis-filter-non-array-alloca=true 2>&1 | %filecheck %s
 
 #include "../struct_defs.h"
 #include "util.h"
@@ -9,7 +9,7 @@
 int main(int argc, char** argv) {
   s_int s;
 
-  // CHECK: [Trace] Alloc 0x{{.*}} struct.s_ptr_to_self_t 16 1
+  // CHECK: [Trace] Alloc 0x{{.*}} {{(struct.)?}}s_ptr_to_self_t 16 1
   s_ptr_to_self* a = malloc(sizeof(s_ptr_to_self));
   // CHECK: Ok
   check_struct(a, "struct.s_ptr_to_self_t", 1);
@@ -24,7 +24,7 @@ int main(int argc, char** argv) {
   // CHECK: [Trace] Free 0x{{.*}}
   free(a);
 
-  // CHECK: [Trace] Alloc 0x{{.*}} struct.s_struct_member_t 32 1
+  // CHECK: [Trace] Alloc 0x{{.*}} {{(struct.)?}}s_struct_member_t 32 1
   s_struct_member* b = malloc(sizeof(s_struct_member));
   // CHECK: Ok
   check_struct(b, "struct.s_struct_member_t", 1);
@@ -43,7 +43,7 @@ int main(int argc, char** argv) {
   // CHECK: [Trace] Free 0x{{.*}}
   free(b);
 
-  // CHECK: [Trace] Alloc 0x{{.*}} struct.s_aos_t 96 1
+  // CHECK: [Trace] Alloc 0x{{.*}} {{(struct.)?}}s_aos_t 96 1
   s_aos* c = malloc(sizeof(s_aos));
   // CHECK: Ok
   check_struct(c, "struct.s_aos_t", 1);

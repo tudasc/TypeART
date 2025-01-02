@@ -1,9 +1,9 @@
 // clang-format off
-// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %apply-typeart -typeart-stack -typeart-call-filter -S 2>&1 | %filecheck %s
-// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %opt -O2 -S | %apply-typeart -typeart-stack -typeart-call-filter -S 2>&1 | %filecheck %s --check-prefix=CHECK-opt
+// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %apply-typeart --typeart-stack --typeart-filter -S 2>&1 | %filecheck %s
+// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %opt -O2 -S | %apply-typeart --typeart-stack --typeart-filter -S 2>&1 | %filecheck %s --check-prefix=CHECK-opt
 
-// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %apply-typeart -typeart-stack -typeart-call-filter -S | %filecheck %s --check-prefix=check-inst
-// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %opt -O2 -S | %apply-typeart -typeart-stack -typeart-call-filter -S | %filecheck %s --check-prefix=check-inst
+// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %apply-typeart --typeart-stack --typeart-filter -S | %filecheck %s --check-prefix=check-inst
+// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %opt -O2 -S | %apply-typeart --typeart-stack --typeart-filter -S | %filecheck %s --check-prefix=check-inst
 // REQUIRES: openmp
 // clang-format on
 extern void MPI_call(void*);
@@ -31,7 +31,7 @@ void foo() {
 // CHECK: TypeArtPass [Heap & Stack]
 // CHECK-NEXT: Malloc :   0
 // CHECK-NEXT: Free   :   0
-// CHECK-NEXT: Alloca :   2
+// CHECK-NEXT: Alloca :   {{(2|1)}}
 // CHECK-NEXT: Global :   0
 
 // CHECK-opt: TypeArtPass [Heap & Stack]

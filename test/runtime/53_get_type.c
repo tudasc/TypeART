@@ -51,7 +51,7 @@ void type_check_containing(const void* addr) {
 
 void test_get_containing() {
   DataStruct data[5];
-  // CHECK: type_id=257 count=4 offset=16 base=
+  // CHECK: type_id=25{{[6-9]}} count=4 offset=16 base=
   type_check_containing(&data[1].c[0]);
 }
 

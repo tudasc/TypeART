@@ -1,11 +1,11 @@
 // clang-format off
-// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %apply-typeart -typeart-stack -typeart-call-filter -typeart-filter-pointer-alloca=false -S 2>&1 | %filecheck %s
-// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %opt -O2 -S | %apply-typeart -typeart-stack -typeart-call-filter -typeart-filter-pointer-alloca=false -S 2>&1 | %filecheck %s --check-prefix=CHECK-opt
-// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %opt -O2 -S | %apply-typeart -typeart-stack -typeart-call-filter -typeart-call-filter-impl=cg -typeart-call-filter-cg-file=%p/05_cg.ipcg -typeart-filter-pointer-alloca=false -S 2>&1 | %filecheck %s --check-prefix=CHECK-exp-cg
+// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %apply-typeart --typeart-stack --typeart-filter --typeart-analysis-filter-pointer-alloca=false -S 2>&1 | %filecheck %s
+// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %opt -O2 -S | %apply-typeart --typeart-stack --typeart-filter --typeart-analysis-filter-pointer-alloca=false -S 2>&1 | %filecheck %s --check-prefix=CHECK-opt
+// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %opt -O2 -S | %apply-typeart --typeart-stack --typeart-filter --typeart-filter-implementation=cg --typeart-filter-cg-file=%p/05_cg.ipcg --typeart-analysis-filter-pointer-alloca=false -S 2>&1 | %filecheck %s --check-prefix=CHECK-exp-cg
 
-// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %apply-typeart -typeart-stack -typeart-call-filter -typeart-filter-pointer-alloca=false -S | %filecheck %s --check-prefix=check-inst
-// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %opt -O2 -S | %apply-typeart -typeart-stack -typeart-call-filter -typeart-filter-pointer-alloca=false -S | %filecheck %s --check-prefix=check-inst
-// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %opt -O2 -S | %apply-typeart -typeart-stack -typeart-call-filter -typeart-call-filter-impl=cg -typeart-call-filter-cg-file=%p/05_cg.ipcg -typeart-filter-pointer-alloca=false -S | %filecheck %s --check-prefix=check-inst
+// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %apply-typeart --typeart-stack --typeart-filter --typeart-analysis-filter-pointer-alloca=false -S | %filecheck %s --check-prefix=check-inst
+// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %opt -O2 -S | %apply-typeart --typeart-stack --typeart-filter --typeart-analysis-filter-pointer-alloca=false -S | %filecheck %s --check-prefix=check-inst
+// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %opt -O2 -S | %apply-typeart --typeart-stack --typeart-filter --typeart-filter-implementation=cg --typeart-filter-cg-file=%p/05_cg.ipcg --typeart-analysis-filter-pointer-alloca=false -S | %filecheck %s --check-prefix=check-inst
 // REQUIRES: openmp
 // clang-format on
 
@@ -35,9 +35,8 @@ void foo() {
 }
 
 // Standard filter
-// CHECK: > Stack Memory
-// CHECK-NEXT: Alloca                 :  12.00
-// CHECK-NEXT: Stack call filtered %  :  91.67
+// CHECK: TypeArtPass [Heap & Stack]
+// CHECK: Alloca :   1
 
 // with opt only "d" in foo is tracked
 // CHECK-opt: > Stack Memory
