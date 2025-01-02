@@ -30,7 +30,7 @@ To demonstrate the utility of TypeART, consider the following code:
 ```c
 // Otherwise unknown to MUST, TypeART tracks this allocation (memory address, type and size):
 double* array = (double*) malloc(length*sizeof(double));
-// MUST intercepts this MPI call, and asks TypeARTs runtime library for type information:
+// MUST intercepts this MPI call, asking TypeART's runtime for type information:
 //   1. Is the first argument of type double (due to MPI_DOUBLE)?
 //   2. Is the allocation at least of size *length*? 
 MPI_Send((void*) array, length, MPI_DOUBLE, ...)
