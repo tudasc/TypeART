@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2022 TypeART Authors
+// Copyright (c) 2017-2025 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -38,6 +38,6 @@ TYPEART_CONFIG_OPTION(analysis_filter_pointer_alloc, "analysis-filter-pointer-al
                       "Filter allocas of pointer types.")
 TYPEART_CONFIG_OPTION(analysis_filter_alloca_non_array, "analysis-filter-non-array-alloca", bool, false,
                       "Filter scalar valued allocas.")
-TYPEART_CONFIG_OPTION(typegen, "typegen", std::string, "ir", "Select type layout generator.")
+TYPEART_CONFIG_OPTION(typegen, "typegen", std::string, "dimeta", "Select type layout generator.")
 
 #undef TYPEART_CONFIG_OPTION
