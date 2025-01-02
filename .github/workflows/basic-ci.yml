@@ -92,7 +92,7 @@ jobs:
           sudo ln -f -s /usr/bin/clang++-${{ matrix.llvm-version }} /usr/bin/clang++
           echo "LLVM_CMAKE_DIR=/usr/lib/llvm-${{ matrix.llvm-version }}/cmake" >> $GITHUB_ENV
           echo "EXTERNAL_LIT=/usr/lib/llvm-${{ matrix.llvm-version }}/build/utils/lit/lit.py" >> $GITHUB_ENV
-          echo "TYPEART_TEST_LEGACY_IR=${{ matrix.typeart-typegen-legacy }}" >> $GITHUB_ENV
+          echo "TYPEART_TYPEGEN_IR=${{ matrix.typeart-typegen-legacy }}" >> $GITHUB_ENV
 
       - name: Configure TypeART
         run: cmake -B build --preset ${{ matrix.preset.name }} -DLLVM_DIR=${LLVM_CMAKE_DIR} -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT}

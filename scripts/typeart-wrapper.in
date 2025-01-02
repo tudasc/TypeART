@@ -74,7 +74,7 @@ function typeart_global_init_fn() {
 
   typeart_plugin="-load "${typeart_pass}" -typeart"
   # shellcheck disable=SC2027
-  case "${TYPEART_TEST_LEGACY_IR}" in
+  case "${TYPEART_TYPEGEN_IR}" in
   on | ON | 1 | true | TRUE)
     typeart_plugin+=" --typeart-typegen=ir"
     ;;
