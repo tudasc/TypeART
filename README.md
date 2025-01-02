@@ -1,4 +1,4 @@
-# TypeART &middot; [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause) ![](https://github.com/tudasc/typeart/actions/workflows/basic-ci.yml/badge.svg?branch=master) ![](https://github.com/tudasc/typeart/actions/workflows/ext-ci.yml/badge.svg?branch=master) [![Coverage Status](https://coveralls.io/repos/github/tudasc/TypeART/badge.svg?branch=master)](https://coveralls.io/github/tudasc/TypeART)
+# TypeART &middot; [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause) ![](https://github.com/tudasc/TypeART/actions/workflows/basic-ci.yml/badge.svg?branch=master) ![](https://github.com/tudasc/TypeART/actions/workflows/ext-ci.yml/badge.svg?branch=master) [![Coverage Status](https://coveralls.io/repos/github/tudasc/TypeART/badge.svg?branch=master)](https://coveralls.io/github/tudasc/TypeART?branch=master)
 
 ## What is TypeART?
 
@@ -36,7 +36,7 @@ double* array = (double*) malloc(length*sizeof(double));
 MPI_Send((void*) array, length, MPI_DOUBLE, ...)
 ```
 
-MUST and TypeART also support MPI [derived datatypes](https://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node77.htm)
+MUST and TypeART also support MPI [derived datatypes](https://www.mpi-forum.org/docs/mpi-4.1/mpi41-report/node96.htm)
 with complex underlying data structures. For further details, see
 our [publications](#references), or download MUST (v1.8 or higher integrates TypeART) from
 its [project page](https://itc.rwth-aachen.de/must/).
