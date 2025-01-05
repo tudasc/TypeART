@@ -52,10 +52,6 @@ class TypeDB final : public TypeDatabase {
 
   const std::vector<StructTypeInfo>& getStructList() const override;
 
-  static const std::array<std::string, 11> BuiltinNames;
-  static const std::array<size_t, 11> BuiltinSizes;
-  static const std::string UnknownStructName;
-
  private:
   std::vector<StructTypeInfo> struct_info_vec;
   std::unordered_map<int, int> typeid_to_list_index;

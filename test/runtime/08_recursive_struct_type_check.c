@@ -31,7 +31,7 @@ int main(int argc, char** argv) {
   // CHECK: Ok
   check(b, get_struct_id(1), 1, 0);
   // CHECK: Ok
-  check(b, TYPEART_INT32, 1, 1);
+  check(b, TYPEART_INT_32, 1, 1);
   // CHECK: Ok
   check(&b->b, get_struct_id(0), 1, 0);
   // CHECK: Ok
@@ -39,7 +39,7 @@ int main(int argc, char** argv) {
   // CHECK: Ok
   check(&b->c, TYPEART_POINTER, 1, 1);
   // CHECK: Error: Unknown address
-  check(b + 1, TYPEART_INT32, 1, 1);
+  check(b + 1, TYPEART_INT_32, 1, 1);
   // CHECK: [Trace] Free 0x{{.*}}
   free(b);
 
@@ -50,7 +50,7 @@ int main(int argc, char** argv) {
   // CHECK: Ok
   check(c, get_struct_id(2), 1, 0);
   // CHECK: Ok
-  check(c, TYPEART_INT32, 1, 1);
+  check(c, TYPEART_INT_32, 1, 1);
   // CHECK: Ok
   check(&c->b, get_struct_id(1), 2, 0);
   // CHECK: Ok
@@ -58,7 +58,7 @@ int main(int argc, char** argv) {
   // CHECK: Ok
   check(&c->c, TYPEART_POINTER, 3, 1);
   // CHECK: Error: Unknown address
-  check(c + 1, TYPEART_INT32, 1, 1);
+  check(c + 1, TYPEART_INT_32, 1, 1);
   // CHECK: [Trace] Free 0x{{.*}}
   free(c);
 

@@ -2,6 +2,7 @@
 
 #include "../../lib/runtime/RuntimeInterface.h"
 #include "../../lib/typelib/TypeDatabase.h"
+#include "TypeInterface.h"
 
 #include <cstdio>
 
@@ -29,7 +30,7 @@ int main(int argc, char** argv) {
   if (db_load) {
     printf("Error not loaded type file.\n");
   }
-  printf("Unknown: %i %i %i\n", database->isUnknown(0), database->isUnknown(257),
+  printf("Unknown: %i %i %i\n", database->isUnknown(TYPEART_FLOAT_32), database->isUnknown(257),
          database->isUnknown(TYPEART_UNKNOWN_TYPE));
   printf("Unknown struct name: %s\n", database->getTypeName(1000).c_str());
 

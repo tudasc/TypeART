@@ -33,7 +33,7 @@ int main(void) {
 // CHECK-NEXT: Bytes per node map/stack   :  96 ,    8 ,    -
 // CHECK-NEXT: {{(#|-)+}}
 // CHECK-NEXT: Allocation type detail (heap, stack, global)
-// CHECK-NEXT: 6 :   5 ,    0 ,    0 , double
+// CHECK-NEXT: 23 :   5 ,    0 ,    0 , double
 // CHECK-NEXT: {{(#|-)+}}
 // CHECK-NEXT: Free allocation type detail (heap, stack)
-// CHECK-NEXT: 6 :   5 ,    0 , double
+// CHECK-NEXT: 23 :   5 ,    0 , double

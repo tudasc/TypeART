@@ -160,7 +160,7 @@ std::optional<typeart_builtin_type> get_builtin_typeid(const dimeta::QualifiedFu
     case FundamentalType::Encoding::kUnknown:
       return TYPEART_UNKNOWN_TYPE;
     case FundamentalType::Encoding::kVoid:
-      return TYPEART_INT8;
+      return TYPEART_INT_8;
     case FundamentalType::Encoding::kUTFChar:
     case FundamentalType::Encoding::kChar:
     case FundamentalType::Encoding::kSignedChar:
@@ -170,13 +170,13 @@ std::optional<typeart_builtin_type> get_builtin_typeid(const dimeta::QualifiedFu
     case FundamentalType::Encoding::kUnsignedInt: {
       switch (extent) {
         case 4:
-          return TYPEART_INT32;
+          return TYPEART_INT_32;
         case 8:
-          return TYPEART_INT64;
+          return TYPEART_INT_64;
         case 2:
-          return TYPEART_INT16;
+          return TYPEART_INT_16;
         case 1:
-          return TYPEART_INT8;
+          return TYPEART_INT_8;
         default:
           return TYPEART_UNKNOWN_TYPE;
       }
@@ -185,13 +185,13 @@ std::optional<typeart_builtin_type> get_builtin_typeid(const dimeta::QualifiedFu
     case FundamentalType::Encoding::kFloat: {
       switch (extent) {
         case 4:
-          return TYPEART_FLOAT;
+          return TYPEART_FLOAT_32;
         case 8:
-          return TYPEART_DOUBLE;
+          return TYPEART_FLOAT_64;
         case 2:
-          return TYPEART_HALF;
+          return TYPEART_FLOAT_16;
         case 16:
-          return TYPEART_FP128;
+          return TYPEART_FLOAT_128;
         default:
           return TYPEART_UNKNOWN_TYPE;
       }

@@ -16,10 +16,48 @@
 #include "support/Logger.h"
 #include "typelib/TypeInterface.h"
 
+#include <ccomplex>
+#include <cstddef>
 #include <iostream>
 #include <utility>
 
 namespace typeart {
+
+namespace {
+inline constexpr auto size_complex_8  = sizeof(float _Complex);
+inline constexpr auto size_complex_16 = sizeof(double _Complex);
+inline constexpr auto size_complex_32 = sizeof(long double _Complex);
+}  // namespace
+
+#define FOR_EACH_TYPEART_BUILTIN(X)                          \
+  X(TYPEART_UNKNOWN_TYPE, "typeart_unknown_type", 0)         \
+  X(TYPEART_POINTER, "ptr", sizeof(void*))                   \
+  X(TYPEART_VOID, "void*", sizeof(void*))                    \
+  X(TYPEART_NULLPOINTER, "nullptr_t", sizeof(void*))         \
+  X(TYPEART_BOOL, "bool", sizeof(bool))                      \
+  X(TYPEART_CHAR_8, "char", sizeof(char))                    \
+  X(TYPEART_UCHAR_8, "unsigned char", sizeof(unsigned char)) \
+  X(TYPEART_UTF_CHAR_8, "char8_t", sizeof(char))             \
+  X(TYPEART_UTF_CHAR_16, "char16_t", sizeof(char16_t))       \
+  X(TYPEART_UTF_CHAR_32, "char32_t", sizeof(char32_t))       \
+  X(TYPEART_INT_8, "int8_t", sizeof(int8_t))                 \
+  X(TYPEART_INT_16, "short", sizeof(int16_t))                \
+  X(TYPEART_INT_32, "int", sizeof(int32_t))                  \
+  X(TYPEART_INT_64, "long int", sizeof(int64_t))             \
+  X(TYPEART_INT_128, "int128_t", 16)                         \
+  X(TYPEART_UINT_8, "uint8_t", sizeof(uint8_t))              \
+  X(TYPEART_UINT_16, "unsigned short", sizeof(uint16_t))     \
+  X(TYPEART_UINT_32, "unsigned int", sizeof(uint32_t))       \
+  X(TYPEART_UINT_64, "unsigned long int", sizeof(uint64_t))  \
+  X(TYPEART_UINT_128, "uint128_t", 16)                       \
+  X(TYPEART_FLOAT_8, "float8_t", 1)                          \
+  X(TYPEART_FLOAT_16, "float16_t", 2)                        \
+  X(TYPEART_FLOAT_32, "float", sizeof(float))                \
+  X(TYPEART_FLOAT_64, "double", sizeof(double))              \
+  X(TYPEART_FLOAT_128, "long double", sizeof(long double))   \
+  X(TYPEART_COMPLEX_8, "float complex", size_complex_8)      \
+  X(TYPEART_COMPLEX_16, "double complex", size_complex_16)   \
+  X(TYPEART_COMPLEX_32, "long double complex", size_complex_32)
 
 std::pair<std::unique_ptr<TypeDatabase>, std::error_code> make_database(const std::string& file) {
   auto type_db = std::make_unique<TypeDB>();
@@ -30,20 +68,60 @@ std::pair<std::unique_ptr<TypeDatabase>, std::error_code> make_database(const st
   return {std::move(type_db), loaded.getError()};
 }
 
-const std::array<std::string, 11> TypeDB::BuiltinNames = {
-    "int8", "int16", "int32", "int64", "half", "float", "double", "float128", "x86_float80", "ppc_float128", "pointer"};
+struct BuiltInHandler {
+ private:
+#define TYPENAME(enum_name, str_name, size) str_name,
+  inline static const std::array<std::string, TYPEART_NUM_VALID_IDS> names{FOR_EACH_TYPEART_BUILTIN(TYPENAME)};
+#undef TYPENAME
 
-// TODO: Builtin ID changes lead tsto wrong type sizes/names
-const std::array<size_t, 11> TypeDB::BuiltinSizes = {1,  2,
-                                                     4,  8,
-                                                     2,  4,
-                                                     8,  16,
-                                                     16,  // TODO: Always correct?
-                                                     16, sizeof(void*)};
+#define SIZE(enum_name, str_name, size) (size),
+  inline static constexpr std::array<size_t, TYPEART_NUM_VALID_IDS> sizes{FOR_EACH_TYPEART_BUILTIN(SIZE)};
+#undef SIZE
 
-// TypeInfo TypeDB::InvalidType = TypeInfo{BUILTIN, TA_UNKNOWN_TYPE};
+  enum AccessIdx { NAME = 0, SIZE = 1 };
 
-const std::string TypeDB::UnknownStructName{"typeart_unknown_struct"};
+  template <typename T, AccessIdx pos = AccessIdx::NAME>
+  constexpr static T type_info(int type_id) {
+    if constexpr (pos == AccessIdx::NAME) {
+      if (type_id < 0 || type_id >= TYPEART_NUM_VALID_IDS) {
+        return names[TYPEART_UNKNOWN_TYPE];
+      }
+      return names[type_id];
+    } else {
+      if (type_id < 0 || type_id >= TYPEART_NUM_VALID_IDS) {
+        return sizes[TYPEART_UNKNOWN_TYPE];
+      }
+      return sizes[type_id];
+    }
+  }
+
+ public:
+  static constexpr size_t get_size(int type_id) {
+    return type_info<size_t, AccessIdx::SIZE>(type_id);
+  }
+
+  static const std::string& get_name(int type_id) {
+    return type_info<const std::string&, AccessIdx::NAME>(type_id);
+  }
+
+  static constexpr bool is_builtin_type(int type_id) {
+    return type_id > TYPEART_UNKNOWN_TYPE && type_id < TYPEART_NUM_VALID_IDS;
+  }
+
+  static constexpr bool is_reserved_type(int type_id) {
+    return type_id < TYPEART_NUM_RESERVED_IDS;
+  }
+
+  static constexpr bool is_userdef_type(int type_id) {
+    return type_id >= TYPEART_NUM_RESERVED_IDS;
+  }
+
+  static constexpr bool is_unknown_type(int type_id) {
+    return type_id == TYPEART_UNKNOWN_TYPE;
+  }
+};
+
+const std::string UnknownStructName{"typeart_unknown_struct"};
 
 void TypeDB::clear() {
   struct_info_vec.clear();
@@ -52,15 +130,19 @@ void TypeDB::clear() {
 }
 
 bool TypeDB::isBuiltinType(int type_id) const {
-  return type_id >= TYPEART_INT8 && type_id < TYPEART_NUM_VALID_IDS;
+  return BuiltInHandler::is_builtin_type(type_id);
 }
 
 bool TypeDB::isReservedType(int type_id) const {
-  return type_id < TYPEART_NUM_RESERVED_IDS;
+  return BuiltInHandler::is_reserved_type(type_id);
 }
 
 bool TypeDB::isStructType(int type_id) const {
-  return type_id >= TYPEART_NUM_RESERVED_IDS;
+  return BuiltInHandler::is_userdef_type(type_id);
+}
+
+bool TypeDB::isUnknown(int type_id) const {
+  return BuiltInHandler::is_unknown_type(type_id);
 }
 
 bool TypeDB::isUserDefinedType(int type_id) const {
@@ -112,7 +194,7 @@ void TypeDB::registerStruct(const StructTypeInfo& struct_type, bool overwrite) {
 
 const std::string& TypeDB::getTypeName(int type_id) const {
   if (isBuiltinType(type_id)) {
-    return BuiltinNames[type_id];
+    return BuiltInHandler::get_name(type_id);
   }
   if (isStructType(type_id)) {
     const auto* structInfo = getStructInfo(type_id);
@@ -126,7 +208,7 @@ const std::string& TypeDB::getTypeName(int type_id) const {
 size_t TypeDB::getTypeSize(int type_id) const {
   if (isReservedType(type_id)) {
     if (isBuiltinType(type_id)) {
-      return BuiltinSizes[type_id];
+      return BuiltInHandler::get_size(type_id);
     }
     return 0;
   }
@@ -156,10 +238,6 @@ StructTypeInfo* TypeDB::getStructInfo(int type_id) {
 
 const std::vector<StructTypeInfo>& TypeDB::getStructList() const {
   return struct_info_vec;
-}
-
-bool TypeDB::isUnknown(int type_id) const {
-  return type_id == TYPEART_UNKNOWN_TYPE;
 }
 
 }  // namespace typeart

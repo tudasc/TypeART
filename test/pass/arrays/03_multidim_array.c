@@ -10,10 +10,10 @@ void test() {
   int d[n][m][n];
 }
 
-// CHECK: call void @__typeart_alloc_stack(i8* %{{[0-9]+}}, i32 2, i64 64)
-// CHECK: call void @__typeart_alloc_stack(i8* %{{[0-9]+}}, i32 2, i64 4096)
-// CHECK: call void @__typeart_alloc_stack(i8* %{{[0-9]+}}, i32 2, i64 8192)
-// CHECK: call void @__typeart_alloc_stack(i8* %{{[0-9]+}}, i32 2, i64 524288)
+// CHECK: call void @__typeart_alloc_stack(i8* %{{[0-9]+}}, i32 12, i64 64)
+// CHECK: call void @__typeart_alloc_stack(i8* %{{[0-9]+}}, i32 12, i64 4096)
+// CHECK: call void @__typeart_alloc_stack(i8* %{{[0-9]+}}, i32 12, i64 8192)
+// CHECK: call void @__typeart_alloc_stack(i8* %{{[0-9]+}}, i32 12, i64 524288)
 
 // CHECK-NOT: Encountered unhandled type
 // CHECK: Malloc{{[ ]*}}:{{[ ]*}}0

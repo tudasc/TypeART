@@ -21,5 +21,5 @@ void foo() {
 // CHECK-NEXT:   extent:          8
 // CHECK-NEXT:   member_count:    2
 // CHECK-NEXT:   offsets:         [ 0, 4 ]
-// CHECK-NEXT:   types:           [ 5, 5 ]
+// CHECK-NEXT:   types:           [ 22, 22 ]
 // CHECK-NEXT:   sizes:           [ 1, 1 ]

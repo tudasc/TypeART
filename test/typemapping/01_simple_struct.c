@@ -51,7 +51,7 @@ int main(int argc, char** argv) {
 // CHECK: extent:          4
 // CHECK: member_count:    1
 // CHECK: offsets:         [ 0 ]
-// CHECK: types:           [ 2 ]
+// CHECK: types:           [ 12 ]
 // CHECK: sizes:           [ 1 ]
 
 // CHECK: - id:              257
@@ -59,7 +59,7 @@ int main(int argc, char** argv) {
 // CHECK:         extent:          16
 // CHECK: member_count:    3
 // CHECK: offsets:         [ 0, 4, 8 ]
-// CHECK: types:           [ 2, 0, 3 ]
+// CHECK: types:           [ 12, 10, 13 ]
 // CHECK: sizes:           [ 1, 1, 1 ]
 
 // CHECK: - id:              258
@@ -67,7 +67,7 @@ int main(int argc, char** argv) {
 // CHECK:         extent:          64
 // CHECK: member_count:    6
 // CHECK: offsets:         [ 0, 16, 32, 36, 48, 56 ]
-// CHECK: types:           [ 2, 3, 0, 2, 0, 3 ]
+// CHECK: types:           [ 12, 13, 10, 12, 10, 13 ]
 // CHECK: sizes:           [ 3, 2, 1, 3, 5, 1 ]
 
 // CHECK: - id:              259
@@ -75,5 +75,5 @@ int main(int argc, char** argv) {
 // CHECK:         extent:          64
 // CHECK: member_count:    4
 // CHECK: offsets:         [ 0, 8, 32, 56 ]
-// CHECK: types:           [ 2, 6, 6, 10 ]
+// CHECK: types:           [ 12, 23, 23, 1 ]
 // CHECK: sizes:           [ 1, 3, 3, 1 ]
