@@ -1,4 +1,4 @@
-// RUN: %run %s 2>&1 | %filecheck %s
+// RUN: %run %s --compile_flags %dimeta_def 2>&1 | %filecheck %s
 
 #include "../../lib/typelib/TypeInterface.h"
 #include "util.h"
@@ -37,7 +37,12 @@ int main(int argc, char** argv) {
   // CHECK: Ok
   // CHECK: Ok
   // CHECK: [Trace] Free 0x{{.*}}
+
+#if DIMETA == 1
+  performTypeChecks<char>(n, TYPEART_CHAR_8);
+#else
   performTypeChecks<char>(n, TYPEART_INT_8);
+#endif
 
   // CHECK: [Trace] Alloc 0x{{.*}} short 2 42
   // CHECK: Error: Unknown address

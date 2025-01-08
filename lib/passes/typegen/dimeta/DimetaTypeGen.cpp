@@ -176,7 +176,6 @@ std::optional<typeart_builtin_type> get_builtin_typeid(const dimeta::QualifiedFu
       }
     }
     case FundamentalType::Encoding::kChar:
-      return TYPEART_CHAR_8;
     case FundamentalType::Encoding::kSignedChar:
       return TYPEART_CHAR_8;
     case FundamentalType::Encoding::kUnsignedChar:

@@ -23,11 +23,16 @@
 
 namespace typeart {
 
-namespace {
-inline constexpr auto size_complex_8  = sizeof(float _Complex);
-inline constexpr auto size_complex_16 = sizeof(double _Complex);
-inline constexpr auto size_complex_32 = sizeof(long double _Complex);
-}  // namespace
+namespace builtins {
+
+// namespace {
+// #pragma GCC diagnostic ignored "-Wc99-extensions"
+// #pragma GCC diagnostic push
+// inline constexpr auto size_complex_8  = sizeof(float _Complex);
+// inline constexpr auto size_complex_16 = sizeof(double _Complex);
+// inline constexpr auto size_complex_32 = sizeof(long double _Complex);
+// #pragma GCC diagnostic pop
+// }  // namespace
 
 #define FOR_EACH_TYPEART_BUILTIN(X)                          \
   X(TYPEART_UNKNOWN_TYPE, "typeart_unknown_type", 0)         \
@@ -55,9 +60,18 @@ inline constexpr auto size_complex_32 = sizeof(long double _Complex);
   X(TYPEART_FLOAT_32, "float", sizeof(float))                \
   X(TYPEART_FLOAT_64, "double", sizeof(double))              \
   X(TYPEART_FLOAT_128, "long double", sizeof(long double))   \
-  X(TYPEART_COMPLEX_8, "float complex", size_complex_8)      \
-  X(TYPEART_COMPLEX_16, "double complex", size_complex_16)   \
-  X(TYPEART_COMPLEX_32, "long double complex", size_complex_32)
+  X(TYPEART_COMPLEX_8, "float complex", 1)                   \
+  X(TYPEART_COMPLEX_16, "double complex", 2)                 \
+  X(TYPEART_COMPLEX_32, "long double complex", 4)
+
+#define TYPENAME(enum_name, str_name, size) std::string{str_name},
+#define SIZE(enum_name, str_name, size)     (size),
+BuiltInQuery::BuiltInQuery() : names{FOR_EACH_TYPEART_BUILTIN(TYPENAME)}, sizes{FOR_EACH_TYPEART_BUILTIN(SIZE)} {
+}
+#undef SIZE
+#undef TYPENAME
+
+}  // namespace builtins
 
 std::pair<std::unique_ptr<TypeDatabase>, std::error_code> make_database(const std::string& file) {
   auto type_db = std::make_unique<TypeDB>();
@@ -68,51 +82,9 @@ std::pair<std::unique_ptr<TypeDatabase>, std::error_code> make_database(const st
   return {std::move(type_db), loaded.getError()};
 }
 
-struct BuiltInHandler {
- private:
-#define TYPENAME(enum_name, str_name, size) str_name,
-  inline static const std::array<std::string, TYPEART_NUM_VALID_IDS> names{FOR_EACH_TYPEART_BUILTIN(TYPENAME)};
-#undef TYPENAME
-
-#define SIZE(enum_name, str_name, size) (size),
-  inline static constexpr std::array<size_t, TYPEART_NUM_VALID_IDS> sizes{FOR_EACH_TYPEART_BUILTIN(SIZE)};
-#undef SIZE
-
-  template <typename U>
-  static constexpr auto type_info(const U& type_data, int type_id) -> decltype(type_data[type_id]) {
-    if (type_id < 0 || type_id >= TYPEART_NUM_VALID_IDS) {
-      return type_data[TYPEART_UNKNOWN_TYPE];
-    }
-    return type_data[type_id];
-  }
-
- public:
-  static constexpr size_t get_size(int type_id) {
-    return type_info(sizes, type_id);
-  }
-
-  static const std::string& get_name(int type_id) {
-    return type_info(names, type_id);
-  }
-
-  static constexpr bool is_builtin_type(int type_id) {
-    return type_id > TYPEART_UNKNOWN_TYPE && type_id < TYPEART_NUM_VALID_IDS;
-  }
-
-  static constexpr bool is_reserved_type(int type_id) {
-    return type_id < TYPEART_NUM_RESERVED_IDS;
-  }
-
-  static constexpr bool is_userdef_type(int type_id) {
-    return type_id >= TYPEART_NUM_RESERVED_IDS;
-  }
-
-  static constexpr bool is_unknown_type(int type_id) {
-    return type_id == TYPEART_UNKNOWN_TYPE;
-  }
-};
-
 const std::string UnknownStructName{"typeart_unknown_struct"};
+
+using namespace builtins;
 
 void TypeDB::clear() {
   struct_info_vec.clear();
@@ -121,19 +93,19 @@ void TypeDB::clear() {
 }
 
 bool TypeDB::isBuiltinType(int type_id) const {
-  return BuiltInHandler::is_builtin_type(type_id);
+  return BuiltInQuery::is_builtin_type(type_id);
 }
 
 bool TypeDB::isReservedType(int type_id) const {
-  return BuiltInHandler::is_reserved_type(type_id);
+  return BuiltInQuery::is_reserved_type(type_id);
 }
 
 bool TypeDB::isStructType(int type_id) const {
-  return BuiltInHandler::is_userdef_type(type_id);
+  return BuiltInQuery::is_userdef_type(type_id);
 }
 
 bool TypeDB::isUnknown(int type_id) const {
-  return BuiltInHandler::is_unknown_type(type_id);
+  return BuiltInQuery::is_unknown_type(type_id);
 }
 
 bool TypeDB::isUserDefinedType(int type_id) const {
@@ -185,7 +157,7 @@ void TypeDB::registerStruct(const StructTypeInfo& struct_type, bool overwrite) {
 
 const std::string& TypeDB::getTypeName(int type_id) const {
   if (isBuiltinType(type_id)) {
-    return BuiltInHandler::get_name(type_id);
+    return builtins.get_name(type_id);
   }
   if (isStructType(type_id)) {
     const auto* structInfo = getStructInfo(type_id);
@@ -199,7 +171,7 @@ const std::string& TypeDB::getTypeName(int type_id) const {
 size_t TypeDB::getTypeSize(int type_id) const {
   if (isReservedType(type_id)) {
     if (isBuiltinType(type_id)) {
-      return BuiltInHandler::get_size(type_id);
+      return builtins.get_size(type_id);
     }
     return 0;
   }

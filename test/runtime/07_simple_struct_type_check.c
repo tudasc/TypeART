@@ -1,10 +1,16 @@
-// RUN: %run %s --typeart-analysis-filter-non-array-alloca=true 2>&1 | %filecheck %s
+// RUN: %run %s --typeart-analysis-filter-non-array-alloca=true --compile_flags %dimeta_def 2>&1 | %filecheck %s
 
 #include "../struct_defs.h"
 #include "util.h"
 
 #include <stdint.h>
 #include <stdlib.h>
+
+#if DIMETA == 1
+#define TYPEART_INT_8_TEST TYPEART_CHAR_8
+#else
+#define TYPEART_INT_8_TEST TYPEART_INT_8
+#endif
 
 int main(int argc, char** argv) {
   // CHECK: [Trace] Alloc 0x{{.*}} {{(struct.)?}}s_int_t 4 1
@@ -29,11 +35,11 @@ int main(int argc, char** argv) {
   // CHECK: Ok
   check(b, TYPEART_INT_32, 1, 1);
   // CHECK: Error: Type mismatch
-  check(b, TYPEART_INT_8, 1, 1);
+  check(b, TYPEART_INT_8_TEST, 1, 1);
   // CHECK: Error: Bad alignment
   check(((uint8_t*)b) + 2, TYPEART_INT_32, 1, 1);
   // CHECK: Ok
-  check(&b->b, TYPEART_INT_8, 1, 1);
+  check(&b->b, TYPEART_INT_8_TEST, 1, 1);
   // CHECK: Error: Bad alignment
   check(((uint8_t*)b) + 5, TYPEART_INT_64, 1, 1);
   // CHECK: Ok
@@ -62,7 +68,7 @@ int main(int argc, char** argv) {
   // CHECK: Ok
   check(&c->b[1], TYPEART_INT_64, 1, 1);
   // CHECK: Ok
-  check(&c->e[2], TYPEART_INT_8, 3, 1);
+  check(&c->e[2], TYPEART_INT_8_TEST, 3, 1);
   // CHECK: Error: Unknown address
   check(c + 1, get_struct_id(2), 1, 0);
   // CHECK: [Trace] Free 0x{{.*}}
@@ -75,7 +81,7 @@ int main(int argc, char** argv) {
   // CHECK: Ok
   check(d, get_struct_id(3), 1, 0);
   // CHECK: Ok
-  check(d, TYPEART_INT_8, 1, 1);
+  check(d, TYPEART_INT_8_TEST, 1, 1);
   // CHECK: Ok
   check(&d->b, TYPEART_POINTER, 1, 1);
   // CHECK: Bad alignment
