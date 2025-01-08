@@ -78,30 +78,21 @@ struct BuiltInHandler {
   inline static constexpr std::array<size_t, TYPEART_NUM_VALID_IDS> sizes{FOR_EACH_TYPEART_BUILTIN(SIZE)};
 #undef SIZE
 
-  enum AccessIdx { NAME = 0, SIZE = 1 };
-
-  template <typename T, AccessIdx pos = AccessIdx::NAME>
-  constexpr static T type_info(int type_id) {
-    if constexpr (pos == AccessIdx::NAME) {
-      if (type_id < 0 || type_id >= TYPEART_NUM_VALID_IDS) {
-        return names[TYPEART_UNKNOWN_TYPE];
-      }
-      return names[type_id];
-    } else {
-      if (type_id < 0 || type_id >= TYPEART_NUM_VALID_IDS) {
-        return sizes[TYPEART_UNKNOWN_TYPE];
-      }
-      return sizes[type_id];
+  template <typename U>
+  static constexpr auto type_info(const U& type_data, int type_id) -> decltype(type_data[type_id]) {
+    if (type_id < 0 || type_id >= TYPEART_NUM_VALID_IDS) {
+      return type_data[TYPEART_UNKNOWN_TYPE];
     }
+    return type_data[type_id];
   }
 
  public:
   static constexpr size_t get_size(int type_id) {
-    return type_info<size_t, AccessIdx::SIZE>(type_id);
+    return type_info(sizes, type_id);
   }
 
   static const std::string& get_name(int type_id) {
-    return type_info<const std::string&, AccessIdx::NAME>(type_id);
+    return type_info(names, type_id);
   }
 
   static constexpr bool is_builtin_type(int type_id) {

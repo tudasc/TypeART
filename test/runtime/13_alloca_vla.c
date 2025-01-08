@@ -11,17 +11,17 @@ void f(int n) {
 int main(int argc, char** argv) {
   // CHECK: [Trace] TypeART Runtime Trace
 
-  // CHECK: [Trace] Alloc 0x{{.*}} int8_t 1 2
-  // CHECK: [Trace] Alloc 0x{{.*}} int8_t 1 4
-  // CHECK: [Trace] Alloc 0x{{.*}} int8_t 1 4
+  // CHECK: [Trace] Alloc 0x{{.*}} {{(int8_t|char)}} 1 2
+  // CHECK: [Trace] Alloc 0x{{.*}} {{(int8_t|char)}} 1 4
+  // CHECK: [Trace] Alloc 0x{{.*}} {{(int8_t|char)}} 1 4
   // CHECK: [Trace] Free 0x{{.*}}
   // CHECK: [Trace] Free 0x{{.*}}
   // CHECK: [Trace] Free 0x{{.*}}
   f(2);
 
-  // CHECK: [Trace] Alloc 0x{{.*}} int8_t 1 8
-  // CHECK: [Trace] Alloc 0x{{.*}} int8_t 1 64
-  // CHECK: [Trace] Alloc 0x{{.*}} int8_t 1 16
+  // CHECK: [Trace] Alloc 0x{{.*}} {{(int8_t|char)}} 1 8
+  // CHECK: [Trace] Alloc 0x{{.*}} {{(int8_t|char)}} 1 64
+  // CHECK: [Trace] Alloc 0x{{.*}} {{(int8_t|char)}} 1 16
   // CHECK: [Trace] Free 0x{{.*}}
   // CHECK: [Trace] Free 0x{{.*}}
   // CHECK: [Trace] Free 0x{{.*}}

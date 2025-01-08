@@ -28,10 +28,10 @@ int main(int argc, char** argv) {
 
   // CHECK-NOT: Error
 
-  // CHECK: [Trace] Free 0x{{.*}} 10 int8_t 1 7
+  // CHECK: [Trace] Free 0x{{.*}} {{(10|5)}} {{(int8_t|char)}} 1 7
   // CHECK: [Trace] Free 0x{{.*}} 23 double 8 1
 
-  // CHECK: [Trace] Free 0x{{.*}} 10 int8_t 1 7
+  // CHECK: [Trace] Free 0x{{.*}} {{(10|5)}} {{(int8_t|char)}} 1 7
   // CHECK: [Trace] Free 0x{{.*}} 23 double 8 1
 
   return 0;

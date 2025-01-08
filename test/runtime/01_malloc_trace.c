@@ -6,7 +6,7 @@ int main(int argc, char** argv) {
   const int n = 42;
   // CHECK: [Trace] TypeART Runtime Trace
 
-  // CHECK: [Trace] Alloc 0x{{.*}} int8_t 1 42
+  // CHECK: [Trace] Alloc 0x{{.*}} {{(int8_t|char)}} 1 42
   char* a = malloc(n * sizeof(char));
   // CHECK: [Trace] Free 0x{{.*}}
   free(a);

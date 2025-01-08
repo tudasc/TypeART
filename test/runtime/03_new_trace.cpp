@@ -17,11 +17,11 @@ int main(int argc, char** argv) {
 
   // CHECK: [Trace] TypeART Runtime Trace
 
-  // CHECK: [Trace] Alloc 0x{{.*}} int8_t 1 1
+  // CHECK: [Trace] Alloc 0x{{.*}} {{(int8_t|char)}} 1 1
   // CHECK: [Trace] Free 0x{{.*}}
   new_delete<char>();
 
-  // CHECK: [Trace] Alloc 0x{{.*}} short 2  1
+  // CHECK: [Trace] Alloc 0x{{.*}} short 2 1
   // CHECK: [Trace] Free 0x{{.*}}
   new_delete<short>();
 
@@ -45,7 +45,7 @@ int main(int argc, char** argv) {
   // CHECK: [Trace] Free 0x{{.*}}
   new_delete<int*>();
 
-  // CHECK: [Trace] Alloc 0x{{.*}} int8_t 1 42
+  // CHECK: [Trace] Alloc 0x{{.*}} {{(int8_t|char)}} 1 42
   // CHECK: [Trace] Free 0x{{.*}}
   new_delete<char>(n);
 

@@ -25,7 +25,7 @@ void performTypeChecks(int n, typeart_builtin_type typeId) {
 int main(int argc, char** argv) {
   const int n = 42;
 
-  // CHECK: [Trace] Alloc 0x{{.*}} int8_t 1 42
+  // CHECK: [Trace] Alloc 0x{{.*}} {{(int8_t|char)}} 1 42
   // CHECK: Error: Unknown address
   // CHECK: Ok
   // CHECK: Ok

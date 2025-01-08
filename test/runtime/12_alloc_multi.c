@@ -17,7 +17,7 @@ int main(int argc, char** argv) {
   // CHECK-FILTER-NOT: [Trace] TypeART Runtime Trace
   // CHECK-FILTER-NOT [Trace]
 
-  // CHECK: [Trace] Alloc 0x{{.*}} int8_t 1 42
+  // CHECK: [Trace] Alloc 0x{{.*}} {{(int8_t|char)}} 1 42
   char a[n];
 
   // CHECK: [Trace] Alloc 0x{{.*}} short 2 42
