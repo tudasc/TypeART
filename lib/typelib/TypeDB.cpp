@@ -17,6 +17,7 @@
 #include "typelib/TypeInterface.h"
 
 #include <ccomplex>
+#include <complex>
 #include <cstddef>
 #include <iostream>
 #include <utility>
@@ -25,44 +26,41 @@ namespace typeart {
 
 namespace builtins {
 
-// namespace {
-// #pragma GCC diagnostic ignored "-Wc99-extensions"
-// #pragma GCC diagnostic push
-// inline constexpr auto size_complex_8  = sizeof(float _Complex);
-// inline constexpr auto size_complex_16 = sizeof(double _Complex);
-// inline constexpr auto size_complex_32 = sizeof(long double _Complex);
-// #pragma GCC diagnostic pop
-// }  // namespace
+namespace {
+inline constexpr auto size_complex_float       = sizeof(std::complex<float>);
+inline constexpr auto size_complex_double      = sizeof(std::complex<double>);
+inline constexpr auto size_complex_long_double = sizeof(std::complex<long double>);
+}  // namespace
 
-#define FOR_EACH_TYPEART_BUILTIN(X)                          \
-  X(TYPEART_UNKNOWN_TYPE, "typeart_unknown_type", 0)         \
-  X(TYPEART_POINTER, "ptr", sizeof(void*))                   \
-  X(TYPEART_VOID, "void*", sizeof(void*))                    \
-  X(TYPEART_NULLPOINTER, "nullptr_t", sizeof(void*))         \
-  X(TYPEART_BOOL, "bool", sizeof(bool))                      \
-  X(TYPEART_CHAR_8, "char", sizeof(char))                    \
-  X(TYPEART_UCHAR_8, "unsigned char", sizeof(unsigned char)) \
-  X(TYPEART_UTF_CHAR_8, "char8_t", sizeof(char))             \
-  X(TYPEART_UTF_CHAR_16, "char16_t", sizeof(char16_t))       \
-  X(TYPEART_UTF_CHAR_32, "char32_t", sizeof(char32_t))       \
-  X(TYPEART_INT_8, "int8_t", sizeof(int8_t))                 \
-  X(TYPEART_INT_16, "short", sizeof(int16_t))                \
-  X(TYPEART_INT_32, "int", sizeof(int32_t))                  \
-  X(TYPEART_INT_64, "long int", sizeof(int64_t))             \
-  X(TYPEART_INT_128, "int128_t", 16)                         \
-  X(TYPEART_UINT_8, "uint8_t", sizeof(uint8_t))              \
-  X(TYPEART_UINT_16, "unsigned short", sizeof(uint16_t))     \
-  X(TYPEART_UINT_32, "unsigned int", sizeof(uint32_t))       \
-  X(TYPEART_UINT_64, "unsigned long int", sizeof(uint64_t))  \
-  X(TYPEART_UINT_128, "uint128_t", 16)                       \
-  X(TYPEART_FLOAT_8, "float8_t", 1)                          \
-  X(TYPEART_FLOAT_16, "float16_t", 2)                        \
-  X(TYPEART_FLOAT_32, "float", sizeof(float))                \
-  X(TYPEART_FLOAT_64, "double", sizeof(double))              \
-  X(TYPEART_FLOAT_128, "long double", sizeof(long double))   \
-  X(TYPEART_COMPLEX_8, "float complex", 1)                   \
-  X(TYPEART_COMPLEX_16, "double complex", 2)                 \
-  X(TYPEART_COMPLEX_32, "long double complex", 4)
+#define FOR_EACH_TYPEART_BUILTIN(X)                             \
+  X(TYPEART_UNKNOWN_TYPE, "typeart_unknown_type", 0)            \
+  X(TYPEART_POINTER, "ptr", sizeof(void*))                      \
+  X(TYPEART_VOID, "void*", sizeof(void*))                       \
+  X(TYPEART_NULLPOINTER, "nullptr_t", sizeof(void*))            \
+  X(TYPEART_BOOL, "bool", sizeof(bool))                         \
+  X(TYPEART_CHAR_8, "char", sizeof(char))                       \
+  X(TYPEART_UCHAR_8, "unsigned char", sizeof(unsigned char))    \
+  X(TYPEART_UTF_CHAR_8, "char8_t", sizeof(char))                \
+  X(TYPEART_UTF_CHAR_16, "char16_t", sizeof(char16_t))          \
+  X(TYPEART_UTF_CHAR_32, "char32_t", sizeof(char32_t))          \
+  X(TYPEART_INT_8, "int8_t", sizeof(int8_t))                    \
+  X(TYPEART_INT_16, "short", sizeof(int16_t))                   \
+  X(TYPEART_INT_32, "int", sizeof(int32_t))                     \
+  X(TYPEART_INT_64, "long int", sizeof(int64_t))                \
+  X(TYPEART_INT_128, "int128_t", 16)                            \
+  X(TYPEART_UINT_8, "uint8_t", sizeof(uint8_t))                 \
+  X(TYPEART_UINT_16, "unsigned short", sizeof(uint16_t))        \
+  X(TYPEART_UINT_32, "unsigned int", sizeof(uint32_t))          \
+  X(TYPEART_UINT_64, "unsigned long int", sizeof(uint64_t))     \
+  X(TYPEART_UINT_128, "uint128_t", 16)                          \
+  X(TYPEART_FLOAT_8, "float8_t", 1)                             \
+  X(TYPEART_FLOAT_16, "float16_t", 2)                           \
+  X(TYPEART_FLOAT_32, "float", sizeof(float))                   \
+  X(TYPEART_FLOAT_64, "double", sizeof(double))                 \
+  X(TYPEART_FLOAT_128, "long double", sizeof(long double))      \
+  X(TYPEART_COMPLEX_64, "float complex", size_complex_float)    \
+  X(TYPEART_COMPLEX_128, "double complex", size_complex_double) \
+  X(TYPEART_COMPLEX_256, "long double complex", size_complex_long_double)
 
 #define TYPENAME(enum_name, str_name, size) std::string{str_name},
 #define SIZE(enum_name, str_name, size)     (size),

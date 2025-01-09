@@ -217,11 +217,11 @@ std::optional<typeart_builtin_type> get_builtin_typeid(const dimeta::QualifiedFu
     case FundamentalType::Encoding::kComplex: {
       switch (extent) {
         case 2:
-          return TYPEART_COMPLEX_16;
+          return TYPEART_COMPLEX_64;
         case 4:
-          return TYPEART_COMPLEX_32;
+          return TYPEART_COMPLEX_128;
         case 1:
-          return TYPEART_COMPLEX_8;
+          return TYPEART_COMPLEX_256;
         default:
           return TYPEART_UNKNOWN_TYPE;
       }
