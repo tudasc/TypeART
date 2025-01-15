@@ -73,12 +73,6 @@ function typeart_global_init_fn() {
   readonly typeart_san_flags="@TYPEART_SAN_FLAGS@"
 
   typeart_plugin="-load "${typeart_pass}" -typeart"
-  # shellcheck disable=SC2027
-  case "${TYPEART_TYPEGEN_IR}" in
-  on | ON | 1 | true | TRUE)
-    typeart_plugin+=" --typeart-typegen=ir"
-    ;;
-  esac
 
   readonly typeart_stack_mode_args="--typeart-heap=false --typeart-stack --typeart-stats @TYPEART_CALLFILTER@"
   readonly typeart_heap_mode_args="--typeart-heap=true --typeart-stats"
@@ -197,8 +191,17 @@ function typeart_handle_binary_fn() {
   return 2
 }
 
+
 function typeart_parse_typeart_cmd_line_fn() {
   typeart_other_args=""
+
+    # shellcheck disable=SC2027
+  case "${TYPEART_TYPEGEN_IR}" in
+  on | ON | 1 | true | TRUE)
+    local -r typeart_ir_gen_set="1"
+    typeart_plugin+=" --typeart-typegen=ir"
+    ;;
+  esac
 
   while (("$#")); do
     case "$1" in
@@ -213,6 +216,12 @@ function typeart_parse_typeart_cmd_line_fn() {
       ;;
     --typeart-stack-config=*)
       typeart_cmdline_args_stack="${1##-typeart-stack-config=}"
+      shift
+      ;;
+    --typeart-typegen=*)
+      if [ -z "${typeart_ir_gen_set}" ]; then
+        typeart_plugin+=" $1"
+      fi
       shift
       ;;
     *) # preserve other arguments
