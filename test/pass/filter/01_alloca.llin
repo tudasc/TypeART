@@ -69,7 +69,7 @@ declare dso_local noalias i8* @malloc(i64) #1
 ; CHECK-FILTER-EXP: %0 = bitcast i32* %a to i8*
 ; CHECK-FILTER-EXP-NEXT: call void @__typeart_alloc_stack(i8* %0, i32 12, i64 1)
 ; CHECK-FILTER-EXP: %1 = bitcast i32** %c to i8*
-; CHECK-FILTER-EXP-NEXT  call void @__typeart_alloc_stack(i8* %1, i32 10, i64 1)
+; CHECK-FILTER-EXP-NEXT  call void @__typeart_alloc_stack(i8* %1, i32 1, i64 1)
 ; CHECK-FILTER-EXP: %2 = bitcast i32* %d to i8*
 ; CHECK-FILTER-EXP-NEXT  call void @__typeart_alloc_stack(i8* %2, i32 12, i64 1)
 ; CHECK-FILTER-EXP: %3 = bitcast i32* %x to i8*
@@ -87,7 +87,7 @@ declare dso_local noalias i8* @malloc(i64) #1
 ; CHECK: %1 = bitcast i32* %b to i8*
 ; CHECK-NEXT: call void @__typeart_alloc_stack(i8* %1, i32 12, i64 1)
 ; CHECK: %2 = bitcast i32** %c to i8*
-; CHECK-NEXT: call void @__typeart_alloc_stack(i8* %2, i32 10, i64 1)
+; CHECK-NEXT: call void @__typeart_alloc_stack(i8* %2, i32 1, i64 1)
 ; CHECK: %3 = bitcast i32* %d to i8*
 ; CHECK-NEXT: call void @__typeart_alloc_stack(i8* %3, i32 12, i64 1)
 ; CHECK: %4 = bitcast i32* %x to i8*

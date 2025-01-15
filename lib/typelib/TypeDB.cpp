@@ -149,6 +149,7 @@ void TypeDB::registerStruct(const StructTypeInfo& struct_type, bool overwrite) {
     }
     return;
   }
+
   struct_info_vec.push_back(struct_type);
   typeid_to_list_index.insert({struct_type.type_id, struct_info_vec.size() - 1});
 }
@@ -163,6 +164,7 @@ const std::string& TypeDB::getTypeName(int type_id) const {
       return structInfo->name;
     }
   }
+
   return UnknownStructName;
 }
 
