@@ -224,8 +224,8 @@ Each user-defined type layout is assigned a unique integer type-id. Built-in typ
 
 Type layouts are generated using one of the following methods:
 
-* LLVM IR Type System: Extracts types directly from LLVM IR (`--typeart-typegen=ir`).
-* LLVM Debug Metadata (Default): Extracts types using the llvm-dimeta library and LLVM debug metadata (`--typeart-typegen=dimeta`).
+* **LLVM IR Type System**: Extracts types directly from LLVM IR (`--typeart-typegen=ir`).
+* **LLVM Debug Metadata** (Default): Extracts types using the llvm-dimeta library and LLVM debug metadata (`--typeart-typegen=dimeta`).
 
 During execution, TypeART’s runtime library uses the type-id from callbacks to associate allocations with their type and layout. For example, consider the following struct:
 
@@ -245,15 +245,16 @@ The TypeART pass may write a `types.yaml` file with the following content:
   extent: 16         // size in bytes
   member_count: 2
   offsets: [ 0, 8 ]  // byte offsets from struct start
-  types: [ 0, 10 ]   // member type-ids (0->char, 10->pointer)
+  types: [ 5, 1 ]   // member type-ids (5->char, 1->pointer)
   sizes: [ 3, 1 ]    // member (array) length
 ```
 
 <!--- @formatter:on --->
 
-##### Limitations
+##### Limitations of LLVM IR Type System
 
-The type-id system is tailored for LLVM IR types, which imposes certain constraints. For instance, C/C++ types like unsigned integers are currently unsupported (and represented like signed integers). The list of supported built-in type-ids is defined in [TypeInterface.h](lib/typelib/TypeInterface.h) and reflects the types that TypeART can represent.
+The list of supported built-in type-ids is defined in [TypeInterface.h](lib/typelib/TypeInterface.h) and reflects the types that TypeART can represent with **LLVM Debug Metadata**.
+In contrast, when using **LLVM IR Type System**, certain constraints are imposed. For instance, C/C++ types like unsigned integers are unsupported (and represented like signed integers). 
 
 
 #### 1.1.4 Filtering allocations
