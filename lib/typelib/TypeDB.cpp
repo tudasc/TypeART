@@ -164,7 +164,7 @@ const std::string& TypeDB::getTypeName(int type_id) const {
       return structInfo->name;
     }
   }
-  
+
   return unknown_struck_name;
 }
 

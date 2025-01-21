@@ -5,4 +5,4 @@ check-hidden =
 skip = */.git,*/build*,*/.codespellrc,*/install,*/lulesh,wrap.py,*.llin
 quiet-level = 2
 ignore-regex = ^#include <(?:stdio)\.h>$|DEPENDEES|\\endcode
-ignore-words-list = uint,files'
+ignore-words-list = uint,files',re-used
