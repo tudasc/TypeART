@@ -20,6 +20,7 @@
 #include "llvm/Demangle/Demangle.h"
 #include "llvm/Support/Regex.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/IR/Function.h"
 
 namespace typeart::util {
 
