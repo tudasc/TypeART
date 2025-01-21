@@ -5,6 +5,7 @@
 // clang-format on
 
 #include "../../lib/runtime/CallbackInterface.h"
+#include "TypeInterface.h"
 
 #include <algorithm>
 #include <random>
@@ -12,7 +13,7 @@
 
 template <typename S, typename E>
 void repeat_alloc(S s, E e) {
-  std::for_each(s, e, [&](auto elem) { __typeart_alloc(reinterpret_cast<const void*>(elem), 6, 20); });
+  std::for_each(s, e, [&](auto elem) { __typeart_alloc(reinterpret_cast<const void*>(elem), TYPEART_FLOAT_64, 20); });
 }
 
 std::vector<int> unique_rand(const unsigned size) {
@@ -52,6 +53,6 @@ int main(int argc, char** argv) {
   // CHECK: Addresses re-used          :  200
 
   // CHECK: Allocation type detail (heap, stack, global)
-  // CHECK: 6   : 300 ,     0 ,    0 , double
+  // CHECK: 23   : 300 ,     0 ,    0 , double
   return 0;
 }

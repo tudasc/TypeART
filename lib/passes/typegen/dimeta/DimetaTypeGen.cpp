@@ -160,38 +160,82 @@ std::optional<typeart_builtin_type> get_builtin_typeid(const dimeta::QualifiedFu
     case FundamentalType::Encoding::kUnknown:
       return TYPEART_UNKNOWN_TYPE;
     case FundamentalType::Encoding::kVoid:
-      return TYPEART_INT8;
-    case FundamentalType::Encoding::kUTFChar:
-    case FundamentalType::Encoding::kChar:
-    case FundamentalType::Encoding::kSignedChar:
-    case FundamentalType::Encoding::kUnsignedChar:
-    case FundamentalType::Encoding::kBool:
-    case FundamentalType::Encoding::kSignedInt:
-    case FundamentalType::Encoding::kUnsignedInt: {
+      return TYPEART_VOID;
+    case FundamentalType::kNullptr:
+      return TYPEART_NULLPOINTER;
+    case FundamentalType::Encoding::kUTFChar: {
       switch (extent) {
         case 4:
-          return TYPEART_INT32;
-        case 8:
-          return TYPEART_INT64;
+          return TYPEART_UTF_CHAR_32;
         case 2:
-          return TYPEART_INT16;
+          return TYPEART_UTF_CHAR_16;
         case 1:
-          return TYPEART_INT8;
+          return TYPEART_UTF_CHAR_8;
         default:
           return TYPEART_UNKNOWN_TYPE;
       }
     }
-    case FundamentalType::Encoding::kComplex:
+    case FundamentalType::Encoding::kChar:
+    case FundamentalType::Encoding::kSignedChar:
+      return TYPEART_CHAR_8;
+    case FundamentalType::Encoding::kUnsignedChar:
+      return TYPEART_UCHAR_8;
+    case FundamentalType::Encoding::kBool:
+      return TYPEART_BOOL;
+    case FundamentalType::Encoding::kUnsignedInt: {
+      switch (extent) {
+        case 4:
+          return TYPEART_UINT_32;
+        case 8:
+          return TYPEART_UINT_64;
+        case 2:
+          return TYPEART_UINT_16;
+        case 1:
+          return TYPEART_UINT_8;
+        case 16:
+          return TYPEART_UINT_128;
+        default:
+          return TYPEART_UNKNOWN_TYPE;
+      }
+    }
+    case FundamentalType::Encoding::kSignedInt: {
+      switch (extent) {
+        case 4:
+          return TYPEART_INT_32;
+        case 8:
+          return TYPEART_INT_64;
+        case 2:
+          return TYPEART_INT_16;
+        case 1:
+          return TYPEART_INT_8;
+        case 16:
+          return TYPEART_INT_128;
+        default:
+          return TYPEART_UNKNOWN_TYPE;
+      }
+    }
+    case FundamentalType::Encoding::kComplex: {
+      switch (extent) {
+        case 2:
+          return TYPEART_COMPLEX_64;
+        case 4:
+          return TYPEART_COMPLEX_128;
+        case 1:
+          return TYPEART_COMPLEX_256;
+        default:
+          return TYPEART_UNKNOWN_TYPE;
+      }
+    }
     case FundamentalType::Encoding::kFloat: {
       switch (extent) {
         case 4:
-          return TYPEART_FLOAT;
+          return TYPEART_FLOAT_32;
         case 8:
-          return TYPEART_DOUBLE;
+          return TYPEART_FLOAT_64;
         case 2:
-          return TYPEART_HALF;
+          return TYPEART_FLOAT_16;
         case 16:
-          return TYPEART_FP128;
+          return TYPEART_FLOAT_128;
         default:
           return TYPEART_UNKNOWN_TYPE;
       }

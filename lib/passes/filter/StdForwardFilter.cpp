@@ -74,6 +74,7 @@ FilterAnalysis filter::ForwardFilterImpl::precheck(Value* in, Function* start, c
 
 FilterAnalysis filter::ForwardFilterImpl::decl(CallSite current, const Path& p) const {
   const bool match_sig = matcher->match(current) == Matcher::MatchResult::Match;
+  LOG_DEBUG("Matched sig: " << match_sig)
   if (match_sig) {
     // if we have a deep_matcher it needs to trigger, otherwise analyze
     if (!deep_matcher || deep_matcher->match(current) == Matcher::MatchResult::Match) {

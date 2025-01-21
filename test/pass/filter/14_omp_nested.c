@@ -17,7 +17,7 @@ void foo() {
   // check-inst: define {{.*}} @foo
   // check-inst: %x = alloca
   // check-inst: %0 = bitcast i32* %x to i8*
-  // check-inst: call void @__typeart_alloc_stack(i8* %0, i32 2, i64 1)
+  // check-inst: call void @__typeart_alloc_stack(i8* %0, i32 12, i64 1)
   // check-inst-not: __typeart_alloc_stack_omp
   int x;
 #pragma omp parallel

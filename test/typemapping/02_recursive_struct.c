@@ -38,7 +38,7 @@ int main(int argc, char** argv) {
 // CHECK:         extent:          16
 // CHECK: member_count:    2
 // CHECK: offsets:         [ 0, 8 ]
-// CHECK: types:           [ 0, 10 ]
+// CHECK: types:           [ {{(10|5)}}, 1 ]
 // CHECK: sizes:           [ 3, 1 ]
 
 // CHECK: - id:              257
@@ -46,7 +46,7 @@ int main(int argc, char** argv) {
 // CHECK:         extent:          32
 // CHECK: member_count:    3
 // CHECK: offsets:         [ 0, 16, 24 ]
-// CHECK: types:           [ 256, 10, 10 ]
+// CHECK: types:           [ 256, 1, 1 ]
 // CHECK: sizes:           [ 1, 1, 1 ]
 
 // CHECK: - id:              258
@@ -54,5 +54,5 @@ int main(int argc, char** argv) {
 // CHECK:         extent:          64
 // CHECK: member_count:    3
 // CHECK: offsets:         [ 0, 32, 40 ]
-// CHECK: types:           [ 256, 0, 10 ]
+// CHECK: types:           [ 256, {{(10|5)}}, 1 ]
 // CHECK: sizes:           [ 2, 1, 3 ]

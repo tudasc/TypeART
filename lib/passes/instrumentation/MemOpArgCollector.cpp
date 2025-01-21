@@ -58,7 +58,10 @@ HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
       continue;
     }
 
-    const auto type_size = type_m->getTypeDatabase().getTypeSize(type_id);
+    auto type_size = type_m->getTypeDatabase().getTypeSize(type_id);
+    if (type_id == TYPEART_VOID) {
+      type_size = 1;
+    }
 
     LOG_DEBUG("Type " << type_id << " with " << type_size << " and num elems " << num_elements)
 
@@ -160,7 +163,10 @@ StackArgList MemOpArgCollector::collectStack(const AllocaDataList& allocs) {
       continue;
     }
 
-    const auto type_size = type_m->getTypeDatabase().getTypeSize(type_id);
+    auto type_size = type_m->getTypeDatabase().getTypeSize(type_id);
+    if (type_id == TYPEART_VOID) {
+      type_size = 1;
+    }
 
     LOG_DEBUG("Alloca Type " << type_id << " with " << type_size << " and num elems " << num_elements)
 
@@ -204,6 +210,10 @@ GlobalArgList MemOpArgCollector::collectGlobal(const GlobalDataList& globals) {
     }
 
     auto type_size = type_m->getTypeDatabase().getTypeSize(type_id);
+    if (type_id == TYPEART_VOID) {
+      type_size = 1;
+    }
+
     LOG_DEBUG("Global Type " << type_id << " with " << type_size << " and num elems " << num_elements)
 
     auto* type_id_const      = instr_helper->getConstantFor(IType::type_id, type_id);

@@ -56,31 +56,28 @@ llvm::Optional<typeart_builtin_type> get_builtin_typeid(llvm::Type* type) {
   switch (type->getTypeID()) {
     case llvm::Type::IntegerTyID: {
       if (type == Type::getInt8Ty(c)) {
-        return TYPEART_INT8;
+        return TYPEART_INT_8;
       }
       if (type == Type::getInt16Ty(c)) {
-        return TYPEART_INT16;
+        return TYPEART_INT_16;
       }
       if (type == Type::getInt32Ty(c)) {
-        return TYPEART_INT32;
+        return TYPEART_INT_32;
       }
       if (type == Type::getInt64Ty(c)) {
-        return TYPEART_INT64;
+        return TYPEART_INT_64;
       }
       return TYPEART_UNKNOWN_TYPE;
     }
     case llvm::Type::HalfTyID:
-      return TYPEART_HALF;
+      return TYPEART_FLOAT_16;
     case llvm::Type::FloatTyID:
-      return TYPEART_FLOAT;
+      return TYPEART_FLOAT_32;
     case llvm::Type::DoubleTyID:
-      return TYPEART_DOUBLE;
-    case llvm::Type::FP128TyID:
-      return TYPEART_FP128;
+      return TYPEART_FLOAT_64;
     case llvm::Type::X86_FP80TyID:
-      return TYPEART_X86_FP80;
-    case llvm::Type::PPC_FP128TyID:
-      return TYPEART_PPC_FP128;
+    case llvm::Type::FP128TyID:
+      return TYPEART_FLOAT_128;
     case llvm::Type::PointerTyID:
       return TYPEART_POINTER;
     default:

@@ -16,6 +16,7 @@
 #include "Runtime.h"
 #include "RuntimeData.h"
 #include "RuntimeInterface.h"
+#include "TypeInterface.h"
 #include "support/Logger.h"
 #include "support/System.h"
 
@@ -308,7 +309,7 @@ char* string2char(std::string_view src) {
     return nullptr;
   }
 
-  typeart::RuntimeSystem::get().allocTracker.onAlloc(string_copy, TYPEART_INT8, source_length, ret_addr);
+  typeart::RuntimeSystem::get().allocTracker.onAlloc(string_copy, TYPEART_CHAR_8, source_length, ret_addr);
 
   memcpy(string_copy, src.data(), source_length);
 
