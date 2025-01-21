@@ -82,6 +82,8 @@ std::pair<std::unique_ptr<TypeDatabase>, std::error_code> make_database(const st
 
 using namespace builtins;
 
+const std::string unknown_struck_name{"typeart_unknown_struct"};
+
 void TypeDB::clear() {
   struct_info_vec.clear();
   typeid_to_list_index.clear();
@@ -162,7 +164,7 @@ const std::string& TypeDB::getTypeName(int type_id) const {
       return structInfo->name;
     }
   }
-  static const std::string unknown_struck_name{"typeart_unknown_struct"};
+  
   return unknown_struck_name;
 }
 
