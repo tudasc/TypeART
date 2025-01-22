@@ -362,7 +362,7 @@ bool LegacyTypeArtPass::runOnModule(llvm::Module& module) {
 }
 
 bool LegacyTypeArtPass::doFinalization(llvm::Module&) {
-  return pass_impl_.doFinalization(); 
+  return pass_impl_.doFinalization();
   ;
 }
 
