@@ -24,10 +24,10 @@ using FileOptionsMap = llvm::StringMap<config::OptionValue>;
 
 class FileOptions : public config::Configuration {
  public:
-  [[nodiscard]] llvm::Optional<config::OptionValue> getValue(std::string_view opt_path) const override = 0;
-  [[nodiscard]] virtual FileOptionsMap getConfiguration() const                                        = 0;
-  [[nodiscard]] virtual std::string getConfigurationAsString() const                                   = 0;
-  ~FileOptions() override                                                                              = default;
+  [[nodiscard]] std::optional<config::OptionValue> getValue(std::string_view opt_path) const override = 0;
+  [[nodiscard]] virtual FileOptionsMap getConfiguration() const                                       = 0;
+  [[nodiscard]] virtual std::string getConfigurationAsString() const                                  = 0;
+  ~FileOptions() override                                                                             = default;
 };
 
 [[maybe_unused]] llvm::ErrorOr<std::unique_ptr<FileOptions>> make_file_configuration(std::string_view file_path);

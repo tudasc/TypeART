@@ -62,7 +62,7 @@ Type* VectorTypeHandler::getElementType(llvm::VectorType* type) {
   return element_type;
 }
 
-llvm::Optional<VectorTypeHandler::VectorData> VectorTypeHandler::getVectorData() const {
+std::optional<VectorTypeHandler::VectorData> VectorTypeHandler::getVectorData() const {
   size_t vectorBytes = dl.getTypeAllocSize(type);
 
   size_t vectorSize = compat::num_elements(type);
@@ -70,27 +70,27 @@ llvm::Optional<VectorTypeHandler::VectorData> VectorTypeHandler::getVectorData()
 
   if (!element_data) {
     LOG_DEBUG("Element data empty for: " << util::dump(*type))
-    return None;
+    return {};
   }
 
-  auto vec_name = getName(element_data.getValue());
+  auto vec_name = getName(element_data.value());
 
   return VectorData{vec_name, vectorBytes, vectorSize};
 }
 
-llvm::Optional<VectorTypeHandler::ElementData> VectorTypeHandler::getElementData() const {
+std::optional<VectorTypeHandler::ElementData> VectorTypeHandler::getElementData() const {
   const auto element_id = getElementID();
-  if (!element_id || element_id.getValue() == TYPEART_UNKNOWN_TYPE) {
+  if (!element_id || element_id.value() == TYPEART_UNKNOWN_TYPE) {
     LOG_WARNING("Unknown vector element id.")
-    return None;
+    return {};
   }
 
-  auto element_name = m_type_db->getTypeName(element_id.getValue());
+  auto element_name = m_type_db->getTypeName(element_id.value());
   auto element_type = VectorTypeHandler::getElementType(type);
-  return ElementData{element_id.getValue(), element_type, element_name};
+  return ElementData{element_id.value(), element_type, element_name};
 }
 
-llvm::Optional<int> VectorTypeHandler::getElementID() const {
+std::optional<int> VectorTypeHandler::getElementID() const {
   auto element_type     = getElementType(type);
   const auto element_id = m.getTypeID(element_type, dl);
 
@@ -109,7 +109,7 @@ std::string VectorTypeHandler::getName(const ElementData& data) const {
   return name;
 }
 
-llvm::Optional<int> VectorTypeHandler::getID() const {
+std::optional<int> VectorTypeHandler::getID() const {
   auto element_data = getElementData();
 
   if (!element_data) {
@@ -117,7 +117,7 @@ llvm::Optional<int> VectorTypeHandler::getID() const {
     return TYPEART_UNKNOWN_TYPE;
   }
 
-  const auto name = getName(element_data.getValue());
+  const auto name = getName(element_data.value());
 
   if (auto it = m_struct_map->find(name); it != m_struct_map->end()) {
     if (!m_type_db->isVectorType(it->second)) {
@@ -127,7 +127,7 @@ llvm::Optional<int> VectorTypeHandler::getID() const {
     return it->second;
   }
 
-  return None;
+  return {};
 }
 
 }  // namespace typeart

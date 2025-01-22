@@ -119,7 +119,7 @@ class BaseFilter : public Filter {
         continue;
       }
 
-      llvm::CallSite c(csite.getValue());
+      llvm::CallSite c(csite.value());
       if (fpath.contains(c)) {
         // Avoid recursion:
         // TODO a continue may be wrong, if the function itself eventually calls "MPI"?
@@ -151,7 +151,7 @@ class BaseFilter : public Filter {
         if (OmpHelper::isOmpExecutor(c)) {
           auto outlined = OmpHelper::getMicrotask(c);
           if (outlined) {
-            path2def.push(outlined.getValue());
+            path2def.push(outlined.value());
           }
         }
       }

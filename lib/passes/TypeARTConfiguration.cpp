@@ -22,7 +22,7 @@ TypeARTConfiguration::TypeARTConfiguration(std::unique_ptr<file::FileOptions> co
     : configuration_options_(std::move(config_options)), commandline_options_(std::move(commandline_options)) {
 }
 
-llvm::Optional<OptionValue> TypeARTConfiguration::getValue(std::string_view opt_path) const {
+std::optional<OptionValue> TypeARTConfiguration::getValue(std::string_view opt_path) const {
   const bool use_cl = prioritize_commandline && commandline_options_->valueSpecified(opt_path);
   if (use_cl) {
     LOG_DEBUG("Take CL arg for " << opt_path.data())

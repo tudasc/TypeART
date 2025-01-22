@@ -15,8 +15,6 @@
 #include "support/Logger.h"
 
 #include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/None.h"
-#include "llvm/ADT/Optional.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DerivedTypes.h"
@@ -24,6 +22,8 @@
 #include "llvm/IR/Type.h"
 #include "llvm/IR/Value.h"
 #include "llvm/Support/Casting.h"
+
+#include <optional>
 
 namespace typeart {
 
@@ -62,15 +62,15 @@ llvm::Type* InstrumentationHelper::getTypeFor(IType id) {
 }
 
 llvm::ConstantInt* InstrumentationHelper::getConstantFor(IType id, size_t value) {
-  const auto make_int = [&]() -> Optional<ConstantInt*> {
+  const auto make_int = [&]() -> std::optional<ConstantInt*> {
     auto itype = dyn_cast_or_null<IntegerType>(getTypeFor(id));
     if (itype == nullptr) {
       LOG_FATAL("Pointer for the constant type is null, need aborting...");
-      return None;
+      return {};
     }
     return ConstantInt::get(itype, value);
   };
-  return make_int().getValue();
+  return make_int().value();
 }
 
 void InstrumentationHelper::setModule(llvm::Module& m) {

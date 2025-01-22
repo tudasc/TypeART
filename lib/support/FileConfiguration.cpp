@@ -20,6 +20,8 @@
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/YAMLTraits.h"
 
+#include <optional>
+
 using namespace llvm;
 
 namespace typeart::config::file {
@@ -121,7 +123,7 @@ class YamlFileConfiguration final : public FileOptions {
  public:
   explicit YamlFileConfiguration(const ConfigurationOptions& conf_file);
 
-  [[nodiscard]] Optional<config::OptionValue> getValue(std::string_view opt_path) const override;
+  [[nodiscard]] std::optional<config::OptionValue> getValue(std::string_view opt_path) const override;
 
   [[nodiscard]] FileOptionsMap getConfiguration() const override;
 
@@ -134,12 +136,12 @@ YamlFileConfiguration::YamlFileConfiguration(const ConfigurationOptions& conf_fi
     : mapping_(helper::config2map(conf_file)) {
 }
 
-llvm::Optional<typeart::config::OptionValue> YamlFileConfiguration::getValue(std::string_view opt_path) const {
+std::optional<typeart::config::OptionValue> YamlFileConfiguration::getValue(std::string_view opt_path) const {
   auto key = llvm::StringRef(opt_path.data());
   if (mapping_.count(key) != 0U) {
     return mapping_.lookup(key);
   }
-  return llvm::None;
+  return {};
 }
 
 FileOptionsMap YamlFileConfiguration::getConfiguration() const {

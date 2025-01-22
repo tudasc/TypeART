@@ -13,10 +13,9 @@
 #ifndef TYPEART_VECTORTYPEHANDLER_H
 #define TYPEART_VECTORTYPEHANDLER_H
 
-#include "llvm/ADT/None.h"
-#include "llvm/ADT/Optional.h"
 #include "llvm/ADT/StringMap.h"
 
+#include <optional>
 #include <string>
 
 namespace llvm {
@@ -55,15 +54,15 @@ struct VectorTypeHandler {
 
   static llvm::Type* getElementType(llvm::VectorType* type);
 
-  [[nodiscard]] llvm::Optional<VectorData> getVectorData() const;
+  [[nodiscard]] std::optional<VectorData> getVectorData() const;
 
-  [[nodiscard]] llvm::Optional<ElementData> getElementData() const;
+  [[nodiscard]] std::optional<ElementData> getElementData() const;
 
-  [[nodiscard]] llvm::Optional<int> getElementID() const;
+  [[nodiscard]] std::optional<int> getElementID() const;
 
   [[nodiscard]] std::string getName(const ElementData& data) const;
 
-  [[nodiscard]] llvm::Optional<int> getID() const;
+  [[nodiscard]] std::optional<int> getID() const;
 };
 
 }  // namespace typeart

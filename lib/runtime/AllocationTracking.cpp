@@ -19,7 +19,6 @@
 #include "TypeDB.h"
 #include "support/Logger.h"
 
-#include "llvm/ADT/Optional.h"
 #include "llvm/Support/raw_ostream.h"
 
 #include <algorithm>
@@ -177,7 +176,7 @@ FreeState AllocationTracker::doFreeHeap(const void* addr, const void* retAddr) {
     return FreeState::ADDR_SKIPPED | FreeState::NULL_PTR;
   }
 
-  llvm::Optional<PointerInfo> removed = wrapper.remove(addr);
+  std::optional<PointerInfo> removed = wrapper.remove(addr);
 
   if (unlikely(!removed)) {
     LOG_ERROR("Free on unregistered address " << addr << " (" << retAddr << ")");
@@ -209,7 +208,7 @@ void AllocationTracker::onLeaveScope(int alloca_count, const void* retAddr) {
   const auto start_pos = (cend - alloca_count);
   LOG_TRACE("Freeing stack (" << alloca_count << ")  " << std::distance(start_pos, threadData.stackVars.cend()))
 
-  wrapper.remove_range(start_pos, cend, [&](llvm::Optional<PointerInfo>& removed, MemAddr addr) {
+  wrapper.remove_range(start_pos, cend, [&](std::optional<PointerInfo>& removed, MemAddr addr) {
     if (unlikely(!removed)) {
       LOG_ERROR("Free on unregistered address " << addr << " (" << retAddr << ")");
     } else {
@@ -225,7 +224,7 @@ void AllocationTracker::onLeaveScope(int alloca_count, const void* retAddr) {
   LOG_TRACE("Stack after free: " << threadData.stackVars.size());
 }
 // Base address
-llvm::Optional<RuntimeT::MapEntry> AllocationTracker::findBaseAlloc(const void* addr) {
+std::optional<RuntimeT::MapEntry> AllocationTracker::findBaseAlloc(const void* addr) {
   return wrapper.find(addr);
 }
 

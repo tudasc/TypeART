@@ -19,8 +19,6 @@
 #include "support/DefUseChain.h"
 #include "support/Logger.h"
 
-#include "llvm/ADT/None.h"
-#include "llvm/ADT/Optional.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/iterator_range.h"
@@ -76,7 +74,7 @@ inline std::pair<llvm::Argument*, int> findArg(CallSite c, const Path& p) {
     return {nullptr, -1};
   }
 
-  Value* in          = arg.getValue();
+  Value* in          = arg.value();
   const auto arg_pos = llvm::find_if(c.args(), [&in](const Use& arg_use) -> bool { return arg_use.get() == in; });
 
   if (arg_pos == c.arg_end()) {
@@ -90,7 +88,7 @@ inline std::pair<llvm::Argument*, int> findArg(CallSite c, const Path& p) {
     if (outlined) {
       // Calc the offset of arg in executor to actual arg of the outline function:
       auto offset        = omp::OmpContext::getArgOffsetToMicrotask(c, arg_num);
-      Argument* argument = (outlined.getValue()->arg_begin() + offset);
+      Argument* argument = (outlined.value()->arg_begin() + offset);
       return {argument, offset};
     }
   }
