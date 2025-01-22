@@ -18,11 +18,10 @@
 #include "support/Logger.h"
 #include "support/TypeUtil.h"
 
-#include "llvm/ADT/None.h"
-#include "llvm/ADT/Optional.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/StringRef.h"
+
 #if LLVM_VERSION_MAJOR >= 12
 #include "llvm/Analysis/ValueTracking.h"  // llvm::findAllocaForValue
 #else
@@ -38,6 +37,7 @@
 #include "llvm/Support/raw_ostream.h"
 
 #include <cstddef>
+#include <optional>
 
 namespace typeart::analysis {
 
@@ -82,12 +82,12 @@ void MemOpVisitor::visitCallBase(llvm::CallBase& cb) {
   if (!collect_heap) {
     return;
   }
-  const auto isInSet = [&](const auto& fMap) -> llvm::Optional<MemOpKind> {
+  const auto isInSet = [&](const auto& fMap) -> std::optional<MemOpKind> {
     const auto* f = cb.getCalledFunction();
     if (!f) {
       // TODO handle calls through, e.g., function pointers? - seems infeasible
       // LOG_INFO("Encountered indirect call, skipping.");
-      return None;
+      return {};
     }
     const auto name = f->getName().str();
 
@@ -95,13 +95,13 @@ void MemOpVisitor::visitCallBase(llvm::CallBase& cb) {
     if (res != fMap.end()) {
       return {(*res).second};
     }
-    return None;
+    return {};
   };
 
   if (auto alloc_val = isInSet(mem_operations.allocs())) {
-    visitMallocLike(cb, alloc_val.getValue());
+    visitMallocLike(cb, alloc_val.value());
   } else if (auto dealloc_val = isInSet(mem_operations.deallocs())) {
-    visitFreeLike(cb, dealloc_val.getValue());
+    visitFreeLike(cb, dealloc_val.value());
   }
 }
 
@@ -216,8 +216,8 @@ llvm::Expected<ArrayCookieData> handlePaddedArrayCookie(const MallocGeps& geps, 
   return {ArrayCookieData{*cookie_store, array_gep}};
 }
 
-llvm::Optional<ArrayCookieData> handleArrayCookie(const MallocGeps& geps, MallocBcasts& bcasts,
-                                                  BitCastInst*& primary_cast) {
+std::optional<ArrayCookieData> handleArrayCookie(const MallocGeps& geps, MallocBcasts& bcasts,
+                                                 BitCastInst*& primary_cast) {
   auto exit_on_error = llvm::ExitOnError{"Array Cookie Detection failed!"};
   if (geps.size() == 1) {
     return exit_on_error(handleUnpaddedArrayCookie(geps, bcasts, primary_cast));
@@ -232,7 +232,7 @@ llvm::Optional<ArrayCookieData> handleArrayCookie(const MallocGeps& geps, Malloc
     LOG_FATAL(err);
     exit_on_error({error::make_string_error(err)});
   }
-  return llvm::None;
+  return {};
 }
 
 void MemOpVisitor::visitMallocLike(llvm::CallBase& ci, MemOpKind k) {
@@ -253,12 +253,12 @@ void MemOpVisitor::visitFreeLike(llvm::CallBase& ci, MemOpKind k) {
   if (auto f = ci.getCalledFunction()) {
     auto dkind = mem_operations.deallocKind(f->getName());
     if (dkind) {
-      kind = dkind.getValue();
+      kind = dkind.value();
     }
   }
 
   auto gep              = dyn_cast<GetElementPtrInst>(ci.getArgOperand(0));
-  auto array_cookie_gep = gep != nullptr ? llvm::Optional<llvm::GetElementPtrInst*>{gep} : llvm::None;
+  auto array_cookie_gep = gep != nullptr ? std::optional<llvm::GetElementPtrInst*>{gep} : std::nullopt;
   frees.emplace_back(FreeData{&ci, array_cookie_gep, kind, isa<InvokeInst>(ci)});
 }
 

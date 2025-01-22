@@ -13,10 +13,11 @@
 #ifndef TYPEART_MEMOPDATA_H
 #define TYPEART_MEMOPDATA_H
 
-#include "llvm/ADT/Optional.h"
 #include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringMap.h"
+
+#include <optional>
 
 namespace llvm {
 class CallBase;
@@ -45,28 +46,28 @@ enum class MemOpKind : uint8_t {
 };
 
 struct MemOps {
-  inline llvm::Optional<MemOpKind> kind(llvm::StringRef function) const {
+  inline std::optional<MemOpKind> kind(llvm::StringRef function) const {
     if (auto alloc = allocKind(function)) {
       return alloc;
     }
     if (auto dealloc = deallocKind(function)) {
       return dealloc;
     }
-    return llvm::None;
+    return {};
   }
 
-  inline llvm::Optional<MemOpKind> allocKind(llvm::StringRef function) const {
+  inline std::optional<MemOpKind> allocKind(llvm::StringRef function) const {
     if (auto it = alloc_map.find(function); it != std::end(alloc_map)) {
       return {(*it).second};
     }
-    return llvm::None;
+    return {};
   }
 
-  inline llvm::Optional<MemOpKind> deallocKind(llvm::StringRef function) const {
+  inline std::optional<MemOpKind> deallocKind(llvm::StringRef function) const {
     if (auto it = dealloc_map.find(function); it != std::end(dealloc_map)) {
       return {(*it).second};
     }
-    return llvm::None;
+    return {};
   }
 
   const llvm::StringMap<MemOpKind>& allocs() const {
@@ -129,7 +130,7 @@ struct ArrayCookieData {
 
 struct MallocData {
   llvm::CallBase* call{nullptr};
-  llvm::Optional<ArrayCookieData> array_cookie{llvm::None};
+  std::optional<ArrayCookieData> array_cookie{};
   llvm::BitCastInst* primary{nullptr};  // Non-null if non (void*) cast exists
   llvm::SmallPtrSet<llvm::BitCastInst*, 4> bitcasts;
   MemOpKind kind;
@@ -138,7 +139,7 @@ struct MallocData {
 
 struct FreeData {
   llvm::CallBase* call{nullptr};
-  llvm::Optional<llvm::GetElementPtrInst*> array_cookie_gep{llvm::None};
+  std::optional<llvm::GetElementPtrInst*> array_cookie_gep{};
   MemOpKind kind;
   bool is_invoke{false};
 };

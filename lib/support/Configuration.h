@@ -15,8 +15,7 @@
 
 #include "support/Logger.h"
 
-#include "llvm/ADT/Optional.h"
-
+#include <optional>
 #include <string>
 #include <string_view>
 #include <variant>
@@ -115,12 +114,12 @@ class OptionValue final {
 
 class Configuration {
  public:
-  [[nodiscard]] virtual llvm::Optional<OptionValue> getValue(std::string_view opt_path) const = 0;
+  [[nodiscard]] virtual std::optional<OptionValue> getValue(std::string_view opt_path) const = 0;
 
   [[nodiscard]] virtual OptionValue getValueOr(std::string_view opt_path, OptionValue alt) const {
     const auto val = getValue(opt_path);
-    if (val.hasValue()) {
-      return val.getValue();
+    if (val) {
+      return val.value();
     }
     return alt;
   }

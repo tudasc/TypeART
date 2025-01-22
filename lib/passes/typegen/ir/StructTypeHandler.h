@@ -13,10 +13,9 @@
 #ifndef TYPEART_STRUCTTYPEHANDLER_H
 #define TYPEART_STRUCTTYPEHANDLER_H
 
-#include "llvm/ADT/None.h"
-#include "llvm/ADT/Optional.h"
 #include "llvm/ADT/StringMap.h"
 
+#include <optional>
 #include <string>
 
 namespace llvm {
@@ -36,7 +35,7 @@ struct StructTypeHandler {
 
   [[nodiscard]] std::string getName() const;
 
-  [[nodiscard]] llvm::Optional<int> getID() const;
+  [[nodiscard]] std::optional<int> getID() const;
 };
 
 }  // namespace typeart

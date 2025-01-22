@@ -20,7 +20,6 @@
 #include "support/Logger.h"
 #include "support/System.h"
 
-#include "llvm/ADT/Optional.h"
 #include "llvm/Support/raw_ostream.h"
 
 #include <cassert>
@@ -346,7 +345,7 @@ typeart_status typeart_get_containing_type(const void* addr, int* type_id, size_
   typeart::RTGuard guard;
   auto alloc = typeart::RuntimeSystem::get().allocTracker.findBaseAlloc(addr);
   if (alloc) {
-    //    auto& allocVal = alloc.getValue();
+    //    auto& allocVal = alloc.value();
     *type_id      = alloc->second.typeId;
     *base_address = alloc->first;
     return typeart::RuntimeSystem::get().typeResolution.getContainingTypeInfo(addr, alloc->first, alloc->second, count,
@@ -385,7 +384,7 @@ typeart_status typeart_get_return_address(const void* addr, const void** return_
   auto alloc = typeart::RuntimeSystem::get().allocTracker.findBaseAlloc(addr);
 
   if (alloc) {
-    *return_addr = alloc.getValue().second.debug;
+    *return_addr = alloc.value().second.debug;
     return TYPEART_OK;
   }
   *return_addr = nullptr;

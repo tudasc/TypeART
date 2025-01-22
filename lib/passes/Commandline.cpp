@@ -206,12 +206,12 @@ CommandLineOptions::CommandLineOptions() {
   };
 }
 
-llvm::Optional<typeart::config::OptionValue> CommandLineOptions::getValue(std::string_view opt_path) const {
+std::optional<typeart::config::OptionValue> CommandLineOptions::getValue(std::string_view opt_path) const {
   auto key = llvm::StringRef(opt_path.data());
   if (mapping_.count(key) != 0U) {
     return mapping_.lookup(key);
   }
-  return llvm::None;
+  return {};
 }
 
 [[maybe_unused]] bool CommandLineOptions::valueSpecified(std::string_view opt_path) const {

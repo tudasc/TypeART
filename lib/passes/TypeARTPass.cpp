@@ -38,6 +38,7 @@
 
 #include <cassert>
 #include <cstddef>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -72,7 +73,7 @@ ALWAYS_ENABLED_STATISTIC(NumInstrumentedGlobal, "Number of instrumented globals"
 
 namespace typeart::pass {
 
-llvm::Optional<std::string> get_configuration_file_path() {
+std::optional<std::string> get_configuration_file_path() {
   if (!cl_typeart_configuration_file.empty()) {
     LOG_DEBUG("Using cl::opt for config file " << cl_typeart_configuration_file.getValue());
     return cl_typeart_configuration_file.getValue();
@@ -83,7 +84,7 @@ llvm::Optional<std::string> get_configuration_file_path() {
     return std::string{config_file};
   }
   LOG_INFO("No configuration file set.")
-  return llvm::None;
+  return {};
 }
 
 // Used by LLVM pass manager to identify passes in memory
@@ -109,7 +110,7 @@ bool TypeArtPass::doInitialization(Module& m) {
   if (!config_file_path) {
     pass_config = std::make_unique<config::cl::CommandLineOptions>();
   } else {
-    auto typeart_config = config::make_typeart_configuration({config_file_path.getValue()});
+    auto typeart_config = config::make_typeart_configuration({config_file_path.value()});
     if (typeart_config) {
       {
         std::string typeart_conf_str;

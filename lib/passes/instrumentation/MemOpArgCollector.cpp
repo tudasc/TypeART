@@ -77,8 +77,8 @@ HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
       case MemOpKind::NewLike:
         [[fallthrough]];
       case MemOpKind::MallocLike:
-        if (mdata.array_cookie.hasValue()) {
-          auto array_cookie_data = mdata.array_cookie.getValue();
+        if (mdata.array_cookie) {
+          auto array_cookie_data = mdata.array_cookie.value();
           element_count          = array_cookie_data.cookie_store->getValueOperand();
           pointer                = array_cookie_data.array_ptr_gep;
         }
@@ -132,8 +132,8 @@ FreeArgList MemOpArgCollector::collectFree(const FreeDataList& frees) {
       case MemOpKind::DeleteLike:
         [[fallthrough]];
       case MemOpKind::FreeLike:
-        free_arg = fdata.array_cookie_gep.hasValue() ? fdata.array_cookie_gep.getValue()->getPointerOperand()
-                                                     : free_call->getOperand(0);
+        free_arg =
+            fdata.array_cookie_gep ? fdata.array_cookie_gep.value()->getPointerOperand() : free_call->getOperand(0);
         break;
       default:
         LOG_ERROR("Unknown free kind. Not instrumenting. " << util::dump(*free_call));

@@ -37,7 +37,7 @@ class TypeARTConfiguration final : public Configuration {
   TypeARTConfiguration(std::unique_ptr<file::FileOptions> config_options,
                        std::unique_ptr<cl::CommandLineOptions> commandline_options);
   void prioritizeCommandline(bool do_prioritize);
-  [[nodiscard]] llvm::Optional<OptionValue> getValue(std::string_view opt_path) const override;
+  [[nodiscard]] std::optional<OptionValue> getValue(std::string_view opt_path) const override;
   [[nodiscard]] OptionValue getValueOr(std::string_view opt_path, OptionValue alt) const override;
   [[nodiscard]] OptionValue operator[](std::string_view opt_path) const override;
   void emitTypeartFileConfiguration(llvm::raw_ostream& out_stream);

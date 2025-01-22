@@ -13,15 +13,17 @@
 #ifndef TYPEART_FILTER_OMPUTIL_H
 #define TYPEART_FILTER_OMPUTIL_H
 
+#include "IRPath.h"
 #include "compat/CallSite.h"
 #include "support/DefUseChain.h"
 #include "support/OmpUtil.h"
 
-#include "llvm/ADT/Optional.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Operator.h"
 #include "llvm/Support/Casting.h"
+
+#include <optional>
 
 namespace typeart::filter::omp {
 struct EmptyContext {
@@ -77,7 +79,7 @@ struct OmpContext {
     return false;
   }
 
-  static llvm::Optional<llvm::Function*> getMicrotask(const llvm::CallSite& c) {
+  static std::optional<llvm::Function*> getMicrotask(const llvm::CallSite& c) {
     using namespace llvm;
     if (isOmpExecutor(c)) {
       auto f = llvm::dyn_cast<llvm::Function>(c.getArgOperand(2)->stripPointerCasts());
@@ -87,7 +89,7 @@ struct OmpContext {
       auto f = llvm::dyn_cast<llvm::Function>(c.getArgOperand(5)->stripPointerCasts());
       return {f};
     }
-    return llvm::None;
+    return {};
   }
 
   static bool canDiscardMicrotaskArg(llvm::CallSite c, const Path& path) {
@@ -97,7 +99,7 @@ struct OmpContext {
       return false;
     }
 
-    Value* in          = arg.getValue();
+    Value* in          = arg.value();
     const auto arg_pos = llvm::find_if(c.args(), [&in](const Use& arg_use) -> bool { return arg_use.get() == in; });
 
     if (arg_pos == c.arg_end()) {
@@ -130,7 +132,7 @@ struct OmpContext {
     util::DefUseChain finder;
     finder.traverse_custom(
         alloc,
-        [](auto val) -> llvm::Optional<decltype(val->users())> {
+        [](auto val) -> std::optional<decltype(val->users())> {
           if (auto cinst = llvm::dyn_cast<llvm::StoreInst>(val)) {
             return cinst->getValueOperand()->users();
           }

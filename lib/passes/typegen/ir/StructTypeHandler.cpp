@@ -23,6 +23,8 @@
 #include "llvm/Support/TypeSize.h"
 #include "llvm/Support/raw_ostream.h"
 
+#include <optional>
+
 namespace typeart {
 
 std::string StructTypeHandler::getName(llvm::StructType* type) {
@@ -36,7 +38,7 @@ std::string StructTypeHandler::getName() const {
   return getName(type);
 }
 
-llvm::Optional<int> StructTypeHandler::getID() const {
+std::optional<int> StructTypeHandler::getID() const {
   const auto name = StructTypeHandler::getName(type);
   if (auto it = m_struct_map->find(name); it != m_struct_map->end()) {
     const auto type_id = it->second;
@@ -46,7 +48,7 @@ llvm::Optional<int> StructTypeHandler::getID() const {
     }
     return type_id;
   }
-  return llvm::None;
+  return {};
 }
 
 }  // namespace typeart

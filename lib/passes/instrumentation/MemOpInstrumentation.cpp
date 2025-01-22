@@ -58,8 +58,8 @@ InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
     Instruction* malloc_call = args.get_as<Instruction>(ArgMap::ID::pointer);
 
     Instruction* insertBefore = malloc_call->getNextNode();
-    if (malloc.array_cookie.hasValue()) {
-      insertBefore = malloc.array_cookie.getValue().array_ptr_gep->getNextNode();
+    if (malloc.array_cookie) {
+      insertBefore = malloc.array_cookie.value().array_ptr_gep->getNextNode();
     } else {
       if (malloc.is_invoke) {
         const InvokeInst* inv = dyn_cast<InvokeInst>(malloc_call);
