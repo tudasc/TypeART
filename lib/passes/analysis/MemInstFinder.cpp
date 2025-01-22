@@ -286,6 +286,7 @@ bool MemInstFinderPass::runOnFunction(llvm::Function& function) {
 
   mOpsCollector.collect(function);
 
+#if LLVM_VERSION_MAJOR < 15
   const auto checkAmbigiousMalloc = [&function](const MallocData& mallocData) {
     using namespace typeart::util::type;
     auto primaryBitcast = mallocData.primary;
@@ -305,6 +306,7 @@ bool MemInstFinderPass::runOnFunction(llvm::Function& function) {
       });
     }
   };
+#endif
 
   NumDetectedAllocs += mOpsCollector.allocas.size();
 
@@ -388,9 +390,11 @@ bool MemInstFinderPass::runOnFunction(llvm::Function& function) {
   auto& mallocs = mOpsCollector.mallocs;
   NumDetectedHeap += mallocs.size();
 
+#if LLVM_VERSION_MAJOR < 15
   for (const auto& mallocData : mallocs) {
     checkAmbigiousMalloc(mallocData);
   }
+#endif
 
   FunctionData data{mOpsCollector.mallocs, mOpsCollector.frees, mOpsCollector.allocas};
   functionMap[&function] = data;

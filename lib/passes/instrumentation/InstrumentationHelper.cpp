@@ -44,7 +44,12 @@ llvm::Type* InstrumentationHelper::getTypeFor(IType id) {
   auto& c = module->getContext();
   switch (id) {
     case IType::ptr:
+#if LLVM_VERSION_MAJOR < 15
       return Type::getInt8PtrTy(c);
+#else
+      // TODO which address space?
+      return PointerType::get(c, 0);
+#endif
     case IType::function_id:
       return Type::getInt32Ty(c);
     case IType::extent:

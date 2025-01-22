@@ -22,6 +22,8 @@
 #include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/StringRef.h"
 
+#include <llvm/Support/Error.h>
+
 #if LLVM_VERSION_MAJOR >= 12
 #include "llvm/Analysis/ValueTracking.h"  // llvm::findAllocaForValue
 #else
@@ -165,12 +167,12 @@ std::pair<MallocGeps, MallocBcasts> collectRelevantMallocUsers(llvm::CallBase& c
   return {geps, bcasts};
 }
 
-llvm::Expected<ArrayCookieData> handleUnpaddedArrayCookie(const MallocGeps& geps, MallocBcasts& bcasts,
-                                                          BitCastInst*& primary_cast) {
+llvm::Expected<ArrayCookieData> handleUnpaddedArrayCookie(llvm::CallBase& ci, const MallocGeps& geps,
+                                                          MallocBcasts& bcasts, BitCastInst*& primary_cast) {
   using namespace util::type;
+#if LLVM_VERSION_MAJOR < 15
   // We expect only the bitcast to size_t for the array cookie store.
   RETURN_ERROR_IF(bcasts.size() != 1, "Couldn't identify bitcast instruction of an unpadded array cookie!");
-
   auto cookie_bcast = *bcasts.begin();
   RETURN_ERROR_IF(!isi64Ptr(cookie_bcast->getDestTy()), "Found non-i64Ptr bitcast instruction for an array cookie!");
 
@@ -185,13 +187,22 @@ llvm::Expected<ArrayCookieData> handleUnpaddedArrayCookie(const MallocGeps& geps
 
   bcasts.insert(*array_bcast);
   primary_cast = *array_bcast;
-
+#else
+  // auto cookie_store = getNextUserAs<StoreInst>(ci);
+  // auto array_gep = *geps.begin();
+  // RETURN_ERROR_IF(array_gep->getNumIndices() != 1, "Found multidimensional array cookie gep!");
+  // auto array_store = getSingleUserAs<StoreInst>(array_gep);
+  // RETURN_ON_ERROR(array_store);
+  llvm::Expected<StoreInst*> cookie_store{error::make_string_error("TODO Unimplemented")};
+  auto array_gep = *geps.begin();
+#endif
   return {ArrayCookieData{*cookie_store, array_gep}};
 }
 
-llvm::Expected<ArrayCookieData> handlePaddedArrayCookie(const MallocGeps& geps, MallocBcasts& bcasts,
-                                                        BitCastInst*& primary_cast) {
+llvm::Expected<ArrayCookieData> handlePaddedArrayCookie(llvm::CallBase& ci, const MallocGeps& geps,
+                                                        MallocBcasts& bcasts, BitCastInst*& primary_cast) {
   using namespace util::type;
+#if LLVM_VERSION_MAJOR < 15
   // We expect bitcasts only after the GEP instructions in this case.
   RETURN_ERROR_IF(!bcasts.empty(), "Found unrelated bitcast instructions on a padded array cookie!");
 
@@ -212,17 +223,20 @@ llvm::Expected<ArrayCookieData> handlePaddedArrayCookie(const MallocGeps& geps, 
 
   bcasts.insert(*array_bcast);
   primary_cast = *array_bcast;
-
+#else
+  llvm::Expected<StoreInst*> cookie_store{error::make_string_error("TODO Unimplemented")};
+  auto array_gep = *geps.begin();
+#endif
   return {ArrayCookieData{*cookie_store, array_gep}};
 }
 
-std::optional<ArrayCookieData> handleArrayCookie(const MallocGeps& geps, MallocBcasts& bcasts,
+std::optional<ArrayCookieData> handleArrayCookie(llvm::CallBase& ci, const MallocGeps& geps, MallocBcasts& bcasts,
                                                  BitCastInst*& primary_cast) {
   auto exit_on_error = llvm::ExitOnError{"Array Cookie Detection failed!"};
   if (geps.size() == 1) {
-    return exit_on_error(handleUnpaddedArrayCookie(geps, bcasts, primary_cast));
+    return exit_on_error(handleUnpaddedArrayCookie(ci, geps, bcasts, primary_cast));
   } else if (geps.size() == 2) {
-    return exit_on_error(handlePaddedArrayCookie(geps, bcasts, primary_cast));
+    return exit_on_error(handlePaddedArrayCookie(ci, geps, bcasts, primary_cast));
   } else if (geps.size() > 2) {
     // Found a case where the address of an allocation is used more than two
     // times as an argument to a GEP instruction. This is unexpected as at most
@@ -238,7 +252,7 @@ std::optional<ArrayCookieData> handleArrayCookie(const MallocGeps& geps, MallocB
 void MemOpVisitor::visitMallocLike(llvm::CallBase& ci, MemOpKind k) {
   auto [geps, bcasts] = collectRelevantMallocUsers(ci);
   auto primary_cast   = bcasts.empty() ? nullptr : *bcasts.begin();
-  auto array_cookie   = handleArrayCookie(geps, bcasts, primary_cast);
+  auto array_cookie   = handleArrayCookie(ci, geps, bcasts, primary_cast);
   if (primary_cast == nullptr) {
     LOG_DEBUG("Primary bitcast null: " << ci)
   }

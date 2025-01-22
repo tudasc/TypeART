@@ -28,6 +28,7 @@ using namespace llvm;
 
 namespace typeart::util::type {
 
+#if LLVM_VERSION_MAJOR < 15
 bool isi64Ptr(llvm::Type* type) {
   return type->isPointerTy() && type->getPointerElementType()->isIntegerTy(64);
 }
@@ -35,6 +36,7 @@ bool isi64Ptr(llvm::Type* type) {
 bool isVoidPtr(llvm::Type* type) {
   return type->isPointerTy() && type->getPointerElementType()->isIntegerTy(8);
 }
+#endif
 
 /**
  * Code was imported from jplehr/llvm-memprofiler project
@@ -102,34 +104,6 @@ unsigned getStructSizeInBytes(llvm::Type* structT, const llvm::DataLayout& dl) {
 
 unsigned getPointerSizeInBytes(llvm::Type* /*ptrT*/, const llvm::DataLayout& dl) {
   return dl.getPointerSizeInBits() / 8;
-}
-
-unsigned getTypeSizeForArrayAlloc(llvm::AllocaInst* ai, const llvm::DataLayout& dl) {
-  // TODO: Not used at the moment. Integrate VLA check into replacement methods (getArrayLengthFlattened).
-
-  auto type = ai->getAllocatedType();
-  unsigned bytes;
-  if (type->isArrayTy()) {
-    bytes = getTypeSizeInBytes(type->getArrayElementType(), dl);
-  } else {
-    bytes = getTypeSizeInBytes(type, dl);
-  }
-  if (ai->isArrayAllocation()) {
-    if (auto ci = dyn_cast<ConstantInt>(ai->getArraySize())) {
-      bytes *= ci->getLimitedValue();
-    } else {
-      // If this can not be determined statically, we have to compute it at
-      // runtime. We insert additional instructions to calculate the
-      // numBytes of that array on the fly. (VLAs produce this kind of
-      // behavior)
-      // ATTENTION: We can have multiple such arrays in a single BB. We need
-      // to have a small vector to store whether we already generated
-      // instructions, to possibly refer to the results for further
-      // calculations.
-      LOG_WARNING("We hit not yet determinable array size expression: " << *ai);
-    }
-  }
-  return bytes;
 }
 
 }  // namespace typeart::util::type

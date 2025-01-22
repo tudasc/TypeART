@@ -312,9 +312,11 @@ void TypeArtPass::printStats(llvm::raw_ostream& out) {
 }  // namespace typeart::pass
 
 #include "llvm/IR/LegacyPassManager.h"
+#if LLVM_VERSION_MAJOR < 15
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
 
 static void registerClangPass(const llvm::PassManagerBuilder&, llvm::legacy::PassManagerBase& PM) {
   PM.add(new typeart::pass::TypeArtPass());
 }
 static RegisterStandardPasses RegisterClangPass(PassManagerBuilder::EP_OptimizerLast, registerClangPass);
+#endif

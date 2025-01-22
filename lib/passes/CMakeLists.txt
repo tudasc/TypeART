@@ -15,13 +15,19 @@ set(PASS_SOURCES
   TypeARTConfiguration.cpp
 )
 
+if(${LLVM_VERSION_MAJOR} VERSION_LESS_EQUAL "14")
+  set(TYPE_IR_GEN typeart::TypeGenStatic)
+else()
+  set(TYPE_IR_GEN )
+endif()
+
 typeart_make_llvm_module(
   ${TYPEART_PREFIX}_TransformPass "${PASS_SOURCES}"
   LINK_LIBS typeart::MemInstFinder
             typeart::TypesStatic
             typeart::TypeGenDimetaStatic
             dimeta::Types
-            typeart::TypeGenStatic
+            ${TYPE_IR_GEN}
   INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}
                ${PROJECT_SOURCE_DIR}/lib/
                ${PROJECT_SOURCE_DIR}/lib/passes/
