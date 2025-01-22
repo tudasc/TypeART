@@ -53,7 +53,7 @@ function(typeart_configure_lit_site input output)
     set(TYPEART_COVERAGE True)
   endif()
 
-  if(${LLVM_VERSION_MAJOR} VERSION_GREATER_EQUAL "13")
+  if(${LLVM_VERSION_MAJOR} VERSION_EQUAL "14")
     set(TYPEART_OPT_ARGS "-enable-new-pm=0")
   endif()
 

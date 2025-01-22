@@ -42,6 +42,8 @@ config.coverage=@TYPEART_COVERAGE@
 
 config.python_interp = "@Python3_EXECUTABLE@"
 
+config.llvm_version = @LLVM_VERSION_MAJOR@
+
 # Let the main config do the real work.
 config.loaded_site_config = True
 lit_config.load_config(config, "@TYPEARTPASS_PROJECT_DIR@/test/lit.cfg")
