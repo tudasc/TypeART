@@ -36,4 +36,23 @@ class CommandLineOptions final : public config::Configuration {
 
 }  // namespace typeart::config::cl
 
+namespace typeart::config::env {
+
+class EnvironmentFlagsOptions final : public config::Configuration {
+ public:
+  using OptionsMap      = llvm::StringMap<config::OptionValue>;
+  using ClOccurrenceMap = llvm::StringMap<bool>;
+
+ private:
+  OptionsMap mapping_;
+  ClOccurrenceMap occurence_mapping_;
+
+ public:
+  EnvironmentFlagsOptions();
+  [[nodiscard]] std::optional<config::OptionValue> getValue(std::string_view opt_path) const override;
+  [[maybe_unused]] [[nodiscard]] bool valueSpecified(std::string_view opt_path) const;
+};
+
+}  // namespace typeart::config::env
+
 #endif  // TYPEART_COMMANDLINE_H
