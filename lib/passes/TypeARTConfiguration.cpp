@@ -26,28 +26,52 @@ TypeARTConfiguration::TypeARTConfiguration(std::unique_ptr<file::FileOptions> co
 }
 
 std::optional<OptionValue> TypeARTConfiguration::getValue(std::string_view opt_path) const {
-  const bool use_cl = prioritize_commandline && commandline_options_->valueSpecified(opt_path);
-  if (use_cl) {
-    LOG_DEBUG("Take CL arg for " << opt_path.data())
-    return commandline_options_->getValue(opt_path);
+  auto get_value = [&](const auto& options, const char* source) -> std::optional<OptionValue> {
+    if (prioritize_commandline && options.valueSpecified(opt_path)) {
+      LOG_DEBUG("Take " << source << " arg for " << opt_path.data());
+      return options.getValue(opt_path);
+    }
+    return std::nullopt;
+  };
+  if (auto value = get_value(*env_options_, "ENV")) {
+    return value;
+  }
+  if (auto value = get_value(*commandline_options_, "CL")) {
+    return value;
   }
   return configuration_options_->getValue(opt_path);
 }
 
 OptionValue TypeARTConfiguration::getValueOr(std::string_view opt_path, OptionValue alt) const {
-  const bool use_cl = prioritize_commandline && commandline_options_->valueSpecified(opt_path);
-  if (use_cl) {
-    LOG_DEBUG("Take CL arg for " << opt_path.data())
-    return commandline_options_->getValueOr(opt_path, alt);
+  auto get_value = [&](const auto& options, const char* source) -> std::optional<OptionValue> {
+    if (prioritize_commandline && options.valueSpecified(opt_path)) {
+      LOG_DEBUG("Take " << source << " arg for " << opt_path.data());
+      return options.getValueOr(opt_path, alt);
+    }
+    return std::nullopt;
+  };
+  if (auto value = get_value(*env_options_, "ENV")) {
+    return value.value();
+  }
+  if (auto value = get_value(*commandline_options_, "CL")) {
+    return value.value();
   }
   return configuration_options_->getValueOr(opt_path, alt);
 }
 
 OptionValue TypeARTConfiguration::operator[](std::string_view opt_path) const {
-  const bool use_cl = prioritize_commandline && commandline_options_->valueSpecified(opt_path);
-  if (use_cl) {
-    LOG_DEBUG("Take CL arg for " << opt_path.data())
-    return commandline_options_->operator[](opt_path);
+  auto get_value = [&](const auto& options, const char* source) -> std::optional<OptionValue> {
+    if (prioritize_commandline && options.valueSpecified(opt_path)) {
+      LOG_DEBUG("Take " << source << " arg for " << opt_path.data());
+      return options.operator[](opt_path);
+    }
+    return std::nullopt;
+  };
+  if (auto value = get_value(*env_options_, "ENV")) {
+    return value.value();
+  }
+  if (auto value = get_value(*commandline_options_, "CL")) {
+    return value.value();
   }
   return configuration_options_->operator[](opt_path);
 }

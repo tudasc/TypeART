@@ -310,9 +310,13 @@ int enum_to_int(std::string_view cl_value) {
 
 template <typename ClType>
 config::OptionValue make_opt(std::string_view cl_value) {
+  LOG_DEBUG("Parsing value " << cl_value)
   if constexpr (std::is_same_v<bool, ClType>) {
     const bool is_true_val  = with_any_of(cl_value, "true", "TRUE", "1");
     const bool is_false_val = with_any_of(cl_value, "false", "FALSE", "0");
+    if (!(is_true_val || is_false_val)) {
+      LOG_WARNING("Illegal bool value")
+    }
     assert((is_true_val || is_false_val) && "Illegal bool value for environment flag");
     return config::OptionValue{is_true_val};
   } else {
@@ -334,7 +338,7 @@ std::pair<StringRef, typename EnvironmentFlagsOptions::OptionsMap::mapped_type> 
 template <typename ClOpt>
 std::pair<StringRef, typename EnvironmentFlagsOptions::ClOccurrenceMap::mapped_type> make_occurr_entry(
     std::string&& key, ClOpt&& cl_opt) {
-  const bool occured=(util::get_env_flag(cl_opt).has_value());
+  const bool occured = (util::get_env_flag(cl_opt).has_value());
   LOG_DEBUG("Key :" << key << ":" << occured)
   return {key, occured};
 }

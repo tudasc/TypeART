@@ -113,33 +113,25 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
 
  public:
   bool doInitialization(Module& m) {
-    if (cl_typeart_configuration_file_dump.getValue()) {
-      auto config = config::make_typeart_configuration({"", config::TypeARTConfigInit::FileConfigurationMode::Empty});
-      config->get()->emitTypeartFileConfiguration(llvm::outs());
-      LOG_DEBUG("Emitted standard config. Exiting now.")
-      std::exit(EXIT_SUCCESS);
-    }
-
     auto config_file_path = get_configuration_file_path();
 
-    if (!config_file_path) {
-      auto typeart_config = config::make_typeart_configuration({{},config::TypeARTConfigInit::FileConfigurationMode::Empty});//std::make_unique<config::cl::CommandLineOptions>();
+    const auto init     = config_file_path.has_value()
+                              ? config::TypeARTConfigInit{config_file_path.value()}
+                              : config::TypeARTConfigInit{{}, config::TypeARTConfigInit::FileConfigurationMode::Empty};
+    auto typeart_config = config::make_typeart_configuration(init);
+    if (typeart_config) {
+      {
+        std::string typeart_conf_str;
+        llvm::raw_string_ostream conf_out_stream{typeart_conf_str};
+        typeart_config->get()->emitTypeartFileConfiguration(conf_out_stream);
+        LOG_INFO("Emitting TypeART file content\n" << conf_out_stream.str())
+      }
       pass_config = std::move(*typeart_config);
     } else {
-      auto typeart_config = config::make_typeart_configuration({config_file_path.value()});
-      if (typeart_config) {
-        {
-          std::string typeart_conf_str;
-          llvm::raw_string_ostream conf_out_stream{typeart_conf_str};
-          typeart_config->get()->emitTypeartFileConfiguration(conf_out_stream);
-          LOG_INFO("Emitting TypeART file content\n" << conf_out_stream.str())
-        }
-        pass_config = std::move(*typeart_config);
-      } else {
-        LOG_FATAL("Could not load TypeARTConfiguration.")
-        std::exit(EXIT_FAILURE);
-      }
+      LOG_FATAL("Could not load TypeARTConfiguration.")
+      std::exit(EXIT_FAILURE);
     }
+    
     meminst_finder = analysis::create_finder(*pass_config);
 
     const std::string types_file =
