@@ -131,7 +131,7 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
       LOG_FATAL("Could not load TypeARTConfiguration.")
       std::exit(EXIT_FAILURE);
     }
-    
+
     meminst_finder = analysis::create_finder(*pass_config);
 
     const std::string types_file =
@@ -257,7 +257,7 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
   bool runOnModule(llvm::Module& m) {
     meminst_finder->runOnModule(m);
     const bool instrument_global = (*pass_config)[config::ConfigStdArgs::global];
-    bool instrumented_global{false};
+    bool globals_were_instrumented{false};
     if (instrument_global) {
       declareInstrumentationFunctions(m);
 
@@ -265,12 +265,12 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
       if (!globalsList.empty()) {
         const auto global_count = instrumentation_context->handleGlobal(globalsList);
         NumInstrumentedGlobal += global_count;
-        instrumented_global = global_count > 0;
+        globals_were_instrumented = global_count > 0;
       }
     }
 
     const auto instrumented_function = llvm::count_if(m.functions(), [&](auto& f) { return runOnFunc(f); }) > 0;
-    return instrumented_function || instrumented_global;
+    return instrumented_function || globals_were_instrumented;
   }
 
   bool runOnFunc(llvm::Function& f) {

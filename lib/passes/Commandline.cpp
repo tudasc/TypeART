@@ -243,6 +243,12 @@ CommandLineOptions::CommandLineOptions() {
       make_occurr_entry(ConfigStdArgs::analysis_filter_pointer_alloc, cl_typeart_filter_pointer_alloca),
       make_occurr_entry(ConfigStdArgs::analysis_filter_alloca_non_array, cl_typeart_filter_stack_non_array),
   };
+
+  if (!occurence_mapping_.lookup(ConfigStdArgs::global) && occurence_mapping_.lookup(ConfigStdArgs::stack)) {
+    const auto stack_value          = mapping_.lookup(ConfigStdArgs::stack);
+    mapping_[ConfigStdArgs::global] = OptionValue{static_cast<bool>(stack_value)};
+    occurence_mapping_[ConfigStdArgs::global] = true;
+  }
 }
 
 std::optional<typeart::config::OptionValue> CommandLineOptions::getValue(std::string_view opt_path) const {
@@ -414,7 +420,7 @@ EnvironmentFlagsOptions::EnvironmentFlagsOptions() {
                         EnvironmentStdArgs::analysis_filter_alloca_non_array),
   };
 
-  if (!occurence_mapping_.lookup(ConfigStdArgs::global)) {
+  if (!occurence_mapping_.lookup(ConfigStdArgs::global) && occurence_mapping_.lookup(ConfigStdArgs::stack)) {
     const auto stack_value          = mapping_.lookup(ConfigStdArgs::stack);
     mapping_[ConfigStdArgs::global] = OptionValue{static_cast<bool>(stack_value)};
     occurence_mapping_[ConfigStdArgs::global] = true;
