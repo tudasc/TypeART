@@ -13,7 +13,7 @@
 #ifndef TYPEART_TYPEGENERATOR_H
 #define TYPEART_TYPEGENERATOR_H
 
-#include "TypeDatabase.h"
+#include "typelib/TypeDatabase.h"
 #include "analysis/MemOpData.h"
 #include "typelib/TypeInterface.h"
 

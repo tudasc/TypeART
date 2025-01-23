@@ -260,12 +260,6 @@ std::optional<typeart::config::OptionValue> CommandLineOptions::getValue(std::st
 }  // namespace typeart::config::cl
 
 namespace typeart::config::env {
-struct EnvironmentStdArgs final {
-#define TYPEART_CONFIG_OPTION(name, path, type, def_value, description, upper_path) \
-  static constexpr char name[] = "TYPEART_" upper_path;
-#include "support/ConfigurationBaseOptions.h"
-#undef TYPEART_CONFIG_OPTION
-};
 
 struct EnvironmentStdArgsValues final {
 #define TYPEART_CONFIG_OPTION(name, path, type, def_value, description, upper_path) \

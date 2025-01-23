@@ -14,6 +14,7 @@
 #define TYPEART_TYPEARTCONFIGURATION_H
 
 #include "support/Configuration.h"
+#include "support/TypeARTOptions.h"
 
 #include "llvm/Support/ErrorOr.h"
 
@@ -47,6 +48,8 @@ class TypeARTConfiguration final : public Configuration {
   [[nodiscard]] OptionValue getValueOr(std::string_view opt_path, OptionValue alt) const override;
   [[nodiscard]] OptionValue operator[](std::string_view opt_path) const override;
   void emitTypeartFileConfiguration(llvm::raw_ostream& out_stream);
+  [[nodiscard]] TypeARTConfigOptions getOptions() const;
+
   ~TypeARTConfiguration() override = default;
 };
 
@@ -58,6 +61,9 @@ struct TypeARTConfigInit {
 
 [[maybe_unused]] llvm::ErrorOr<std::unique_ptr<TypeARTConfiguration>> make_typeart_configuration(
     const TypeARTConfigInit& init);
+
+[[maybe_unused]] llvm::ErrorOr<std::unique_ptr<TypeARTConfiguration>> make_typeart_configuration_from_opts(
+    const TypeARTConfigOptions& opts);
 
 }  // namespace typeart::config
 

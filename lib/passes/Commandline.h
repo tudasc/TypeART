@@ -32,6 +32,13 @@ class CommandLineOptions final : public config::Configuration {
 
 namespace typeart::config::env {
 
+struct EnvironmentStdArgs final {
+#define TYPEART_CONFIG_OPTION(name, path, type, def_value, description, upper_path) \
+  static constexpr char name[] = "TYPEART_" upper_path;
+#include "support/ConfigurationBaseOptions.h"
+#undef TYPEART_CONFIG_OPTION
+};
+
 class EnvironmentFlagsOptions final : public config::Configuration {
  private:
   OptionsMap mapping_;

@@ -18,14 +18,18 @@
 #include "llvm/ADT/StringMap.h"
 #include "llvm/Support/ErrorOr.h"
 
+namespace typeart::config {
+struct TypeARTConfigOptions;
+}
+
 namespace typeart::config::file {
 
-using FileOptionsMap = llvm::StringMap<config::OptionValue>;
+// using FileOptionsMap = llvm::StringMap<config::OptionValue>;
 
 class FileOptions : public config::Configuration {
  public:
   [[nodiscard]] std::optional<config::OptionValue> getValue(std::string_view opt_path) const override = 0;
-  [[nodiscard]] virtual FileOptionsMap getConfiguration() const                                       = 0;
+  [[nodiscard]] virtual OptionsMap getConfiguration() const                                           = 0;
   [[nodiscard]] virtual std::string getConfigurationAsString() const                                  = 0;
   ~FileOptions() override                                                                             = default;
 };
@@ -33,6 +37,8 @@ class FileOptions : public config::Configuration {
 [[maybe_unused]] llvm::ErrorOr<std::unique_ptr<FileOptions>> make_file_configuration(std::string_view file_path);
 
 [[maybe_unused]] llvm::ErrorOr<std::unique_ptr<FileOptions>> make_default_file_configuration();
+[[maybe_unused]] llvm::ErrorOr<std::unique_ptr<FileOptions>> make_from_configuration(
+    const TypeARTConfigOptions& options);
 
 [[maybe_unused]] llvm::ErrorOr<bool> write_file_configuration(llvm::raw_ostream& out_stream,
                                                               const FileOptions& file_options);

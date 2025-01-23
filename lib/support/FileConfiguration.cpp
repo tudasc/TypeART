@@ -12,6 +12,8 @@
 
 #include "FileConfiguration.h"
 
+#include "TypeARTConfiguration.h"
+#include "TypeARTOptions.h"
 #include "analysis/MemInstFinder.h"
 #include "support/Configuration.h"
 #include "typegen/TypeGenerator.h"
@@ -32,117 +34,26 @@ namespace typeart::config::file {
 
 using typeart::config::ConfigStdArgValues;
 
-struct ConfigurationOptions {
-  std::string types{ConfigStdArgValues::types};
-  bool heap{ConfigStdArgValues::heap};
-  bool stack{ConfigStdArgValues::stack};
-  bool global{ConfigStdArgValues::global};
-  bool statistics{ConfigStdArgValues::stats};
-  bool stack_lifetime{ConfigStdArgValues::stack_lifetime};
-  typeart::TypegenImplementation typegen{typeart::TypegenImplementation::DIMETA};
-  bool filter{false};
-  struct CallFilter {
-    typeart::analysis::FilterImplementation implementation{typeart::analysis::FilterImplementation::standard};
-    std::string glob{ConfigStdArgValues::filter_glob};
-    std::string glob_deep{ConfigStdArgValues::filter_glob_deep};
-    std::string cg_file{ConfigStdArgValues::filter_cg_file};
-  };
-  CallFilter call_filter_configuration{};
-  struct Analysis {
-    bool filter_global{ConfigStdArgValues::analysis_filter_global};
-    bool filter_heap_alloc{ConfigStdArgValues::analysis_filter_heap_alloc};
-    bool filter_pointer_alloc{ConfigStdArgValues::analysis_filter_pointer_alloc};
-    bool filter_alloca_non_array{ConfigStdArgValues::analysis_filter_alloca_non_array};
-  };
-  Analysis analysis_configuration{};
-  int version{1};
-};
-
-namespace helper {
-
-ConfigurationOptions map2config(const FileOptionsMap& mapping) {
-  const auto make_entry = [&mapping](std::string_view entry, auto& ref) {
-    auto key = llvm::StringRef(entry.data());
-    ref      = static_cast<typename std::remove_reference<decltype(ref)>::type>(mapping.lookup(key));
-  };
-
-  ConfigurationOptions conf_file;
-  make_entry(ConfigStdArgs::types, conf_file.types);
-  make_entry(ConfigStdArgs::stats, conf_file.statistics);
-  make_entry(ConfigStdArgs::heap, conf_file.heap);
-  make_entry(ConfigStdArgs::global, conf_file.global);
-  make_entry(ConfigStdArgs::stack, conf_file.stack);
-  make_entry(ConfigStdArgs::stack_lifetime, conf_file.stack_lifetime);
-  make_entry(ConfigStdArgs::filter, conf_file.filter);
-  make_entry(ConfigStdArgs::filter_impl, conf_file.call_filter_configuration.implementation);
-  make_entry(ConfigStdArgs::filter_glob, conf_file.call_filter_configuration.glob);
-  make_entry(ConfigStdArgs::filter_glob_deep, conf_file.call_filter_configuration.glob_deep);
-  make_entry(ConfigStdArgs::filter_cg_file, conf_file.call_filter_configuration.cg_file);
-  make_entry(ConfigStdArgs::analysis_filter_global, conf_file.analysis_configuration.filter_global);
-  make_entry(ConfigStdArgs::analysis_filter_heap_alloc, conf_file.analysis_configuration.filter_heap_alloc);
-  make_entry(ConfigStdArgs::analysis_filter_pointer_alloc, conf_file.analysis_configuration.filter_pointer_alloc);
-  make_entry(ConfigStdArgs::analysis_filter_alloca_non_array, conf_file.analysis_configuration.filter_alloca_non_array);
-  make_entry(ConfigStdArgs::typegen, conf_file.typegen);
-  return conf_file;
-}
-
-template <typename T>
-auto make_entry(std::string_view key, const T& field_value)
-    -> std::pair<StringRef, typename FileOptionsMap::mapped_type> {
-  // LOG_DEBUG(key << "->" << field_value)
-  if constexpr (std::is_enum_v<T>) {
-    return {key, config::OptionValue{static_cast<int>(field_value)}};
-  } else {
-    return {key, config::OptionValue{field_value}};
-  }
-};
-
-FileOptionsMap config2map(const ConfigurationOptions& conf_file) {
-  using namespace detail;
-  FileOptionsMap mapping_ = {
-      make_entry(ConfigStdArgs::types, conf_file.types),
-      make_entry(ConfigStdArgs::stats, conf_file.statistics),
-      make_entry(ConfigStdArgs::heap, conf_file.heap),
-      make_entry(ConfigStdArgs::global, conf_file.global),
-      make_entry(ConfigStdArgs::stack, conf_file.stack),
-      make_entry(ConfigStdArgs::stack_lifetime, conf_file.stack_lifetime),
-      make_entry(ConfigStdArgs::typegen, conf_file.typegen),
-      make_entry(ConfigStdArgs::filter, conf_file.filter),
-      make_entry(ConfigStdArgs::filter_impl, conf_file.call_filter_configuration.implementation),
-      make_entry(ConfigStdArgs::filter_glob, conf_file.call_filter_configuration.glob),
-      make_entry(ConfigStdArgs::filter_glob_deep, conf_file.call_filter_configuration.glob_deep),
-      make_entry(ConfigStdArgs::filter_cg_file, conf_file.call_filter_configuration.cg_file),
-      make_entry(ConfigStdArgs::analysis_filter_global, conf_file.analysis_configuration.filter_global),
-      make_entry(ConfigStdArgs::analysis_filter_heap_alloc, conf_file.analysis_configuration.filter_heap_alloc),
-      make_entry(ConfigStdArgs::analysis_filter_pointer_alloc, conf_file.analysis_configuration.filter_pointer_alloc),
-      make_entry(ConfigStdArgs::analysis_filter_alloca_non_array,
-                 conf_file.analysis_configuration.filter_alloca_non_array),
-  };
-  return mapping_;
-}
-
-}  // namespace helper
-
 std::string write_file_configuration_as_text(const FileOptions& file_options);
 
 class YamlFileConfiguration final : public FileOptions {
  private:
-  FileOptionsMap mapping_;
+  OptionsMap mapping_;
 
  public:
-  explicit YamlFileConfiguration(const ConfigurationOptions& conf_file);
+  explicit YamlFileConfiguration(const TypeARTConfigOptions& conf_file);
 
   [[nodiscard]] std::optional<config::OptionValue> getValue(std::string_view opt_path) const override;
 
-  [[nodiscard]] FileOptionsMap getConfiguration() const override;
+  [[nodiscard]] OptionsMap getConfiguration() const override;
 
   [[nodiscard]] std::string getConfigurationAsString() const override;
 
   ~YamlFileConfiguration() override = default;
 };
 
-YamlFileConfiguration::YamlFileConfiguration(const ConfigurationOptions& conf_file)
-    : mapping_(helper::config2map(conf_file)) {
+YamlFileConfiguration::YamlFileConfiguration(const TypeARTConfigOptions& conf_file)
+    : mapping_(config::options_to_map(conf_file)) {
 }
 
 std::optional<typeart::config::OptionValue> YamlFileConfiguration::getValue(std::string_view opt_path) const {
@@ -153,7 +64,7 @@ std::optional<typeart::config::OptionValue> YamlFileConfiguration::getValue(std:
   return {};
 }
 
-FileOptionsMap YamlFileConfiguration::getConfiguration() const {
+OptionsMap YamlFileConfiguration::getConfiguration() const {
   return this->mapping_;
 }
 
@@ -162,8 +73,8 @@ std::string YamlFileConfiguration::getConfigurationAsString() const {
 }
 
 namespace yaml {
-ConfigurationOptions yaml_read_file(llvm::yaml::Input& input);
-void yaml_output_file(llvm::yaml::Output& output, ConfigurationOptions& config);
+TypeARTConfigOptions yaml_read_file(llvm::yaml::Input& input);
+void yaml_output_file(llvm::yaml::Output& output, TypeARTConfigOptions& config);
 }  // namespace yaml
 
 namespace compat {
@@ -193,7 +104,11 @@ auto open_flag() {
 }
 
 llvm::ErrorOr<std::unique_ptr<FileOptions>> make_default_file_configuration() {
-  ConfigurationOptions options;
+  TypeARTConfigOptions options;
+  return std::make_unique<YamlFileConfiguration>(options);
+}
+
+llvm::ErrorOr<std::unique_ptr<FileOptions>> make_from_configuration(const TypeARTConfigOptions& options) {
   return std::make_unique<YamlFileConfiguration>(options);
 }
 
@@ -204,7 +119,7 @@ llvm::ErrorOr<bool> write_file_configuration(llvm::raw_ostream& oss, const FileO
 
   auto data = options.getConfiguration();
 
-  auto conf_file = helper::map2config(options.getConfiguration());
+  auto conf_file = map_to_options(options.getConfiguration());
   yaml::yaml_output_file(out, conf_file);
 
   return true;
@@ -242,8 +157,8 @@ struct ScalarEnumerationTraits<typeart::TypegenImplementation> {
 };
 
 template <>
-struct llvm::yaml::MappingTraits<typeart::config::file::ConfigurationOptions::Analysis> {
-  static void mapping(IO& yml_io, typeart::config::file::ConfigurationOptions::Analysis& info) {
+struct llvm::yaml::MappingTraits<typeart::config::TypeARTAnalysisOptions> {
+  static void mapping(IO& yml_io, typeart::config::TypeARTAnalysisOptions& info) {
     using typeart::config::ConfigStdArgs;
     const auto drop_prefix = [](const std::string& path, std::string_view prefix = "analysis-") {
       llvm::StringRef prefix_less{path};
@@ -259,8 +174,8 @@ struct llvm::yaml::MappingTraits<typeart::config::file::ConfigurationOptions::An
 };
 
 template <>
-struct llvm::yaml::MappingTraits<typeart::config::file::ConfigurationOptions::CallFilter> {
-  static void mapping(IO& yml_io, typeart::config::file::ConfigurationOptions::CallFilter& info) {
+struct llvm::yaml::MappingTraits<typeart::config::TypeARTCallFilterOptions> {
+  static void mapping(IO& yml_io, typeart::config::TypeARTCallFilterOptions& info) {
     using typeart::config::ConfigStdArgs;
     const auto drop_prefix = [](const std::string& path, std::string_view prefix = "filter-") {
       llvm::StringRef prefix_less{path};
@@ -275,8 +190,8 @@ struct llvm::yaml::MappingTraits<typeart::config::file::ConfigurationOptions::Ca
 };
 
 template <>
-struct llvm::yaml::MappingTraits<typeart::config::file::ConfigurationOptions> {
-  static void mapping(IO& yml_io, typeart::config::file::ConfigurationOptions& info) {
+struct llvm::yaml::MappingTraits<typeart::config::TypeARTConfigOptions> {
+  static void mapping(IO& yml_io, typeart::config::TypeARTConfigOptions& info) {
     using typeart::config::ConfigStdArgs;
     yml_io.mapRequired(ConfigStdArgs::types, info.types);
     yml_io.mapRequired(ConfigStdArgs::heap, info.heap);
@@ -288,20 +203,20 @@ struct llvm::yaml::MappingTraits<typeart::config::file::ConfigurationOptions> {
     yml_io.mapRequired(ConfigStdArgs::filter, info.filter);
     yml_io.mapOptional("call-filter", info.call_filter_configuration);
     yml_io.mapOptional("analysis", info.analysis_configuration);
-    yml_io.mapOptional("file-format", info.version);
+    // yml_io.mapOptional("file-format", info.version);
   }
 };
 
 namespace typeart::config::file::yaml {
 
-ConfigurationOptions yaml_read_file(llvm::yaml::Input& input) {
-  ConfigurationOptions file_content{};
+TypeARTConfigOptions yaml_read_file(llvm::yaml::Input& input) {
+  TypeARTConfigOptions file_content{};
   input >> file_content;
 
   return file_content;
 }
 
-void yaml_output_file(llvm::yaml::Output& output, ConfigurationOptions& config) {
+void yaml_output_file(llvm::yaml::Output& output, TypeARTConfigOptions& config) {
   output << config;
 }
 

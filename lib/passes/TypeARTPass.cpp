@@ -59,10 +59,6 @@ static cl::opt<std::string> cl_typeart_configuration_file(
         "Location of the configuration file to configure the TypeART pass. Commandline arguments are prioritized."),
     cl::cat(typeart_category));
 
-static cl::opt<bool> cl_typeart_configuration_file_dump("typeart-config-dump", cl::init(false), cl::Hidden,
-                                                        cl::desc("Dump default config file content to std::out."),
-                                                        cl::cat(typeart_category));
-
 #define DEBUG_TYPE "typeart"
 
 ALWAYS_ENABLED_STATISTIC(NumInstrumentedMallocs, "Number of instrumented mallocs");

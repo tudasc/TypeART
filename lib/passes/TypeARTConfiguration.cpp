@@ -13,9 +13,13 @@
 #include "TypeARTConfiguration.h"
 
 #include "Commandline.h"
+#include "support/Configuration.h"
 #include "support/FileConfiguration.h"
 #include "support/Logger.h"
+#include "support/TypeARTOptions.h"
+
 #include <string>
+#include <string_view>
 
 namespace typeart::config {
 
@@ -91,10 +95,17 @@ void TypeARTConfiguration::emitTypeartFileConfiguration(llvm::raw_ostream& out_s
   out_stream << configuration_options_->getConfigurationAsString();
 }
 
-llvm::ErrorOr<std::unique_ptr<TypeARTConfiguration>> make_typeart_configuration(const TypeARTConfigInit& init) {
-  auto file_opts = init.mode != TypeARTConfigInit::FileConfigurationMode::Empty
-                       ? config::file::make_file_configuration(init.file_path)
-                       : config::file::make_default_file_configuration();
+template <typename ClOpt>
+std::pair<llvm::StringRef, typename OptionsMap::mapped_type> make_occurr_entry(std::string&& key, ClOpt&& cl_opt) {
+  return {key, (cl_opt.getNumOccurrences() > 0)};
+}
+
+TypeARTConfigOptions TypeARTConfiguration::getOptions() const {
+  return config_to_options(*this);
+}
+
+inline llvm::ErrorOr<std::unique_ptr<TypeARTConfiguration>> make_config(
+    llvm::ErrorOr<std::unique_ptr<file::FileOptions>> file_opts) {
   if (file_opts) {
     auto cl_opts  = std::make_unique<config::cl::CommandLineOptions>();
     auto env_opts = std::make_unique<config::env::EnvironmentFlagsOptions>();
@@ -103,9 +114,21 @@ llvm::ErrorOr<std::unique_ptr<TypeARTConfiguration>> make_typeart_configuration(
     config->prioritizeCommandline(true);
     return config;
   }
-  LOG_FATAL("Could not initialize file configuration: \'" << init.file_path
-                                                          << "\'. Reason: " << file_opts.getError().message())
+  LOG_FATAL("Could not initialize file configuration. Reason: " << file_opts.getError().message())
   return file_opts.getError();
+}
+
+llvm::ErrorOr<std::unique_ptr<TypeARTConfiguration>> make_typeart_configuration(const TypeARTConfigInit& init) {
+  auto file_opts = init.mode != TypeARTConfigInit::FileConfigurationMode::Empty
+                       ? config::file::make_file_configuration(init.file_path)
+                       : config::file::make_default_file_configuration();
+  return make_config(std::move(file_opts));
+}
+
+llvm::ErrorOr<std::unique_ptr<TypeARTConfiguration>> make_typeart_configuration_from_opts(
+    const TypeARTConfigOptions& opts) {
+  auto file_opts = config::file::make_from_configuration(opts);
+  return make_config(std::move(file_opts));
 }
 
 }  // namespace typeart::config

@@ -12,6 +12,7 @@ set(PASS_SOURCES
   instrumentation/MemOpInstrumentation.cpp
   instrumentation/Instrumentation.cpp
   ../support/FileConfiguration.cpp
+  ../support/TypeARTOptions.cpp
   TypeARTConfiguration.cpp
 )
 

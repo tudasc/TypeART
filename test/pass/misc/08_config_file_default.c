@@ -1,4 +1,4 @@
-// RUN: %c-to-llvm %s | %apply-typeart -typeart-config-dump -S 2>&1 | %filecheck %s
+// RUN: %c-to-llvm %s | %apply-typeart -S 2>&1 | %filecheck %s
 
 // CHECK-NOT: {{(Error|Fatal)}}
 
@@ -20,7 +20,6 @@
 // CHECK-NEXT:   filter-heap-alloca: false
 // CHECK-NEXT:   filter-pointer-alloca: true
 // CHECK-NEXT:   filter-non-array-alloca: false
-// CHECK-NEXT: file-format:     1
 
 void test() {
 }
