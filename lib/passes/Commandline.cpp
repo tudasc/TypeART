@@ -154,10 +154,10 @@ static cl::opt<ConfigStdArgTypes::analysis_filter_pointer_alloc_ty> cl_typeart_f
 namespace typeart::config::cl {
 
 // std::string get_type_file_path() {
-//   if (!cl_typeart_type_file.empty()) {
-//     LOG_DEBUG("Using cl::opt for types file " << cl_typeart_type_file.getValue());
-//     return cl_typeart_type_file.getValue();
-//   }
+// if (!cl_typeart_type_file.empty()) {
+//   LOG_DEBUG("Using cl::opt for types file " << cl_typeart_type_file.getValue());
+//   return cl_typeart_type_file.getValue();
+// }
 //   const char* type_file = std::getenv("TYPEART_TYPE_FILE");
 //   if (type_file != nullptr) {
 //     LOG_DEBUG("Using env var for types file " << type_file)
@@ -198,8 +198,16 @@ CommandLineOptions::CommandLineOptions() {
   using namespace config;
   using namespace typeart::config::cl::detail;
 
+  const auto type_file = [&]() {
+    if (!cl_typeart_type_file.empty()) {
+      LOG_DEBUG("Using cl::opt for types file " << cl_typeart_type_file.getValue());
+      return cl_typeart_type_file.getValue();
+    }
+    return util::get_type_file_path();
+  }();
+
   mapping_ = {
-      make_entry(ConfigStdArgs::types, util::get_type_file_path()),
+      make_entry(ConfigStdArgs::types, type_file),
       make_entry(ConfigStdArgs::stats, cl_typeart_stats),
       make_entry(ConfigStdArgs::heap, cl_typeart_instrument_heap),
       make_entry(ConfigStdArgs::global, cl_typeart_instrument_global),
