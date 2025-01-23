@@ -394,6 +394,11 @@ EnvironmentFlagsOptions::EnvironmentFlagsOptions() {
       make_occurr_entry(ConfigStdArgs::analysis_filter_alloca_non_array,
                         EnvironmentStdArgs::analysis_filter_alloca_non_array),
   };
+
+  if (!occurence_mapping_.lookup(ConfigStdArgs::global)) {
+    const auto stack_value          = mapping_.lookup(ConfigStdArgs::stack);
+    mapping_[ConfigStdArgs::global] = OptionValue{static_cast<bool>(stack_value)};
+  }
 }
 
 std::optional<typeart::config::OptionValue> EnvironmentFlagsOptions::getValue(std::string_view opt_path) const {
