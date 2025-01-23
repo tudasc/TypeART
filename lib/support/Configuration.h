@@ -15,6 +15,8 @@
 
 #include "support/Logger.h"
 
+#include "llvm/ADT/StringMap.h"
+
 #include <optional>
 #include <string>
 #include <string_view>
@@ -43,7 +45,8 @@ struct ConfigStdArgTypes final {
 };
 
 struct ConfigStdArgDescriptions final {
-#define TYPEART_CONFIG_OPTION(name, path, type, default_value, description, upper_path) static constexpr char name[] = description;
+#define TYPEART_CONFIG_OPTION(name, path, type, default_value, description, upper_path) \
+  static constexpr char name[] = description;
 #include "ConfigurationBaseOptions.h"
 #undef TYPEART_CONFIG_OPTION
 };
@@ -111,6 +114,9 @@ class OptionValue final {
     }
   }
 };
+
+using OptionsMap       = llvm::StringMap<OptionValue>;
+using OptOccurrenceMap = llvm::StringMap<bool>;
 
 class Configuration {
  public:

@@ -15,18 +15,12 @@
 
 #include "support/Configuration.h"
 
-#include "llvm/ADT/StringMap.h"
-
 namespace typeart::config::cl {
 
 class CommandLineOptions final : public config::Configuration {
- public:
-  using OptionsMap      = llvm::StringMap<config::OptionValue>;
-  using ClOccurrenceMap = llvm::StringMap<bool>;
-
  private:
   OptionsMap mapping_;
-  ClOccurrenceMap occurence_mapping_;
+  OptOccurrenceMap occurence_mapping_;
 
  public:
   CommandLineOptions();
@@ -39,13 +33,9 @@ class CommandLineOptions final : public config::Configuration {
 namespace typeart::config::env {
 
 class EnvironmentFlagsOptions final : public config::Configuration {
- public:
-  using OptionsMap      = llvm::StringMap<config::OptionValue>;
-  using ClOccurrenceMap = llvm::StringMap<bool>;
-
  private:
   OptionsMap mapping_;
-  ClOccurrenceMap occurence_mapping_;
+  OptOccurrenceMap occurence_mapping_;
 
  public:
   EnvironmentFlagsOptions();

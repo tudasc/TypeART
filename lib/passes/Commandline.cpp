@@ -88,12 +88,7 @@ static cl::opt<ConfigStdArgTypes::global_ty> cl_typeart_instrument_global(Comman
 static cl::opt<ConfigStdArgTypes::stack_ty> cl_typeart_instrument_stack(CommandlineStdArgs::stack,
                                                                         cl::desc(ConfigStdArgDescriptions::stack),
                                                                         cl::init(ConfigStdArgValues::stack),
-                                                                        cl::cat(typeart_category),
-                                                                        cl::callback([](const bool& opt) {
-                                                                          if (opt) {
-                                                                            ::cl_typeart_instrument_global = true;
-                                                                          }
-                                                                        }));
+                                                                        cl::cat(typeart_category));
 
 static cl::opt<ConfigStdArgTypes::stack_lifetime_ty> cl_typeart_instrument_stack_lifetime(
     CommandlineStdArgs::stack_lifetime, cl::desc(ConfigStdArgDescriptions::stack_lifetime),
@@ -182,14 +177,12 @@ config::OptionValue make_opt(const ClOpt& cl_opt) {
 }
 
 template <typename ClOpt>
-std::pair<StringRef, typename CommandLineOptions::OptionsMap::mapped_type> make_entry(std::string&& key,
-                                                                                      ClOpt&& cl_opt) {
+std::pair<StringRef, typename OptionsMap::mapped_type> make_entry(std::string&& key, ClOpt&& cl_opt) {
   return {key, make_opt(std::forward<ClOpt>(cl_opt))};
 }
 
 template <typename ClOpt>
-std::pair<StringRef, typename CommandLineOptions::ClOccurrenceMap::mapped_type> make_occurr_entry(std::string&& key,
-                                                                                                  ClOpt&& cl_opt) {
+std::pair<StringRef, typename OptOccurrenceMap::mapped_type> make_occurr_entry(std::string&& key, ClOpt&& cl_opt) {
   return {key, (cl_opt.getNumOccurrences() > 0)};
 }
 }  // namespace detail
@@ -245,8 +238,8 @@ CommandLineOptions::CommandLineOptions() {
   };
 
   if (!occurence_mapping_.lookup(ConfigStdArgs::global) && occurence_mapping_.lookup(ConfigStdArgs::stack)) {
-    const auto stack_value          = mapping_.lookup(ConfigStdArgs::stack);
-    mapping_[ConfigStdArgs::global] = OptionValue{static_cast<bool>(stack_value)};
+    const auto stack_value                    = mapping_.lookup(ConfigStdArgs::stack);
+    mapping_[ConfigStdArgs::global]           = OptionValue{static_cast<bool>(stack_value)};
     occurence_mapping_[ConfigStdArgs::global] = true;
   }
 }
@@ -297,24 +290,20 @@ bool with_any_of(std::string_view lhs, Strings&&... rhs) {
 }
 
 template <typename ClType>
-int enum_to_int(std::string_view cl_value) {
+ClType string_to_enum(std::string_view cl_value) {
   if constexpr (std::is_same_v<typeart::TypegenImplementation, ClType>) {
     auto val = llvm::StringSwitch<ClType>(cl_value.data())
                    .Case("ir", typeart::TypegenImplementation::IR)
                    .Case("dimeta", typeart::TypegenImplementation::DIMETA)
                    .Default(typeart::TypegenImplementation::DIMETA);
-    const auto int_val = static_cast<int>(val);
-    LOG_DEBUG("Enum val is " << int_val)
-    return int_val;
+    return val;
   } else {
     auto val = llvm::StringSwitch<ClType>(cl_value.data())
                    .Case("cg", typeart::analysis::FilterImplementation::cg)
                    .Case("none", typeart::analysis::FilterImplementation::none)
                    .Case("std", typeart::analysis::FilterImplementation::standard)
                    .Default(typeart::analysis::FilterImplementation::standard);
-    const auto int_val = static_cast<int>(val);
-    LOG_DEBUG("Enum val is " << int_val)
-    return int_val;
+    return val;
   }
 }
 
@@ -331,7 +320,8 @@ config::OptionValue make_opt(std::string_view cl_value) {
     return config::OptionValue{is_true_val};
   } else {
     if constexpr (std::is_enum_v<ClType>) {
-      return config::OptionValue{enum_to_int<ClType>(cl_value)};
+      auto enum_value = string_to_enum<ClType>(cl_value);
+      return config::OptionValue{static_cast<int>(enum_value)};
     } else {
       return config::OptionValue{std::string{cl_value}};
     }
@@ -339,17 +329,16 @@ config::OptionValue make_opt(std::string_view cl_value) {
 }
 
 template <typename ClType>
-std::pair<StringRef, typename EnvironmentFlagsOptions::OptionsMap::mapped_type> make_entry(
-    std::string&& key, std::string_view cl_opt, const std::string& default_value) {
+std::pair<StringRef, typename OptionsMap::mapped_type> make_entry(std::string&& key, std::string_view cl_opt,
+                                                                  const std::string& default_value) {
   const auto env_value = util::get_env_flag(cl_opt);
   return {key, make_opt<ClType>(env_value.value_or(default_value))};
 }
 
 template <typename ClOpt>
-std::pair<StringRef, typename EnvironmentFlagsOptions::ClOccurrenceMap::mapped_type> make_occurr_entry(
-    std::string&& key, ClOpt&& cl_opt) {
+std::pair<StringRef, typename OptOccurrenceMap::mapped_type> make_occurr_entry(std::string&& key, ClOpt&& cl_opt) {
   const bool occured = (util::get_env_flag(cl_opt).has_value());
-  LOG_DEBUG("Key :" << key << ":" << occured)
+  // LOG_DEBUG("Key :" << key << ":" << occured)
   return {key, occured};
 }
 }  // namespace detail
@@ -421,8 +410,8 @@ EnvironmentFlagsOptions::EnvironmentFlagsOptions() {
   };
 
   if (!occurence_mapping_.lookup(ConfigStdArgs::global) && occurence_mapping_.lookup(ConfigStdArgs::stack)) {
-    const auto stack_value          = mapping_.lookup(ConfigStdArgs::stack);
-    mapping_[ConfigStdArgs::global] = OptionValue{static_cast<bool>(stack_value)};
+    const auto stack_value                    = mapping_.lookup(ConfigStdArgs::stack);
+    mapping_[ConfigStdArgs::global]           = OptionValue{static_cast<bool>(stack_value)};
     occurence_mapping_[ConfigStdArgs::global] = true;
   }
 }
