@@ -27,15 +27,21 @@ namespace cl {
 class CommandLineOptions;
 }  // namespace cl
 
+namespace env {
+class EnvironmentFlagsOptions;
+}
+
 class TypeARTConfiguration final : public Configuration {
  private:
   std::unique_ptr<file::FileOptions> configuration_options_;
   std::unique_ptr<cl::CommandLineOptions> commandline_options_;
+  std::unique_ptr<env::EnvironmentFlagsOptions> env_options_;
   bool prioritize_commandline{true};
 
  public:
   TypeARTConfiguration(std::unique_ptr<file::FileOptions> config_options,
-                       std::unique_ptr<cl::CommandLineOptions> commandline_options);
+                       std::unique_ptr<cl::CommandLineOptions> commandline_options,
+                       std::unique_ptr<env::EnvironmentFlagsOptions> env_options);
   void prioritizeCommandline(bool do_prioritize);
   [[nodiscard]] std::optional<OptionValue> getValue(std::string_view opt_path) const override;
   [[nodiscard]] OptionValue getValueOr(std::string_view opt_path, OptionValue alt) const override;

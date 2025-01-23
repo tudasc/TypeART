@@ -34,10 +34,10 @@ std::optional<std::string> get_env_flag(std::string_view flag) {
   const char* env_value = std::getenv(flag.data());
   const bool exists     = env_value != nullptr;
   if (exists) {
-    LOG_DEBUG("Using env var \"" << flag << "\"=" << env_value)
+    LOG_DEBUG("Using env var " << flag << "=" << env_value)
     return std::string{env_value};
   }
-  LOG_DEBUG("Not using env var \"" << flag << "\"=<unset>")
+  LOG_DEBUG("Not using env var " << flag << "=<unset>")
   return {};
 }
 
@@ -287,8 +287,7 @@ namespace typeart::config::env {
 namespace detail {
 template <typename... Strings>
 bool with_any_of(std::string_view lhs, Strings&&... rhs) {
-  const auto starts_with = [](auto str, std::string_view prefix) { return str == prefix; };
-  return !lhs.empty() && ((starts_with(lhs, std::forward<Strings>(rhs))) || ...);
+  return !lhs.empty() && ((lhs == rhs) || ...);
 }
 
 template <typename ClType>
@@ -335,13 +334,17 @@ std::pair<StringRef, typename EnvironmentFlagsOptions::OptionsMap::mapped_type> 
 template <typename ClOpt>
 std::pair<StringRef, typename EnvironmentFlagsOptions::ClOccurrenceMap::mapped_type> make_occurr_entry(
     std::string&& key, ClOpt&& cl_opt) {
-  return {key, (util::get_env_flag(cl_opt).has_value())};
+  const bool occured=(util::get_env_flag(cl_opt).has_value());
+  LOG_DEBUG("Key :" << key << ":" << occured)
+  return {key, occured};
 }
 }  // namespace detail
 
 EnvironmentFlagsOptions::EnvironmentFlagsOptions() {
   using namespace config;
   using namespace typeart::config::env::detail;
+
+  LOG_DEBUG("Construct environment flag options")
 
   mapping_ = {
       make_entry<std::string>(ConfigStdArgs::types, "TYPEART_TYPE_FILE", ConfigStdArgValues::types),

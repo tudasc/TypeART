@@ -18,8 +18,11 @@
 namespace typeart::config {
 
 TypeARTConfiguration::TypeARTConfiguration(std::unique_ptr<file::FileOptions> config_options,
-                                           std::unique_ptr<cl::CommandLineOptions> commandline_options)
-    : configuration_options_(std::move(config_options)), commandline_options_(std::move(commandline_options)) {
+                                           std::unique_ptr<cl::CommandLineOptions> commandline_options,
+                                           std::unique_ptr<env::EnvironmentFlagsOptions> env_options)
+    : configuration_options_(std::move(config_options)),
+      commandline_options_(std::move(commandline_options)),
+      env_options_(std::move(env_options)) {
 }
 
 std::optional<OptionValue> TypeARTConfiguration::getValue(std::string_view opt_path) const {
@@ -62,8 +65,10 @@ llvm::ErrorOr<std::unique_ptr<TypeARTConfiguration>> make_typeart_configuration(
                        ? config::file::make_file_configuration(init.file_path)
                        : config::file::make_default_file_configuration();
   if (file_opts) {
-    auto cl_opts = std::make_unique<config::cl::CommandLineOptions>();
-    auto config  = std::make_unique<config::TypeARTConfiguration>(std::move(file_opts.get()), std::move(cl_opts));
+    auto cl_opts  = std::make_unique<config::cl::CommandLineOptions>();
+    auto env_opts = std::make_unique<config::env::EnvironmentFlagsOptions>();
+    auto config   = std::make_unique<config::TypeARTConfiguration>(std::move(file_opts.get()), std::move(cl_opts),
+                                                                 std::move(env_opts));
     config->prioritizeCommandline(true);
     return config;
   }

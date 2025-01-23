@@ -123,7 +123,8 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
     auto config_file_path = get_configuration_file_path();
 
     if (!config_file_path) {
-      pass_config = std::make_unique<config::cl::CommandLineOptions>();
+      auto typeart_config = config::make_typeart_configuration({{},config::TypeARTConfigInit::FileConfigurationMode::Empty});//std::make_unique<config::cl::CommandLineOptions>();
+      pass_config = std::move(*typeart_config);
     } else {
       auto typeart_config = config::make_typeart_configuration({config_file_path.value()});
       if (typeart_config) {
