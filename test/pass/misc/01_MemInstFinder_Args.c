@@ -1,7 +1,7 @@
 // clang-format off
 // Sanity check for arg names
 // RUN: %c-to-llvm %s | %opt -load %transform_pass -typeart \
-// RUN: --typeart-filter \
+// RUN: --typeart-filter=true \
 // RUN: --typeart-filter-implementation=none \
 // RUN: --typeart-filter-glob=MPI1 \
 // RUN: --typeart-filter-glob-deep=MPI2 \

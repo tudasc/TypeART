@@ -9,7 +9,7 @@
 // CHECK-NEXT: stats:           false
 // CHECK-NEXT: stack-lifetime:  true
 // CHECK-NEXT: typegen:         dimeta
-// CHECK-NEXT: filter:          true
+// CHECK-NEXT: filter:          false
 // CHECK-NEXT: call-filter:
 // CHECK-NEXT:   implementation:  std
 // CHECK-NEXT:   glob:            '*MPI_*'
