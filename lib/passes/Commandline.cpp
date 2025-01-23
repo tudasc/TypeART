@@ -27,14 +27,37 @@
 
 using namespace llvm;
 
-namespace typeart::config::cl {
+namespace typeart::config {
+
+namespace util {
+std::optional<std::string> get_env_flag(std::string_view flag) {
+  const char* env_value = std::getenv(flag.data());
+  const bool exists     = env_value != nullptr;
+  if (exists) {
+    LOG_DEBUG("Using env var \"" << flag << "\"=" << env_value)
+    return std::string{env_value};
+  }
+  LOG_DEBUG("Not using env var \"" << flag << "\"=<unset>")
+  return {};
+}
+
+std::string get_type_file_path() {
+  auto flag_value = get_env_flag("TYPEART_TYPE_FILE");
+  return flag_value.value_or("types.yaml");
+}
+
+}  // namespace util
+
+namespace cl {
 struct CommandlineStdArgs final {
 #define TYPEART_CONFIG_OPTION(name, path, type, def_value, description, upper_path) \
   static constexpr char name[] = "typeart-" path;
 #include "support/ConfigurationBaseOptions.h"
 #undef TYPEART_CONFIG_OPTION
 };
-}  // namespace typeart::config::cl
+}  // namespace cl
+
+}  // namespace typeart::config
 
 using typeart::config::ConfigStdArgDescriptions;
 using typeart::config::ConfigStdArgTypes;
@@ -130,19 +153,19 @@ static cl::opt<ConfigStdArgTypes::analysis_filter_pointer_alloc_ty> cl_typeart_f
 
 namespace typeart::config::cl {
 
-std::string get_type_file_path() {
-  if (!cl_typeart_type_file.empty()) {
-    LOG_DEBUG("Using cl::opt for types file " << cl_typeart_type_file.getValue());
-    return cl_typeart_type_file.getValue();
-  }
-  const char* type_file = std::getenv("TYPEART_TYPE_FILE");
-  if (type_file != nullptr) {
-    LOG_DEBUG("Using env var for types file " << type_file)
-    return std::string{type_file};
-  }
-  LOG_DEBUG("Loading default types file types.yaml");
-  return "types.yaml";
-}
+// std::string get_type_file_path() {
+//   if (!cl_typeart_type_file.empty()) {
+//     LOG_DEBUG("Using cl::opt for types file " << cl_typeart_type_file.getValue());
+//     return cl_typeart_type_file.getValue();
+//   }
+//   const char* type_file = std::getenv("TYPEART_TYPE_FILE");
+//   if (type_file != nullptr) {
+//     LOG_DEBUG("Using env var for types file " << type_file)
+//     return std::string{type_file};
+//   }
+//   LOG_DEBUG("Loading default types file types.yaml");
+//   return "types.yaml";
+// }
 
 namespace detail {
 template <typename ClOpt>
@@ -176,7 +199,7 @@ CommandLineOptions::CommandLineOptions() {
   using namespace typeart::config::cl::detail;
 
   mapping_ = {
-      make_entry(ConfigStdArgs::types, get_type_file_path()),
+      make_entry(ConfigStdArgs::types, util::get_type_file_path()),
       make_entry(ConfigStdArgs::stats, cl_typeart_stats),
       make_entry(ConfigStdArgs::heap, cl_typeart_instrument_heap),
       make_entry(ConfigStdArgs::global, cl_typeart_instrument_global),
@@ -253,22 +276,6 @@ using typeart::config::env::EnvironmentStdArgs;
 
 namespace typeart::config::env {
 
-std::optional<std::string> get_env_flag(std::string_view flag) {
-  const char* env_value = std::getenv(flag.data());
-  const bool exists     = env_value != nullptr;
-  if (exists) {
-    LOG_DEBUG("Using env var \"" << flag << "\"=" << env_value)
-    return std::string{env_value};
-  }
-  LOG_DEBUG("Not using env var \"" << flag << "\"=<unset>")
-  return {};
-}
-
-std::string get_type_file_path() {
-  auto flag_value = get_env_flag("TYPEART_TYPE_FILE");
-  return flag_value.value_or("types.yaml");
-}
-
 namespace detail {
 template <typename... Strings>
 bool with_any_of(std::string_view lhs, Strings&&... rhs) {
@@ -288,14 +295,14 @@ int enum_to_int(std::string_view cl_value) {
     auto val = llvm::StringSwitch<ClType>(cl_value.data())
                    .Case("cg", typeart::analysis::FilterImplementation::cg)
                    .Case("none", typeart::analysis::FilterImplementation::none)
-                   .Default("std", typeart::analysis::FilterImplementation::standard);
+                   .Case("std", typeart::analysis::FilterImplementation::standard)
+                   .Default(typeart::analysis::FilterImplementation::standard);
     return static_cast<int>(val);
   }
 }
 
 template <typename ClType>
 config::OptionValue make_opt(std::string_view cl_value) {
-  // const auto env_flag = get_env_flag()
   if constexpr (std::is_same_v<bool, ClType>) {
     const bool is_true_val  = with_any_of(cl_value, "true", "TRUE", "1");
     const bool is_false_val = with_any_of(cl_value, "false", "FALSE", "0");
@@ -311,17 +318,16 @@ config::OptionValue make_opt(std::string_view cl_value) {
 }
 
 template <typename ClType>
-std::pair<StringRef, typename EnvironmentFlagsOptions::OptionsMap::mapped_type> make_entry(std::string&& key,
-                                                                                           std::string_view cl_opt,
-                                                                                           const std::string& value) {
-  const auto env_value = get_env_flag(cl_opt);
-  return {key, make_opt<ClType>(env_value.value_or(value))};
+std::pair<StringRef, typename EnvironmentFlagsOptions::OptionsMap::mapped_type> make_entry(
+    std::string&& key, std::string_view cl_opt, const std::string& default_value) {
+  const auto env_value = util::get_env_flag(cl_opt);
+  return {key, make_opt<ClType>(env_value.value_or(default_value))};
 }
 
 template <typename ClOpt>
 std::pair<StringRef, typename EnvironmentFlagsOptions::ClOccurrenceMap::mapped_type> make_occurr_entry(
     std::string&& key, ClOpt&& cl_opt) {
-  return {key, (get_env_flag(cl_opt).has_value())};
+  return {key, (util::get_env_flag(cl_opt).has_value())};
 }
 }  // namespace detail
 
@@ -343,38 +349,50 @@ EnvironmentFlagsOptions::EnvironmentFlagsOptions() {
           ConfigStdArgs::stack_lifetime, EnvironmentStdArgs::stack_lifetime, EnvironmentStdArgsValues::stack_lifetime),
       make_entry<typeart::TypegenImplementation>(ConfigStdArgs::typegen, EnvironmentStdArgs::typegen,
                                                  ConfigStdArgValues::typegen),
-      // make_entry<ConfigStdArgTypes::filter_ty>(ConfigStdArgs::filter, EnvironmentStdArgs::filter,
-      // EnvironmentStdArgsValues::filter),
-      // make_entry<typeart::analysis::FilterImplementation>(ConfigStdArgs::filter_impl,EnvironmentStdArgs::filter_impl,
-      // ConfigStdArgs::filter_impl), make_entry<ConfigStdArgTypes::filter_glob_ty>(ConfigStdArgs::filter_glob,
-      // cl_typeart_call_filter_glob),
-      // make_entry<ConfigStdArgTypes::filter_glob_deep_ty>(ConfigStdArgs::filter_glob_deep,
-      // cl_typeart_call_filter_glob_deep),
-      // make_entry<ConfigStdArgTypes::filter_cg_file_ty>(ConfigStdArgs::filter_cg_file,
-      // cl_typeart_call_filter_cg_file),
-      // make_entry<ConfigStdArgTypes::analysis_filter_global_ty>(ConfigStdArgs::analysis_filter_global,
-      // cl_typeart_filter_global),
-      // make_entry<ConfigStdArgTypes::analysis_filter_heap_alloc_ty>(ConfigStdArgs::analysis_filter_heap_alloc,
-      // cl_typeart_filter_heap_alloc),
-      // make_entry<ConfigStdArgTypes::analysis_filter_pointer_alloc_ty>(ConfigStdArgs::analysis_filter_pointer_alloc,
-      // cl_typeart_filter_pointer_alloca),
-      // make_entry<ConfigStdArgTypes::analysis_filter_alloca_non_array_ty>(ConfigStdArgs::analysis_filter_alloca_non_array,
-      // cl_typeart_filter_stack_non_array),
+      make_entry<ConfigStdArgTypes::filter_ty>(ConfigStdArgs::filter, EnvironmentStdArgs::filter,
+                                               EnvironmentStdArgsValues::filter),
+      make_entry<typeart::analysis::FilterImplementation>(ConfigStdArgs::filter_impl, EnvironmentStdArgs::filter_impl,
+                                                          ConfigStdArgValues::filter_impl),
+
+      make_entry<ConfigStdArgTypes::filter_glob_ty>(ConfigStdArgs::filter_glob, EnvironmentStdArgs::filter_glob,
+                                                    ConfigStdArgValues::filter_glob),
+      make_entry<ConfigStdArgTypes::filter_glob_deep_ty>(
+          ConfigStdArgs::filter_glob_deep, EnvironmentStdArgs::filter_glob_deep, ConfigStdArgValues::filter_glob_deep),
+      make_entry<ConfigStdArgTypes::filter_cg_file_ty>(
+          ConfigStdArgs::filter_cg_file, EnvironmentStdArgs::filter_cg_file, ConfigStdArgValues::filter_cg_file),
+      make_entry<ConfigStdArgTypes::analysis_filter_global_ty>(ConfigStdArgs::analysis_filter_global,
+                                                               EnvironmentStdArgs::analysis_filter_global,
+                                                               EnvironmentStdArgsValues::analysis_filter_global),
+      make_entry<ConfigStdArgTypes::analysis_filter_heap_alloc_ty>(
+          ConfigStdArgs::analysis_filter_heap_alloc, EnvironmentStdArgs::analysis_filter_heap_alloc,
+          EnvironmentStdArgsValues::analysis_filter_heap_alloc),
+      make_entry<ConfigStdArgTypes::analysis_filter_pointer_alloc_ty>(
+          ConfigStdArgs::analysis_filter_pointer_alloc, EnvironmentStdArgs::analysis_filter_pointer_alloc,
+          EnvironmentStdArgsValues::analysis_filter_pointer_alloc),
+      make_entry<ConfigStdArgTypes::analysis_filter_alloca_non_array_ty>(
+          ConfigStdArgs::analysis_filter_alloca_non_array, EnvironmentStdArgs::analysis_filter_alloca_non_array,
+          EnvironmentStdArgsValues::analysis_filter_alloca_non_array),
   };
 
   occurence_mapping_ = {
       make_occurr_entry(ConfigStdArgs::types, "TYPEART_TYPE_FILE"),
       make_occurr_entry(ConfigStdArgs::stats, EnvironmentStdArgs::stats),
-      // make_occurr_entry(ConfigStdArgs::heap, cl_typeart_instrument_heap),
-      // make_occurr_entry(ConfigStdArgs::global, cl_typeart_instrument_global),
-      // make_occurr_entry(ConfigStdArgs::stack, cl_typeart_instrument_stack),
-      // make_occurr_entry(ConfigStdArgs::stack_lifetime, cl_typeart_instrument_stack_lifetime),
-      // make_occurr_entry(ConfigStdArgs::typegen, cl_typeart_typegen_implementation),
-      // make_occurr_entry(ConfigStdArgs::filter, cl_typeart_call_filter),
-      // make_occurr_entry(ConfigStdArgs::filter_impl, cl_typeart_call_filter_implementation),
-      // make_occurr_entry(ConfigStdArgs::filter_glob, cl_typeart_call_filter_glob),
-      // make_occurr_entry(ConfigStdArgs::fi}  // namespace typeart::config::clalysis_filter_alloca_non_array,
-      // cl_typeart_filter_stack_non_array),
+      make_occurr_entry(ConfigStdArgs::heap, EnvironmentStdArgs::heap),
+      make_occurr_entry(ConfigStdArgs::global, EnvironmentStdArgs::global),
+      make_occurr_entry(ConfigStdArgs::stack, EnvironmentStdArgs::stack),
+      make_occurr_entry(ConfigStdArgs::stack_lifetime, EnvironmentStdArgs::stack_lifetime),
+      make_occurr_entry(ConfigStdArgs::typegen, EnvironmentStdArgs::typegen),
+      make_occurr_entry(ConfigStdArgs::filter, EnvironmentStdArgs::filter),
+      make_occurr_entry(ConfigStdArgs::filter_impl, EnvironmentStdArgs::filter_impl),
+      make_occurr_entry(ConfigStdArgs::filter_glob, EnvironmentStdArgs::filter_glob),
+      make_occurr_entry(ConfigStdArgs::filter_glob_deep, EnvironmentStdArgs::filter_glob_deep),
+      make_occurr_entry(ConfigStdArgs::filter_cg_file, EnvironmentStdArgs::filter_cg_file),
+      make_occurr_entry(ConfigStdArgs::analysis_filter_global, EnvironmentStdArgs::analysis_filter_global),
+      make_occurr_entry(ConfigStdArgs::analysis_filter_heap_alloc, EnvironmentStdArgs::analysis_filter_heap_alloc),
+      make_occurr_entry(ConfigStdArgs::analysis_filter_pointer_alloc,
+                        EnvironmentStdArgs::analysis_filter_pointer_alloc),
+      make_occurr_entry(ConfigStdArgs::analysis_filter_alloca_non_array,
+                        EnvironmentStdArgs::analysis_filter_alloca_non_array),
   };
 }
 
