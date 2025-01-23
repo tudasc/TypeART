@@ -3,8 +3,12 @@
 
 #include "../passes/analysis/MemInstFinder.h"
 #include "../passes/typegen/TypeGenerator.h"
-
 #include "support/Configuration.h"
+
+namespace llvm::yaml {
+class Input;
+class Output;
+}  // namespace llvm::yaml
 
 namespace typeart::config {
 
@@ -35,15 +39,27 @@ struct TypeARTConfigOptions {
   TypegenImplementation typegen{TypegenImplementation::DIMETA};
   bool filter{false};
 
-  TypeARTCallFilterOptions call_filter_configuration{};
-  TypeARTAnalysisOptions analysis_configuration{};
+  TypeARTCallFilterOptions filter_config{};
+  TypeARTAnalysisOptions analysis_config{};
 };
 
+namespace helper {
 TypeARTConfigOptions map_to_options(const OptionsMap&);
 
 TypeARTConfigOptions config_to_options(const Configuration&);
 
 OptionsMap options_to_map(const TypeARTConfigOptions&);
+}  // namespace helper
+
+namespace io::yaml {
+
+TypeARTConfigOptions yaml_read_file(llvm::yaml::Input& input);
+
+void yaml_output_file(llvm::yaml::Output& output, const TypeARTConfigOptions& config);
+
+}  // namespace io::yaml
+
+llvm::raw_ostream& operator<<(llvm::raw_ostream& out_s, const TypeARTConfigOptions& options);
 
 }  // namespace typeart::config
 

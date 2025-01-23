@@ -123,11 +123,7 @@ class Configuration {
   [[nodiscard]] virtual std::optional<OptionValue> getValue(std::string_view opt_path) const = 0;
 
   [[nodiscard]] virtual OptionValue getValueOr(std::string_view opt_path, OptionValue alt) const {
-    const auto val = getValue(opt_path);
-    if (val) {
-      return val.value();
-    }
-    return alt;
+    return getValue(opt_path).value_or(alt);
   }
 
   [[nodiscard]] virtual OptionValue operator[](std::string_view opt_path) const {

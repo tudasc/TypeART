@@ -85,25 +85,25 @@ namespace filter {
 namespace detail {
 static std::unique_ptr<typeart::filter::Filter> make_filter(const MemInstFinderConfig& config) {
   using namespace typeart::filter;
-  const auto filter_id   = config.call_filter_configuration.implementation;
-  const std::string glob = config.call_filter_configuration.glob;
+  const auto filter_id   = config.filter_config.implementation;
+  const std::string glob = config.filter_config.glob;
 
   if (filter_id == FilterImplementation::none || !config.filter) {
     LOG_DEBUG("Return no-op filter")
     return std::make_unique<NoOpFilter>();
   } else if (filter_id == FilterImplementation::cg) {
-    if (config.call_filter_configuration.cg_file.empty()) {
+    if (config.filter_config.cg_file.empty()) {
       LOG_FATAL("CG File not set!");
       std::exit(1);
     }
-    LOG_DEBUG("Return CG filter with CG file @ " << config.call_filter_configuration.cg_file)
-    auto json_cg = JSONCG::getJSON(config.call_filter_configuration.cg_file);
+    LOG_DEBUG("Return CG filter with CG file @ " << config.filter_config.cg_file)
+    auto json_cg = JSONCG::getJSON(config.filter_config.cg_file);
     auto matcher = std::make_unique<DefaultStringMatcher>(util::glob2regex(glob));
     return std::make_unique<CGForwardFilter>(glob, std::move(json_cg), std::move(matcher));
   } else {
     LOG_DEBUG("Return default filter")
     auto matcher         = std::make_unique<DefaultStringMatcher>(util::glob2regex(glob));
-    const auto deep_glob = config.call_filter_configuration.glob_deep;
+    const auto deep_glob = config.filter_config.glob_deep;
     auto deep_matcher    = std::make_unique<DefaultStringMatcher>(util::glob2regex(deep_glob));
     return std::make_unique<StandardForwardFilter>(std::move(matcher), std::move(deep_matcher));
   }
@@ -174,7 +174,7 @@ bool MemInstFinderPass::runOnModule(Module& module) {
   mOpsCollector.collectGlobals(module);
   auto& globals = mOpsCollector.globals;
   NumDetectedGlobals += globals.size();
-  if (config.analysis_configuration.filter_global) {
+  if (config.analysis_config.filter_global) {
     globals.erase(llvm::remove_if(
                       globals,
                       [&](const auto gdata) {  // NOLINT
@@ -295,7 +295,7 @@ bool MemInstFinderPass::runOnFunction(llvm::Function& function) {
 
   NumDetectedAllocs += mOpsCollector.allocas.size();
 
-  if (config.analysis_configuration.filter_alloca_non_array) {
+  if (config.analysis_config.filter_alloca_non_array) {
     auto& allocs = mOpsCollector.allocas;
     allocs.erase(llvm::remove_if(allocs,
                                  [&](const auto& data) {
@@ -308,7 +308,7 @@ bool MemInstFinderPass::runOnFunction(llvm::Function& function) {
                  allocs.end());
   }
 
-  if (config.analysis_configuration.filter_heap_alloc) {
+  if (config.analysis_config.filter_heap_alloc) {
     auto& allocs  = mOpsCollector.allocas;
     auto& mallocs = mOpsCollector.mallocs;
 
@@ -344,7 +344,7 @@ bool MemInstFinderPass::runOnFunction(llvm::Function& function) {
                  allocs.end());
   }
 
-  if (config.analysis_configuration.filter_pointer_alloc) {
+  if (config.analysis_config.filter_pointer_alloc) {
     auto& allocs = mOpsCollector.allocas;
     allocs.erase(llvm::remove_if(allocs,
                                  [&](const auto& data) {
@@ -414,7 +414,7 @@ void MemInstFinderPass::printStats(llvm::raw_ostream& out) const {
   Table stats("MemInstFinderPass");
   stats.wrap_header = true;
   stats.wrap_length = true;
-  stats.put(Row::make("Filter string", config.call_filter_configuration.glob));
+  stats.put(Row::make("Filter string", config.filter_config.glob));
   stats.put(Row::make_row("> Heap Memory"));
   stats.put(Row::make("Heap alloc", NumDetectedHeap.getValue()));
   stats.put(Row::make("Heap call filtered %", call_filter_heap_p));
@@ -449,7 +449,7 @@ const GlobalDataList& MemInstFinderPass::getModuleGlobals() const {
 
 std::unique_ptr<MemInstFinder> create_finder(const config::Configuration& config) {
   LOG_DEBUG("Constructing MemInstFinder")
-  const auto meminst_conf = config::config_to_options(config);
+  const auto meminst_conf = config::helper::config_to_options(config);
   return std::make_unique<MemInstFinderPass>( meminst_conf);
 }
 

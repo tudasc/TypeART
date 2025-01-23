@@ -116,12 +116,13 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
                               : config::TypeARTConfigInit{{}, config::TypeARTConfigInit::FileConfigurationMode::Empty};
     auto typeart_config = config::make_typeart_configuration(init);
     if (typeart_config) {
-      {
-        std::string typeart_conf_str;
-        llvm::raw_string_ostream conf_out_stream{typeart_conf_str};
-        typeart_config->get()->emitTypeartFileConfiguration(conf_out_stream);
-        LOG_INFO("Emitting TypeART file content\n" << conf_out_stream.str())
-      }
+      // {
+      //   std::string typeart_conf_str;
+      //   llvm::raw_string_ostream conf_out_stream{typeart_conf_str};
+      //   typeart_config->get()->emitTypeartFileConfiguration(conf_out_stream);
+      //   LOG_INFO("Emitting TypeART file content\n" << conf_out_stream.str())
+      // }
+      LOG_INFO("Emitting TypeART file content\n" << typeart_config.get()->getOptions())
       pass_config = std::move(*typeart_config);
     } else {
       LOG_FATAL("Could not load TypeARTConfiguration.")

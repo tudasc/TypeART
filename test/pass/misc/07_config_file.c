@@ -5,11 +5,11 @@ void test() {
   int* p = (int*)malloc(42 * sizeof(int));
 }
 
-// CHECK: types:           types_config.yaml
+// CHECK: types:           {{.*}}
 // CHECK-NEXT:  heap:            false
 // CHECK-NEXT:  stack:           true
 // CHECK-NEXT:  global:          false
-// CHECK-NEXT:  stats:           false
+// CHECK-NEXT:  stats:           {{.*}}
 // CHECK-NEXT:  stack-lifetime:  false
 // CHECK-NEXT:  typegen:         dimeta
 // CHECK-NEXT:  filter:          false

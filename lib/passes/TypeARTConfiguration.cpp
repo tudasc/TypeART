@@ -101,7 +101,7 @@ std::pair<llvm::StringRef, typename OptionsMap::mapped_type> make_occurr_entry(s
 }
 
 TypeARTConfigOptions TypeARTConfiguration::getOptions() const {
-  return config_to_options(*this);
+  return helper::config_to_options(*this);
 }
 
 inline llvm::ErrorOr<std::unique_ptr<TypeARTConfiguration>> make_config(

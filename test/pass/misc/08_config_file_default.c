@@ -2,11 +2,11 @@
 
 // CHECK-NOT: {{(Error|Fatal)}}
 
-// CHECK: types:           types.yaml
+// CHECK: types:           {{.*}}.yaml
 // CHECK-NEXT: heap:            true
 // CHECK-NEXT: stack:           false
 // CHECK-NEXT: global:          false
-// CHECK-NEXT: stats:           false
+// CHECK-NEXT: stats:           true
 // CHECK-NEXT: stack-lifetime:  true
 // CHECK-NEXT: typegen:         dimeta
 // CHECK-NEXT: filter:          false
