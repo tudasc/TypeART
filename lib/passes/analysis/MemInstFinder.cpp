@@ -462,6 +462,7 @@ const GlobalDataList& MemInstFinderPass::getModuleGlobals() const {
 }
 
 std::unique_ptr<MemInstFinder> create_finder(const config::Configuration& config) {
+  LOG_DEBUG("Constructing MemInstFinder")
   using typeart::config::ConfigStdArgs;
   const auto meminst_config = [&config]() {
     return analysis::MemInstFinderConfig{
@@ -478,6 +479,7 @@ std::unique_ptr<MemInstFinder> create_finder(const config::Configuration& config
                                               config[ConfigStdArgs::analysis_filter_global],            //
                                               config[ConfigStdArgs::analysis_filter_pointer_alloc]}};   //
   }();
+  LOG_DEBUG("Return finder")
   return std::make_unique<MemInstFinderPass>(meminst_config);
 }
 

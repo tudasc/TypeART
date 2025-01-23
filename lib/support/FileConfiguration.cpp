@@ -12,7 +12,9 @@
 
 #include "FileConfiguration.h"
 
+#include "analysis/MemInstFinder.h"
 #include "support/Configuration.h"
+#include "typegen/TypeGenerator.h"
 
 #include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringRef.h"
@@ -21,6 +23,8 @@
 #include "llvm/Support/YAMLTraits.h"
 
 #include <optional>
+#include <string_view>
+#include <type_traits>
 
 using namespace llvm;
 
@@ -35,10 +39,10 @@ struct ConfigurationOptions {
   bool global{ConfigStdArgValues::global};
   bool statistics{ConfigStdArgValues::stats};
   bool stack_lifetime{ConfigStdArgValues::stack_lifetime};
-  std::string typegen{ConfigStdArgValues::typegen};
-  bool filter{true};
+  typeart::TypegenImplementation typegen{typeart::TypegenImplementation::DIMETA};
+  bool filter{false};
   struct CallFilter {
-    std::string implementation{ConfigStdArgValues::filter_impl};
+    typeart::analysis::FilterImplementation implementation{typeart::analysis::FilterImplementation::standard};
     std::string glob{ConfigStdArgValues::filter_glob};
     std::string glob_deep{ConfigStdArgValues::filter_glob_deep};
     std::string cg_file{ConfigStdArgValues::filter_cg_file};
@@ -82,14 +86,19 @@ ConfigurationOptions map2config(const FileOptionsMap& mapping) {
   return conf_file;
 }
 
+template <typename T>
+auto make_entry(std::string_view key, const T& field_value)
+    -> std::pair<StringRef, typename FileOptionsMap::mapped_type> {
+  // LOG_DEBUG(key << "->" << field_value)
+  if constexpr (std::is_enum_v<T>) {
+    return {key, config::OptionValue{static_cast<int>(field_value)}};
+  } else {
+    return {key, config::OptionValue{field_value}};
+  }
+};
+
 FileOptionsMap config2map(const ConfigurationOptions& conf_file) {
   using namespace detail;
-
-  const auto make_entry = [](std::string&& key,
-                             const auto& field_value) -> std::pair<StringRef, typename FileOptionsMap ::mapped_type> {
-    LOG_DEBUG(key << "->" << field_value)
-    return {key, config::OptionValue{field_value}};
-  };
   FileOptionsMap mapping_ = {
       make_entry(ConfigStdArgs::types, conf_file.types),
       make_entry(ConfigStdArgs::stats, conf_file.statistics),
@@ -184,7 +193,7 @@ auto open_flag() {
 }
 
 llvm::ErrorOr<std::unique_ptr<FileOptions>> make_default_file_configuration() {
-  ConfigurationOptions options{};
+  ConfigurationOptions options;
   return std::make_unique<YamlFileConfiguration>(options);
 }
 
@@ -214,6 +223,23 @@ std::string write_file_configuration_as_text(const FileOptions& file_options) {
 
 using namespace llvm::yaml;
 using namespace typeart::config::file;
+
+template <>
+struct ScalarEnumerationTraits<typeart::analysis::FilterImplementation> {
+  static void enumeration(IO& io, typeart::analysis::FilterImplementation& value) {
+    io.enumCase(value, "cg", typeart::analysis::FilterImplementation::cg);
+    io.enumCase(value, "std", typeart::analysis::FilterImplementation::standard);
+    io.enumCase(value, "none", typeart::analysis::FilterImplementation::none);
+  }
+};
+
+template <>
+struct ScalarEnumerationTraits<typeart::TypegenImplementation> {
+  static void enumeration(IO& io, typeart::TypegenImplementation& value) {
+    io.enumCase(value, "dimeta", typeart::TypegenImplementation::DIMETA);
+    io.enumCase(value, "ir", typeart::TypegenImplementation::IR);
+  }
+};
 
 template <>
 struct llvm::yaml::MappingTraits<typeart::config::file::ConfigurationOptions::Analysis> {

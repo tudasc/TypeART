@@ -297,14 +297,18 @@ int enum_to_int(std::string_view cl_value) {
                    .Case("ir", typeart::TypegenImplementation::IR)
                    .Case("dimeta", typeart::TypegenImplementation::DIMETA)
                    .Default(typeart::TypegenImplementation::DIMETA);
-    return static_cast<int>(val);
+    const auto int_val = static_cast<int>(val);
+    LOG_DEBUG("Enum val is " << int_val)
+    return int_val;
   } else {
     auto val = llvm::StringSwitch<ClType>(cl_value.data())
                    .Case("cg", typeart::analysis::FilterImplementation::cg)
                    .Case("none", typeart::analysis::FilterImplementation::none)
                    .Case("std", typeart::analysis::FilterImplementation::standard)
                    .Default(typeart::analysis::FilterImplementation::standard);
-    return static_cast<int>(val);
+    const auto int_val = static_cast<int>(val);
+    LOG_DEBUG("Enum val is " << int_val)
+    return int_val;
   }
 }
 
@@ -413,6 +417,7 @@ EnvironmentFlagsOptions::EnvironmentFlagsOptions() {
   if (!occurence_mapping_.lookup(ConfigStdArgs::global)) {
     const auto stack_value          = mapping_.lookup(ConfigStdArgs::stack);
     mapping_[ConfigStdArgs::global] = OptionValue{static_cast<bool>(stack_value)};
+    occurence_mapping_[ConfigStdArgs::global] = true;
   }
 }
 
