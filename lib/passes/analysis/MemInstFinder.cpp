@@ -13,13 +13,15 @@
 #include "MemInstFinder.h"
 
 #include "MemOpVisitor.h"
+#include "TypeARTConfiguration.h"
 #include "analysis/MemOpData.h"
+#include "configuration/Configuration.h"
+#include "configuration/TypeARTOptions.h"
 #include "filter/CGForwardFilter.h"
 #include "filter/CGInterface.h"
 #include "filter/Filter.h"
 #include "filter/Matcher.h"
 #include "filter/StdForwardFilter.h"
-#include "support/Configuration.h"
 #include "support/Logger.h"
 #include "support/Table.h"
 #include "support/TypeUtil.h"
@@ -59,24 +61,7 @@ ALWAYS_ENABLED_STATISTIC(NumCallFilteredGlobals, "Number of filtered globals");
 
 namespace typeart::analysis {
 
-struct MemInstFinderConfig {
-  struct Filter {
-    bool useCallFilter{false};
-    FilterImplementation implementation{FilterImplementation::standard};
-    std::string callFilterGlob{"*MPI_*"};
-    std::string callFilterDeepGlob{"MPI_*"};
-    std::string callFilterCgFile{};
-    bool filterNonArrayAlloca{false};
-    bool filterMallocAllocPair{false};
-    bool filterGlobal{true};
-    bool filterPointerAlloca{false};
-  };
-
-  bool collect_heap{false};
-  bool collect_alloca{false};
-  bool collect_global{false};
-  Filter filter;
-};
+using MemInstFinderConfig = config::TypeARTConfigOptions;
 
 namespace filter {
 class CallFilter {
@@ -100,25 +85,25 @@ namespace filter {
 namespace detail {
 static std::unique_ptr<typeart::filter::Filter> make_filter(const MemInstFinderConfig& config) {
   using namespace typeart::filter;
-  const auto filter_id   = config.filter.implementation;
-  const std::string glob = config.filter.callFilterGlob;
+  const auto filter_id   = config.filter_config.implementation;
+  const std::string glob = config.filter_config.glob;
 
-  if (filter_id == FilterImplementation::none || !config.filter.useCallFilter) {
+  if (filter_id == FilterImplementation::none || !config.filter) {
     LOG_DEBUG("Return no-op filter")
     return std::make_unique<NoOpFilter>();
   } else if (filter_id == FilterImplementation::cg) {
-    if (config.filter.callFilterCgFile.empty()) {
+    if (config.filter_config.cg_file.empty()) {
       LOG_FATAL("CG File not set!");
       std::exit(1);
     }
-    LOG_DEBUG("Return CG filter with CG file @ " << config.filter.callFilterCgFile)
-    auto json_cg = JSONCG::getJSON(config.filter.callFilterCgFile);
+    LOG_DEBUG("Return CG filter with CG file @ " << config.filter_config.cg_file)
+    auto json_cg = JSONCG::getJSON(config.filter_config.cg_file);
     auto matcher = std::make_unique<DefaultStringMatcher>(util::glob2regex(glob));
     return std::make_unique<CGForwardFilter>(glob, std::move(json_cg), std::move(matcher));
   } else {
     LOG_DEBUG("Return default filter")
     auto matcher         = std::make_unique<DefaultStringMatcher>(util::glob2regex(glob));
-    const auto deep_glob = config.filter.callFilterDeepGlob;
+    const auto deep_glob = config.filter_config.glob_deep;
     auto deep_matcher    = std::make_unique<DefaultStringMatcher>(util::glob2regex(deep_glob));
     return std::make_unique<StandardForwardFilter>(std::move(matcher), std::move(deep_matcher));
   }
@@ -181,15 +166,15 @@ class MemInstFinderPass : public MemInstFinder {
   bool runOnFunction(llvm::Function&);
 };
 
-MemInstFinderPass::MemInstFinderPass(const MemInstFinderConfig& config)
-    : mOpsCollector(config.collect_alloca, config.collect_heap), filter(config), config(config) {
+MemInstFinderPass::MemInstFinderPass(const MemInstFinderConfig& conf_)
+    : mOpsCollector(conf_.stack, conf_.heap), filter(conf_), config(conf_) {
 }
 
 bool MemInstFinderPass::runOnModule(Module& module) {
   mOpsCollector.collectGlobals(module);
   auto& globals = mOpsCollector.globals;
   NumDetectedGlobals += globals.size();
-  if (config.filter.filterGlobal) {
+  if (config.analysis_config.filter_global) {
     globals.erase(llvm::remove_if(
                       globals,
                       [&](const auto gdata) {  // NOLINT
@@ -310,7 +295,7 @@ bool MemInstFinderPass::runOnFunction(llvm::Function& function) {
 
   NumDetectedAllocs += mOpsCollector.allocas.size();
 
-  if (config.filter.filterNonArrayAlloca) {
+  if (config.analysis_config.filter_alloca_non_array) {
     auto& allocs = mOpsCollector.allocas;
     allocs.erase(llvm::remove_if(allocs,
                                  [&](const auto& data) {
@@ -323,7 +308,7 @@ bool MemInstFinderPass::runOnFunction(llvm::Function& function) {
                  allocs.end());
   }
 
-  if (config.filter.filterMallocAllocPair) {
+  if (config.analysis_config.filter_heap_alloc) {
     auto& allocs  = mOpsCollector.allocas;
     auto& mallocs = mOpsCollector.mallocs;
 
@@ -359,7 +344,7 @@ bool MemInstFinderPass::runOnFunction(llvm::Function& function) {
                  allocs.end());
   }
 
-  if (config.filter.filterPointerAlloca) {
+  if (config.analysis_config.filter_pointer_alloc) {
     auto& allocs = mOpsCollector.allocas;
     allocs.erase(llvm::remove_if(allocs,
                                  [&](const auto& data) {
@@ -373,7 +358,8 @@ bool MemInstFinderPass::runOnFunction(llvm::Function& function) {
                  allocs.end());
   }
 
-  if (config.filter.useCallFilter) {
+  // if (config.filter.useCallFilter) {
+  if (config.filter) {
     auto& allocs = mOpsCollector.allocas;
     allocs.erase(llvm::remove_if(allocs,
                                  [&](const auto& data) {
@@ -428,7 +414,7 @@ void MemInstFinderPass::printStats(llvm::raw_ostream& out) const {
   Table stats("MemInstFinderPass");
   stats.wrap_header = true;
   stats.wrap_length = true;
-  stats.put(Row::make("Filter string", config.filter.callFilterGlob));
+  stats.put(Row::make("Filter string", config.filter_config.glob));
   stats.put(Row::make_row("> Heap Memory"));
   stats.put(Row::make("Heap alloc", NumDetectedHeap.getValue()));
   stats.put(Row::make("Heap call filtered %", call_filter_heap_p));
@@ -462,23 +448,9 @@ const GlobalDataList& MemInstFinderPass::getModuleGlobals() const {
 }
 
 std::unique_ptr<MemInstFinder> create_finder(const config::Configuration& config) {
-  using typeart::config::ConfigStdArgs;
-  const auto meminst_config = [&config]() {
-    return analysis::MemInstFinderConfig{
-        config[ConfigStdArgs::heap],                                                                    //
-        config[ConfigStdArgs::stack],                                                                   //
-        config[ConfigStdArgs::global],                                                                  //
-        analysis::MemInstFinderConfig::Filter{config[ConfigStdArgs::filter],                            //
-                                              config[ConfigStdArgs::filter_impl],                       //
-                                              config[ConfigStdArgs::filter_glob],                       //
-                                              config[ConfigStdArgs::filter_glob_deep],                  //
-                                              config[ConfigStdArgs::filter_cg_file],                    //
-                                              config[ConfigStdArgs::analysis_filter_alloca_non_array],  //
-                                              config[ConfigStdArgs::analysis_filter_heap_alloc],        //
-                                              config[ConfigStdArgs::analysis_filter_global],            //
-                                              config[ConfigStdArgs::analysis_filter_pointer_alloc]}};   //
-  }();
-  return std::make_unique<MemInstFinderPass>(meminst_config);
+  LOG_DEBUG("Constructing MemInstFinder")
+  const auto meminst_conf = config::helper::config_to_options(config);
+  return std::make_unique<MemInstFinderPass>(meminst_conf);
 }
 
 }  // namespace typeart::analysis

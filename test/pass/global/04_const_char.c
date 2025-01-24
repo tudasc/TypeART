@@ -1,4 +1,4 @@
-// RUN: %c-to-llvm %s | %apply-typeart --typeart-global -S 2>&1 | %filecheck %s
+// RUN: %c-to-llvm %s | %apply-typeart --typeart-global=true -S 2>&1 | %filecheck %s
 
 // REQUIRES: !dimeta
 

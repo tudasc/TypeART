@@ -1,4 +1,4 @@
-// RUN: %cpp-to-llvm %s | %apply-typeart --typeart-global -S 2>&1 | %filecheck %s
+// RUN: %cpp-to-llvm %s | %apply-typeart --typeart-global=true -S 2>&1 | %filecheck %s
 
 int global;
 int global_2 = 0;

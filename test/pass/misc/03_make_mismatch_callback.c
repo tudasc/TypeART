@@ -1,4 +1,4 @@
-// RUN: %c-to-llvm %s | %apply-typeart --typeart-stack -S 2>&1 | %filecheck %s
+// RUN: %c-to-llvm %s | %apply-typeart --typeart-stack=true -S 2>&1 | %filecheck %s
 // XFAIL: *
 
 #include <stddef.h>

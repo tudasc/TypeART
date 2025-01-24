@@ -13,11 +13,12 @@
 #include "Commandline.h"
 #include "TypeARTConfiguration.h"
 #include "analysis/MemInstFinder.h"
+#include "configuration/Configuration.h"
+#include "configuration/EnvironmentConfiguration.h"
+#include "configuration/FileConfiguration.h"
 #include "instrumentation/MemOpArgCollector.h"
 #include "instrumentation/MemOpInstrumentation.h"
 #include "instrumentation/TypeARTFunctions.h"
-#include "support/Configuration.h"
-#include "support/FileConfiguration.h"
 #include "support/Logger.h"
 #include "support/Table.h"
 #include "typegen/TypeGenerator.h"
@@ -58,10 +59,6 @@ static cl::opt<std::string> cl_typeart_configuration_file(
     cl::desc(
         "Location of the configuration file to configure the TypeART pass. Commandline arguments are prioritized."),
     cl::cat(typeart_category));
-
-static cl::opt<bool> cl_typeart_configuration_file_dump("typeart-config-dump", cl::init(false), cl::Hidden,
-                                                        cl::desc("Dump default config file content to std::out."),
-                                                        cl::cat(typeart_category));
 
 #define DEBUG_TYPE "typeart"
 
@@ -113,32 +110,26 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
 
  public:
   bool doInitialization(Module& m) {
-    if (cl_typeart_configuration_file_dump.getValue()) {
-      auto config = config::make_typeart_configuration({"", config::TypeARTConfigInit::FileConfigurationMode::Empty});
-      config->get()->emitTypeartFileConfiguration(llvm::outs());
-      LOG_DEBUG("Emitted standard config. Exiting now.")
-      std::exit(EXIT_SUCCESS);
-    }
-
     auto config_file_path = get_configuration_file_path();
 
-    if (!config_file_path) {
-      pass_config = std::make_unique<config::cl::CommandLineOptions>();
+    const auto init     = config_file_path.has_value()
+                              ? config::TypeARTConfigInit{config_file_path.value()}
+                              : config::TypeARTConfigInit{{}, config::TypeARTConfigInit::FileConfigurationMode::Empty};
+    auto typeart_config = config::make_typeart_configuration(init);
+    if (typeart_config) {
+      // {
+      //   std::string typeart_conf_str;
+      //   llvm::raw_string_ostream conf_out_stream{typeart_conf_str};
+      //   typeart_config->get()->emitTypeartFileConfiguration(conf_out_stream);
+      //   LOG_INFO("Emitting TypeART file content\n" << conf_out_stream.str())
+      // }
+      LOG_INFO("Emitting TypeART configuration content\n" << typeart_config.get()->getOptions())
+      pass_config = std::move(*typeart_config);
     } else {
-      auto typeart_config = config::make_typeart_configuration({config_file_path.value()});
-      if (typeart_config) {
-        {
-          std::string typeart_conf_str;
-          llvm::raw_string_ostream conf_out_stream{typeart_conf_str};
-          typeart_config->get()->emitTypeartFileConfiguration(conf_out_stream);
-          LOG_INFO("Emitting TypeART file content\n" << conf_out_stream.str())
-        }
-        pass_config = std::move(*typeart_config);
-      } else {
-        LOG_FATAL("Could not load TypeARTConfiguration.")
-        std::exit(EXIT_FAILURE);
-      }
+      LOG_FATAL("Could not load TypeART configuration.")
+      std::exit(EXIT_FAILURE);
     }
+
     meminst_finder = analysis::create_finder(*pass_config);
 
     const std::string types_file =
@@ -264,7 +255,7 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
   bool runOnModule(llvm::Module& m) {
     meminst_finder->runOnModule(m);
     const bool instrument_global = (*pass_config)[config::ConfigStdArgs::global];
-    bool instrumented_global{false};
+    bool globals_were_instrumented{false};
     if (instrument_global) {
       declareInstrumentationFunctions(m);
 
@@ -272,12 +263,12 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
       if (!globalsList.empty()) {
         const auto global_count = instrumentation_context->handleGlobal(globalsList);
         NumInstrumentedGlobal += global_count;
-        instrumented_global = global_count > 0;
+        globals_were_instrumented = global_count > 0;
       }
     }
 
     const auto instrumented_function = llvm::count_if(m.functions(), [&](auto& f) { return runOnFunc(f); }) > 0;
-    return instrumented_function || instrumented_global;
+    return instrumented_function || globals_were_instrumented;
   }
 
   bool runOnFunc(llvm::Function& f) {
