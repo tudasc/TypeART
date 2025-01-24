@@ -12,6 +12,8 @@ typeart_find_llvm_progs(TYPEART_LIT_EXEC
   ABORT_IF_MISSING
 )
 
+# add_subdirectory(compat)
+
 macro(pythonize_bool truth_var var)
   if(${truth_var})
     set(${var} True)
@@ -53,8 +55,11 @@ function(typeart_configure_lit_site input output)
     set(TYPEART_COVERAGE True)
   endif()
 
+  set(TYPEART_USE_NEW_PM True)
+  # set(TYPEART_OPT_EXEC "${CMAKE_BINARY_DIR}/test/compat/opt-shim")
   if(${LLVM_VERSION_MAJOR} VERSION_EQUAL "14")
     set(TYPEART_OPT_ARGS "-enable-new-pm=0")
+    set(TYPEART_USE_NEW_PM False)
   endif()
 
   set(LIT_SITE_CFG_IN_HEADER

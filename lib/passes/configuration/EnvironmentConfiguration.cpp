@@ -100,9 +100,9 @@ std::pair<StringRef, typename OptionsMap::mapped_type> make_entry(std::string&& 
 
 template <typename ClOpt>
 std::pair<StringRef, typename OptOccurrenceMap::mapped_type> make_occurr_entry(std::string&& key, ClOpt&& cl_opt) {
-  const bool occured = (get_env_flag(cl_opt).has_value());
-  // LOG_DEBUG("Key :" << key << ":" << occured)
-  return {key, occured};
+  const bool occurred = (get_env_flag(cl_opt).has_value());
+  // LOG_DEBUG("Key :" << key << ":" << occurred)
+  return {key, occurred};
 }
 }  // namespace detail
 

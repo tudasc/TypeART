@@ -43,6 +43,7 @@ config.coverage=@TYPEART_COVERAGE@
 config.python_interp = "@Python3_EXECUTABLE@"
 
 config.llvm_version = @LLVM_VERSION_MAJOR@
+config.new_pm = @TYPEART_USE_NEW_PM@
 
 # Let the main config do the real work.
 config.loaded_site_config = True

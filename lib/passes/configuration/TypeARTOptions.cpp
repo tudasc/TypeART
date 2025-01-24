@@ -25,7 +25,7 @@ using namespace llvm::yaml;
 using namespace typeart::config::file;
 
 template <>
-struct ScalarEnumerationTraits<typeart::analysis::FilterImplementation> {
+struct llvm::yaml::ScalarEnumerationTraits<typeart::analysis::FilterImplementation> {
   static void enumeration(IO& io, typeart::analysis::FilterImplementation& value) {
     io.enumCase(value, "cg", typeart::analysis::FilterImplementation::cg);
     io.enumCase(value, "std", typeart::analysis::FilterImplementation::standard);
@@ -34,7 +34,7 @@ struct ScalarEnumerationTraits<typeart::analysis::FilterImplementation> {
 };
 
 template <>
-struct ScalarEnumerationTraits<typeart::TypegenImplementation> {
+struct llvm::yaml::ScalarEnumerationTraits<typeart::TypegenImplementation> {
   static void enumeration(IO& io, typeart::TypegenImplementation& value) {
     io.enumCase(value, "dimeta", typeart::TypegenImplementation::DIMETA);
     io.enumCase(value, "ir", typeart::TypegenImplementation::IR);

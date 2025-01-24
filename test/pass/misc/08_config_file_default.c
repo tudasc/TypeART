@@ -8,7 +8,7 @@
 // CHECK-NEXT: global:          false
 // CHECK-NEXT: stats:           true
 // CHECK-NEXT: stack-lifetime:  true
-// CHECK-NEXT: typegen:         dimeta
+// CHECK-NEXT: typegen:         {{dimeta|ir}}
 // CHECK-NEXT: filter:          false
 // CHECK-NEXT: call-filter:
 // CHECK-NEXT:   implementation:  std

@@ -24,7 +24,7 @@ OBJECTS2.0 = $(SOURCES2.0:.cc=.o)
 CXXFLAGS = -g -I. -Wall
 LDFLAGS = -g -O3
 
-PASSES=-load ${TYPEART_LIBPATH}/passes/analysis/meminstfinderpass.so -load ${TYPEART_LIBPATH}/passes/typeartpass.so -typeart-stats
+PASSES=-load ${TYPEART_LIBPATH}/passes/analysis/meminstfinderpass.so -load ${TYPEART_LIBPATH}/passes/typeartpass.so --typeart-stats
 CALL_FILTER=--typeart-filter --typeart-filter-implementation=default
 
 ifeq ($(TSAN), yes)

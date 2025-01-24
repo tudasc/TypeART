@@ -1,5 +1,5 @@
 // clang-format off
-// RUN: %c-to-llvm %s | %apply-typeart --typeart-stack=true --typeart-stack-lifetime -S 2>&1 | %filecheck %s
+// RUN: %c-to-llvm %s | %apply-typeart --typeart-stack=true --typeart-stack-lifetime=true -S 2>&1 | %filecheck %s
 // clang-format on
 
 extern void type_check(void*);
