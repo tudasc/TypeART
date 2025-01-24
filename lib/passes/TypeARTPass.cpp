@@ -13,11 +13,12 @@
 #include "Commandline.h"
 #include "TypeARTConfiguration.h"
 #include "analysis/MemInstFinder.h"
+#include "configuration/Configuration.h"
+#include "configuration/EnvironmentConfiguration.h"
+#include "configuration/FileConfiguration.h"
 #include "instrumentation/MemOpArgCollector.h"
 #include "instrumentation/MemOpInstrumentation.h"
 #include "instrumentation/TypeARTFunctions.h"
-#include "support/Configuration.h"
-#include "support/FileConfiguration.h"
 #include "support/Logger.h"
 #include "support/Table.h"
 #include "typegen/TypeGenerator.h"
@@ -122,10 +123,10 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
       //   typeart_config->get()->emitTypeartFileConfiguration(conf_out_stream);
       //   LOG_INFO("Emitting TypeART file content\n" << conf_out_stream.str())
       // }
-      LOG_INFO("Emitting TypeART file content\n" << typeart_config.get()->getOptions())
+      LOG_INFO("Emitting TypeART configuration content\n" << typeart_config.get()->getOptions())
       pass_config = std::move(*typeart_config);
     } else {
-      LOG_FATAL("Could not load TypeARTConfiguration.")
+      LOG_FATAL("Could not load TypeART configuration.")
       std::exit(EXIT_FAILURE);
     }
 

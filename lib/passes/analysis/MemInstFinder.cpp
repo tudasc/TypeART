@@ -15,15 +15,15 @@
 #include "MemOpVisitor.h"
 #include "TypeARTConfiguration.h"
 #include "analysis/MemOpData.h"
+#include "configuration/Configuration.h"
+#include "configuration/TypeARTOptions.h"
 #include "filter/CGForwardFilter.h"
 #include "filter/CGInterface.h"
 #include "filter/Filter.h"
 #include "filter/Matcher.h"
 #include "filter/StdForwardFilter.h"
-#include "support/Configuration.h"
 #include "support/Logger.h"
 #include "support/Table.h"
-#include "support/TypeARTOptions.h"
 #include "support/TypeUtil.h"
 #include "support/Util.h"
 
@@ -450,7 +450,7 @@ const GlobalDataList& MemInstFinderPass::getModuleGlobals() const {
 std::unique_ptr<MemInstFinder> create_finder(const config::Configuration& config) {
   LOG_DEBUG("Constructing MemInstFinder")
   const auto meminst_conf = config::helper::config_to_options(config);
-  return std::make_unique<MemInstFinderPass>( meminst_conf);
+  return std::make_unique<MemInstFinderPass>(meminst_conf);
 }
 
 }  // namespace typeart::analysis

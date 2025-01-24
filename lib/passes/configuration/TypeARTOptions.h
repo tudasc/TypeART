@@ -1,9 +1,22 @@
-#ifndef C86BA97A_734C_4A62_A56E_9E38A9E55DE6
-#define C86BA97A_734C_4A62_A56E_9E38A9E55DE6
+// TypeART library
+//
+// Copyright (c) 2017-2025 TypeART Authors
+// Distributed under the BSD 3-Clause license.
+// (See accompanying file LICENSE.txt or copy at
+// https://opensource.org/licenses/BSD-3-Clause)
+//
+// Project home: https://github.com/tudasc/TypeART
+//
+// SPDX-License-Identifier: BSD-3-Clause
+//
 
-#include "../passes/analysis/MemInstFinder.h"
-#include "../passes/typegen/TypeGenerator.h"
-#include "support/Configuration.h"
+#ifndef TYPEART_OPTIONS_H
+#define TYPEART_OPTIONS_H
+
+#include "analysis/MemInstFinder.h"
+#include "configuration/Configuration.h"
+#include "support/ConfigurationBase.h"
+#include "typegen/TypeGenerator.h"
 
 namespace llvm::yaml {
 class Input;
@@ -63,4 +76,4 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& out_s, const TypeARTConfigOptio
 
 }  // namespace typeart::config
 
-#endif /* C86BA97A_734C_4A62_A56E_9E38A9E55DE6 */
+#endif /* TYPEART_OPTIONS_H */

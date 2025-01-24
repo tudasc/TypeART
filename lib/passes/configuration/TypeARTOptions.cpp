@@ -1,9 +1,19 @@
-
+// TypeART library
+//
+// Copyright (c) 2017-2025 TypeART Authors
+// Distributed under the BSD 3-Clause license.
+// (See accompanying file LICENSE.txt or copy at
+// https://opensource.org/licenses/BSD-3-Clause)
+//
+// Project home: https://github.com/tudasc/TypeART
+//
+// SPDX-License-Identifier: BSD-3-Clause
+//
 
 #include "TypeARTOptions.h"
 
+#include "Configuration.h"
 #include "FileConfiguration.h"
-#include "support/Configuration.h"
 
 #include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringRef.h"
@@ -98,7 +108,7 @@ void yaml_output_file(llvm::yaml::Output& output, const TypeARTConfigOptions& co
 }  // namespace typeart::config::io::yaml
 
 namespace typeart::config {
-  
+
 llvm::raw_ostream& operator<<(llvm::raw_ostream& out_stream, const TypeARTConfigOptions& options) {
   std::string config_text;
   llvm::raw_string_ostream sstream(config_text);

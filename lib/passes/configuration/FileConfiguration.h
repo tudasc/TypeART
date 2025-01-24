@@ -13,7 +13,7 @@
 #ifndef TYPEART_FILECONFIGURATION_H
 #define TYPEART_FILECONFIGURATION_H
 
-#include "support/Configuration.h"
+#include "configuration/Configuration.h"
 
 #include "llvm/ADT/StringMap.h"
 #include "llvm/Support/ErrorOr.h"

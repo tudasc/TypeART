@@ -12,10 +12,10 @@
 
 #include "FileConfiguration.h"
 
+#include "Configuration.h"
 #include "TypeARTConfiguration.h"
 #include "TypeARTOptions.h"
 #include "analysis/MemInstFinder.h"
-#include "support/Configuration.h"
 #include "typegen/TypeGenerator.h"
 
 #include "llvm/ADT/StringMap.h"
@@ -31,8 +31,6 @@
 using namespace llvm;
 
 namespace typeart::config::file {
-
-using typeart::config::ConfigStdArgValues;
 
 std::string write_file_configuration_as_text(const FileOptions& file_options);
 
@@ -72,7 +70,6 @@ std::string YamlFileConfiguration::getConfigurationAsString() const {
   return write_file_configuration_as_text(*this);
 }
 
-
 namespace compat {
 auto open_flag() {
 #if LLVM_VERSION_MAJOR < 13
@@ -108,10 +105,10 @@ llvm::ErrorOr<std::unique_ptr<FileOptions>> make_from_configuration(const TypeAR
   return std::make_unique<YamlFileConfiguration>(options);
 }
 
-llvm::ErrorOr<bool> write_file_configuration(llvm::raw_ostream& oss, const FileOptions& options) {
+llvm::ErrorOr<bool> write_file_configuration(llvm::raw_ostream& out_stream, const FileOptions& options) {
   using namespace llvm;
 
-  llvm::yaml::Output out(oss);
+  llvm::yaml::Output out(out_stream);
 
   auto data = options.getConfiguration();
 

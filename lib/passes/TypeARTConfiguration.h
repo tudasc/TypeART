@@ -13,8 +13,8 @@
 #ifndef TYPEART_TYPEARTCONFIGURATION_H
 #define TYPEART_TYPEARTCONFIGURATION_H
 
-#include "support/Configuration.h"
-#include "support/TypeARTOptions.h"
+#include "configuration/Configuration.h"
+#include "configuration/TypeARTOptions.h"
 
 #include "llvm/Support/ErrorOr.h"
 

@@ -13,10 +13,11 @@
 #include "TypeARTConfiguration.h"
 
 #include "Commandline.h"
-#include "support/Configuration.h"
-#include "support/FileConfiguration.h"
+#include "configuration/Configuration.h"
+#include "configuration/EnvironmentConfiguration.h"
+#include "configuration/FileConfiguration.h"
+#include "configuration/TypeARTOptions.h"
 #include "support/Logger.h"
-#include "support/TypeARTOptions.h"
 
 #include <string>
 #include <string_view>
