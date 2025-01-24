@@ -26,6 +26,10 @@ inline llvm::Error make_string_error(const char* message) {
   return llvm::make_error<llvm::StringError>(llvm::inconvertibleErrorCode(), message);
 }
 
+inline llvm::Error make_string_error(std::string message) {
+  return llvm::make_error<llvm::StringError>(llvm::inconvertibleErrorCode(), message);
+}
+
 #define RETURN_ERROR_IF(condition, ...)                          \
   if (condition) {                                               \
     std::string message = llvm::formatv(__VA_ARGS__);            \

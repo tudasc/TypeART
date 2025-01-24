@@ -13,11 +13,10 @@
 #include "EnvironmentConfiguration.h"
 
 #include "Configuration.h"
-#include "analysis/MemInstFinder.h"
+#include "OptionsUtil.h"
 #include "support/ConfigurationBase.h"
 #include "support/Logger.h"
 #include "support/Util.h"
-#include "typegen/TypeGenerator.h"
 
 #include "llvm/ADT/StringSwitch.h"
 
@@ -45,49 +44,14 @@ std::optional<std::string> get_env_flag(std::string_view flag) {
 namespace typeart::config::env {
 
 namespace detail {
-template <typename... Strings>
-bool with_any_of(std::string_view lhs, Strings&&... rhs) {
-  return !lhs.empty() && ((lhs == rhs) || ...);
-}
-
 template <typename ClType>
-ClType string_to_enum(std::string_view cl_value) {
-  using ::typeart::TypegenImplementation;
-  using ::typeart::analysis::FilterImplementation;
-  if constexpr (std::is_same_v<TypegenImplementation, ClType>) {
-    auto val = llvm::StringSwitch<ClType>(cl_value.data())
-                   .Case("ir", TypegenImplementation::IR)
-                   .Case("dimeta", TypegenImplementation::DIMETA)
-                   .Default(TypegenImplementation::DIMETA);
-    return val;
-  } else {
-    auto val = llvm::StringSwitch<ClType>(cl_value.data())
-                   .Case("cg", FilterImplementation::cg)
-                   .Case("none", FilterImplementation::none)
-                   .Case("std", FilterImplementation::standard)
-                   .Default(FilterImplementation::standard);
-    return val;
-  }
-}
-
-template <typename ClType>
-config::OptionValue make_opt(std::string_view cl_value) {
+OptionValue make_opt(std::string_view cl_value) {
   LOG_DEBUG("Parsing value " << cl_value)
-  if constexpr (std::is_same_v<bool, ClType>) {
-    const bool is_true_val  = with_any_of(cl_value, "true", "TRUE", "1");
-    const bool is_false_val = with_any_of(cl_value, "false", "FALSE", "0");
-    if (!(is_true_val || is_false_val)) {
-      LOG_WARNING("Illegal bool value")
-    }
-    assert((is_true_val || is_false_val) && "Illegal bool value for environment flag");
-    return config::OptionValue{is_true_val};
+  auto value = util::make_opt<ClType>(cl_value.data());
+  if constexpr (std::is_enum_v<ClType>) {
+    return OptionValue{static_cast<int>(value)};
   } else {
-    if constexpr (std::is_enum_v<ClType>) {
-      auto enum_value = string_to_enum<ClType>(cl_value);
-      return config::OptionValue{static_cast<int>(enum_value)};
-    } else {
-      return config::OptionValue{std::string{cl_value}};
-    }
+    return OptionValue{value};
   }
 }
 
@@ -95,7 +59,7 @@ template <typename ClType>
 std::pair<StringRef, typename OptionsMap::mapped_type> make_entry(std::string&& key, std::string_view cl_opt,
                                                                   const std::string& default_value) {
   const auto env_value = get_env_flag(cl_opt);
-  return {key, make_opt<ClType>(env_value.value_or(default_value))};
+  return {key, detail::make_opt<ClType>(env_value.value_or(default_value))};
 }
 
 template <typename ClOpt>

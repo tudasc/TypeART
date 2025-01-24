@@ -1,6 +1,7 @@
 set(CONFIG_SOURCES
   FileConfiguration.cpp
   EnvironmentConfiguration.cpp
+  PassConfiguration.cpp
   TypeARTOptions.cpp
 )
 

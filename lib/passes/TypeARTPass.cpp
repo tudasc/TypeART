@@ -16,10 +16,13 @@
 #include "configuration/Configuration.h"
 #include "configuration/EnvironmentConfiguration.h"
 #include "configuration/FileConfiguration.h"
+#include "configuration/PassConfiguration.h"
+#include "configuration/TypeARTOptions.h"
 #include "instrumentation/MemOpArgCollector.h"
 #include "instrumentation/MemOpInstrumentation.h"
 #include "instrumentation/TypeARTFunctions.h"
 #include "support/Logger.h"
+#include "support/PassBuilderUtil.h"
 #include "support/Table.h"
 #include "typegen/TypeGenerator.h"
 
@@ -41,6 +44,7 @@
 
 #include <cassert>
 #include <cstddef>
+#include <llvm/Support/Error.h>
 #include <optional>
 #include <sstream>
 #include <string>
@@ -84,6 +88,7 @@ std::optional<std::string> get_configuration_file_path() {
 }
 
 class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
+  std::optional<config::TypeARTConfigOptions> pass_opts{std::nullopt};
   std::unique_ptr<config::Configuration> pass_config;
 
   struct TypeArtFunc {
@@ -109,6 +114,10 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
   std::unique_ptr<InstrumentationContext> instrumentation_context;
 
  public:
+  TypeArtPass() = default;
+  explicit TypeArtPass(config::TypeARTConfigOptions opts) : pass_opts(opts) {
+  }
+
   bool doInitialization(Module& m) {
     auto config_file_path = get_configuration_file_path();
 
@@ -363,13 +372,21 @@ bool LegacyTypeArtPass::doFinalization(llvm::Module&) {
 // New PM
 //.....................
 llvm::PassPluginLibraryInfo getTypeartPassPluginInfo() {
+  using namespace llvm;
   return {LLVM_PLUGIN_API_VERSION, "TypeART", LLVM_VERSION_STRING, [](PassBuilder& pass_builder) {
             pass_builder.registerPipelineParsingCallback(
                 [](StringRef name, ModulePassManager& module_pm, ArrayRef<PassBuilder::PipelineElement>) {
-                  if (name == "typeart") {
-                    module_pm.addPass(typeart::pass::TypeArtPass());
+                  if (typeart::util::pass::checkParametrizedPassName(name, "typeart")) {
+                    auto parameters = typeart::util::pass::parsePassParameters(
+                        typeart::config::pass::parse_typeart_config, name, "typeart");
+                    if (!parameters) {
+                      LOG_FATAL("Error parsing params: " << parameters.takeError())
+                      return false;
+                    }
+                    module_pm.addPass(typeart::pass::TypeArtPass(parameters.get()));
                     return true;
                   }
+                  LOG_FATAL("Not a valid parametrized pass name: " << name)
                   return false;
                 });
           }};
