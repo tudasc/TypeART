@@ -11,22 +11,22 @@
 namespace typeart::config::util {
 
 template <typename... Strings>
-bool with_any_of(std::string_view lhs, Strings&&... rhs) {
+bool with_any_of(llvm::StringRef lhs, Strings&&... rhs) {
   return !lhs.empty() && ((lhs == rhs) || ...);
 }
 
 template <typename ClType>
-ClType string_to_enum(std::string_view cl_value) {
+ClType string_to_enum(llvm::StringRef cl_value) {
   using ::typeart::TypegenImplementation;
   using ::typeart::analysis::FilterImplementation;
   if constexpr (std::is_same_v<TypegenImplementation, ClType>) {
-    auto val = llvm::StringSwitch<ClType>(cl_value.data())
+    auto val = llvm::StringSwitch<ClType>(cl_value)
                    .Case("ir", TypegenImplementation::IR)
                    .Case("dimeta", TypegenImplementation::DIMETA)
                    .Default(TypegenImplementation::DIMETA);
     return val;
   } else {
-    auto val = llvm::StringSwitch<ClType>(cl_value.data())
+    auto val = llvm::StringSwitch<ClType>(cl_value)
                    .Case("cg", FilterImplementation::cg)
                    .Case("none", FilterImplementation::none)
                    .Case("std", FilterImplementation::standard)

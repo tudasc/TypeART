@@ -8,17 +8,9 @@
 #include "support/ConfigurationBase.h"
 #include "support/ConfigurationBaseOptions.h"
 #include "support/Error.h"
+#include "support/Logger.h"
 
 namespace typeart::config::pass {
-
-namespace detail {
-
-template <typename ClType>
-ClType make_entry(llvm::StringRef key) {
-  return ClType{};
-}
-
-}  // namespace detail
 
 struct PassStdArgsEq final {
 #define TYPEART_CONFIG_OPTION(name, path, type, def_value, description, upper_path) \
@@ -32,6 +24,7 @@ llvm::Expected<TypeARTConfigOptions> parse_typeart_config(llvm::StringRef parame
 }
 
 PassConfig parse_typeart_config_with_occurrence(llvm::StringRef parameters) {
+  LOG_DEBUG("Parsing string: " << parameters)
   TypeARTConfigOptions result;
   OptOccurrenceMap occurrence_map;
   bool global_set{false};
@@ -39,6 +32,8 @@ PassConfig parse_typeart_config_with_occurrence(llvm::StringRef parameters) {
   while (!parameters.empty()) {
     llvm::StringRef parameter_name;
     std::tie(parameter_name, parameters) = parameters.split(';');
+
+    LOG_DEBUG("Parsing token: " << parameter_name)
 
     const bool enable = !parameter_name.consume_front("no-");
 

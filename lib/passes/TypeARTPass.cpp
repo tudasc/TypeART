@@ -116,22 +116,24 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
  public:
   TypeArtPass() = default;
   explicit TypeArtPass(config::TypeARTConfigOptions opts) : pass_opts(opts) {
+    // LOG_INFO("Created with \n" << opts)
   }
 
   bool doInitialization(Module& m) {
     auto config_file_path = get_configuration_file_path();
 
-    const auto init     = config_file_path.has_value()
-                              ? config::TypeARTConfigInit{config_file_path.value()}
-                              : config::TypeARTConfigInit{{}, config::TypeARTConfigInit::FileConfigurationMode::Empty};
-    auto typeart_config = config::make_typeart_configuration(init);
+    const auto init = config_file_path.has_value()
+                          ? config::TypeARTConfigInit{config_file_path.value()}
+                          : config::TypeARTConfigInit{{}, config::TypeARTConfigInit::FileConfigurationMode::Empty};
+
+    auto typeart_config = [&](const auto& init) {
+      if (init.mode == config::TypeARTConfigInit::FileConfigurationMode::Empty) {
+        return config::make_typeart_configuration_from_opts(pass_opts.value_or(config::TypeARTConfigOptions{}));
+      }
+      return config::make_typeart_configuration(init);
+    }(init);
+
     if (typeart_config) {
-      // {
-      //   std::string typeart_conf_str;
-      //   llvm::raw_string_ostream conf_out_stream{typeart_conf_str};
-      //   typeart_config->get()->emitTypeartFileConfiguration(conf_out_stream);
-      //   LOG_INFO("Emitting TypeART file content\n" << conf_out_stream.str())
-      // }
       LOG_INFO("Emitting TypeART configuration content\n" << typeart_config.get()->getOptions())
       pass_config = std::move(*typeart_config);
     } else {
@@ -223,8 +225,9 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
     meminst_finder->printStats(out);
 
     const auto get_ta_mode = [&]() {
-      const bool heap  = (*pass_config)[config::ConfigStdArgs::heap];
-      const bool stack = (*pass_config)[config::ConfigStdArgs::stack];
+      const bool heap   = (*pass_config)[config::ConfigStdArgs::heap];
+      const bool stack  = (*pass_config)[config::ConfigStdArgs::stack];
+      const bool global = (*pass_config)[config::ConfigStdArgs::global];
 
       if (heap) {
         if (stack) {
@@ -237,7 +240,12 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
         return " [Stack]";
       }
 
-      llvm_unreachable("Did not find heap or stack, or combination thereof!");
+      if (global) {
+        return " [Global]";
+      }
+
+      LOG_ERROR("Did not find heap or stack, or combination thereof!");
+      assert((heap || stack || global) && "Needs stack, heap, global or combination thereof");
     };
 
     Table stats("TypeArtPass");

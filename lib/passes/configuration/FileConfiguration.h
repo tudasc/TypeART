@@ -20,7 +20,7 @@
 
 namespace typeart::config {
 struct TypeARTConfigOptions;
-}
+}  // namespace typeart::config
 
 namespace typeart::config::file {
 
