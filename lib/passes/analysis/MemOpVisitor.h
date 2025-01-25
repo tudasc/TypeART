@@ -14,6 +14,7 @@
 #define LIB_MEMOPVISITOR_H_
 
 #include "MemOpData.h"
+#include "configuration/Configuration.h"
 
 #include "llvm/IR/InstVisitor.h"
 
@@ -41,6 +42,7 @@ struct MemOpVisitor : public llvm::InstVisitor<MemOpVisitor> {
 
  public:
   MemOpVisitor();
+  MemOpVisitor(const config::Configuration& config);
   MemOpVisitor(bool collect_allocas, bool collect_heap);
   void collect(llvm::Function& function);
   void collectGlobals(llvm::Module& module);
