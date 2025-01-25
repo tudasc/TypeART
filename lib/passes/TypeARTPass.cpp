@@ -225,8 +225,8 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
     meminst_finder->printStats(out);
 
     const auto get_ta_mode = [&]() {
-      const bool heap   = (*pass_config)[config::ConfigStdArgs::heap];
-      const bool stack  = (*pass_config)[config::ConfigStdArgs::stack];
+      const bool heap  = (*pass_config)[config::ConfigStdArgs::heap];
+      const bool stack = (*pass_config)[config::ConfigStdArgs::stack];
       const bool global = (*pass_config)[config::ConfigStdArgs::global];
 
       if (heap) {
@@ -240,12 +240,13 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
         return " [Stack]";
       }
 
-      if (global) {
+      if(global) {
         return " [Global]";
       }
 
       LOG_ERROR("Did not find heap or stack, or combination thereof!");
       assert((heap || stack || global) && "Needs stack, heap, global or combination thereof");
+      return " [Unknown]";
     };
 
     Table stats("TypeArtPass");

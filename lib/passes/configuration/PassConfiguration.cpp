@@ -10,6 +10,12 @@
 #include "support/Error.h"
 #include "support/Logger.h"
 
+#include "llvm/Support/FormatVariadicDetails.h"
+
+#include <llvm/Support/FormatVariadic.h>
+#include <llvm/Support/raw_ostream.h>
+#include <string>
+
 namespace typeart::config::pass {
 
 struct PassStdArgsEq final {
@@ -28,12 +34,11 @@ PassConfig parse_typeart_config_with_occurrence(llvm::StringRef parameters) {
   TypeARTConfigOptions result;
   OptOccurrenceMap occurrence_map;
   bool global_set{false};
+  bool stack_set{false};
 
   while (!parameters.empty()) {
     llvm::StringRef parameter_name;
     std::tie(parameter_name, parameters) = parameters.split(';');
-
-    LOG_DEBUG("Parsing token: " << parameter_name)
 
     const bool enable = !parameter_name.consume_front("no-");
 
@@ -46,6 +51,7 @@ PassConfig parse_typeart_config_with_occurrence(llvm::StringRef parameters) {
     if (parameter_name == ConfigStdArgs::stack) {
       result.stack                         = enable;
       occurrence_map[ConfigStdArgs::stack] = true;
+      stack_set                            = true;
       continue;
     }
 
@@ -119,10 +125,22 @@ PassConfig parse_typeart_config_with_occurrence(llvm::StringRef parameters) {
       occurrence_map[ConfigStdArgs::analysis_filter_pointer_alloc] = true;
       continue;
     }
+    {
+      // undefined symbol issue: llvm::formatv("Unknown TypeART option {0} with unparsed list {1}", parameter_name,
+      // parameters).str()
+      std::string out_string;
+      llvm::raw_string_ostream out_stream(out_string);
+      out_stream << "Unknown TypeART option " << parameter_name;
+      if (!parameters.empty()) {
+        out_stream << " with unparsed list " << parameters;
+      }
+      return {error::make_string_error(out_stream.str()), occurrence_map};
+    }
   }
-  if (!global_set) {
+  if (!global_set && stack_set) {
     // Stack implies global
-    result.global = result.stack;
+    result.global                         = result.stack;
+    occurrence_map[ConfigStdArgs::global] = true;
   }
   return {result, occurrence_map};
 }

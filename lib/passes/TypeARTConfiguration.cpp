@@ -34,7 +34,7 @@ TypeARTConfiguration::TypeARTConfiguration(std::unique_ptr<file::FileOptions> co
 
 std::optional<OptionValue> TypeARTConfiguration::getValue(std::string_view opt_path) const {
   auto get_value = [&](const auto& options, const char* source) -> std::optional<OptionValue> {
-    LOG_DEBUG("Query " << source << " " << opt_path.data())
+    // LOG_DEBUG("Query " << source << " " << opt_path.data())
     if (prioritize_commandline && options.valueSpecified(opt_path)) {
       LOG_DEBUG("Take " << source << " arg for " << opt_path.data());
       return options.getValue(opt_path);
@@ -52,7 +52,7 @@ std::optional<OptionValue> TypeARTConfiguration::getValue(std::string_view opt_p
 
 OptionValue TypeARTConfiguration::getValueOr(std::string_view opt_path, OptionValue alt) const {
   auto get_value = [&](const auto& options, const char* source) -> std::optional<OptionValue> {
-    LOG_DEBUG("Query " << source << " " << opt_path.data())
+    // LOG_DEBUG("Query " << source << " " << opt_path.data())
     if (prioritize_commandline && options.valueSpecified(opt_path)) {
       LOG_DEBUG("Take " << source << " arg for " << opt_path.data());
       return options.getValueOr(opt_path, alt);
@@ -70,7 +70,7 @@ OptionValue TypeARTConfiguration::getValueOr(std::string_view opt_path, OptionVa
 
 OptionValue TypeARTConfiguration::operator[](std::string_view opt_path) const {
   auto get_value = [&](const auto& options, const char* source) -> std::optional<OptionValue> {
-    LOG_DEBUG("Query " << source << " " << opt_path.data())
+    // LOG_DEBUG("Query " << source << " " << opt_path.data())
     if (prioritize_commandline && options.valueSpecified(opt_path)) {
       LOG_DEBUG("Take " << source << " arg for " << opt_path.data());
       return options.operator[](opt_path);

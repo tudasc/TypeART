@@ -14,6 +14,8 @@
 
 #include "Configuration.h"
 #include "OptionsUtil.h"
+#include "PassConfiguration.h"
+#include "configuration/TypeARTOptions.h"
 #include "support/ConfigurationBase.h"
 #include "support/Logger.h"
 #include "support/Util.h"
@@ -56,16 +58,15 @@ OptionValue make_opt(std::string_view cl_value) {
 }
 
 template <typename ClType>
-std::pair<StringRef, typename OptionsMap::mapped_type> make_entry(std::string&& key, std::string_view cl_opt,
+std::pair<StringRef, typename OptionsMap::mapped_type> make_entry(std::string_view key, std::string_view cl_opt,
                                                                   const std::string& default_value) {
   const auto env_value = get_env_flag(cl_opt);
   return {key, detail::make_opt<ClType>(env_value.value_or(default_value))};
 }
 
 template <typename ClOpt>
-std::pair<StringRef, typename OptOccurrenceMap::mapped_type> make_occurr_entry(std::string&& key, ClOpt&& cl_opt) {
+std::pair<StringRef, typename OptOccurrenceMap::mapped_type> make_occurr_entry(std::string_view key, ClOpt&& cl_opt) {
   const bool occurred = (get_env_flag(cl_opt).has_value());
-  // LOG_DEBUG("Key :" << key << ":" << occurred)
   return {key, occurred};
 }
 }  // namespace detail
@@ -140,6 +141,23 @@ EnvironmentFlagsOptions::EnvironmentFlagsOptions() {
     const auto stack_value                    = mapping_.lookup(ConfigStdArgs::stack);
     mapping_[ConfigStdArgs::global]           = OptionValue{static_cast<bool>(stack_value)};
     occurence_mapping_[ConfigStdArgs::global] = true;
+  }
+
+  auto result = pass::parse_typeart_config_with_occurrence(get_env_flag("TYPEART_OPTIONS").value_or(""));
+  if (!result.first) {
+    LOG_INFO("No parseable TYPEART_OPTIONS: " << result.first.takeError())
+  } else {
+    LOG_DEBUG("Parsed TYPEART_OPTIONS\n" << *result.first)
+    const auto typeart_options = helper::options_to_map(result.first.get());
+    for (const auto& entry : result.second) {
+      const auto key = entry.getKey();
+      // LOG_DEBUG("Looking at " << key << " " << entry.second << ":" << occurence_mapping_[key])
+      if (entry.second && !occurence_mapping_[key]) {  // single ENV priority over TYPEART_OPTIONS
+        LOG_DEBUG("Replacing " << key)
+        mapping_[key]           = typeart_options.lookup(key);
+        occurence_mapping_[key] = true;
+      }
+    }
   }
 }
 
