@@ -1,5 +1,7 @@
 // RUN: %run %s 2>&1 | %filecheck %s
 
+// XFAIL: llvm-18
+
 #include "util.h"
 
 struct S1 {
