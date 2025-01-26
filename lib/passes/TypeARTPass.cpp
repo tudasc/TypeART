@@ -16,6 +16,9 @@
 #include "configuration/Configuration.h"
 #include "configuration/EnvironmentConfiguration.h"
 #include "configuration/FileConfiguration.h"
+#include "configuration/PassBuilderUtil.h"
+#include "configuration/PassConfiguration.h"
+#include "configuration/TypeARTOptions.h"
 #include "instrumentation/MemOpArgCollector.h"
 #include "instrumentation/MemOpInstrumentation.h"
 #include "instrumentation/TypeARTFunctions.h"
@@ -41,6 +44,7 @@
 
 #include <cassert>
 #include <cstddef>
+#include <llvm/Support/Error.h>
 #include <optional>
 #include <sstream>
 #include <string>
@@ -84,6 +88,7 @@ std::optional<std::string> get_configuration_file_path() {
 }
 
 class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
+  std::optional<config::TypeARTConfigOptions> pass_opts{std::nullopt};
   std::unique_ptr<config::Configuration> pass_config;
 
   struct TypeArtFunc {
@@ -109,20 +114,26 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
   std::unique_ptr<InstrumentationContext> instrumentation_context;
 
  public:
+  TypeArtPass() = default;
+  explicit TypeArtPass(config::TypeARTConfigOptions opts) : pass_opts(opts) {
+    // LOG_INFO("Created with \n" << opts)
+  }
+
   bool doInitialization(Module& m) {
     auto config_file_path = get_configuration_file_path();
 
-    const auto init     = config_file_path.has_value()
-                              ? config::TypeARTConfigInit{config_file_path.value()}
-                              : config::TypeARTConfigInit{{}, config::TypeARTConfigInit::FileConfigurationMode::Empty};
-    auto typeart_config = config::make_typeart_configuration(init);
+    const auto init = config_file_path.has_value()
+                          ? config::TypeARTConfigInit{config_file_path.value()}
+                          : config::TypeARTConfigInit{{}, config::TypeARTConfigInit::FileConfigurationMode::Empty};
+
+    auto typeart_config = [&](const auto& init) {
+      if (init.mode == config::TypeARTConfigInit::FileConfigurationMode::Empty) {
+        return config::make_typeart_configuration_from_opts(pass_opts.value_or(config::TypeARTConfigOptions{}));
+      }
+      return config::make_typeart_configuration(init);
+    }(init);
+
     if (typeart_config) {
-      // {
-      //   std::string typeart_conf_str;
-      //   llvm::raw_string_ostream conf_out_stream{typeart_conf_str};
-      //   typeart_config->get()->emitTypeartFileConfiguration(conf_out_stream);
-      //   LOG_INFO("Emitting TypeART file content\n" << conf_out_stream.str())
-      // }
       LOG_INFO("Emitting TypeART configuration content\n" << typeart_config.get()->getOptions())
       pass_config = std::move(*typeart_config);
     } else {
@@ -214,8 +225,9 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
     meminst_finder->printStats(out);
 
     const auto get_ta_mode = [&]() {
-      const bool heap  = (*pass_config)[config::ConfigStdArgs::heap];
-      const bool stack = (*pass_config)[config::ConfigStdArgs::stack];
+      const bool heap   = (*pass_config)[config::ConfigStdArgs::heap];
+      const bool stack  = (*pass_config)[config::ConfigStdArgs::stack];
+      const bool global = (*pass_config)[config::ConfigStdArgs::global];
 
       if (heap) {
         if (stack) {
@@ -228,7 +240,13 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
         return " [Stack]";
       }
 
-      llvm_unreachable("Did not find heap or stack, or combination thereof!");
+      if (global) {
+        return " [Global]";
+      }
+
+      LOG_ERROR("Did not find heap or stack, or combination thereof!");
+      assert((heap || stack || global) && "Needs stack, heap, global or combination thereof");
+      return " [Unknown]";
     };
 
     Table stats("TypeArtPass");
@@ -363,13 +381,21 @@ bool LegacyTypeArtPass::doFinalization(llvm::Module&) {
 // New PM
 //.....................
 llvm::PassPluginLibraryInfo getTypeartPassPluginInfo() {
+  using namespace llvm;
   return {LLVM_PLUGIN_API_VERSION, "TypeART", LLVM_VERSION_STRING, [](PassBuilder& pass_builder) {
             pass_builder.registerPipelineParsingCallback(
                 [](StringRef name, ModulePassManager& module_pm, ArrayRef<PassBuilder::PipelineElement>) {
-                  if (name == "typeart") {
-                    module_pm.addPass(typeart::pass::TypeArtPass());
+                  if (typeart::util::pass::checkParametrizedPassName(name, "typeart")) {
+                    auto parameters = typeart::util::pass::parsePassParameters(
+                        typeart::config::pass::parse_typeart_config, name, "typeart");
+                    if (!parameters) {
+                      LOG_FATAL("Error parsing params: " << parameters.takeError())
+                      return false;
+                    }
+                    module_pm.addPass(typeart::pass::TypeArtPass(parameters.get()));
                     return true;
                   }
+                  LOG_FATAL("Not a valid parametrized pass name: " << name)
                   return false;
                 });
           }};

@@ -20,11 +20,9 @@
 
 namespace typeart::config {
 struct TypeARTConfigOptions;
-}
+}  // namespace typeart::config
 
 namespace typeart::config::file {
-
-// using FileOptionsMap = llvm::StringMap<config::OptionValue>;
 
 class FileOptions : public config::Configuration {
  public:

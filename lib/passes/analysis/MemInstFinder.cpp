@@ -22,6 +22,7 @@
 #include "filter/Filter.h"
 #include "filter/Matcher.h"
 #include "filter/StdForwardFilter.h"
+#include "support/ConfigurationBase.h"
 #include "support/Logger.h"
 #include "support/Table.h"
 #include "support/TypeUtil.h"
@@ -43,6 +44,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <sstream>
+#include <string>
 #include <utility>
 
 using namespace llvm;
@@ -61,7 +63,7 @@ ALWAYS_ENABLED_STATISTIC(NumCallFilteredGlobals, "Number of filtered globals");
 
 namespace typeart::analysis {
 
-using MemInstFinderConfig = config::TypeARTConfigOptions;
+using MemInstFinderConfig = config::Configuration;
 
 namespace filter {
 class CallFilter {
@@ -85,25 +87,27 @@ namespace filter {
 namespace detail {
 static std::unique_ptr<typeart::filter::Filter> make_filter(const MemInstFinderConfig& config) {
   using namespace typeart::filter;
-  const auto filter_id   = config.filter_config.implementation;
-  const std::string glob = config.filter_config.glob;
+  const bool filter                    = config[config::ConfigStdArgs::filter];
+  const FilterImplementation filter_id = config[config::ConfigStdArgs::filter_impl];
+  const std::string glob               = config[config::ConfigStdArgs::filter_glob];
 
-  if (filter_id == FilterImplementation::none || !config.filter) {
+  if (filter_id == FilterImplementation::none || !filter) {
     LOG_DEBUG("Return no-op filter")
     return std::make_unique<NoOpFilter>();
   } else if (filter_id == FilterImplementation::cg) {
-    if (config.filter_config.cg_file.empty()) {
+    const std::string cg_file = config[config::ConfigStdArgs::filter_cg_file];
+    if (cg_file.empty()) {
       LOG_FATAL("CG File not set!");
       std::exit(1);
     }
-    LOG_DEBUG("Return CG filter with CG file @ " << config.filter_config.cg_file)
-    auto json_cg = JSONCG::getJSON(config.filter_config.cg_file);
+    LOG_DEBUG("Return CG filter with CG file @ " << cg_file)
+    auto json_cg = JSONCG::getJSON(cg_file);
     auto matcher = std::make_unique<DefaultStringMatcher>(util::glob2regex(glob));
     return std::make_unique<CGForwardFilter>(glob, std::move(json_cg), std::move(matcher));
   } else {
     LOG_DEBUG("Return default filter")
     auto matcher         = std::make_unique<DefaultStringMatcher>(util::glob2regex(glob));
-    const auto deep_glob = config.filter_config.glob_deep;
+    const auto deep_glob = config[config::ConfigStdArgs::filter_glob_deep];
     auto deep_matcher    = std::make_unique<DefaultStringMatcher>(util::glob2regex(deep_glob));
     return std::make_unique<StandardForwardFilter>(std::move(matcher), std::move(deep_matcher));
   }
@@ -150,7 +154,7 @@ class MemInstFinderPass : public MemInstFinder {
   MemOpVisitor mOpsCollector;
   filter::CallFilter filter;
   llvm::DenseMap<const llvm::Function*, FunctionData> functionMap;
-  MemInstFinderConfig config;
+  const MemInstFinderConfig& config;
 
  public:
   explicit MemInstFinderPass(const MemInstFinderConfig&);
@@ -167,14 +171,14 @@ class MemInstFinderPass : public MemInstFinder {
 };
 
 MemInstFinderPass::MemInstFinderPass(const MemInstFinderConfig& conf_)
-    : mOpsCollector(conf_.stack, conf_.heap), filter(conf_), config(conf_) {
+    : mOpsCollector(conf_), filter(conf_), config(conf_) {
 }
 
 bool MemInstFinderPass::runOnModule(Module& module) {
   mOpsCollector.collectGlobals(module);
   auto& globals = mOpsCollector.globals;
   NumDetectedGlobals += globals.size();
-  if (config.analysis_config.filter_global) {
+  if (config[config::ConfigStdArgs::analysis_filter_global]) {
     globals.erase(llvm::remove_if(
                       globals,
                       [&](const auto gdata) {  // NOLINT
@@ -295,7 +299,7 @@ bool MemInstFinderPass::runOnFunction(llvm::Function& function) {
 
   NumDetectedAllocs += mOpsCollector.allocas.size();
 
-  if (config.analysis_config.filter_alloca_non_array) {
+  if (config[config::ConfigStdArgs::analysis_filter_alloca_non_array]) {
     auto& allocs = mOpsCollector.allocas;
     allocs.erase(llvm::remove_if(allocs,
                                  [&](const auto& data) {
@@ -308,7 +312,7 @@ bool MemInstFinderPass::runOnFunction(llvm::Function& function) {
                  allocs.end());
   }
 
-  if (config.analysis_config.filter_heap_alloc) {
+  if (config[config::ConfigStdArgs::analysis_filter_heap_alloc]) {
     auto& allocs  = mOpsCollector.allocas;
     auto& mallocs = mOpsCollector.mallocs;
 
@@ -344,7 +348,7 @@ bool MemInstFinderPass::runOnFunction(llvm::Function& function) {
                  allocs.end());
   }
 
-  if (config.analysis_config.filter_pointer_alloc) {
+  if (config[config::ConfigStdArgs::analysis_filter_pointer_alloc]) {
     auto& allocs = mOpsCollector.allocas;
     allocs.erase(llvm::remove_if(allocs,
                                  [&](const auto& data) {
@@ -359,7 +363,7 @@ bool MemInstFinderPass::runOnFunction(llvm::Function& function) {
   }
 
   // if (config.filter.useCallFilter) {
-  if (config.filter) {
+  if (config[config::ConfigStdArgs::filter]) {
     auto& allocs = mOpsCollector.allocas;
     allocs.erase(llvm::remove_if(allocs,
                                  [&](const auto& data) {
@@ -414,7 +418,8 @@ void MemInstFinderPass::printStats(llvm::raw_ostream& out) const {
   Table stats("MemInstFinderPass");
   stats.wrap_header = true;
   stats.wrap_length = true;
-  stats.put(Row::make("Filter string", config.filter_config.glob));
+  std::string glob  = config[config::ConfigStdArgs::filter_glob];
+  stats.put(Row::make("Filter string", glob));
   stats.put(Row::make_row("> Heap Memory"));
   stats.put(Row::make("Heap alloc", NumDetectedHeap.getValue()));
   stats.put(Row::make("Heap call filtered %", call_filter_heap_p));
@@ -449,8 +454,8 @@ const GlobalDataList& MemInstFinderPass::getModuleGlobals() const {
 
 std::unique_ptr<MemInstFinder> create_finder(const config::Configuration& config) {
   LOG_DEBUG("Constructing MemInstFinder")
-  const auto meminst_conf = config::helper::config_to_options(config);
-  return std::make_unique<MemInstFinderPass>(meminst_conf);
+  // const auto meminst_conf = config::helper::config_to_options(config);
+  return std::make_unique<MemInstFinderPass>(config);
 }
 
 }  // namespace typeart::analysis

@@ -14,6 +14,8 @@
 
 #include "analysis/MemOpData.h"
 #include "compat/CallSite.h"
+#include "configuration/Configuration.h"
+#include "support/ConfigurationBase.h"
 #include "support/Error.h"
 #include "support/Logger.h"
 #include "support/TypeUtil.h"
@@ -48,6 +50,9 @@ using namespace llvm;
 MemOpVisitor::MemOpVisitor() : MemOpVisitor(true, true) {
 }
 
+MemOpVisitor::MemOpVisitor(const config::Configuration& config)
+    : MemOpVisitor(config[config::ConfigStdArgs::stack], config[config::ConfigStdArgs::heap]) {
+}
 MemOpVisitor::MemOpVisitor(bool collect_allocas, bool collect_heap)
     : collect_allocas(collect_allocas), collect_heap(collect_heap) {
 }
