@@ -59,9 +59,7 @@ function(typeart_configure_script input output)
   endif()
 
   set(TYPEART_OPT "${TYPEART_OPT_EXEC}")
-  if(${LLVM_VERSION_MAJOR} VERSION_GREATER_EQUAL "13")
-    set(TYPEART_OPT "${TYPEART_OPT} -enable-new-pm=0")
-  endif()
+  set(NEW_PM_REQUIRED 1)
 
   set(TYPEART_LLC "${TYPEART_LLC_EXEC}")
 
@@ -168,18 +166,10 @@ endfunction()
 
 typeart_configure_coverage_script(llvm-gcov.sh.in llvm-gcov.sh)
 
+typeart_configure_script(opt-shim.in opt-shim)
+
 typeart_configure_script(typeart-tmpl.sh.in run.sh)
 typeart_configure_script(typeart-tmpl.sh.in apply.sh
-  APPLY_MODE ON
-)
-
-typeart_configure_script(
-  typeart-tmpl.sh.in typeart-run${CMAKE_DEBUG_POSTFIX}.sh
-  INSTALL_MODE ON
-)
-typeart_configure_script(
-  typeart-tmpl.sh.in typeart-apply${CMAKE_DEBUG_POSTFIX}.sh
-  INSTALL_MODE ON
   APPLY_MODE ON
 )
 
@@ -240,16 +230,12 @@ set(TYPEART_INSTALL_SCRIPT_CANDIDATE
   typeart-mpic++
   typeart-clang++
   typeart-clang
-  typeart-run
-  typeart-apply
   CACHE INTERNAL
   "Names of TypeART scripts which can be installed."
 )
 
 install(
   PROGRAMS
-    $<$<BOOL:${TYPEART_INSTALL_UTIL_SCRIPTS}>:${CMAKE_CURRENT_BINARY_DIR}/typeart-run${CMAKE_DEBUG_POSTFIX}.sh>
-    $<$<BOOL:${TYPEART_INSTALL_UTIL_SCRIPTS}>:${CMAKE_CURRENT_BINARY_DIR}/typeart-apply${CMAKE_DEBUG_POSTFIX}.sh>
     ${CMAKE_CURRENT_BINARY_DIR}/typeart-clang++${CMAKE_DEBUG_POSTFIX}
     ${CMAKE_CURRENT_BINARY_DIR}/typeart-clang${CMAKE_DEBUG_POSTFIX}
     $<$<AND:$<BOOL:${MPI_C_FOUND}>,$<BOOL:${TYPEART_MPI_WRAPPER}>>:${CMAKE_CURRENT_BINARY_DIR}/typeart-mpicc${CMAKE_DEBUG_POSTFIX}>

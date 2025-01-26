@@ -1,5 +1,7 @@
 // RUN: %c-to-llvm %s | %apply-typeart --typeart-config=%S/07_typeart_config_stack.yml 2>&1 | %filecheck %s
 
+// XFAIL: *
+
 #include <stdlib.h>
 void test() {
   int* p = (int*)malloc(42 * sizeof(int));

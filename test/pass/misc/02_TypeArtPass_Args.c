@@ -1,11 +1,6 @@
 // clang-format off
 // Sanity check for arg names
-// RUN: %c-to-llvm %s | %opt -load %transform_pass -typeart \
-// RUN: --typeart-stats \
-// RUN: --typeart-heap=true \
-// RUN: --typeart-stack=true \
-// RUN: --typeart-global=false \
-// RUN: --typeart-types=typeart_types.yaml
+// RUN: %c-to-llvm %s | %opt -load-pass-plugin %transform_pass -passes='typeart<stats;heap;stack;no-global>'
 // clang-format on
 
 void foo() {

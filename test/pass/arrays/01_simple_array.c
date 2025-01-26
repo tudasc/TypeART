@@ -4,6 +4,9 @@
 void test() {
   int a[100];
 }
+// CHECK: Malloc{{[ ]*}}:{{[ ]*}}0
+// CHECK: Free{{[ ]*}}:{{[ ]*}}0
+// CHECK: Alloca{{[ ]*}}:{{[ ]*}}1
 
 // CHECK: @test()
 // CHECK: %__ta_alloca_counter = alloca i32
@@ -15,6 +18,3 @@ void test() {
 
 // CHECK: call void @__typeart_leave_scope(i32 %__ta_counter_load)
 
-// CHECK: Malloc{{[ ]*}}:{{[ ]*}}0
-// CHECK: Free{{[ ]*}}:{{[ ]*}}0
-// CHECK: Alloca{{[ ]*}}:{{[ ]*}}1

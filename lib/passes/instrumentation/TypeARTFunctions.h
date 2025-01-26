@@ -67,7 +67,7 @@ class TAFunctionDeclarator {
   llvm::StringMap<llvm::Function*> function_map;
 
  public:
-  TAFunctionDeclarator(llvm::Module& m, InstrumentationHelper& instr, TAFunctions& tafunc);
+  TAFunctionDeclarator(llvm::Module& m, InstrumentationHelper& instr, TAFunctions& typeart_func);
   llvm::Function* make_function(IFunc function, llvm::StringRef basename, llvm::ArrayRef<llvm::Type*> args,
                                 bool with_omp = false, bool fixed_name = true);
   const llvm::StringMap<llvm::Function*>& getFunctionMap() const;
