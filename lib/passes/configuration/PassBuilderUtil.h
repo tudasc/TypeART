@@ -16,6 +16,7 @@
 #define TYPEART_PASS_BUILDER_UTIL_H
 
 #include "support/Logger.h"
+
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Error.h"
 
@@ -63,7 +64,7 @@ inline auto parsePassParameters(ParametersParseCallableT&& Parser, llvm::StringR
   if (!Params.empty() && (!Params.consume_front("<") || !Params.consume_back(">"))) {
     llvm_unreachable("invalid format for parametrized pass name");
   }
-  
+
   Expected<ParametersT> Result = Parser(Params);
   assert((Result || Result.template errorIsA<StringError>()) && "Pass parameter parser can only return StringErrors.");
   return Result;

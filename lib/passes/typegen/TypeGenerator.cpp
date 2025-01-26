@@ -73,10 +73,10 @@ std::unique_ptr<TypeGenerator> make_typegen(std::string_view file, TypegenImplem
     default:
       break;
   }
-  #if LLVM_VERSION_MAJOR > 14
-    LOG_ERROR("TypeGen for LLVM IR (typegen=ir) unsupported with LLVM version > 14. Returning typegen=dimeta")
-    return types::make_dimeta_typeidgen(file, std::move(database));
-  #endif
+#if LLVM_VERSION_MAJOR > 14
+  LOG_ERROR("TypeGen for LLVM IR (typegen=ir) unsupported with LLVM version > 14. Returning typegen=dimeta")
+  return types::make_dimeta_typeidgen(file, std::move(database));
+#endif
   LOG_DEBUG("Loading IR type parser")
   return make_ir_typeidgen(file, std::move(database));
 }

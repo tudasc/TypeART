@@ -13,8 +13,8 @@
 #ifndef TYPEART_PASS_CONFIGURATION_H
 #define TYPEART_PASS_CONFIGURATION_H
 
-#include "TypeARTOptions.h"
 #include "Configuration.h"
+#include "TypeARTOptions.h"
 
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Error.h"

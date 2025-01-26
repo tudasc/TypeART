@@ -177,7 +177,7 @@ EnvironmentFlagsOptions::EnvironmentFlagsOptions() {
 
 std::optional<typeart::config::OptionValue> EnvironmentFlagsOptions::getValue(std::string_view opt_path) const {
   auto key = llvm::StringRef(opt_path.data());
-  if (occurence_mapping_.lookup(key)) { // only have value if it occurred
+  if (occurence_mapping_.lookup(key)) {  // only have value if it occurred
     return mapping_.lookup(key);
   }
   return {};
