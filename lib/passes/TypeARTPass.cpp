@@ -24,6 +24,7 @@
 #include "instrumentation/TypeARTFunctions.h"
 #include "support/Logger.h"
 #include "support/Table.h"
+#include "support/Util.h"
 #include "typegen/TypeGenerator.h"
 
 #include "llvm/ADT/DenseMap.h"
@@ -126,11 +127,11 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
                           ? config::TypeARTConfigInit{config_file_path.value()}
                           : config::TypeARTConfigInit{{}, config::TypeARTConfigInit::FileConfigurationMode::Empty};
 
-    auto typeart_config = [&](const auto& init) {
-      if (init.mode == config::TypeARTConfigInit::FileConfigurationMode::Empty) {
+    auto typeart_config = [&](const auto& init_value) {
+      if (init_value.mode == config::TypeARTConfigInit::FileConfigurationMode::Empty) {
         return config::make_typeart_configuration_from_opts(pass_opts.value_or(config::TypeARTConfigOptions{}));
       }
-      return config::make_typeart_configuration(init);
+      return config::make_typeart_configuration(init_value);
     }(init);
 
     if (typeart_config) {
@@ -250,8 +251,8 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
     };
 
     Table stats("TypeArtPass");
-    stats.wrap_header = true;
-    stats.title += get_ta_mode();
+    stats.wrap_header_ = true;
+    stats.title_ += get_ta_mode();
     stats.put(Row::make("Malloc", NumInstrumentedMallocs.getValue()));
     stats.put(Row::make("Free", NumInstrumentedFrees.getValue()));
     stats.put(Row::make("Alloca", NumInstrumentedAlloca.getValue()));
@@ -292,7 +293,7 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
   bool runOnFunc(llvm::Function& f) {
     using namespace typeart;
 
-    if (f.isDeclaration() || f.getName().startswith("__typeart")) {
+    if (f.isDeclaration() || util::starts_with_any_of(f.getName(), "__typeart")) {
       return false;
     }
 

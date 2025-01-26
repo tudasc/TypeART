@@ -160,11 +160,11 @@ inline bool isTempAlloc(llvm::Value* in) {
         for (auto& args : f->args()) {
           if (&args == store->getValueOperand()) {
             match = true;
-            return util::DefUseChain::cancel;
+            return util::DefUseChain::kCancel;
           }
         }
       }
-      return util::DefUseChain::no_match;
+      return util::DefUseChain::kNoMatch;
     });
 
     return match;

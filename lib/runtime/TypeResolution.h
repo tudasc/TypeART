@@ -27,8 +27,8 @@ namespace typeart {
 struct PointerInfo;
 
 class TypeResolution {
-  const TypeDB& typeDB;
-  Recorder& recorder;
+  const TypeDB& type_database;
+  Recorder& runtime_recorder;
 
  public:
   using TypeArtStatus = typeart_status;

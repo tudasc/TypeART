@@ -410,8 +410,8 @@ void MemInstFinderPass::printStats(llvm::raw_ostream& out) const {
       (double(NumFilteredGlobals) / std::max(1.0, double(NumDetectedGlobals))) * 100.0;
 
   Table stats("MemInstFinderPass");
-  stats.wrap_header = true;
-  stats.wrap_length = true;
+  stats.wrap_header_ = true;
+  stats.wrap_length_ = true;
   std::string glob  = config[config::ConfigStdArgs::filter_glob];
   stats.put(Row::make("Filter string", glob));
   stats.put(Row::make_row("> Heap Memory"));

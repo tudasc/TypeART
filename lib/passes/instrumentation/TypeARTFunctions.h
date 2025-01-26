@@ -61,10 +61,10 @@ class TAFunctions : public TAFunctionQuery {
 };
 
 class TAFunctionDeclarator {
-  llvm::Module& m;
+  llvm::Module& module;
   //  [[maybe_unused]] InstrumentationHelper& instr;
-  TAFunctions& tafunc;
-  llvm::StringMap<llvm::Function*> f_map;
+  TAFunctions& typeart_functions;
+  llvm::StringMap<llvm::Function*> function_map;
 
  public:
   TAFunctionDeclarator(llvm::Module& m, InstrumentationHelper& instr, TAFunctions& tafunc);

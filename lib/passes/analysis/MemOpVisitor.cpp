@@ -53,8 +53,8 @@ MemOpVisitor::MemOpVisitor() : MemOpVisitor(true, true) {
 MemOpVisitor::MemOpVisitor(const config::Configuration& config)
     : MemOpVisitor(config[config::ConfigStdArgs::stack], config[config::ConfigStdArgs::heap]) {
 }
-MemOpVisitor::MemOpVisitor(bool collect_allocas, bool collect_heap)
-    : collect_allocas(collect_allocas), collect_heap(collect_heap) {
+MemOpVisitor::MemOpVisitor(bool stack, bool heap)
+    : collect_allocas(stack), collect_heap(heap) {
 }
 
 void MemOpVisitor::collect(llvm::Function& function) {
@@ -62,7 +62,7 @@ void MemOpVisitor::collect(llvm::Function& function) {
 
   for (auto& [lifetime, alloc] : lifetime_starts) {
     auto* data =
-        llvm::find_if(allocas, [alloc = std::ref(alloc)](const AllocaData& data) { return data.alloca == alloc; });
+        llvm::find_if(allocas, [alloc = std::ref(alloc)](const AllocaData& alloca_data) { return alloca_data.alloca == alloc; });
     if (data != std::end(allocas)) {
       data->lifetime_start.insert(lifetime);
     }
@@ -132,11 +132,11 @@ llvm::Expected<T*> getSingleUserAs(llvm::Value* value) {
                   "Expected a single user on value \"{}\" but found multiple potential candidates!", *value);
 
   // This should return the type T we need:
-  auto user = llvm::find_if(users, [](auto user) { return isa<T>(*user); });
-  RETURN_ERROR_IF(user == std::end(users),
+  auto found_user = llvm::find_if(users, [](auto user) { return isa<T>(*user); });
+  RETURN_ERROR_IF(found_user == std::end(users),
                   "Expected a single user on value \"{}\" but didn't find a user of the desired type!", *value);
 
-  return {dyn_cast<T>(*user)};
+  return {dyn_cast<T>(*found_user)};
 }
 
 using MallocGeps   = SmallPtrSet<GetElementPtrInst*, 2>;
