@@ -19,6 +19,7 @@
 #include "support/Error.h"
 #include "support/Logger.h"
 #include "support/TypeUtil.h"
+#include "support/Util.h"
 
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallPtrSet.h"
@@ -125,7 +126,7 @@ llvm::Expected<T*> getSingleUserAs(llvm::Value* value) {
       return false;
     }
     const auto name = csite.getCalledFunction()->getName();
-    return name.startswith("__asan");
+    return util::starts_with_any_of(name, "__asan");  // name.startswith("__asan");
   });
   RETURN_ERROR_IF(num_asan_calls != (num_users - 1),
                   "Expected a single user on value \"{}\" but found multiple potential candidates!", *value);

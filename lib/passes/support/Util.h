@@ -186,7 +186,7 @@ bool with_any_of(llvm::StringRef lhs, StringTy&&... rhs) {
 
 template <typename... StringTy>
 inline bool starts_with_any_of(llvm::StringRef lhs, StringTy... rhs) {
-#if LLVM_VERSION_MAJOR > 14
+#if LLVM_VERSION_MAJOR > 15
   return !lhs.empty() && ((lhs.starts_with(rhs)) || ...);
 #else
   return !lhs.empty() && ((lhs.startswith(rhs)) || ...);
@@ -195,7 +195,7 @@ inline bool starts_with_any_of(llvm::StringRef lhs, StringTy... rhs) {
 
 template <typename... StringTy>
 inline bool ends_with_any_of(llvm::StringRef lhs, StringTy... rhs) {
-#if LLVM_VERSION_MAJOR > 14
+#if LLVM_VERSION_MAJOR > 15
   return !lhs.empty() && ((lhs.ends_with(rhs)) || ...);
 #else
   return !lhs.empty() && ((lhs.endswith(rhs)) || ...);

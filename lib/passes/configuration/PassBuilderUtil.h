@@ -29,7 +29,7 @@ inline bool checkParametrizedPassName(llvm::StringRef Name, llvm::StringRef Pass
   // normal pass name w/o parameters == default parameters
   if (Name.empty())
     return true;
-#if LLVM_VERSION_MAJOR > 14
+#if LLVM_VERSION_MAJOR > 15
   return Name.starts_with("<") && Name.ends_with(">");
 #else
   return Name.startswith("<") && Name.endswith(">");
