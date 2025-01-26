@@ -45,6 +45,20 @@ std::optional<std::string> get_env_flag(std::string_view flag) {
 
 namespace typeart::config::env {
 
+struct EnvironmentStdArgsValues final {
+#define TYPEART_CONFIG_OPTION(name, path, type, def_value, description, upper_path) \
+  static constexpr char name[] = #def_value;
+#include "support/ConfigurationBaseOptions.h"
+#undef TYPEART_CONFIG_OPTION
+};
+
+struct EnvironmentStdArgs final {
+#define TYPEART_CONFIG_OPTION(name, path, type, def_value, description, upper_path) \
+  static constexpr char name[] = "TYPEART_" upper_path;
+#include "support/ConfigurationBaseOptions.h"
+#undef TYPEART_CONFIG_OPTION
+};
+
 namespace detail {
 template <typename ClType>
 OptionValue make_opt(std::string_view cl_value) {
@@ -163,7 +177,7 @@ EnvironmentFlagsOptions::EnvironmentFlagsOptions() {
 
 std::optional<typeart::config::OptionValue> EnvironmentFlagsOptions::getValue(std::string_view opt_path) const {
   auto key = llvm::StringRef(opt_path.data());
-  if (mapping_.count(key) != 0U) {
+  if (occurence_mapping_.lookup(key)) { // only have value if it occurred
     return mapping_.lookup(key);
   }
   return {};

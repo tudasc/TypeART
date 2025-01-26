@@ -24,8 +24,6 @@ struct TypeARTConfigOptions;
 
 namespace typeart::config::file {
 
-// using FileOptionsMap = llvm::StringMap<config::OptionValue>;
-
 class FileOptions : public config::Configuration {
  public:
   [[nodiscard]] std::optional<config::OptionValue> getValue(std::string_view opt_path) const override = 0;

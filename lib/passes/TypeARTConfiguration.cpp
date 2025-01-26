@@ -33,58 +33,46 @@ TypeARTConfiguration::TypeARTConfiguration(std::unique_ptr<file::FileOptions> co
 }
 
 std::optional<OptionValue> TypeARTConfiguration::getValue(std::string_view opt_path) const {
-  auto get_value = [&](const auto& options, const char* source) -> std::optional<OptionValue> {
-    // LOG_DEBUG("Query " << source << " " << opt_path.data())
-    if (prioritize_commandline && options.valueSpecified(opt_path)) {
-      LOG_DEBUG("Take " << source << " arg for " << opt_path.data());
-      return options.getValue(opt_path);
+  if (prioritize_commandline) {
+    if (auto value = env_options_->getValue(opt_path)) {
+      LOG_DEBUG("Take ENV " << opt_path << "=" << (std::string(value.value())));
+      return value.value();
     }
-    return std::nullopt;
-  };
-  if (auto value = get_value(*env_options_, "ENV")) {
-    return value;
-  }
-  if (auto value = get_value(*commandline_options_, "CL")) {
-    return value;
+    if (auto value = commandline_options_->getValue(opt_path)) {
+      LOG_DEBUG("Take CL " << opt_path << "=" << (std::string(value.value())));
+      return value.value();
+    }
   }
   return configuration_options_->getValue(opt_path);
 }
 
 OptionValue TypeARTConfiguration::getValueOr(std::string_view opt_path, OptionValue alt) const {
-  auto get_value = [&](const auto& options, const char* source) -> std::optional<OptionValue> {
-    // LOG_DEBUG("Query " << source << " " << opt_path.data())
-    if (prioritize_commandline && options.valueSpecified(opt_path)) {
-      LOG_DEBUG("Take " << source << " arg for " << opt_path.data());
-      return options.getValueOr(opt_path, alt);
+  if (prioritize_commandline) {
+    if (auto value = env_options_->getValue(opt_path)) {
+      LOG_DEBUG("Take ENV " << opt_path << "=" << (std::string(value.value())));
+      return value.value();
     }
-    return std::nullopt;
-  };
-  if (auto value = get_value(*env_options_, "ENV")) {
-    return value.value();
-  }
-  if (auto value = get_value(*commandline_options_, "CL")) {
-    return value.value();
+    if (auto value = commandline_options_->getValue(opt_path)) {
+      LOG_DEBUG("Take CL " << opt_path << "=" << (std::string(value.value())));
+      return value.value();
+    }
   }
   return configuration_options_->getValueOr(opt_path, alt);
 }
 
 OptionValue TypeARTConfiguration::operator[](std::string_view opt_path) const {
-  auto get_value = [&](const auto& options, const char* source) -> std::optional<OptionValue> {
-    // LOG_DEBUG("Query " << source << " " << opt_path.data())
-    if (prioritize_commandline && options.valueSpecified(opt_path)) {
-      LOG_DEBUG("Take " << source << " arg for " << opt_path.data());
-      return options.operator[](opt_path);
+  if (prioritize_commandline) {
+    if (auto value = env_options_->getValue(opt_path)) {
+      LOG_DEBUG("Take ENV " << opt_path << "=" << (std::string(value.value())));
+      return value.value();
     }
-    return std::nullopt;
-  };
-  if (auto value = get_value(*env_options_, "ENV")) {
-    return value.value();
-  }
-  if (auto value = get_value(*commandline_options_, "CL")) {
-    return value.value();
+    if (auto value = commandline_options_->getValue(opt_path)) {
+      LOG_DEBUG("Take CL " << opt_path << "=" << (std::string(value.value())));
+      return value.value();
+    }
   }
   auto result = configuration_options_->operator[](opt_path);
-  LOG_DEBUG("Query file " << static_cast<std::string>(result))
+  LOG_DEBUG("Take File " << opt_path << "=" << (std::string(result)));
   return result;
 }
 

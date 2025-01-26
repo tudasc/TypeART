@@ -238,7 +238,7 @@ CommandLineOptions::CommandLineOptions() {
 
 std::optional<typeart::config::OptionValue> CommandLineOptions::getValue(std::string_view opt_path) const {
   auto key = llvm::StringRef(opt_path.data());
-  if (mapping_.count(key) != 0U) {
+  if (occurence_mapping_.lookup(key)) {
     return mapping_.lookup(key);
   }
   return {};

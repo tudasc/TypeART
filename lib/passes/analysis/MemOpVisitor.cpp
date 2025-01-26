@@ -50,8 +50,8 @@ using namespace llvm;
 MemOpVisitor::MemOpVisitor() : MemOpVisitor(true, true) {
 }
 
-MemOpVisitor::MemOpVisitor(const config::Configuration& config) : MemOpVisitor(config[config::ConfigStdArgs::stack], config[config::ConfigStdArgs::heap]){
-  
+MemOpVisitor::MemOpVisitor(const config::Configuration& config)
+    : MemOpVisitor(config[config::ConfigStdArgs::stack], config[config::ConfigStdArgs::heap]) {
 }
 MemOpVisitor::MemOpVisitor(bool collect_allocas, bool collect_heap)
     : collect_allocas(collect_allocas), collect_heap(collect_heap) {

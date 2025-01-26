@@ -42,7 +42,7 @@ struct MemOpVisitor : public llvm::InstVisitor<MemOpVisitor> {
 
  public:
   MemOpVisitor();
-  MemOpVisitor(const config::Configuration& config);
+  explicit MemOpVisitor(const config::Configuration& config);
   MemOpVisitor(bool collect_allocas, bool collect_heap);
   void collect(llvm::Function& function);
   void collectGlobals(llvm::Module& module);
