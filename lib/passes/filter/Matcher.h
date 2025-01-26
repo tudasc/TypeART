@@ -43,10 +43,10 @@ class NoMatcher final : public Matcher {
 };
 
 class DefaultStringMatcher final : public Matcher {
-  Regex matcher;
+  llvm::Regex matcher;
 
  public:
-  explicit DefaultStringMatcher(const std::string& regex) : matcher(regex, Regex::NoFlags) {
+  explicit DefaultStringMatcher(const std::string& regex) : matcher(regex, llvm::Regex::NoFlags) {
   }
 
   MatchResult match(llvm::CallSite c) const override {
@@ -82,13 +82,13 @@ class FunctionOracleMatcher final : public Matcher {
       if (skip_set.count(f_name) > 0) {
         return MatchResult::ShouldSkip;
       }
-      if (f_name_ref.startswith("__typeart_")) {
+      if (util::starts_with_any_of(f_name_ref, "__typeart_")) {
         return MatchResult::ShouldSkip;
       }
       if (mem_operations.kind(f_name)) {
         return MatchResult::ShouldSkip;
       }
-      if (f_name_ref.startswith("__ubsan") || f_name_ref.startswith("__asan") || f_name_ref.startswith("__msan")) {
+      if (util::starts_with_any_of(f_name_ref, "__ubsan", "__asan", "__msan")) {
         return MatchResult::ShouldContinue;
       }
     }

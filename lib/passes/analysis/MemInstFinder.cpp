@@ -191,15 +191,9 @@ bool MemInstFinderPass::runOnModule(Module& module) {
                           return true;
                         }
 
-                        if (name.startswith("llvm.") || name.startswith("__llvm_gcov") ||
-                            name.startswith("__llvm_gcda") || name.startswith("__profn")) {
-                          // 2nd and 3rd check: Check if the global is private gcov data (--coverage).
-                          LOG_DEBUG("LLVM startswith \"llvm\"")
-                          return true;
-                        }
-
-                        if (name.startswith("___asan") || name.startswith("__msan") || name.startswith("__tsan")) {
-                          LOG_DEBUG("LLVM startswith \"sanitizer\"")
+                        if (util::starts_with_any_of(name, "llvm.", "__llvm_gcov", "__llvm_gcda", "__profn", "___asan",
+                                                     "__msan", "__tsan")) {
+                          LOG_DEBUG("Prefixed matched on " << name)
                           return true;
                         }
 
@@ -267,7 +261,7 @@ bool MemInstFinderPass::runOnModule(Module& module) {
 }  // namespace typeart
 
 bool MemInstFinderPass::runOnFunction(llvm::Function& function) {
-  if (function.isDeclaration() || function.getName().startswith("__typeart")) {
+  if (function.isDeclaration() || util::starts_with_any_of(function.getName(), "__typeart")) {
     return false;
   }
 

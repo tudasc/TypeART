@@ -17,6 +17,7 @@
 #include "compat/CallSite.h"
 #include "support/DefUseChain.h"
 #include "support/OmpUtil.h"
+#include "support/Util.h"
 
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Instructions.h"
@@ -37,7 +38,7 @@ struct OmpContext {
     const auto called = c.getCalledFunction();
     if (called != nullptr) {
       // TODO probably not complete (openmp task?, see isOmpTask*())
-      return called->getName().startswith("__kmpc_fork_call");
+      return util::starts_with_any_of(called->getName(), "__kmpc_fork_call");
     }
     return false;
   }
@@ -45,7 +46,7 @@ struct OmpContext {
   static bool isOmpTaskAlloc(const llvm::CallSite& c) {
     const auto called = c.getCalledFunction();
     if (called != nullptr) {
-      return called->getName().startswith("__kmpc_omp_task_alloc");
+      return util::starts_with_any_of(called->getName(), "__kmpc_omp_task_alloc");
     }
     return false;
   }
@@ -53,7 +54,7 @@ struct OmpContext {
   static bool isOmpTaskCall(const llvm::CallSite& c) {
     const auto called = c.getCalledFunction();
     if (called != nullptr) {
-      return called->getName().endswith("__kmpc_omp_task");
+      return util::ends_with_any_of(called->getName(), "__kmpc_omp_task");
     }
     return false;
   }
@@ -61,7 +62,7 @@ struct OmpContext {
   static bool isOmpTaskRelated(const llvm::CallSite& c) {
     const auto called = c.getCalledFunction();
     if (called != nullptr) {
-      return called->getName().startswith("__kmpc_omp_task");
+      return util::starts_with_any_of(called->getName(), "__kmpc_omp_task");
     }
     return false;
   }
@@ -71,9 +72,8 @@ struct OmpContext {
     if (!is_execute) {
       const auto called = c.getCalledFunction();
       if (called != nullptr) {
-        const auto name = called->getName();
         // TODO extend this if required
-        return name.startswith("__kmpc") || name.startswith("omp_");
+        return util::starts_with_any_of(called->getName(), "__kmpc", "omp_");
       }
     }
     return false;
@@ -142,7 +142,8 @@ struct OmpContext {
           llvm::CallSite site(value);
           if (site.isCall() || site.isInvoke()) {
             const auto called = site.getCalledFunction();
-            if (called != nullptr && called->getName().startswith("__kmpc_omp_task(")) {
+
+            if (called != nullptr && util::starts_with_any_of(called->getName(), "__kmpc_omp_task(")) {
               found = true;
               return util::DefUseChain::cancel;
             }
@@ -171,7 +172,7 @@ struct OmpContext {
           if (s.isCall() || s.isInvoke()) {
             if (auto f = s.getCalledFunction()) {
               // once true, the find_all should cancel
-              return f->getName().startswith("__kmpc_omp_task_alloc");
+              return util::starts_with_any_of(f->getName(), "__kmpc_omp_task_alloc");
             }
           }
           return false;
