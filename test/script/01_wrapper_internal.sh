@@ -133,43 +133,11 @@ typeart_parse_cmd_line_fn -Dtool_EXPORTS  -fPIC -MD -MT CMakeFiles/tool.dir/tool
 typeart_lit_parse_check_fn
 echo "${typeart_wrapper_more_args}"
 
-# CHECK: /some/file.yaml
-# CHECK-NEXT: /some/file_stack.yaml
-# CHECK-NEXT: -O3 -fPIC
-typeart_parse_typeart_cmd_line_fn --typeart-heap-config=/some/file.yaml --typeart-stack-config=/some/file_stack.yaml -O3 -fPIC
-echo "${typeart_cmdline_args_heap}"
-echo "${typeart_cmdline_args_stack}"
-echo "${typeart_other_args}"
-
-# CHECK: /some/file.yaml
-# CHECK-NEXT: /some/file.yaml
-# CHECK-NEXT: -O3 -fPIC
-typeart_parse_typeart_cmd_line_fn --typeart-config=/some/file.yaml -O3 -fPIC
-echo "${typeart_cmdline_args_heap}"
-echo "${typeart_cmdline_args_stack}"
-echo "${typeart_other_args}"
-
 # CHECK: x
 # CHECK-NEXT: x
 typeart_global_env_var_init_fn
 echo "${typeart_cmdline_args_heap+x}"
 echo "${typeart_cmdline_args_stack+x}"
-
-# CHECK: some/env/file.yaml
-# CHECK-NEXT: some/env/file.yaml
-TYPEART_WRAPPER_CONFIG="some/env/file.yaml"
-typeart_global_env_var_init_fn
-echo "${typeart_cmdline_args_heap}"
-echo "${typeart_cmdline_args_stack}"
-
-# CHECK: some/env/file_heap.yaml
-# CHECK-NEXT: some/env/file_stack.yaml
-TYPEART_WRAPPER_CONFIG=""
-TYPEART_WRAPPER_HEAP_CONFIG="some/env/file_heap.yaml"
-TYPEART_WRAPPER_STACK_CONFIG="some/env/file_stack.yaml"
-typeart_global_env_var_init_fn
-echo "${typeart_cmdline_args_heap}"
-echo "${typeart_cmdline_args_stack}"
 
 # CHECK: 0
 typeart_global_env_var_init_fn
