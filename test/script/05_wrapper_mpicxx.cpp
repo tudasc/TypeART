@@ -10,14 +10,15 @@
 // UNSUPPORTED: sanitizer
 
 #include "../../lib/runtime/CallbackInterface.h"
+#include "../../lib/typelib/TypeInterface.h"
 
 #include <mpi.h>
 
 int main(int argc, char** argv) {
   MPI_Init(&argc, &argv);
-  __typeart_alloc((const void*)2, 7, 1);  // OK
+  __typeart_alloc((const void*)2, TYPEART_FLOAT_128, 1);  // OK
   MPI_Finalize();
   return 0;
 }
 
-// CHECK: [Trace] Alloc 0x2 7 float128 16 1
+// CHECK: [Trace] Alloc 0x2 24 long double 16 1
