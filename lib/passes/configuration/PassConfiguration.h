@@ -1,5 +1,17 @@
-#ifndef D8AEC7EC_5687_4E81_B6E5_97074AEF6D94
-#define D8AEC7EC_5687_4E81_B6E5_97074AEF6D94
+// TypeART library
+//
+// Copyright (c) 2017-2025 TypeART Authors
+// Distributed under the BSD 3-Clause license.
+// (See accompanying file LICENSE.txt or copy at
+// https://opensource.org/licenses/BSD-3-Clause)
+//
+// Project home: https://github.com/tudasc/TypeART
+//
+// SPDX-License-Identifier: BSD-3-Clause
+//
+
+#ifndef TYPEART_PASS_CONFIGURATION_H
+#define TYPEART_PASS_CONFIGURATION_H
 
 #include "TypeARTOptions.h"
 #include "Configuration.h"
@@ -16,4 +28,4 @@ PassConfig parse_typeart_config_with_occurrence(llvm::StringRef parameters);
 
 }  // namespace typeart::config::pass
 
-#endif /* D8AEC7EC_5687_4E81_B6E5_97074AEF6D94 */
+#endif /* TYPEART_PASS_CONFIGURATION_H */

@@ -1,7 +1,19 @@
 
+// TypeART library
+//
+// Copyright (c) 2017-2025 TypeART Authors
+// Distributed under the BSD 3-Clause license.
+// (See accompanying file LICENSE.txt or copy at
+// https://opensource.org/licenses/BSD-3-Clause)
+//
+// Project home: https://github.com/tudasc/TypeART
+//
+// SPDX-License-Identifier: BSD-3-Clause
+//
+
 // Taken and adapted from llvm/Passes/PassBuilder.h
-#ifndef D0C8104D_3805_4D3E_AEDA_E6B36227C166
-#define D0C8104D_3805_4D3E_AEDA_E6B36227C166
+#ifndef TYPEART_PASS_BUILDER_UTIL_H
+#define TYPEART_PASS_BUILDER_UTIL_H
 
 #include "support/Logger.h"
 #include "llvm/ADT/StringRef.h"
@@ -59,4 +71,4 @@ inline auto parsePassParameters(ParametersParseCallableT&& Parser, llvm::StringR
 
 }  // namespace typeart::util::pass
 
-#endif /* D0C8104D_3805_4D3E_AEDA_E6B36227C166 */
+#endif /* TYPEART_PASS_BUILDER_UTIL_H */

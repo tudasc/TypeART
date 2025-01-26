@@ -1,5 +1,17 @@
-#ifndef C09614E8_ACD7_462B_9534_B29749F6EAD7
-#define C09614E8_ACD7_462B_9534_B29749F6EAD7
+// TypeART library
+//
+// Copyright (c) 2017-2025 TypeART Authors
+// Distributed under the BSD 3-Clause license.
+// (See accompanying file LICENSE.txt or copy at
+// https://opensource.org/licenses/BSD-3-Clause)
+//
+// Project home: https://github.com/tudasc/TypeART
+//
+// SPDX-License-Identifier: BSD-3-Clause
+//
+
+#ifndef TYPEART_CONFIGURATION_OPTIONS_UTIL_H
+#define TYPEART_CONFIGURATION_OPTIONS_UTIL_H
 
 #include "analysis/MemInstFinder.h"
 #include "support/Logger.h"
@@ -57,4 +69,4 @@ ClType make_opt(llvm::StringRef cl_value) {
 }
 
 }  // namespace typeart::config::util
-#endif /* C09614E8_ACD7_462B_9534_B29749F6EAD7 */
+#endif /* TYPEART_CONFIGURATION_OPTIONS_UTIL_H */
