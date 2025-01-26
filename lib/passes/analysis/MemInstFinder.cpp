@@ -412,7 +412,7 @@ void MemInstFinderPass::printStats(llvm::raw_ostream& out) const {
   Table stats("MemInstFinderPass");
   stats.wrap_header_ = true;
   stats.wrap_length_ = true;
-  std::string glob  = config[config::ConfigStdArgs::filter_glob];
+  std::string glob   = config[config::ConfigStdArgs::filter_glob];
   stats.put(Row::make("Filter string", glob));
   stats.put(Row::make_row("> Heap Memory"));
   stats.put(Row::make("Heap alloc", NumDetectedHeap.getValue()));

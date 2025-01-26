@@ -43,7 +43,8 @@ TAFunctionDeclarator::TAFunctionDeclarator(Module& mod, InstrumentationHelper&, 
 
 llvm::Function* TAFunctionDeclarator::make_function(IFunc func_id, llvm::StringRef basename,
                                                     llvm::ArrayRef<llvm::Type*> args, bool with_omp, bool fixed_name) {
-  const auto make_fname = [&fixed_name](llvm::StringRef name, llvm::ArrayRef<llvm::Type*> callback_arguments, bool with_omp_postfix) {
+  const auto make_fname = [&fixed_name](llvm::StringRef name, llvm::ArrayRef<llvm::Type*> callback_arguments,
+                                        bool with_omp_postfix) {
     std::string fname;
     llvm::raw_string_ostream os(fname);
     os << name;

@@ -67,7 +67,8 @@ inline size_t get_member_index_at(const typeart_struct_layout& structInfo, size_
 
 }  // namespace detail
 
-TypeResolution::TypeResolution(const TypeDB& type_db, Recorder& recorder) : type_database{type_db}, runtime_recorder{recorder} {
+TypeResolution::TypeResolution(const TypeDB& type_db, Recorder& recorder)
+    : type_database{type_db}, runtime_recorder{recorder} {
 }
 
 TypeResolution::TypeArtStatus TypeResolution::getSubTypeInfo(const void* baseAddr, size_t offset,

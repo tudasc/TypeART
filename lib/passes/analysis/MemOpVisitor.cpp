@@ -53,16 +53,15 @@ MemOpVisitor::MemOpVisitor() : MemOpVisitor(true, true) {
 MemOpVisitor::MemOpVisitor(const config::Configuration& config)
     : MemOpVisitor(config[config::ConfigStdArgs::stack], config[config::ConfigStdArgs::heap]) {
 }
-MemOpVisitor::MemOpVisitor(bool stack, bool heap)
-    : collect_allocas(stack), collect_heap(heap) {
+MemOpVisitor::MemOpVisitor(bool stack, bool heap) : collect_allocas(stack), collect_heap(heap) {
 }
 
 void MemOpVisitor::collect(llvm::Function& function) {
   visit(function);
 
   for (auto& [lifetime, alloc] : lifetime_starts) {
-    auto* data =
-        llvm::find_if(allocas, [alloc = std::ref(alloc)](const AllocaData& alloca_data) { return alloca_data.alloca == alloc; });
+    auto* data = llvm::find_if(
+        allocas, [alloc = std::ref(alloc)](const AllocaData& alloca_data) { return alloca_data.alloca == alloc; });
     if (data != std::end(allocas)) {
       data->lifetime_start.insert(lifetime);
     }

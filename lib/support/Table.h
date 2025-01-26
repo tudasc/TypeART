@@ -182,8 +182,9 @@ struct Table {
         // print first row cell, then subsequent cells with *cell_sep* as prefix
         out_stream << right_justify(num_beg->cell_value_, col_width[col_num]);
         std::for_each(std::next(num_beg), std::end(row.cells_), [&](const Cell& v) {
-          const auto width        = col_width[++col_num];
-          const auto aligned_cell = v.alignment_ == Cell::kRight ? right_justify(v.cell_value_, width) : left_justify(v.cell_value_, width);
+          const auto width = col_width[++col_num];
+          const auto aligned_cell =
+              v.alignment_ == Cell::kRight ? right_justify(v.cell_value_, width) : left_justify(v.cell_value_, width);
           out_stream << cell_sep_ << aligned_cell;
         });
       }

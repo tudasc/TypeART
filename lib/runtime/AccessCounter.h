@@ -568,7 +568,7 @@ class NoneRecorder {
 
 }  // namespace softcounter
 
-#if defined (ENABLE_SOFTCOUNTER) && ENABLE_SOFTCOUNTER == 1
+#if defined(ENABLE_SOFTCOUNTER) && ENABLE_SOFTCOUNTER == 1
 using Recorder = softcounter::AccessRecorder;
 #else
 using Recorder = softcounter::NoneRecorder;
