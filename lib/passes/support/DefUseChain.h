@@ -27,7 +27,7 @@ namespace typeart::util {
 
 struct DefUseChain {
  public:
-  enum MatchResult { no_match = 0, match, cancel, skip };
+  enum MatchResult { kNoMatch = 0, kMatch, kCancel, kSkip };
 
  private:
   llvm::SmallVector<llvm::Value*, 16> working_set;
@@ -75,11 +75,11 @@ struct DefUseChain {
       if (user == nullptr) {
         continue;
       }
-      if (MatchResult m = match(user); m != no_match) {
+      if (MatchResult m = match(user); m != kNoMatch) {
         switch (m) {
-          case skip:
+          case kSkip:
             continue;
-          case cancel:
+          case kCancel:
             break;
           default:
             break;

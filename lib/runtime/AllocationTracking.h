@@ -46,7 +46,7 @@ enum class FreeState : unsigned {
 class AllocationTracker {
   PointerMap wrapper;
   const TypeDB& typeDB;
-  Recorder& recorder;
+  Recorder& runtime_recorder;
 
  public:
   AllocationTracker(const TypeDB& db, Recorder& recorder);

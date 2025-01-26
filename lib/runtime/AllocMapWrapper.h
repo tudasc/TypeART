@@ -16,6 +16,7 @@
 #include "RuntimeData.h"
 
 #include <algorithm>
+#include <optional>
 
 namespace typeart {
 namespace mixin {

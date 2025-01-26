@@ -117,28 +117,28 @@ static std::unique_ptr<typeart::filter::Filter> make_filter(const MemInstFinderC
 CallFilter::CallFilter(const MemInstFinderConfig& config) : fImpl{detail::make_filter(config)} {
 }
 
-bool CallFilter::operator()(AllocaInst* in) {
-  LOG_DEBUG("Analyzing value: " << util::dump(*in));
+bool CallFilter::operator()(AllocaInst* allocation) {
+  LOG_DEBUG("Analyzing value: " << util::dump(*allocation));
   fImpl->setMode(/*search mallocs = */ false);
-  fImpl->setStartingFunction(in->getParent()->getParent());
-  const auto filter_ = fImpl->filter(in);
+  fImpl->setStartingFunction(allocation->getParent()->getParent());
+  const auto filter_ = fImpl->filter(allocation);
   if (filter_) {
-    LOG_DEBUG("Filtering value: " << util::dump(*in) << "\n");
+    LOG_DEBUG("Filtering value: " << util::dump(*allocation) << "\n");
   } else {
-    LOG_DEBUG("Keeping value: " << util::dump(*in) << "\n");
+    LOG_DEBUG("Keeping value: " << util::dump(*allocation) << "\n");
   }
   return filter_;
 }
 
-bool CallFilter::operator()(GlobalValue* g) {
-  LOG_DEBUG("Analyzing value: " << util::dump(*g));
+bool CallFilter::operator()(GlobalValue* global_value) {
+  LOG_DEBUG("Analyzing value: " << util::dump(*global_value));
   fImpl->setMode(/*search mallocs = */ false);
   fImpl->setStartingFunction(nullptr);
-  const auto filter_ = fImpl->filter(g);
+  const auto filter_ = fImpl->filter(global_value);
   if (filter_) {
-    LOG_DEBUG("Filtering value: " << util::dump(*g) << "\n");
+    LOG_DEBUG("Filtering value: " << util::dump(*global_value) << "\n");
   } else {
-    LOG_DEBUG("Keeping value: " << util::dump(*g) << "\n");
+    LOG_DEBUG("Keeping value: " << util::dump(*global_value) << "\n");
   }
   return filter_;
 }
@@ -410,9 +410,9 @@ void MemInstFinderPass::printStats(llvm::raw_ostream& out) const {
       (double(NumFilteredGlobals) / std::max(1.0, double(NumDetectedGlobals))) * 100.0;
 
   Table stats("MemInstFinderPass");
-  stats.wrap_header = true;
-  stats.wrap_length = true;
-  std::string glob  = config[config::ConfigStdArgs::filter_glob];
+  stats.wrap_header_ = true;
+  stats.wrap_length_ = true;
+  std::string glob   = config[config::ConfigStdArgs::filter_glob];
   stats.put(Row::make("Filter string", glob));
   stats.put(Row::make_row("> Heap Memory"));
   stats.put(Row::make("Heap alloc", NumDetectedHeap.getValue()));

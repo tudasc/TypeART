@@ -104,13 +104,13 @@ thread_local ThreadData threadData;
 
 }  // namespace
 
-AllocationTracker::AllocationTracker(const TypeDB& db, Recorder& recorder) : typeDB{db}, recorder{recorder} {
+AllocationTracker::AllocationTracker(const TypeDB& db, Recorder& recorder) : typeDB{db}, runtime_recorder{recorder} {
 }
 
 void AllocationTracker::onAlloc(const void* addr, int typeId, size_t count, const void* retAddr) {
   const auto status = doAlloc(addr, typeId, count, retAddr);
   if (status != AllocState::ADDR_SKIPPED) {
-    recorder.incHeapAlloc(typeId, count);
+    runtime_recorder.incHeapAlloc(typeId, count);
   }
   LOG_TRACE("Alloc " << toString(addr, typeId, count, retAddr) << " " << 'H');
 }
@@ -119,7 +119,7 @@ void AllocationTracker::onAllocStack(const void* addr, int typeId, size_t count,
   const auto status = doAlloc(addr, typeId, count, retAddr);
   if (status != AllocState::ADDR_SKIPPED) {
     threadData.stackVars.push_back(addr);
-    recorder.incStackAlloc(typeId, count);
+    runtime_recorder.incStackAlloc(typeId, count);
   }
   LOG_TRACE("Alloc " << toString(addr, typeId, count, retAddr) << " " << 'S');
 }
@@ -127,7 +127,7 @@ void AllocationTracker::onAllocStack(const void* addr, int typeId, size_t count,
 void AllocationTracker::onAllocGlobal(const void* addr, int typeId, size_t count, const void* retAddr) {
   const auto status = doAlloc(addr, typeId, count, retAddr);
   if (status != AllocState::ADDR_SKIPPED) {
-    recorder.incGlobalAlloc(typeId, count);
+    runtime_recorder.incGlobalAlloc(typeId, count);
   }
   LOG_TRACE("Alloc " << toString(addr, typeId, count, retAddr) << " " << 'G');
 }
@@ -143,16 +143,16 @@ AllocState AllocationTracker::doAlloc(const void* addr, int typeId, size_t count
   // In the second case, the allocation is tracked anyway so that onFree() does not report an error.
   // On the other hand, an allocation on address 0x0 with size > 0 is an actual error.
   if (unlikely(count == 0)) {
-    recorder.incZeroLengthAddr();
+    runtime_recorder.incZeroLengthAddr();
     status |= AllocState::ZERO_COUNT;
     LOG_WARNING("Zero-size allocation " << toString(addr, typeId, count, retAddr));
     if (addr == nullptr) {
-      recorder.incZeroLengthAndNullAddr();
+      runtime_recorder.incZeroLengthAndNullAddr();
       LOG_ERROR("Zero-size and nullptr allocation " << toString(addr, typeId, count, retAddr));
       return status | AllocState::NULL_ZERO | AllocState::ADDR_SKIPPED;
     }
   } else if (unlikely(addr == nullptr)) {
-    recorder.incNullAddr();
+    runtime_recorder.incNullAddr();
     LOG_ERROR("Nullptr allocation " << toString(addr, typeId, count, retAddr));
     return status | AllocState::NULL_PTR | AllocState::ADDR_SKIPPED;
   }
@@ -160,7 +160,7 @@ AllocState AllocationTracker::doAlloc(const void* addr, int typeId, size_t count
   const auto overridden = wrapper.put(addr, PointerInfo{typeId, count, retAddr});
 
   if (unlikely(overridden)) {
-    recorder.incAddrReuse();
+    runtime_recorder.incAddrReuse();
     status |= AllocState::ADDR_REUSE;
     LOG_WARNING("Pointer already in map " << toString(addr, typeId, count, retAddr));
     // LOG_WARNING("Overridden data in map " << toString(addr, def));
@@ -185,7 +185,7 @@ FreeState AllocationTracker::doFreeHeap(const void* addr, const void* retAddr) {
 
   LOG_TRACE("Free " << toString(addr, *removed));
   if constexpr (!std::is_same_v<Recorder, softcounter::NoneRecorder>) {
-    recorder.incHeapFree(removed->typeId, removed->count);
+    runtime_recorder.incHeapFree(removed->typeId, removed->count);
   }
   return FreeState::OK;
 }
@@ -193,7 +193,7 @@ FreeState AllocationTracker::doFreeHeap(const void* addr, const void* retAddr) {
 void AllocationTracker::onFreeHeap(const void* addr, const void* retAddr) {
   const auto status = doFreeHeap(addr, retAddr);
   if (FreeState::OK == status) {
-    recorder.decHeapAlloc();
+    runtime_recorder.decHeapAlloc();
   }
 }
 
@@ -214,13 +214,13 @@ void AllocationTracker::onLeaveScope(int alloca_count, const void* retAddr) {
     } else {
       LOG_TRACE("Free " << toString(addr, *removed));
       if constexpr (!std::is_same_v<Recorder, softcounter::NoneRecorder>) {
-        recorder.incStackFree(removed->typeId, removed->count);
+        runtime_recorder.incStackFree(removed->typeId, removed->count);
       }
     }
   });
 
   threadData.stackVars.erase(start_pos, cend);
-  recorder.decStackAlloc(alloca_count);
+  runtime_recorder.decStackAlloc(alloca_count);
   LOG_TRACE("Stack after free: " << threadData.stackVars.size());
 }
 // Base address

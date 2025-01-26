@@ -55,7 +55,7 @@ inline void updateMax(std::atomic<T>& maxVal, T newVal) noexcept {
 struct CounterStats {
  private:
   CounterStats(double sum, double min, double max, double mean, double std)
-      : sum(sum), minVal(min), maxVal(max), meanVal(mean), stdVal(std) {
+      : sum_value(sum), min_value(min), max_value(max), mean_value(mean), std_value(std) {
   }
 
   CounterStats() = default;
@@ -75,11 +75,11 @@ struct CounterStats {
     return CounterStats(sum, min, max, mean, std);
   }
 
-  const double sum{0};
-  const double minVal{0};
-  const double maxVal{0};
-  const double meanVal{0};
-  const double stdVal{0};
+  const double sum_value{};
+  const double min_value{};
+  const double max_value{};
+  const double mean_value{};
+  const double std_value{};
 };
 }  // namespace detail
 
@@ -323,7 +323,7 @@ class AccessRecorder {
     return heapAllocs;
   }
   Counter getStackAllocs() const {
-    return getStackAllocsThreadStats().sum;
+    return getStackAllocsThreadStats().sum_value;
   }
   Counter getGlobalAllocs() const {
     return globalAllocs;
@@ -332,7 +332,7 @@ class AccessRecorder {
     return maxHeapAllocs;
   }
   Counter getMaxStackAllocs() const {
-    return getMaxStackAllocsThreadStats().maxVal;
+    return getMaxStackAllocsThreadStats().max_value;
   }
   Counter getCurHeapAllocs() const {
     return curHeapAllocs;
@@ -347,7 +347,7 @@ class AccessRecorder {
     return addrChecked;
   }
   Counter getStackArray() const {
-    return getStackArrayThreadStats().sum;
+    return getStackArrayThreadStats().sum_value;
   }
   Counter getHeapArray() const {
     return heapArray;
@@ -356,10 +356,10 @@ class AccessRecorder {
     return globalArray;
   }
   Counter getStackAllocsFree() const {
-    return getStackAllocsFreeThreadStats().sum;
+    return getStackAllocsFreeThreadStats().sum_value;
   }
   Counter getStackArrayFree() const {
-    return getStackArrayFreeThreadStats().sum;
+    return getStackArrayFreeThreadStats().sum_value;
   }
   Counter getHeapAllocsFree() const {
     return heapAllocsFree;
@@ -568,7 +568,7 @@ class NoneRecorder {
 
 }  // namespace softcounter
 
-#if ENABLE_SOFTCOUNTER == 1
+#if defined(ENABLE_SOFTCOUNTER) && ENABLE_SOFTCOUNTER == 1
 using Recorder = softcounter::AccessRecorder;
 #else
 using Recorder = softcounter::NoneRecorder;

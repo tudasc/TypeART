@@ -145,10 +145,10 @@ struct OmpContext {
 
             if (called != nullptr && util::starts_with_any_of(called->getName(), "__kmpc_omp_task(")) {
               found = true;
-              return util::DefUseChain::cancel;
+              return util::DefUseChain::kCancel;
             }
           }
-          return util::DefUseChain::no_match;
+          return util::DefUseChain::kNoMatch;
         });
     return found;
   }
@@ -170,9 +170,9 @@ struct OmpContext {
         auto calls = util::find_all(f, [&](auto& inst) {
           llvm::CallSite s(&inst);
           if (s.isCall() || s.isInvoke()) {
-            if (auto f = s.getCalledFunction()) {
+            if (auto called_function = s.getCalledFunction()) {
               // once true, the find_all should cancel
-              return util::starts_with_any_of(f->getName(), "__kmpc_omp_task_alloc");
+              return util::starts_with_any_of(called_function->getName(), "__kmpc_omp_task_alloc");
             }
           }
           return false;
@@ -184,9 +184,9 @@ struct OmpContext {
           chain.traverse(i, [&v, &found](auto val) {
             if (v == val) {
               found = true;
-              return util::DefUseChain::cancel;
+              return util::DefUseChain::kCancel;
             }
-            return util::DefUseChain::no_match;
+            return util::DefUseChain::kNoMatch;
           });
           if (found) {
             return true;
