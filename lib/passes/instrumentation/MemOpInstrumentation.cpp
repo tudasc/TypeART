@@ -48,7 +48,7 @@ namespace typeart {
 
 MemOpInstrumentation::MemOpInstrumentation(TAFunctionQuery& fquery, InstrumentationHelper& instr,
                                            bool lifetime_instrument)
-    : MemoryInstrument(), fquery(&fquery), instr_helper(&instr), instrument_lifetime(lifetime_instrument) {
+    : MemoryInstrument(), function_query(&fquery), instrumentation_helper(&instr), instrument_lifetime(lifetime_instrument) {
 }
 
 InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
@@ -112,7 +112,7 @@ InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
         elementCount = single_byte_type ? mArg : IRB.CreateUDiv(mArg, typeSizeConst);
         IRBuilder<> FreeB(malloc_call);
         const auto callback_id = omp ? IFunc::free_omp : IFunc::free;
-        FreeB.CreateCall(fquery->getFunctionFor(callback_id), ArrayRef<Value*>{addrOp});
+        FreeB.CreateCall(function_query->getFunctionFor(callback_id), ArrayRef<Value*>{addrOp});
         break;
       }
       default:
@@ -121,7 +121,7 @@ InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
     }
 
     const auto callback_id = omp ? IFunc::heap_omp : IFunc::heap;
-    IRB.CreateCall(fquery->getFunctionFor(callback_id), ArrayRef<Value*>{malloc_call, typeIdConst, elementCount});
+    IRB.CreateCall(function_query->getFunctionFor(callback_id), ArrayRef<Value*>{malloc_call, typeIdConst, elementCount});
     ++counter;
   }
 
@@ -157,7 +157,7 @@ InstrCount MemOpInstrumentation::instrumentFree(const FreeArgList& frees) {
     auto parent_f          = fdata.call->getFunction();
     const auto callback_id = util::omp::isOmpContext(parent_f) ? IFunc::free_omp : IFunc::free;
 
-    IRB.CreateCall(fquery->getFunctionFor(callback_id), ArrayRef<Value*>{free_arg});
+    IRB.CreateCall(function_query->getFunctionFor(callback_id), ArrayRef<Value*>{free_arg});
     ++counter;
   }
 
@@ -176,7 +176,7 @@ InstrCount MemOpInstrumentation::instrumentStack(const StackArgList& stack) {
 
     const auto instrument_stack = [&](IRBuilder<>& IRB, Value* data_ptr, Instruction* anchor) {
       const auto callback_id = util::omp::isOmpContext(anchor->getFunction()) ? IFunc::stack_omp : IFunc::stack;
-      IRB.CreateCall(fquery->getFunctionFor(callback_id), ArrayRef<Value*>{data_ptr, typeIdConst, numElementsVal});
+      IRB.CreateCall(function_query->getFunctionFor(callback_id), ArrayRef<Value*>{data_ptr, typeIdConst, numElementsVal});
       ++counter;
 
       auto* bblock = anchor->getParent();
@@ -189,7 +189,7 @@ InstrCount MemOpInstrumentation::instrumentStack(const StackArgList& stack) {
     const auto& lifetime_starts = sdata.lifetime_start;
     if (lifetime_starts.empty() || !instrument_lifetime) {
       IRBuilder<> IRB(alloca->getNextNode());
-      auto* data_ptr = IRB.CreateBitOrPointerCast(alloca, instr_helper->getTypeFor(IType::ptr));
+      auto* data_ptr = IRB.CreateBitOrPointerCast(alloca, instrumentation_helper->getTypeFor(IType::ptr));
       instrument_stack(IRB, data_ptr, alloca);
     } else {
       for (auto* lifetime_s : lifetime_starts) {
@@ -200,7 +200,7 @@ InstrCount MemOpInstrumentation::instrumentStack(const StackArgList& stack) {
   }
 
   if (function != nullptr) {
-    StackCounter scount(function, instr_helper, fquery);
+    StackCounter scount(function, instrumentation_helper, function_query);
     scount.addStackHandling(allocCounts);
   }
 
@@ -216,14 +216,14 @@ InstrCount MemOpInstrumentation::instrumentGlobal(const GlobalArgList& globals) 
       auto global         = gdata.global;
       auto typeIdConst    = args.get_value(ArgMap::ID::type_id);
       auto numElementsVal = args.get_value(ArgMap::ID::element_count);
-      auto globalPtr      = IRB.CreateBitOrPointerCast(global, instr_helper->getTypeFor(IType::ptr));
-      IRB.CreateCall(fquery->getFunctionFor(IFunc::global), ArrayRef<Value*>{globalPtr, typeIdConst, numElementsVal});
+      auto globalPtr      = IRB.CreateBitOrPointerCast(global, instrumentation_helper->getTypeFor(IType::ptr));
+      IRB.CreateCall(function_query->getFunctionFor(IFunc::global), ArrayRef<Value*>{globalPtr, typeIdConst, numElementsVal});
       ++counter;
     }
   };
 
   const auto makeCtorFuncBody = [&]() -> BasicBlock* {
-    auto m  = instr_helper->getModule();
+    auto m  = instrumentation_helper->getModule();
     auto& c = m->getContext();
     auto ctorFunctionName =
         "__typeart_init_module_globals";  // + m->getSourceFileName();  // needed -- will not work with piping?

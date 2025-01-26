@@ -21,8 +21,8 @@ class TAFunctionQuery;
 class InstrumentationHelper;
 
 class MemOpInstrumentation final : public MemoryInstrument {
-  TAFunctionQuery* fquery;
-  InstrumentationHelper* instr_helper;
+  TAFunctionQuery* function_query;
+  InstrumentationHelper* instrumentation_helper;
   bool instrument_lifetime{false};
 
  public:
