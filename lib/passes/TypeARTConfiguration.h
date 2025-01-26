@@ -30,7 +30,7 @@ class CommandLineOptions;
 
 namespace env {
 class EnvironmentFlagsOptions;
-}
+}  // namespace env
 
 class TypeARTConfiguration final : public Configuration {
  private:

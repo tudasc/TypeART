@@ -117,28 +117,28 @@ static std::unique_ptr<typeart::filter::Filter> make_filter(const MemInstFinderC
 CallFilter::CallFilter(const MemInstFinderConfig& config) : fImpl{detail::make_filter(config)} {
 }
 
-bool CallFilter::operator()(AllocaInst* in) {
-  LOG_DEBUG("Analyzing value: " << util::dump(*in));
+bool CallFilter::operator()(AllocaInst* allocation) {
+  LOG_DEBUG("Analyzing value: " << util::dump(*allocation));
   fImpl->setMode(/*search mallocs = */ false);
-  fImpl->setStartingFunction(in->getParent()->getParent());
-  const auto filter_ = fImpl->filter(in);
+  fImpl->setStartingFunction(allocation->getParent()->getParent());
+  const auto filter_ = fImpl->filter(allocation);
   if (filter_) {
-    LOG_DEBUG("Filtering value: " << util::dump(*in) << "\n");
+    LOG_DEBUG("Filtering value: " << util::dump(*allocation) << "\n");
   } else {
-    LOG_DEBUG("Keeping value: " << util::dump(*in) << "\n");
+    LOG_DEBUG("Keeping value: " << util::dump(*allocation) << "\n");
   }
   return filter_;
 }
 
-bool CallFilter::operator()(GlobalValue* g) {
-  LOG_DEBUG("Analyzing value: " << util::dump(*g));
+bool CallFilter::operator()(GlobalValue* global_value) {
+  LOG_DEBUG("Analyzing value: " << util::dump(*global_value));
   fImpl->setMode(/*search mallocs = */ false);
   fImpl->setStartingFunction(nullptr);
-  const auto filter_ = fImpl->filter(g);
+  const auto filter_ = fImpl->filter(global_value);
   if (filter_) {
-    LOG_DEBUG("Filtering value: " << util::dump(*g) << "\n");
+    LOG_DEBUG("Filtering value: " << util::dump(*global_value) << "\n");
   } else {
-    LOG_DEBUG("Keeping value: " << util::dump(*g) << "\n");
+    LOG_DEBUG("Keeping value: " << util::dump(*global_value) << "\n");
   }
   return filter_;
 }
