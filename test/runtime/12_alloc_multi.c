@@ -1,6 +1,6 @@
 // clang-format off
 // RUN: %run %s --typeart-analysis-filter-pointer-alloca=false 2>&1 | %filecheck %s
-// RUN: %run %s "--typeart-filter" 2>&1 | %filecheck %s --check-prefix CHECK-FILTER
+// RUN: %run %s "--typeart-filter=true" 2>&1 | %filecheck %s --check-prefix CHECK-FILTER
 // clang-format on
 
 #include <stdlib.h>

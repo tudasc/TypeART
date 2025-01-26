@@ -1,6 +1,6 @@
 function(typeart_configure_script input output)
   cmake_parse_arguments(
-    ARG "" "" "INSTALL_MODE;COMPILER;WITH_FILTER;APPLY_MODE" ${ARGN}
+    ARG "" "" "INSTALL_MODE;COMPILER;WITH_FILTER;APPLY_MODE;OPT" ${ARGN}
   )
   set(TYPEART_SAN_FLAGS "")
 
@@ -60,6 +60,10 @@ function(typeart_configure_script input output)
 
   set(TYPEART_OPT "${TYPEART_OPT_EXEC}")
   set(NEW_PM_REQUIRED 1)
+
+  if(ARG_OPT)
+    set(TYPEART_OPT "${CMAKE_BINARY_DIR}/scripts/opt-shim")
+  endif()
 
   set(TYPEART_LLC "${TYPEART_LLC_EXEC}")
 
@@ -168,9 +172,11 @@ typeart_configure_coverage_script(llvm-gcov.sh.in llvm-gcov.sh)
 
 typeart_configure_script(opt-shim.in opt-shim)
 
-typeart_configure_script(typeart-tmpl.sh.in run.sh)
+typeart_configure_script(typeart-tmpl.sh.in run.sh 
+  OPT ON)
 typeart_configure_script(typeart-tmpl.sh.in apply.sh
   APPLY_MODE ON
+  OPT ON
 )
 
 typeart_configure_script(
