@@ -135,7 +135,7 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
     }(init);
 
     if (typeart_config) {
-      LOG_INFO("Emitting TypeART configuration content\n" << typeart_config.get()->getOptions())
+      LOG_DEBUG("Emitting TypeART configuration content\n" << typeart_config.get()->getOptions())
       pass_config = std::move(*typeart_config);
     } else {
       LOG_FATAL("Could not load TypeART configuration.")

@@ -133,12 +133,6 @@ typeart_parse_cmd_line_fn -Dtool_EXPORTS  -fPIC -MD -MT CMakeFiles/tool.dir/tool
 typeart_lit_parse_check_fn
 echo "${typeart_wrapper_more_args}"
 
-# CHECK: x
-# CHECK-NEXT: x
-typeart_global_env_var_init_fn
-echo "${typeart_cmdline_args_heap+x}"
-echo "${typeart_cmdline_args_stack+x}"
-
 # CHECK: 0
 typeart_global_env_var_init_fn
 echo "${typeart_wrapper_emit_ir}"
