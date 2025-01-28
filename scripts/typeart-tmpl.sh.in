@@ -146,7 +146,7 @@ function global_init() {
   typeart_plugin="-load-pass-plugin "${typeart_pass}" -passes=typeart<"
   case "${TYPEART_TYPEGEN_IR}" in
   on | ON | 1 | true | TRUE)
-    typeart_plugin+="typegen=ir"
+    typeart_plugin+="typegen=ir;"
     ;;
   esac
 
