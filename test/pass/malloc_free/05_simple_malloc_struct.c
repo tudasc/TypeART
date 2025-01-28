@@ -11,6 +11,10 @@ void test() {
   mystruct* m = (mystruct*)malloc(sizeof(mystruct));
   free(m);
 }
+// CHECK: TypeArtPass [Heap]
+// CHECK-NEXT: Malloc{{[ ]*}}:{{[ ]*}}1
+// CHECK-NEXT: Free{{[ ]*}}:{{[ ]*}}1
+// CHECK-NEXT: Alloca{{[ ]*}}:{{[ ]*}}0
 
 // CHECK: [[POINTER:%[0-9a-z]+]] = call noalias{{( align [0-9]+)?}} i8* @malloc
 // CHECK-NEXT: call void @__typeart_alloc(i8* [[POINTER]], i32 256, i64 1)
@@ -18,8 +22,3 @@ void test() {
 
 // CHECK: call void @free(i8*{{( noundef)?}} [[POINTER:%[0-9a-z]+]])
 // CHECK-NEXT: call void @__typeart_free(i8* [[POINTER]])
-
-// CHECK: TypeArtPass [Heap]
-// CHECK-NEXT: Malloc{{[ ]*}}:{{[ ]*}}1
-// CHECK-NEXT: Free{{[ ]*}}:{{[ ]*}}1
-// CHECK-NEXT: Alloca{{[ ]*}}:{{[ ]*}}0

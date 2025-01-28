@@ -56,10 +56,10 @@ function(typeart_configure_lit_site input output)
   endif()
 
   set(TYPEART_USE_NEW_PM True)
-  # set(TYPEART_OPT_EXEC "${CMAKE_BINARY_DIR}/test/compat/opt-shim")
-  if(${LLVM_VERSION_MAJOR} VERSION_EQUAL "14")
-    set(TYPEART_OPT_ARGS "-enable-new-pm=0")
-    set(TYPEART_USE_NEW_PM False)
+  set(TYPEART_OPT_EXEC "${CMAKE_BINARY_DIR}/scripts/opt-shim")
+  if(${LLVM_VERSION_MAJOR} VERSION_EQUAL "14" AND NOT TYPEART_USE_NEW_PASSMANAGER)
+    # set(TYPEART_OPT_ARGS "-enable-new-pm=0")
+    # set(TYPEART_USE_NEW_PM False)
   endif()
 
   set(LIT_SITE_CFG_IN_HEADER

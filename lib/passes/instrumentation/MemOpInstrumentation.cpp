@@ -48,7 +48,10 @@ namespace typeart {
 
 MemOpInstrumentation::MemOpInstrumentation(TAFunctionQuery& fquery, InstrumentationHelper& instr,
                                            bool lifetime_instrument)
-    : MemoryInstrument(), function_query(&fquery), instrumentation_helper(&instr), instrument_lifetime(lifetime_instrument) {
+    : MemoryInstrument(),
+      function_query(&fquery),
+      instrumentation_helper(&instr),
+      instrument_lifetime(lifetime_instrument) {
 }
 
 InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
@@ -121,7 +124,8 @@ InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
     }
 
     const auto callback_id = omp ? IFunc::heap_omp : IFunc::heap;
-    IRB.CreateCall(function_query->getFunctionFor(callback_id), ArrayRef<Value*>{malloc_call, typeIdConst, elementCount});
+    IRB.CreateCall(function_query->getFunctionFor(callback_id),
+                   ArrayRef<Value*>{malloc_call, typeIdConst, elementCount});
     ++counter;
   }
 
@@ -176,7 +180,8 @@ InstrCount MemOpInstrumentation::instrumentStack(const StackArgList& stack) {
 
     const auto instrument_stack = [&](IRBuilder<>& IRB, Value* data_ptr, Instruction* anchor) {
       const auto callback_id = util::omp::isOmpContext(anchor->getFunction()) ? IFunc::stack_omp : IFunc::stack;
-      IRB.CreateCall(function_query->getFunctionFor(callback_id), ArrayRef<Value*>{data_ptr, typeIdConst, numElementsVal});
+      IRB.CreateCall(function_query->getFunctionFor(callback_id),
+                     ArrayRef<Value*>{data_ptr, typeIdConst, numElementsVal});
       ++counter;
 
       auto* bblock = anchor->getParent();
@@ -217,7 +222,8 @@ InstrCount MemOpInstrumentation::instrumentGlobal(const GlobalArgList& globals) 
       auto typeIdConst    = args.get_value(ArgMap::ID::type_id);
       auto numElementsVal = args.get_value(ArgMap::ID::element_count);
       auto globalPtr      = IRB.CreateBitOrPointerCast(global, instrumentation_helper->getTypeFor(IType::ptr));
-      IRB.CreateCall(function_query->getFunctionFor(IFunc::global), ArrayRef<Value*>{globalPtr, typeIdConst, numElementsVal});
+      IRB.CreateCall(function_query->getFunctionFor(IFunc::global),
+                     ArrayRef<Value*>{globalPtr, typeIdConst, numElementsVal});
       ++counter;
     }
   };

@@ -62,7 +62,7 @@ struct EnvironmentStdArgs final {
 namespace detail {
 template <typename ClType>
 OptionValue make_opt(std::string_view cl_value) {
-  LOG_DEBUG("Parsing value " << cl_value)
+  // LOG_DEBUG("Parsing value " << cl_value)
   auto value = util::make_opt<ClType>(cl_value.data());
   if constexpr (std::is_enum_v<ClType>) {
     return OptionValue{static_cast<int>(value)};

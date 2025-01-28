@@ -6,6 +6,10 @@ void test() {
   int* pa = a;  // TODO: Tracking this value should not be necessary?
 }
 
+// CHECK: Malloc{{[ ]*}}:{{[ ]*}}0
+// CHECK: Free{{[ ]*}}:{{[ ]*}}0
+// CHECK: Alloca{{[ ]*}}:{{[ ]*}}2
+
 // CHECK: @test()
 // CHECK: %__ta_alloca_counter = alloca i32
 // CHECK-NEXT: store i32 0, i32* %__ta_alloca_counter
@@ -15,7 +19,3 @@ void test() {
 // CHECK-NEXT: call void @__typeart_alloc_stack(i8* [[POINTER2]], i32 12, i64 100)
 
 // CHECK: call void @__typeart_leave_scope(i32 %__ta_counter_load)
-
-// CHECK: Malloc{{[ ]*}}:{{[ ]*}}0
-// CHECK: Free{{[ ]*}}:{{[ ]*}}0
-// CHECK: Alloca{{[ ]*}}:{{[ ]*}}2

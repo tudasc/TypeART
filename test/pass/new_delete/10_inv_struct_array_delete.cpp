@@ -2,6 +2,11 @@
 // RUN: %cpp-to-llvm %s | %apply-typeart -S 2>&1 | %filecheck %s
 // clang-format on
 
+// CHECK: TypeArtPass [Heap]
+// CHECK-NEXT: Malloc{{[ ]*}}:{{[ ]*}}2
+// CHECK-NEXT: Free{{[ ]*}}:{{[ ]*}}3
+// CHECK-NEXT: Alloca{{[ ]*}}:{{[ ]*}}0
+
 #include <new>
 
 struct S1 {
@@ -43,8 +48,3 @@ int main() {
 // CHECK: @_ZN2S1D0Ev
 // CHECK: call void @_ZdlPv(i8*{{( noundef)?}} [[POINTER2:%[0-9a-z]+]])
 // CHECK-NEXT: call void @__typeart_free(i8* [[POINTER2]])
-
-// CHECK: TypeArtPass [Heap]
-// CHECK-NEXT: Malloc{{[ ]*}}:{{[ ]*}}2
-// CHECK-NEXT: Free{{[ ]*}}:{{[ ]*}}3
-// CHECK-NEXT: Alloca{{[ ]*}}:{{[ ]*}}0

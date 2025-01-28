@@ -143,16 +143,16 @@ function global_init() {
                    -l$<TARGET_FILE_BASE_NAME:typeart::Runtime>"
 
   # shellcheck disable=SC2027
-  typeart_plugin="-load "${typeart_pass}" -typeart"
+  typeart_plugin="-load-pass-plugin "${typeart_pass}" -passes=typeart<"
   case "${TYPEART_TYPEGEN_IR}" in
   on | ON | 1 | true | TRUE)
-    typeart_plugin+=" --typeart-typegen=ir"
+    typeart_plugin+="typegen=ir;"
     ;;
   esac
 
-  readonly typeart_stack_mode_args="-typeart-heap=false -typeart-stack -typeart-stats"
-  readonly typeart_heap_mode_args="-typeart-heap=true -typeart-stats"
-  readonly typeart_combined_mode_args="${typeart_heap_mode_args} -typeart-stack"
+  readonly typeart_stack_mode_args="no-heap;stack;stats>"
+  readonly typeart_heap_mode_args="heap;stats>"
+  readonly typeart_combined_mode_args="heap;stats;stack>"
 }
 
 function toolchain_init() {
@@ -197,9 +197,9 @@ function apply_typeart() {
 
 function apply_typeart_optim() {
   source_to_llvm |
-    $opt_tool ${typeart_plugin} ${typeart_heap_mode_args} ${ta_more_args} |
+    $opt_tool ${typeart_plugin}${typeart_heap_mode_args} ${ta_more_args} |
     $opt_tool ${optimize} -S |
-    $opt_tool ${typeart_plugin} ${typeart_stack_mode_args} ${ta_more_args}
+    $opt_tool ${typeart_plugin}${typeart_stack_mode_args} ${ta_more_args}
 }
 
 function make_no_optim() {

@@ -35,11 +35,11 @@ TypeARTConfiguration::TypeARTConfiguration(std::unique_ptr<file::FileOptions> co
 std::optional<OptionValue> TypeARTConfiguration::getValue(std::string_view opt_path) const {
   if (prioritize_commandline) {
     if (auto value = env_options_->getValue(opt_path)) {
-      LOG_DEBUG("Take ENV " << opt_path << "=" << (std::string(value.value())));
+      // LOG_DEBUG("Take ENV " << opt_path << "=" << (std::string(value.value())));
       return value.value();
     }
     if (auto value = commandline_options_->getValue(opt_path)) {
-      LOG_DEBUG("Take CL " << opt_path << "=" << (std::string(value.value())));
+      // LOG_DEBUG("Take CL " << opt_path << "=" << (std::string(value.value())));
       return value.value();
     }
   }
@@ -49,11 +49,11 @@ std::optional<OptionValue> TypeARTConfiguration::getValue(std::string_view opt_p
 OptionValue TypeARTConfiguration::getValueOr(std::string_view opt_path, OptionValue alt) const {
   if (prioritize_commandline) {
     if (auto value = env_options_->getValue(opt_path)) {
-      LOG_DEBUG("Take ENV " << opt_path << "=" << (std::string(value.value())));
+      // LOG_DEBUG("Take ENV " << opt_path << "=" << (std::string(value.value())));
       return value.value();
     }
     if (auto value = commandline_options_->getValue(opt_path)) {
-      LOG_DEBUG("Take CL " << opt_path << "=" << (std::string(value.value())));
+      // LOG_DEBUG("Take CL " << opt_path << "=" << (std::string(value.value())));
       return value.value();
     }
   }
@@ -63,16 +63,16 @@ OptionValue TypeARTConfiguration::getValueOr(std::string_view opt_path, OptionVa
 OptionValue TypeARTConfiguration::operator[](std::string_view opt_path) const {
   if (prioritize_commandline) {
     if (auto value = env_options_->getValue(opt_path)) {
-      LOG_DEBUG("Take ENV " << opt_path << "=" << (std::string(value.value())));
+      // LOG_DEBUG("Take ENV " << opt_path << "=" << (std::string(value.value())));
       return value.value();
     }
     if (auto value = commandline_options_->getValue(opt_path)) {
-      LOG_DEBUG("Take CL " << opt_path << "=" << (std::string(value.value())));
+      // LOG_DEBUG("Take CL " << opt_path << "=" << (std::string(value.value())));
       return value.value();
     }
   }
   auto result = configuration_options_->operator[](opt_path);
-  LOG_DEBUG("Take File " << opt_path << "=" << (std::string(result)));
+  // LOG_DEBUG("Take File " << opt_path << "=" << (std::string(result)));
   return result;
 }
 

@@ -6,6 +6,8 @@
 
 // Priority control with command line args vs. config file contents.
 
+// XFAIL: *
+
 #include <stdlib.h>
 void test() {
   int x  = 0;

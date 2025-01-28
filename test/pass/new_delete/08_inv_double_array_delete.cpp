@@ -2,6 +2,11 @@
 // RUN: %cpp-to-llvm %s | %apply-typeart -S 2>&1 | %filecheck %s
 // clang-format on
 
+// CHECK: TypeArtPass [Heap]
+// CHECK-NEXT: Malloc{{[ ]*}}:{{[ ]*}}2
+// CHECK-NEXT: Free{{[ ]*}}:{{[ ]*}}2
+// CHECK-NEXT: Alloca{{[ ]*}}:{{[ ]*}}0
+
 #include <new>
 // CHECK: invoke{{.*}} i8* @_Znam(i64{{( noundef)?}} 16)
 // CHECK: call void @__typeart_alloc(i8* [[POINTER:%[0-9a-z]+]], i32 23, i64 2)
@@ -33,8 +38,3 @@ void foo() {
     delete[] b;
   }
 }
-
-// CHECK: TypeArtPass [Heap]
-// CHECK-NEXT: Malloc{{[ ]*}}:{{[ ]*}}2
-// CHECK-NEXT: Free{{[ ]*}}:{{[ ]*}}2
-// CHECK-NEXT: Alloca{{[ ]*}}:{{[ ]*}}0

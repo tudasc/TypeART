@@ -11,13 +11,13 @@
 source "$1" --version
 
 # wcxx: TypeART-Toolchain:
-# wcxx-NEXT: env OMPI_CXX={{.*}}clang++{{(-10|-11|-12|-13|-14)?}} [[FCMPICXX]]
-# wcxx-NEXT: opt{{(-10|-11|-12|-13|-14)?}}
-# wcxx-NEXT: llc{{(-10|-11|-12|-13|-14)?}}
+# wcxx-NEXT: env OMPI_CXX={{.*}}clang++{{(-14|-18)?}} [[FCMPICXX]]
+# wcxx-NEXT: opt{{(-14|-18)?}}
+# wcxx-NEXT: llc{{(-14|-18)?}}
 # wcc: TypeART-Toolchain:
-# wcc-NEXT: env OMPI_CC={{.*}}clang{{(-10|-11|-12|-13|-14)?}} [[FCMPICC]]
-# wcc-NEXT: opt{{(-10|-11|-12|-13|-14)?}}
-# wcc-NEXT: llc{{(-10|-11|-12|-13|-14)?}}
+# wcc-NEXT: env OMPI_CC={{.*}}clang{{(-14|-18)?}} [[FCMPICC]]
+# wcc-NEXT: opt{{(-14|-18)?}}
+# wcc-NEXT: llc{{(-14|-18)?}}
 echo "TypeART-Toolchain:"
 echo "$typeart_compiler"
 echo "$typeart_opt_tool"

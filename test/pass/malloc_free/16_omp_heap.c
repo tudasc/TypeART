@@ -20,6 +20,11 @@ void foo(int** x) {
 }
 // clang-format off
 
+// CHECK: TypeArtPass [Heap]
+// CHECK-NEXT: Malloc{{[ ]*}}:{{[ ]*}}3
+// CHECK-NEXT: Free{{[ ]*}}:{{[ ]*}}1
+// CHECK-NEXT: Alloca{{[ ]*}}:{{[ ]*}}0
+
 // CHECK: [[POINTER:%[0-9a-z]+]] = call noalias{{( align [0-9]+)?}} i8* @calloc(i64{{( noundef)?}} [[SIZE:[0-9a-z]+]], i64{{( noundef)?}} 8)
 // CHECK-NEXT: call void @__typeart_alloc_omp(i8* [[POINTER]], i32 23, i64 [[SIZE]])
 // CHECK-NEXT: bitcast i8* [[POINTER]] to double*
@@ -34,10 +39,5 @@ void foo(int** x) {
 
 // CHECK: call void @free
 // CHECK-NEXT: call void @__typeart_free_omp
-
-// CHECK: TypeArtPass [Heap]
-// CHECK-NEXT: Malloc{{[ ]*}}:{{[ ]*}}3
-// CHECK-NEXT: Free{{[ ]*}}:{{[ ]*}}1
-// CHECK-NEXT: Alloca{{[ ]*}}:{{[ ]*}}0
 
 // clang-format on

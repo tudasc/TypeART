@@ -15,6 +15,7 @@
 
 #include <memory>
 #include <string>
+#include <string_view>
 #include <system_error>
 #include <utility>
 #include <vector>
@@ -67,7 +68,7 @@ class TypeDatabase {
   virtual ~TypeDatabase() = default;
 };
 
-std::pair<std::unique_ptr<TypeDatabase>, std::error_code> make_database(const std::string& file);
+std::pair<std::unique_ptr<TypeDatabase>, std::error_code> make_database(std::string_view file);
 
 }  // namespace typeart
 
