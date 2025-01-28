@@ -26,6 +26,7 @@
 #include "llvm/ADT/StringRef.h"
 
 #include <llvm/Support/Error.h>
+#include <type_traits>
 
 #if LLVM_VERSION_MAJOR >= 12
 #include "llvm/Analysis/ValueTracking.h"  // llvm::findAllocaForValue
@@ -112,31 +113,47 @@ void MemOpVisitor::visitCallBase(llvm::CallBase& cb) {
   }
 }
 
-template <class T>
-llvm::Expected<T*> getSingleUserAs(llvm::Value* value) {
-  auto users           = value->users();
-  const auto num_users = value->getNumUses();
-  RETURN_ERROR_IF(num_users == 0, "Expected a single user on value \"{}\" that has no users!", *value);
+template <class InstTy>
+llvm::Expected<InstTy*> getSingleUserAs(llvm::Value* value) {
+  auto users            = value->users();
+  const auto num_stores = llvm::count_if(users, [](llvm::User* use) { return llvm::isa<InstTy>(*use); });
+  RETURN_ERROR_IF((num_stores == 0), "Expected a single store on call \"{}\". It has no users!", *value);
 
-  // Check for calls: In case of ASAN, the array cookie is passed to its API.
-  // TODO: this may need to be extended to include other such calls
-  const auto num_asan_calls = llvm::count_if(users, [](llvm::User* user) {
+  const auto num_asan_call = llvm::count_if(users, [](llvm::User* user) {
     CallSite csite(user);
     if (!(csite.isCall() || csite.isInvoke()) || csite.getCalledFunction() == nullptr) {
       return false;
     }
     const auto name = csite.getCalledFunction()->getName();
-    return util::starts_with_any_of(name, "__asan");  // name.startswith("__asan");
+    return util::starts_with_any_of(name, "__asan");
   });
-  RETURN_ERROR_IF(num_asan_calls != (num_users - 1),
-                  "Expected a single user on value \"{}\" but found multiple potential candidates!", *value);
 
-  // This should return the type T we need:
-  auto found_user = llvm::find_if(users, [](auto user) { return isa<T>(*user); });
-  RETURN_ERROR_IF(found_user == std::end(users),
-                  "Expected a single user on value \"{}\" but didn't find a user of the desired type!", *value);
+  RETURN_ERROR_IF(num_asan_call > 1, "Expected one ASAN call for array cookie.");
 
-  return {dyn_cast<T>(*found_user)};
+  auto* target_instruction =
+      dyn_cast<InstTy>(*llvm::find_if(users, [](llvm::User* use) { return llvm::isa<InstTy>(*use); }));
+
+  if (num_asan_call != 0) {
+    const auto* asan_call = dyn_cast<CallBase>(*llvm::find_if(users, [](llvm::User* user) {
+      CallSite csite(user);
+      if (!(csite.isCall() || csite.isInvoke()) || csite.getCalledFunction() == nullptr) {
+        return false;
+      }
+      const auto name = csite.getCalledFunction()->getName();
+      return util::starts_with_any_of(name, "__asan");
+    }));
+    if constexpr (std::is_same_v<InstTy, llvm::StoreInst>) {
+      RETURN_ERROR_IF(target_instruction->getPointerOperand() != asan_call->getArgOperand(0),
+                      "Expected a single user on value \"{}\" but found multiple potential candidates!", *value);
+    } else {
+      if constexpr (std::is_same_v<InstTy, llvm::BitCastInst>) {
+        RETURN_ERROR_IF(target_instruction != asan_call->getArgOperand(0),
+                        "Expected a single user on value \"{}\" but found multiple potential candidates!", *value);
+      }
+    }
+  }
+
+  return {target_instruction};
 }
 
 using MallocGeps   = SmallPtrSet<GetElementPtrInst*, 2>;
@@ -193,13 +210,10 @@ llvm::Expected<ArrayCookieData> handleUnpaddedArrayCookie(llvm::CallBase& ci, co
   bcasts.insert(*array_bcast);
   primary_cast = *array_bcast;
 #else
-  // auto cookie_store = getNextUserAs<StoreInst>(ci);
-  // auto array_gep = *geps.begin();
-  // RETURN_ERROR_IF(array_gep->getNumIndices() != 1, "Found multidimensional array cookie gep!");
-  // auto array_store = getSingleUserAs<StoreInst>(array_gep);
-  // RETURN_ON_ERROR(array_store);
-  llvm::Expected<StoreInst*> cookie_store{error::make_string_error("TODO Unimplemented")};
+  auto cookie_store = getSingleUserAs<StoreInst>(&ci);
+  RETURN_ON_ERROR(cookie_store);
   auto array_gep = *geps.begin();
+  RETURN_ERROR_IF(array_gep->getNumIndices() != 1, "Found multidimensional array cookie gep!");
 #endif
   return {ArrayCookieData{*cookie_store, array_gep}};
 }
@@ -229,8 +243,12 @@ llvm::Expected<ArrayCookieData> handlePaddedArrayCookie(llvm::CallBase& ci, cons
   bcasts.insert(*array_bcast);
   primary_cast = *array_bcast;
 #else
-  llvm::Expected<StoreInst*> cookie_store{error::make_string_error("TODO Unimplemented")};
-  auto array_gep = *geps.begin();
+  auto gep_it       = geps.begin();
+  auto array_gep    = *gep_it++;
+  auto cookie_gep   = *gep_it++;
+  auto cookie_store = getSingleUserAs<StoreInst>(cookie_gep);
+  RETURN_ON_ERROR(cookie_store);
+  RETURN_ERROR_IF(array_gep->getNumIndices() != 1, "Found multidimensional array cookie gep!");
 #endif
   return {ArrayCookieData{*cookie_store, array_gep}};
 }
