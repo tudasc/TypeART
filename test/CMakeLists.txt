@@ -117,7 +117,7 @@ function(typeart_add_lit_target)
     typeart_add_lit_testsuite(${TARGET_NAME}
       "Running the lit suite TypeART::${suite}"
       ${SUITE_PATH}
-      ARGS -v -j 1
+      ARGS --show-pass -v -j 1
       PARAMS typeartpass_site_config=${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg
       DEPENDS ${TYPEART_TEST_DEPENDS}
     )

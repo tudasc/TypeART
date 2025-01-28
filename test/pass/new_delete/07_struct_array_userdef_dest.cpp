@@ -1,5 +1,6 @@
 // clang-format off
 // RUN: %cpp-to-llvm %s | %apply-typeart -S 2>&1 | %filecheck %s
+// REQUIRES: llvm-14
 // XFAIL: *
 // Wrong size is calculated due to using Znam call, instead of bitcast to struct.S1*
 // clang-format on

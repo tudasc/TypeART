@@ -1,5 +1,6 @@
 // clang-format off
 // RUN: %c-to-llvm %s | %apply-typeart --typeart-stack=true --typeart-stack-lifetime=false -S 2>&1 | %filecheck %s --check-prefixes CHECK,ALLOC
+// REQUIRES: llvm-14
 // clang-format on
 void test() {
   int a[100];

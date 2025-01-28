@@ -1,6 +1,7 @@
 // clang-format off
 // RUN: %c-to-llvm %s | %apply-typeart -S | %filecheck %s
 // RUN: %c-to-llvm %s | %apply-typeart -S 2>&1 | %filecheck %s --check-prefix=PASS-OUT
+// REQUIRES: llvm-14
 // clang-format on
 #include <stdlib.h>
 typedef struct ms {

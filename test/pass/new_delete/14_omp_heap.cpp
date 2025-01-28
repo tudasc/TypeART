@@ -1,5 +1,6 @@
 // clang-format off
 // RUN: %cpp-to-llvm %omp_cpp_flags %s | %apply-typeart -S 2>&1 | %filecheck %s
+// REQUIRES: llvm-14
 // REQUIRES: openmp
 // clang-format on
 

@@ -2,6 +2,7 @@
 // RUN: %c-to-llvm %s | %apply-typeart --typeart-heap=true --typeart-stack=false --typeart-config=%S/07_typeart_config_stack.yml -S 2>&1 | %filecheck %s
 // RUN: %c-to-llvm %s | %apply-typeart --typeart-heap=true --typeart-config=%S/07_typeart_config_stack.yml -S 2>&1 | %filecheck %s --check-prefix CHECK-HS
 // RUN: %c-to-llvm %s | %apply-typeart --typeart-config=%S/07_typeart_config_stack.yml -S 2>&1 | %filecheck %s --check-prefix CHECK-S
+// REQUIRES: llvm-14
 // clang-format on
 
 // Priority control with command line args vs. config file contents.

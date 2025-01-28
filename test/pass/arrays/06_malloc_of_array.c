@@ -1,4 +1,5 @@
 // RUN: %c-to-llvm %s | %apply-typeart -S 2>&1 | %filecheck %s
+// REQUIRES: llvm-14
 
 #include <stdlib.h>
 

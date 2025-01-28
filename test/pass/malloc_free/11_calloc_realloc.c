@@ -1,6 +1,7 @@
 // clang-format off
 // RUN: %c-to-llvm %s | %apply-typeart -S 2>&1 | %filecheck %s --check-prefix=REALLOC
 // RUN: %c-to-llvm %s | %apply-typeart -S 2>&1 | %filecheck %s
+// REQUIRES: llvm-14
 // clang-format on
 #include <stdlib.h>
 

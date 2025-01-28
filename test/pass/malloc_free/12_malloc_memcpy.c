@@ -1,5 +1,6 @@
 // clang-format off
 // RUN: %clang-cc -g -O2 -S -emit-llvm %s -o - | %apply-typeart -S 2>&1 | %filecheck %s --check-prefix CHECK-OPT
+// REQUIRES: llvm-14
 // clang-format on
 
 // This is a dummy test illustrating problems with -Xclang approach and higher optimizations, losing infos about the

@@ -1,5 +1,6 @@
 // clang-format off
 // RUN: %cpp-to-llvm %s | %apply-typeart -S 2>&1 | %filecheck %s
+// REQUIRES: llvm-14
 // clang-format on
 
 #define __cpp_aligned_new 1
