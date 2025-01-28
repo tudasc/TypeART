@@ -8,7 +8,7 @@
 
 int main(int argc, char** argv) {
   const void* ret_check = NULL;
-  int dummy  = 0;
+  int dummy             = 0;
   const void* addr      = (const void*)&dummy;
 
   typeart_get_return_address(addr, &ret_check);

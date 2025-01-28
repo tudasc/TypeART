@@ -17,4 +17,3 @@ void test() {
 
 // CHECK: call void @free(i8*{{( noundef)?}} [[POINTER:%[0-9a-z]+]])
 // CHECK-NEXT: call void @__typeart_free(i8* [[POINTER]])
-

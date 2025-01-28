@@ -39,7 +39,8 @@ struct StackCounter {
     //      LOG_DEBUG("Add alloca counter")
     // counter = 0 at beginning of function
     IRBuilder<> CBuilder(target_function->getEntryBlock().getFirstNonPHI());
-    auto* counter = CBuilder.CreateAlloca(instrumentation_helper->getTypeFor(IType::stack_count), nullptr, "__ta_alloca_counter");
+    auto* counter =
+        CBuilder.CreateAlloca(instrumentation_helper->getTypeFor(IType::stack_count), nullptr, "__ta_alloca_counter");
     CBuilder.CreateStore(instrumentation_helper->getConstantFor(IType::stack_count), counter);
 
     // In each basic block: counter =+ num_alloca (in BB)
@@ -57,13 +58,15 @@ struct StackCounter {
 
     EscapeEnumerator ee(*target_function);
     while (IRBuilder<>* irb = ee.Next()) {
-      auto* I            = &(*irb->GetInsertPoint());
-      auto* counter_load = irb->CreateLoad(instrumentation_helper->getTypeFor(IType::stack_count), counter, "__ta_counter_load");
+      auto* I = &(*irb->GetInsertPoint());
+      auto* counter_load =
+          irb->CreateLoad(instrumentation_helper->getTypeFor(IType::stack_count), counter, "__ta_counter_load");
 
       const auto all_preds_have_counter = llvm::all_of(
           llvm::predecessors(I->getParent()), [&allocCounts](const auto* bb) { return allocCounts.count(bb) > 0; });
       if (!all_preds_have_counter) {
-        auto* cond = irb->CreateICmpNE(counter_load, instrumentation_helper->getConstantFor(IType::stack_count), "__ta_cond");
+        auto* cond =
+            irb->CreateICmpNE(counter_load, instrumentation_helper->getConstantFor(IType::stack_count), "__ta_cond");
         auto* then_term = SplitBlockAndInsertIfThen(cond, I, false);
         irb->SetInsertPoint(then_term);
       }

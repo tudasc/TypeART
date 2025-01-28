@@ -19,4 +19,3 @@ void test() {
 // CHECK-NEXT: call void @__typeart_alloc_stack(i8* [[POINTER2]], i32 12, i64 100)
 
 // CHECK: call void @__typeart_leave_scope(i32 %__ta_counter_load)
-

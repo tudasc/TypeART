@@ -19,4 +19,3 @@ int main() {
   S1* ss = new S1[2];
   return 0;
 }
-
