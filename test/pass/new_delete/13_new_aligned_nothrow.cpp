@@ -1,9 +1,10 @@
 // clang-format off
 // RUN: %cpp-to-llvm %s | %apply-typeart -S 2>&1 | %filecheck %s
-// REQUIRES: llvm-14
 // clang-format on
 
+#ifndef __cpp_aligned_new
 #define __cpp_aligned_new 1
+#endif
 #include <new>
 
 struct C {
@@ -20,10 +21,10 @@ C* bar() {
 
 // clang-format off
 
-// CHECK: [[POINTER:%[0-9a-z]+]] = call noalias{{( noundef)?}} i8* @_ZnamSt11align_val_tRKSt9nothrow_t(i64{{( noundef)?}} 40,
-// CHECK-NEXT: call void @__typeart_alloc(i8* [[POINTER]], i32 [[ID:2[5-9][0-9]]], i64 10)
+// CHECK: [[POINTER:%[0-9a-z]+]] = call noalias{{( noundef)?}}{{.*}}{{i8\*|ptr}} @_ZnamSt11align_val_tRKSt9nothrow_t(i64{{( noundef)?}} 40,
+// CHECK-NEXT: call void @__typeart_alloc({{i8\*|ptr}} [[POINTER]], i32 [[ID:2[5-9][0-9]]], i64 10)
 
-// CHECK: [[POINTER2:%[0-9a-z]+]] = call noalias{{( noundef)?}} i8* @_ZnwmSt11align_val_tRKSt9nothrow_t(i64{{( noundef)?}} 4,
-// CHECK-NEXT: call void @__typeart_alloc(i8* [[POINTER2]], i32 [[ID]], i64 1)
+// CHECK: [[POINTER2:%[0-9a-z]+]] = call noalias{{( noundef)?}}{{.*}}{{i8\*|ptr}} @_ZnwmSt11align_val_tRKSt9nothrow_t(i64{{( noundef)?}} 4,
+// CHECK-NEXT: call void @__typeart_alloc({{i8\*|ptr}} [[POINTER2]], i32 [[ID]], i64 1)
 
 // clang-format on
