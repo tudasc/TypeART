@@ -1,6 +1,5 @@
 // clang-format off
 // RUN: %c-to-llvm %s | %apply-typeart -S 2>&1 | %filecheck %s
-// REQUIRES: llvm-14
 // clang-format on
 #include <stdlib.h>
 void test() {
@@ -12,10 +11,8 @@ void test() {
 // CHECK-NEXT: Free{{[ ]*}}:{{[ ]*}}0
 // CHECK-NEXT: Alloca{{[ ]*}}:{{[ ]*}}0
 
-// CHECK: [[POINTER:%[0-9a-z]+]] = call noalias{{( align [0-9]+)?}} i8* @malloc
-// CHECK-NEXT: call void @__typeart_alloc(i8* [[POINTER]],
-// CHECK-NEXT: bitcast i8* [[POINTER]] to i32*
+// CHECK: [[POINTER:%[0-9a-z]+]] = call noalias{{( align [0-9]+)?}} {{i8\*|ptr}} @malloc
+// CHECK-NEXT: call void @__typeart_alloc({{i8\*|ptr}} [[POINTER]],
 
-// CHECK: [[POINTER:%[0-9a-z]+]] = call noalias{{( align [0-9]+)?}} i8* @malloc
-// CHECK-NEXT: call void @__typeart_alloc(i8* [[POINTER]],
-// CHECK-NEXT: bitcast i8* [[POINTER]] to double*
+// CHECK: [[POINTER:%[0-9a-z]+]] = call noalias{{( align [0-9]+)?}} {{i8\*|ptr}} @malloc
+// CHECK-NEXT: call void @__typeart_alloc({{i8\*|ptr}} [[POINTER]], i32 23
