@@ -100,9 +100,13 @@ InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
       }
       case MemOpKind::CallocLike: {
         if (malloc.primary == nullptr) {
+#if LLVM_VERSION_MAJOR < 15
           auto elems     = args.get_value(ArgMap::ID::element_count);
           auto type_size = args.get_value(ArgMap::ID::type_size);
           elementCount   = IRB.CreateMul(elems, type_size);
+#else
+          elementCount = args.get_value(ArgMap::ID::element_count);
+#endif
         } else {
           elementCount = args.get_value(ArgMap::ID::element_count);
         }
