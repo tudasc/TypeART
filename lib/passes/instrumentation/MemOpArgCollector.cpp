@@ -14,6 +14,8 @@
 
 #include "Instrumentation.h"
 #include "InstrumentationHelper.h"
+#include "configuration/Configuration.h"
+#include "support/ConfigurationBase.h"
 #include "support/Logger.h"
 #include "support/TypeUtil.h"
 #include "support/Util.h"
@@ -39,13 +41,17 @@ using namespace llvm;
 
 namespace typeart {
 
-MemOpArgCollector::MemOpArgCollector(TypeGenerator* tm, InstrumentationHelper& instr)
-    : ArgumentCollector(), type_m(tm), instr_helper(&instr) {
+MemOpArgCollector::MemOpArgCollector(const config::Configuration& typeart_conf, TypeGenerator* tm,
+                                     InstrumentationHelper& instr)
+    : ArgumentCollector(), typeart_config(typeart_conf), type_m(tm), instr_helper(&instr) {
 }
 
 HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
   HeapArgList list;
   list.reserve(mallocs.size());
+
+  TypegenImplementation type_gen = typeart_config[config::ConfigStdArgs::typegen];
+  const bool is_llvm_ir_type     = static_cast<int>(type_gen) == static_cast<int>(TypegenImplementation::IR);
 
   for (const MallocData& mdata : mallocs) {
     ArgMap arg_map;
@@ -59,9 +65,6 @@ HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
     }
 
     auto type_size = type_m->getTypeDatabase().getTypeSize(type_id);
-    if (type_id == TYPEART_VOID) {
-      type_size = 1;
-    }
 
     LOG_DEBUG("Type " << type_id << " with " << type_size << " and num elems " << num_elements)
 
@@ -87,7 +90,7 @@ HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
 
         break;
       case MemOpKind::CallocLike: {
-        if (mdata.primary == nullptr) {
+        if (mdata.primary == nullptr && is_llvm_ir_type) {
           // we need the second arg when the calloc type is identified as void* to calculate total bytes allocated
           type_size_const = malloc_call->getOperand(1);
         }

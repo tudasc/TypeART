@@ -15,17 +15,22 @@
 
 #include "Instrumentation.h"
 #include "analysis/MemOpData.h"
+#include "configuration/Configuration.h"
 
 namespace typeart {
+namespace config {
+class Configuration;
+}
 class TypeGenerator;
 class InstrumentationHelper;
 
 class MemOpArgCollector final : public ArgumentCollector {
+  const config::Configuration& typeart_config;
   TypeGenerator* type_m;
   InstrumentationHelper* instr_helper;
 
  public:
-  MemOpArgCollector(TypeGenerator*, InstrumentationHelper&);
+  MemOpArgCollector(const config::Configuration&, TypeGenerator*, InstrumentationHelper&);
   HeapArgList collectHeap(const MallocDataList& mallocs) override;
   FreeArgList collectFree(const FreeDataList& frees) override;
   StackArgList collectStack(const AllocaDataList& allocs) override;
