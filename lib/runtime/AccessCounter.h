@@ -16,6 +16,7 @@
 #include "RuntimeData.h"
 #include "RuntimeInterface.h"
 
+#include <algorithm>
 #include <atomic>
 #include <cmath>
 #include <functional>
