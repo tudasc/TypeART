@@ -98,9 +98,9 @@ function(typeart_add_lit_testsuite target comment)
 endfunction()
 
 function(typeart_add_lit_target)
-  cmake_parse_arguments(ARG "" "" "SUITES" ${ARGN})
+  cmake_parse_arguments(ARG "" "" "SUITES;WORKERS" ${ARGN})
 
-  foreach(suite IN LISTS ARG_SUITES)
+  foreach(suite workers IN ZIP_LISTS ARG_SUITES ARG_WORKERS)
     if("${suite}" STREQUAL "all")
       set(SUITE_PATH ${CMAKE_CURRENT_SOURCE_DIR})
       set(TARGET_NAME check-typeart)
@@ -118,9 +118,9 @@ function(typeart_add_lit_target)
     endif()
 
     typeart_add_lit_testsuite(${TARGET_NAME}
-      "Running the lit suite TypeART::${suite}"
+      "Running the lit suite TypeART::$!{suite}"
       ${SUITE_PATH}
-      ARGS --show-unsupported -v -j 1
+      ARGS --show-unsupported -v -j ${workers}
       PARAMS typeartpass_site_config=${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg
       DEPENDS ${TYPEART_TEST_DEPENDS}
     )
@@ -133,6 +133,14 @@ set(TYPEART_TEST_DEPENDS
   typeart::Types
 )
 
+include(ProcessorCount)
+ProcessorCount(NUM_CPU)
+if(NUM_CPU EQUAL 0)
+  set(NUM_CPU 1)
+elseif(NUM_CPU GREATER_EQUAL 8)
+  set(NUM_CPU 8)
+endif()
+
 set(TYPEART_SUITES
   all
   pass
@@ -142,7 +150,16 @@ set(TYPEART_SUITES
   staging
 )
 
-typeart_add_lit_target(SUITES ${TYPEART_SUITES})
+set(TYPEART_SUITES_WORKERS
+  1
+  ${NUM_CPU}
+  1
+  1
+  ${NUM_CPU}
+  1
+)
+
+typeart_add_lit_target(SUITES ${TYPEART_SUITES} WORKERS ${TYPEART_SUITES_WORKERS})
 
 add_test(
   NAME typeart-lit-suite
