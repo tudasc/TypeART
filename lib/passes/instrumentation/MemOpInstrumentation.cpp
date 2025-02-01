@@ -16,10 +16,14 @@
 #include "InstrumentationHelper.h"
 #include "TransformUtil.h"
 #include "TypeARTFunctions.h"
+#include "TypeInterface.h"
 #include "analysis/MemOpData.h"
+#include "configuration/Configuration.h"
+#include "support/ConfigurationBase.h"
 #include "support/Logger.h"
 #include "support/OmpUtil.h"
 #include "support/Util.h"
+#include "typegen/TypeGenerator.h"
 
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/IR/BasicBlock.h"
@@ -46,44 +50,53 @@ using namespace llvm;
 
 namespace typeart {
 
-MemOpInstrumentation::MemOpInstrumentation(TAFunctionQuery& fquery, InstrumentationHelper& instr,
-                                           bool lifetime_instrument)
-    : MemoryInstrument(),
-      function_query(&fquery),
-      instrumentation_helper(&instr),
-      instrument_lifetime(lifetime_instrument) {
+MemOpInstrumentation::MemOpInstrumentation(const config::Configuration& typeart_conf, TAFunctionQuery& fquery,
+                                           InstrumentationHelper& instr)
+    : MemoryInstrument(), typeart_config(typeart_conf), function_query(&fquery), instrumentation_helper(&instr) {
+  instrument_lifetime = typeart_config[config::ConfigStdArgs::stack_lifetime];
 }
 
 InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
   InstrCount counter{0};
+  auto type_gen              = typeart_config[config::ConfigStdArgs::typegen];
+  const bool is_llvm_ir_type = static_cast<int>(type_gen) == static_cast<int>(TypegenImplementation::IR);
   for (const auto& [malloc, args] : heap) {
-    auto kind                = malloc.kind;
-    Instruction* malloc_call = args.get_as<Instruction>(ArgMap::ID::pointer);
+    auto kind         = malloc.kind;
+    auto* malloc_call = args.get_as<Instruction>(ArgMap::ID::pointer);
 
     Instruction* insertBefore = malloc_call->getNextNode();
     if (malloc.array_cookie) {
       insertBefore = malloc.array_cookie.value().array_ptr_gep->getNextNode();
     } else {
       if (malloc.is_invoke) {
-        const InvokeInst* inv = dyn_cast<InvokeInst>(malloc_call);
-        insertBefore          = &(*inv->getNormalDest()->getFirstInsertionPt());
+        const auto* inv = dyn_cast<InvokeInst>(malloc_call);
+        insertBefore    = &(*inv->getNormalDest()->getFirstInsertionPt());
       }
     }
 
     IRBuilder<> IRB(insertBefore);
 
-    auto typeIdConst   = args.get_value(ArgMap::ID::type_id);
-    auto typeSizeConst = args.get_value(ArgMap::ID::type_size);
+    auto typeid_value    = args.get_as<ConstantInt>(ArgMap::ID::type_id);
+    auto type_size_value = args.get_value(ArgMap::ID::type_size);
 
     bool single_byte_type{false};
-    if (auto* const_int = llvm::dyn_cast<ConstantInt>(typeSizeConst)) {
+    if (auto* const_int = llvm::dyn_cast<ConstantInt>(type_size_value)) {
       single_byte_type = const_int->equalsInt(1);
     }
 
-    Value* elementCount{nullptr};
+    Value* element_count{nullptr};
 
     auto parent_f  = malloc.call->getFunction();
     const bool omp = util::omp::isOmpContext(parent_f);
+
+    const bool dimeta_calc_byte_size = !is_llvm_ir_type && (typeid_value->equalsInt(TYPEART_VOID));
+
+    const auto calculate_element_count = [&](const auto bytes) {
+      if (!(single_byte_type || dimeta_calc_byte_size)) {
+        return IRB.CreateUDiv(bytes, type_size_value);
+      }
+      return bytes;
+    };
 
     switch (kind) {
       case MemOpKind::AlignedAllocLike:
@@ -91,31 +104,33 @@ InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
       case MemOpKind::NewLike:
         [[fallthrough]];
       case MemOpKind::MallocLike: {
-        elementCount = args.lookup(ArgMap::ID::element_count);
-        if (elementCount == nullptr) {
-          auto bytes   = args.get_value(ArgMap::ID::byte_count);  // can be null (for calloc, realloc)
-          elementCount = single_byte_type ? bytes : IRB.CreateUDiv(bytes, typeSizeConst);
+        element_count = args.lookup(ArgMap::ID::element_count);
+        if (element_count == nullptr || dimeta_calc_byte_size) {
+          auto bytes    = args.get_value(ArgMap::ID::byte_count);  // can be null (for calloc, realloc)
+          element_count = calculate_element_count(bytes);
         }
         break;
       }
       case MemOpKind::CallocLike: {
-        if (malloc.primary == nullptr) {
+        const bool lacks_bitcast = malloc.primary == nullptr && is_llvm_ir_type;
+        if (lacks_bitcast || dimeta_calc_byte_size) {
           auto elems     = args.get_value(ArgMap::ID::element_count);
           auto type_size = args.get_value(ArgMap::ID::type_size);
-          elementCount   = IRB.CreateMul(elems, type_size);
+          element_count  = IRB.CreateMul(elems, type_size);
         } else {
-          elementCount = args.get_value(ArgMap::ID::element_count);
+          element_count = args.get_value(ArgMap::ID::element_count);
         }
         break;
       }
       case MemOpKind::ReallocLike: {
-        auto mArg   = args.get_value(ArgMap::ID::byte_count);
-        auto addrOp = args.get_value(ArgMap::ID::realloc_ptr);
+        auto bytes                 = args.get_value(ArgMap::ID::byte_count);
+        auto target_memory_address = args.get_value(ArgMap::ID::realloc_ptr);
+        element_count              = calculate_element_count(bytes);
 
-        elementCount = single_byte_type ? mArg : IRB.CreateUDiv(mArg, typeSizeConst);
-        IRBuilder<> FreeB(malloc_call);
+        IRBuilder<> free_before_realloc(malloc_call);
         const auto callback_id = omp ? IFunc::free_omp : IFunc::free;
-        FreeB.CreateCall(function_query->getFunctionFor(callback_id), ArrayRef<Value*>{addrOp});
+        free_before_realloc.CreateCall(function_query->getFunctionFor(callback_id),
+                                       ArrayRef<Value*>{target_memory_address});
         break;
       }
       default:
@@ -125,7 +140,7 @@ InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
 
     const auto callback_id = omp ? IFunc::heap_omp : IFunc::heap;
     IRB.CreateCall(function_query->getFunctionFor(callback_id),
-                   ArrayRef<Value*>{malloc_call, typeIdConst, elementCount});
+                   ArrayRef<Value*>{malloc_call, typeid_value, element_count});
     ++counter;
   }
 

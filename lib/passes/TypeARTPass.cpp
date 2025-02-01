@@ -114,6 +114,10 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
   TAFunctions functions;
   std::unique_ptr<InstrumentationContext> instrumentation_context;
 
+  const config::Configuration& configuration() const {
+    return *pass_config;
+  }
+
  public:
   TypeArtPass() = default;
   explicit TypeArtPass(config::TypeARTConfigOptions opts) : pass_opts(opts) {
@@ -142,13 +146,13 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
       std::exit(EXIT_FAILURE);
     }
 
-    meminst_finder = analysis::create_finder(*pass_config);
+    meminst_finder = analysis::create_finder(configuration());
 
     const std::string types_file =
-        pass_config->getValueOr(config::ConfigStdArgs::types, {config::ConfigStdArgValues::types});
+        configuration().getValueOr(config::ConfigStdArgs::types, {config::ConfigStdArgValues::types});
 
     const TypegenImplementation typesgen_parser =
-        pass_config->getValueOr(config::ConfigStdArgs::typegen, {config::ConfigStdArgValues::typegen});
+        configuration().getValueOr(config::ConfigStdArgs::typegen, {config::ConfigStdArgValues::typegen});
     typeManager = make_typegen(types_file, typesgen_parser);
 
     LOG_DEBUG("Propagating type infos.");
@@ -163,10 +167,10 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
     ModuleData mdata{&m};
     typeManager->registerModule(mdata);
 
-    auto arg_collector = std::make_unique<MemOpArgCollector>(typeManager.get(), instrumentation_helper);
-    const bool instrument_stack_lifetime = (*pass_config)[config::ConfigStdArgs::stack_lifetime];
-    auto mem_instrument =
-        std::make_unique<MemOpInstrumentation>(functions, instrumentation_helper, instrument_stack_lifetime);
+    auto arg_collector =
+        std::make_unique<MemOpArgCollector>(configuration(), typeManager.get(), instrumentation_helper);
+    // const bool instrument_stack_lifetime = configuration()[config::ConfigStdArgs::stack_lifetime];
+    auto mem_instrument = std::make_unique<MemOpInstrumentation>(configuration(), functions, instrumentation_helper);
     instrumentation_context =
         std::make_unique<InstrumentationContext>(std::move(arg_collector), std::move(mem_instrument));
 
@@ -177,7 +181,7 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
     /*
      * Persist the accumulated type definition information for this module.
      */
-    const std::string types_file = (*pass_config)[config::ConfigStdArgs::types];
+    const std::string types_file = configuration()[config::ConfigStdArgs::types];
     LOG_DEBUG("Writing type file to " << types_file);
 
     const auto [stored, error] = typeManager->store();
@@ -187,7 +191,7 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
       LOG_FATAL("Failed writing type config to " << types_file << ". Reason: " << error.message());
     }
 
-    const bool print_stats = (*pass_config)[config::ConfigStdArgs::stats];
+    const bool print_stats = configuration()[config::ConfigStdArgs::stats];
     if (print_stats) {
       auto& out = llvm::errs();
       printStats(out);
@@ -226,9 +230,9 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
     meminst_finder->printStats(out);
 
     const auto get_ta_mode = [&]() {
-      const bool heap   = (*pass_config)[config::ConfigStdArgs::heap];
-      const bool stack  = (*pass_config)[config::ConfigStdArgs::stack];
-      const bool global = (*pass_config)[config::ConfigStdArgs::global];
+      const bool heap   = configuration()[config::ConfigStdArgs::heap];
+      const bool stack  = configuration()[config::ConfigStdArgs::stack];
+      const bool global = configuration()[config::ConfigStdArgs::global];
 
       if (heap) {
         if (stack) {
@@ -273,7 +277,7 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
 
   bool runOnModule(llvm::Module& m) {
     meminst_finder->runOnModule(m);
-    const bool instrument_global = (*pass_config)[config::ConfigStdArgs::global];
+    const bool instrument_global = configuration()[config::ConfigStdArgs::global];
     bool globals_were_instrumented{false};
     if (instrument_global) {
       declareInstrumentationFunctions(m);
@@ -319,8 +323,8 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
     const auto& allocas = fData.allocas;
     const auto& frees   = fData.frees;
 
-    const bool instrument_heap  = (*pass_config)[config::ConfigStdArgs::heap];
-    const bool instrument_stack = (*pass_config)[config::ConfigStdArgs::stack];
+    const bool instrument_heap  = configuration()[config::ConfigStdArgs::heap];
+    const bool instrument_stack = configuration()[config::ConfigStdArgs::stack];
 
     if (instrument_heap) {
       // instrument collected calls of bb:

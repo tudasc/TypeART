@@ -49,6 +49,8 @@ class TypeDatabase {
 
   [[nodiscard]] virtual bool isBuiltinType(int type_id) const = 0;
 
+  [[nodiscard]] virtual bool isPointerType(int type_id) const = 0;
+
   [[nodiscard]] virtual bool isStructType(int type_id) const = 0;
 
   [[nodiscard]] virtual bool isUserDefinedType(int type_id) const = 0;

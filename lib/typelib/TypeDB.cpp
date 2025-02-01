@@ -107,6 +107,10 @@ bool TypeDB::isUnknown(int type_id) const {
   return BuiltInQuery::is_unknown_type(type_id);
 }
 
+bool TypeDB::isPointerType(int type_id) const {
+  return type_id == TYPEART_VOID || type_id == TYPEART_POINTER;
+}
+
 bool TypeDB::isUserDefinedType(int type_id) const {
   const auto* structInfo = getStructInfo(type_id);
   LOG_DEBUG(structInfo->name << " " << static_cast<int>(structInfo->flag) << " "

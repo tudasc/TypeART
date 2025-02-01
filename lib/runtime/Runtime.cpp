@@ -16,6 +16,7 @@
 #include "AccessCounter.h"
 #include "RuntimeData.h"
 #include "TypeIO.h"
+#include "TypeInterface.h"
 #include "support/Logger.h"
 
 // #include "llvm/Support/raw_ostream.h"
@@ -31,21 +32,25 @@ namespace typeart {
 
 namespace debug {
 
-std::string toString(const void* memAddr, int typeId, size_t count, size_t typeSize, const void* calledFrom) {
+std::string toString(const void* memAddr, int typeId, size_t count, size_t typeSize, const void* calledFrom,
+                     bool heap) {
   std::string buf;
   llvm::raw_string_ostream s(buf);
   const auto name = typeart::RuntimeSystem::get().typeResolution.db().getTypeName(typeId);
+  if ((typeId == TYPEART_VOID) && heap) {
+    count /= typeSize;
+  }
   s << memAddr << " " << typeId << " " << name << " " << typeSize << " " << count << " (" << calledFrom << ")";
   return s.str();
 }
 
-std::string toString(const void* memAddr, int typeId, size_t count, const void* calledFrom) {
+std::string toString(const void* memAddr, int typeId, size_t count, const void* calledFrom, bool heap) {
   const auto typeSize = typeart::RuntimeSystem::get().typeResolution.db().getTypeSize(typeId);
-  return toString(memAddr, typeId, count, typeSize, calledFrom);
+  return toString(memAddr, typeId, count, typeSize, calledFrom, heap);
 }
 
-std::string toString(const void* addr, const PointerInfo& info) {
-  return toString(addr, info.typeId, info.count, info.debug);
+std::string toString(const void* addr, const PointerInfo& info, bool heap) {
+  return toString(addr, info.typeId, info.count, info.debug, heap);
 }
 
 inline void printTraceStart() {
