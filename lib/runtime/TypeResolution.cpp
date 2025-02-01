@@ -209,6 +209,9 @@ TypeResolution::TypeArtStatus TypeResolution::getContainingTypeInfo(const void* 
                                                                     size_t* offset) const {
   const auto& basePtrInfo = ptrInfo;
   size_t typeSize         = type_database.getTypeSize(basePtrInfo.typeId);
+  if (basePtrInfo.typeId == TYPEART_VOID || basePtrInfo.typeId == TYPEART_POINTER) {
+    // typeSize = 1;
+  }
 
   // Check for exact match -> no further checks and offsets calculations needed
   if (basePtr == addr) {

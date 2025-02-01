@@ -105,6 +105,9 @@ function(typeart_add_lit_target)
       set(SUITE_PATH ${CMAKE_CURRENT_SOURCE_DIR})
       set(TARGET_NAME check-typeart)
     else()
+      if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${suite})
+        continue()
+      endif()
       set(SUITE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/${suite})
       set(TARGET_NAME check-typeart-${suite})
     endif()
@@ -136,6 +139,7 @@ set(TYPEART_SUITES
   runtime
   script
   typemapping
+  staging
 )
 
 typeart_add_lit_target(SUITES ${TYPEART_SUITES})

@@ -76,7 +76,7 @@ InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
 
     IRBuilder<> IRB(insertBefore);
 
-    auto typeid_value    = args.get_value(ArgMap::ID::type_id);
+    auto typeid_value    = args.get_as<ConstantInt>(ArgMap::ID::type_id);
     auto type_size_value = args.get_value(ArgMap::ID::type_size);
 
     bool single_byte_type{false};
@@ -89,9 +89,7 @@ InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
     auto parent_f  = malloc.call->getFunction();
     const bool omp = util::omp::isOmpContext(parent_f);
 
-    auto* type_id = llvm::dyn_cast<ConstantInt>(typeid_value);
-    const bool dimeta_calc_byte_size =
-        !is_llvm_ir_type && (type_id->equalsInt(TYPEART_VOID) || type_id->equalsInt(TYPEART_POINTER));
+    const bool dimeta_calc_byte_size = !is_llvm_ir_type && (typeid_value->equalsInt(TYPEART_VOID));
 
     const auto calculate_element_count = [&](const auto bytes) {
       if (!(single_byte_type || dimeta_calc_byte_size)) {

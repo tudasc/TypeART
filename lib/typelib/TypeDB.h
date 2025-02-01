@@ -83,6 +83,8 @@ class TypeDB final : public TypeDatabase {
 
   bool isBuiltinType(int type_id) const override;
 
+  bool isPointerType(int type_id) const override;
+
   bool isStructType(int type_id) const override;
 
   bool isUserDefinedType(int type_id) const override;

@@ -112,7 +112,7 @@ void AllocationTracker::onAlloc(const void* addr, int typeId, size_t count, cons
   if (status != AllocState::ADDR_SKIPPED) {
     runtime_recorder.incHeapAlloc(typeId, count);
   }
-  LOG_TRACE("Alloc " << toString(addr, typeId, count, retAddr) << " " << 'H');
+  LOG_TRACE("Alloc " << toString(addr, typeId, count, retAddr, true) << " " << 'H');
 }
 
 void AllocationTracker::onAllocStack(const void* addr, int typeId, size_t count, const void* retAddr) {
