@@ -15,7 +15,21 @@
 #include "llvm/Support/Error.h"
 #include "llvm/Support/FormatVariadic.h"
 
+#include <optional>
+
 namespace typeart::error {
+
+#define RETURN_NONE_IF(condition, ...)                \
+  if (condition) {                                    \
+    std::string message = llvm::formatv(__VA_ARGS__); \
+    LOG_DEBUG(message);                               \
+    return {};                                        \
+  }
+
+#define RETURN_ON_NONE(expr) \
+  if (!(expr)) {             \
+    return {};               \
+  }
 
 #define RETURN_ON_ERROR(expr)          \
   if (auto err = (expr).takeError()) { \
