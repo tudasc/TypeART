@@ -52,13 +52,6 @@ struct EnvironmentStdArgsValues final {
 #undef TYPEART_CONFIG_OPTION
 };
 
-struct EnvironmentStdArgs final {
-#define TYPEART_CONFIG_OPTION(name, path, type, def_value, description, upper_path) \
-  static constexpr char name[] = "TYPEART_" upper_path;
-#include "support/ConfigurationBaseOptions.h"
-#undef TYPEART_CONFIG_OPTION
-};
-
 namespace detail {
 template <typename ClType>
 OptionValue make_opt(std::string_view cl_value) {
@@ -92,7 +85,7 @@ EnvironmentFlagsOptions::EnvironmentFlagsOptions() {
   LOG_DEBUG("Construct environment flag options")
 
   mapping_ = {
-      make_entry<std::string>(ConfigStdArgs::types, "TYPEART_TYPE_FILE", ConfigStdArgValues::types),
+      make_entry<std::string>(ConfigStdArgs::types, config::EnvironmentStdArgs::types, ConfigStdArgValues::types),
       make_entry<ConfigStdArgTypes::stats_ty>(ConfigStdArgs::stats, EnvironmentStdArgs::stats,
                                               EnvironmentStdArgsValues::stats),
       make_entry<ConfigStdArgTypes::heap_ty>(ConfigStdArgs::heap, EnvironmentStdArgs::heap,
@@ -131,7 +124,7 @@ EnvironmentFlagsOptions::EnvironmentFlagsOptions() {
   };
 
   occurence_mapping_ = {
-      make_occurr_entry(ConfigStdArgs::types, "TYPEART_TYPE_FILE"),
+      make_occurr_entry(ConfigStdArgs::types, config::EnvironmentStdArgs::types),
       make_occurr_entry(ConfigStdArgs::stats, EnvironmentStdArgs::stats),
       make_occurr_entry(ConfigStdArgs::heap, EnvironmentStdArgs::heap),
       make_occurr_entry(ConfigStdArgs::global, EnvironmentStdArgs::global),

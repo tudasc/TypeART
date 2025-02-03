@@ -17,8 +17,8 @@
 #include "RuntimeData.h"
 #include "TypeIO.h"
 #include "TypeInterface.h"
+#include "support/ConfigurationBase.h"
 #include "support/Logger.h"
-
 // #include "llvm/Support/raw_ostream.h"
 
 #include <cstdlib>
@@ -62,7 +62,7 @@ inline void printTraceStart() {
 
 }  // namespace debug
 
-static constexpr const char* defaultTypeFileName = "types.yaml";
+static constexpr const char* defaultTypeFileName = config::ConfigStdArgValues::types;
 
 RuntimeSystem::RuntimeSystem() : rtScopeInit(), typeResolution(typeDB, recorder), allocTracker(typeDB, recorder) {
   debug::printTraceStart();
@@ -76,18 +76,18 @@ RuntimeSystem::RuntimeSystem() : rtScopeInit(), typeResolution(typeDB, recorder)
   std::error_code error;
   // Try to load types from specified file first.
   // Then look at default location.
-  const char* type_file = std::getenv("TYPEART_TYPE_FILE");
+  const char* type_file = std::getenv(config::EnvironmentStdArgs::types);
   if (type_file == nullptr) {
     // FIXME Deprecated name
-    type_file = std::getenv("TA_TYPE_FILE");
+    type_file = std::getenv("TYPEART_TYPE_FILE");
     if (type_file != nullptr) {
-      LOG_WARNING("Use of deprecated env var TA_TYPE_FILE.");
+      LOG_WARNING("Use of deprecated env var TYPEART_TYPE_FILE.");
     }
   }
   if (type_file != nullptr) {
     if (!loadTypes(type_file, error)) {
-      LOG_FATAL("Failed to load recorded types from TYPEART_TYPE_FILE=" << type_file
-                                                                        << ". Reason: " << error.message());
+      LOG_FATAL("Failed to load recorded types from " << config::EnvironmentStdArgs::types << "=" << type_file
+                                                      << " .Reason: " << error.message());
       std::exit(EXIT_FAILURE);  // TODO: Error handling
     }
   } else {
