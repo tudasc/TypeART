@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# Usage: llvm-reduce --test=path/to/reduce-tester.sh input.ll
+# Usage: TYPEART_REDUCE=Segmentation llvm-reduce --test=path/to/reduce-tester.sh input.ll
+
+verifier_pass="@TYPEART_PASS_DIR@/$<TARGET_FILE_NAME:typeart::TransformPass>"
+test_interest=${TYPEART_REDUCE:-Assert}
+typeart_mode=${TYPEART_MODE:-heap}
+
+@TYPEART_OPT@ -load-pass-plugin ${verifier_pass} -passes="typeart<${typeart_mode}>" --disable-output $1 |& grep "${test_interest}"

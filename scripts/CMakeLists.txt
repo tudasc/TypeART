@@ -179,6 +179,8 @@ typeart_configure_script(typeart-tmpl.sh.in apply.sh
   OPT ON
 )
 
+typeart_configure_script(reduce-tester.in reduce-tester.sh)
+
 typeart_configure_script(
   typeart-wrapper.in typeart-clang${CMAKE_DEBUG_POSTFIX}
   INSTALL_MODE ON
