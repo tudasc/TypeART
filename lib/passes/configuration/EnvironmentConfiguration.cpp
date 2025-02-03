@@ -52,6 +52,12 @@ struct EnvironmentStdArgsValues final {
 #undef TYPEART_CONFIG_OPTION
 };
 
+struct EnvironmentStdOptionsArgsValues final {
+  static constexpr char option[]       = "TYPEART_OPTIONS";
+  static constexpr char option_stack[] = "TYPEART_OPTIONS_STACK";
+  static constexpr char option_heap[]  = "TYPEART_OPTIONS_HEAP";
+};
+
 namespace detail {
 template <typename ClType>
 OptionValue make_opt(std::string_view cl_value) {
@@ -150,11 +156,12 @@ EnvironmentFlagsOptions::EnvironmentFlagsOptions() {
     occurence_mapping_[ConfigStdArgs::global] = true;
   }
 
-  auto result = pass::parse_typeart_config_with_occurrence(get_env_flag("TYPEART_OPTIONS").value_or(""));
+  auto result =
+      pass::parse_typeart_config_with_occurrence(get_env_flag(EnvironmentStdOptionsArgsValues::option).value_or(""));
   if (!result.first) {
-    LOG_INFO("No parseable TYPEART_OPTIONS: " << result.first.takeError())
+    LOG_INFO("No parseable " << EnvironmentStdOptionsArgsValues::option << ": " << result.first.takeError())
   } else {
-    LOG_DEBUG("Parsed TYPEART_OPTIONS\n" << *result.first)
+    LOG_DEBUG("Parsed " << EnvironmentStdOptionsArgsValues::option << "\n" << *result.first)
     const auto typeart_options = helper::options_to_map(result.first.get());
     for (const auto& entry : result.second) {
       const auto key = entry.getKey();
@@ -164,6 +171,37 @@ EnvironmentFlagsOptions::EnvironmentFlagsOptions() {
         mapping_[key]           = typeart_options.lookup(key);
         occurence_mapping_[key] = true;
       }
+    }
+  }
+}
+
+void EnvironmentFlagsOptions::parsePhaseEnvFlags(const Phase& phase) {
+  const auto merge_mapping = [&](const auto& result) {
+    const auto typeart_options = helper::options_to_map(result.first.get());
+    for (const auto& entry : result.second) {
+      const auto key = entry.getKey();
+      if (entry.second && !occurence_mapping_[key]) {  // single ENV priority over TYPEART_OPTIONS
+        LOG_DEBUG("Replacing " << key)
+        mapping_[key]           = typeart_options.lookup(key);
+        occurence_mapping_[key] = true;
+      }
+    }
+  };
+  if (phase.heap) {
+    auto result = pass::parse_typeart_config_with_occurrence(
+        get_env_flag(EnvironmentStdOptionsArgsValues::option_heap).value_or(""));
+    if (result.first) {
+      LOG_DEBUG("Parsing heap")
+      merge_mapping(result);
+    }
+  }
+
+  if (phase.stack) {
+    auto result = pass::parse_typeart_config_with_occurrence(
+        get_env_flag(EnvironmentStdOptionsArgsValues::option_stack).value_or(""));
+    if (result.first) {
+      LOG_DEBUG("Parsing stack")
+      merge_mapping(result);
     }
   }
 }

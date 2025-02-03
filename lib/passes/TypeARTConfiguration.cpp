@@ -17,6 +17,7 @@
 #include "configuration/EnvironmentConfiguration.h"
 #include "configuration/FileConfiguration.h"
 #include "configuration/TypeARTOptions.h"
+#include "support/ConfigurationBase.h"
 #include "support/Logger.h"
 
 #include <string>
@@ -96,9 +97,12 @@ TypeARTConfigOptions TypeARTConfiguration::getOptions() const {
 inline llvm::ErrorOr<std::unique_ptr<TypeARTConfiguration>> make_config(
     llvm::ErrorOr<std::unique_ptr<file::FileOptions>> file_opts) {
   if (file_opts) {
-    auto cl_opts  = std::make_unique<config::cl::CommandLineOptions>();
-    auto env_opts = std::make_unique<config::env::EnvironmentFlagsOptions>();
-    auto config   = std::make_unique<config::TypeARTConfiguration>(std::move(file_opts.get()), std::move(cl_opts),
+    const bool heap  = file_opts->get()->getValue(config::ConfigStdArgs::heap).value_or(OptionValue{false});
+    const bool stack = file_opts->get()->getValue(config::ConfigStdArgs::stack).value_or(OptionValue{false});
+    auto cl_opts     = std::make_unique<config::cl::CommandLineOptions>();
+    auto env_opts    = std::make_unique<config::env::EnvironmentFlagsOptions>();
+    env_opts->parsePhaseEnvFlags({heap, stack});
+    auto config = std::make_unique<config::TypeARTConfiguration>(std::move(file_opts.get()), std::move(cl_opts),
                                                                  std::move(env_opts));
     config->prioritizeCommandline(true);
     return config;
