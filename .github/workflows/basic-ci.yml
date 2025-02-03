@@ -39,12 +39,11 @@ jobs:
       - uses: codespell-project/actions-codespell@v2
 
   lit-suite:
-    runs-on: ubuntu-22.04
-
     strategy:
       fail-fast: false
       matrix:
-        llvm-version: [ 14 ]
+        os: [ ubuntu-22.04, ubuntu-24.04 ]
+        llvm-version: [ 14, 18 ]
         typeart-typegen-legacy: [ 0, 1 ]
         preset:
           - name: ci-thread-safe-safeptr
@@ -59,6 +58,15 @@ jobs:
           - name: ci-libcxx
             libcxx: true
             skip_test: true
+        exclude:
+          - llvm-version: 14
+            os: ubuntu-24.04
+          - llvm-version: 18
+            os: ubuntu-22.04
+          - llvm-version: 18
+            typeart-typegen-legacy: 1
+
+    runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@v4
