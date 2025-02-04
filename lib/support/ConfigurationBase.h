@@ -43,6 +43,13 @@ struct ConfigStdArgDescriptions final {
 #undef TYPEART_CONFIG_OPTION
 };
 
+struct EnvironmentStdArgs final {
+#define TYPEART_CONFIG_OPTION(name, path, type, def_value, description, upper_path) \
+  static constexpr char name[] = "TYPEART_" upper_path;
+#include "support/ConfigurationBaseOptions.h"
+#undef TYPEART_CONFIG_OPTION
+};
+
 }  // namespace typeart::config
 
 #endif /* TYPEART_CONFIG_OPTION_BASE_H */

@@ -31,14 +31,14 @@ using namespace llvm;
 
 namespace typeart::config {
 
-namespace util {
+// namespace util {
 
-std::string get_type_file_path() {
-  auto flag_value = env::get_env_flag("TYPEART_TYPE_FILE");
-  return flag_value.value_or("types.yaml");
-}
+// std::string get_type_file_path() {
+//   auto flag_value = env::get_env_flag(config::EnvironmentStdArgs::types);
+//   return flag_value.value_or(ConfigStdArgValues::types);
+// }
 
-}  // namespace util
+// }  // namespace util
 
 namespace cl {
 struct CommandlineStdArgs final {
@@ -60,6 +60,7 @@ cl::OptionCategory typeart_category("TypeART instrumentation pass", "These contr
 
 static cl::opt<ConfigStdArgTypes::types_ty> cl_typeart_type_file(CommandlineStdArgs::types,
                                                                  cl::desc(ConfigStdArgDescriptions::types),
+                                                                 cl::init(ConfigStdArgValues::types),
                                                                  cl::cat(typeart_category));
 
 static cl::opt<ConfigStdArgTypes::stats_ty> cl_typeart_stats(CommandlineStdArgs::stats,
@@ -183,16 +184,16 @@ CommandLineOptions::CommandLineOptions() {
   using namespace config;
   using namespace typeart::config::cl::detail;
 
-  const auto type_file = [&]() {
-    if (!cl_typeart_type_file.empty()) {
-      LOG_DEBUG("Using cl::opt for types file " << cl_typeart_type_file.getValue());
-      return cl_typeart_type_file.getValue();
-    }
-    return util::get_type_file_path();
-  }();
+  // const auto type_file = [&]() {
+  //   if (!cl_typeart_type_file.empty()) {
+  //     LOG_DEBUG("Using cl::opt for types file " << cl_typeart_type_file.getValue());
+  //     return cl_typeart_type_file.getValue();
+  //   }
+  //   return util::get_type_file_path();
+  // }();
 
   mapping_ = {
-      make_entry(ConfigStdArgs::types, type_file),
+      make_entry(ConfigStdArgs::types, cl_typeart_type_file),
       make_entry(ConfigStdArgs::stats, cl_typeart_stats),
       make_entry(ConfigStdArgs::heap, cl_typeart_instrument_heap),
       make_entry(ConfigStdArgs::global, cl_typeart_instrument_global),

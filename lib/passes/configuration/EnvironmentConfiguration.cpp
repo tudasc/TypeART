@@ -52,11 +52,10 @@ struct EnvironmentStdArgsValues final {
 #undef TYPEART_CONFIG_OPTION
 };
 
-struct EnvironmentStdArgs final {
-#define TYPEART_CONFIG_OPTION(name, path, type, def_value, description, upper_path) \
-  static constexpr char name[] = "TYPEART_" upper_path;
-#include "support/ConfigurationBaseOptions.h"
-#undef TYPEART_CONFIG_OPTION
+struct EnvironmentStdOptionsArgsValues final {
+  static constexpr char option[]       = "TYPEART_OPTIONS";
+  static constexpr char option_stack[] = "TYPEART_OPTIONS_STACK";
+  static constexpr char option_heap[]  = "TYPEART_OPTIONS_HEAP";
 };
 
 namespace detail {
@@ -83,6 +82,19 @@ std::pair<StringRef, typename OptOccurrenceMap::mapped_type> make_occurr_entry(s
   const bool occurred = (get_env_flag(cl_opt).has_value());
   return {key, occurred};
 }
+
+void merge_mapping_with_passconfig(OptionsMap& mapping_, OptOccurrenceMap& occurence_mapping_,
+                                   const pass::PassConfig& result) {
+  const auto typeart_options = helper::options_to_map(result.first.get());
+  for (const auto& entry : result.second) {
+    const auto key = entry.getKey();
+    if (entry.second && !occurence_mapping_[key]) {  // single ENV priority over TYPEART_OPTIONS
+      LOG_DEBUG("Replacing " << key)
+      mapping_[key]           = typeart_options.lookup(key);
+      occurence_mapping_[key] = true;
+    }
+  }
+}
 }  // namespace detail
 
 EnvironmentFlagsOptions::EnvironmentFlagsOptions() {
@@ -92,7 +104,7 @@ EnvironmentFlagsOptions::EnvironmentFlagsOptions() {
   LOG_DEBUG("Construct environment flag options")
 
   mapping_ = {
-      make_entry<std::string>(ConfigStdArgs::types, "TYPEART_TYPE_FILE", ConfigStdArgValues::types),
+      make_entry<std::string>(ConfigStdArgs::types, config::EnvironmentStdArgs::types, ConfigStdArgValues::types),
       make_entry<ConfigStdArgTypes::stats_ty>(ConfigStdArgs::stats, EnvironmentStdArgs::stats,
                                               EnvironmentStdArgsValues::stats),
       make_entry<ConfigStdArgTypes::heap_ty>(ConfigStdArgs::heap, EnvironmentStdArgs::heap,
@@ -131,7 +143,7 @@ EnvironmentFlagsOptions::EnvironmentFlagsOptions() {
   };
 
   occurence_mapping_ = {
-      make_occurr_entry(ConfigStdArgs::types, "TYPEART_TYPE_FILE"),
+      make_occurr_entry(ConfigStdArgs::types, config::EnvironmentStdArgs::types),
       make_occurr_entry(ConfigStdArgs::stats, EnvironmentStdArgs::stats),
       make_occurr_entry(ConfigStdArgs::heap, EnvironmentStdArgs::heap),
       make_occurr_entry(ConfigStdArgs::global, EnvironmentStdArgs::global),
@@ -157,20 +169,32 @@ EnvironmentFlagsOptions::EnvironmentFlagsOptions() {
     occurence_mapping_[ConfigStdArgs::global] = true;
   }
 
-  auto result = pass::parse_typeart_config_with_occurrence(get_env_flag("TYPEART_OPTIONS").value_or(""));
+  auto result =
+      pass::parse_typeart_config_with_occurrence(get_env_flag(EnvironmentStdOptionsArgsValues::option).value_or(""));
   if (!result.first) {
-    LOG_INFO("No parseable TYPEART_OPTIONS: " << result.first.takeError())
+    LOG_INFO("No parseable " << EnvironmentStdOptionsArgsValues::option << ": " << result.first.takeError())
   } else {
-    LOG_DEBUG("Parsed TYPEART_OPTIONS\n" << *result.first)
-    const auto typeart_options = helper::options_to_map(result.first.get());
-    for (const auto& entry : result.second) {
-      const auto key = entry.getKey();
-      // LOG_DEBUG("Looking at " << key << " " << entry.second << ":" << occurence_mapping_[key])
-      if (entry.second && !occurence_mapping_[key]) {  // single ENV priority over TYPEART_OPTIONS
-        LOG_DEBUG("Replacing " << key)
-        mapping_[key]           = typeart_options.lookup(key);
-        occurence_mapping_[key] = true;
-      }
+    LOG_DEBUG("Parsed " << EnvironmentStdOptionsArgsValues::option << "\n" << *result.first)
+    merge_mapping_with_passconfig(mapping_, occurence_mapping_, result);
+  }
+}
+
+void EnvironmentFlagsOptions::parsePhaseEnvFlags(const Phase& phase) {
+  if (phase.heap) {
+    auto result = pass::parse_typeart_config_with_occurrence(
+        get_env_flag(EnvironmentStdOptionsArgsValues::option_heap).value_or(""));
+    if (result.first) {
+      LOG_DEBUG("Parsing " << EnvironmentStdOptionsArgsValues::option_heap)
+      detail::merge_mapping_with_passconfig(mapping_, occurence_mapping_, result);
+    }
+  }
+
+  if (phase.stack) {
+    auto result = pass::parse_typeart_config_with_occurrence(
+        get_env_flag(EnvironmentStdOptionsArgsValues::option_stack).value_or(""));
+    if (result.first) {
+      LOG_DEBUG("Parsing " << EnvironmentStdOptionsArgsValues::option_stack)
+      detail::merge_mapping_with_passconfig(mapping_, occurence_mapping_, result);
     }
   }
 }

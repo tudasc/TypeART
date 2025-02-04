@@ -17,6 +17,11 @@
 
 namespace typeart::config::env {
 
+struct Phase {
+  bool heap;
+  bool stack;
+};
+
 std::optional<std::string> get_env_flag(std::string_view flag);
 
 class EnvironmentFlagsOptions final : public config::Configuration {
@@ -28,6 +33,7 @@ class EnvironmentFlagsOptions final : public config::Configuration {
   EnvironmentFlagsOptions();
   [[nodiscard]] std::optional<config::OptionValue> getValue(std::string_view opt_path) const override;
   [[maybe_unused]] [[nodiscard]] bool valueSpecified(std::string_view opt_path) const;
+  void parsePhaseEnvFlags(const Phase& phase);
 };
 
 }  // namespace typeart::config::env
