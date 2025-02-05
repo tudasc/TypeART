@@ -388,6 +388,24 @@ bool LegacyTypeArtPass::doFinalization(llvm::Module&) {
 llvm::PassPluginLibraryInfo getTypeartPassPluginInfo() {
   using namespace llvm;
   return {LLVM_PLUGIN_API_VERSION, "TypeART", LLVM_VERSION_STRING, [](PassBuilder& pass_builder) {
+            pass_builder.registerPipelineStartEPCallback([](auto& MPM, OptimizationLevel) {
+              auto parameters = typeart::util::pass::parsePassParameters(typeart::config::pass::parse_typeart_config,
+                                                                         "typeart<heap;stats>", "typeart");
+              if (!parameters) {
+                LOG_FATAL("Error parsing heap params: " << parameters.takeError())
+                return;
+              }
+              MPM.addPass(typeart::pass::TypeArtPass(typeart::pass::TypeArtPass(parameters.get())));
+            });
+            pass_builder.registerOptimizerLastEPCallback([](auto& MPM, OptimizationLevel) {
+              auto parameters = typeart::util::pass::parsePassParameters(typeart::config::pass::parse_typeart_config,
+                                                                         "typeart<no-heap;stack;stats>", "typeart");
+              if (!parameters) {
+                LOG_FATAL("Error parsing stack params: " << parameters.takeError())
+                return;
+              }
+              MPM.addPass(typeart::pass::TypeArtPass(typeart::pass::TypeArtPass(parameters.get())));
+            });
             pass_builder.registerPipelineParsingCallback(
                 [](StringRef name, ModulePassManager& module_pm, ArrayRef<PassBuilder::PipelineElement>) {
                   if (typeart::util::pass::checkParametrizedPassName(name, "typeart")) {

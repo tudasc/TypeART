@@ -201,6 +201,11 @@ typeart_configure_script(
   COMPILER ${TYPEART_CLANGCXX_EXEC}
 )
 
+typeart_configure_script(
+  typeart-wrapperv2.in typeartv2-clang-test
+  COMPILER ${TYPEART_CLANG_EXEC}
+)
+
 if(MPI_FOUND)
   set_typeart_mpi_compiler()
 endif()
