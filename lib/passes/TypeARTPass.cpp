@@ -31,6 +31,7 @@
 
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/ScopeExit.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/Statistic.h"
 #include "llvm/ADT/StringRef.h"
@@ -229,6 +230,12 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
   }
 
   void printStats(llvm::raw_ostream& out) {
+    const auto scope_exit_cleanup_counter = llvm::make_scope_exit([&]() {
+      NumInstrumentedAlloca  = 0;
+      NumInstrumentedFrees   = 0;
+      NumInstrumentedGlobal  = 0;
+      NumInstrumentedMallocs = 0;
+    });
     meminst_finder->printStats(out);
 
     const auto get_ta_mode = [&]() {
