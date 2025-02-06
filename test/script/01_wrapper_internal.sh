@@ -11,6 +11,8 @@
 # RUN: %s %wrapper-cxx | %filecheck %s
 # RUN: %s %wrapper-cc | %filecheck %s
 
+# REQUIRES: legacywrapper
+
 source "$1" --version
 
 # wcxx: TypeART-Toolchain:

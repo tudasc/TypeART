@@ -6,7 +6,7 @@
 # RUN: chmod +x %s
 # RUN: %s %wrapper-mpicxx | %filecheck %s --check-prefix=wcxx -DFCMPICXX=%mpicxx-compiler
 # RUN: %s %wrapper-mpicc | %filecheck %s --check-prefix=wcc -DFCMPICC=%mpicc-compiler
-# REQUIRES: mpi
+# REQUIRES: mpi && legacywrapper
 
 source "$1" --version
 
