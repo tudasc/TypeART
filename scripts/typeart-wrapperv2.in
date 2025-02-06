@@ -53,10 +53,7 @@ function typeart_global_init_fn() {
 
   case "${TYPEART_WRAPPER_EMIT_IR}" in
   on | ON | 1 | true | TRUE)
-    typeart_wrapper_emit_ir=1
-    ;;
-  *)
-    typeart_wrapper_emit_ir=0
+    export TYPEART_PASS_INTERNAL_EMIT_IR=1
     ;;
   esac
 }

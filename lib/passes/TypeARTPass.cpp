@@ -22,7 +22,9 @@
 #include "instrumentation/MemOpArgCollector.h"
 #include "instrumentation/MemOpInstrumentation.h"
 #include "instrumentation/TypeARTFunctions.h"
+#include "support/ConfigurationBase.h"
 #include "support/Logger.h"
+#include "support/ModuleDumper.h"
 #include "support/Table.h"
 #include "support/Util.h"
 #include "typegen/TypeGenerator.h"
@@ -270,7 +272,10 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
   llvm::PreservedAnalyses run(llvm::Module& m, llvm::ModuleAnalysisManager&) {
     bool changed{false};
     changed |= doInitialization(m);
+    const bool heap = configuration()[config::ConfigStdArgs::heap];  // Must happen after doInit
+    dump_module(m, heap ? util::module::ModulePhase::kBase : util::module::ModulePhase::kOpt);
     changed |= runOnModule(m);
+    dump_module(m, heap ? util::module::ModulePhase::kHeap : util::module::ModulePhase::kStack);
     changed |= doFinalization();
     return changed ? llvm::PreservedAnalyses::none() : llvm::PreservedAnalyses::all();
   }
