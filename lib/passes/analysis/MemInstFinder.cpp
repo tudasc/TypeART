@@ -43,6 +43,7 @@
 
 #include <algorithm>
 #include <cstdlib>
+#include <llvm/ADT/ScopeExit.h>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -164,7 +165,7 @@ class MemInstFinderPass : public MemInstFinder {
   const GlobalDataList& getModuleGlobals() const override;
   void printStats(llvm::raw_ostream&) const override;
   // void configure(MemInstFinderConfig&) override;
-  ~MemInstFinderPass() = default;
+  ~MemInstFinderPass() override = default;
 
  private:
   bool runOnFunction(llvm::Function&);
@@ -389,11 +390,21 @@ bool MemInstFinderPass::runOnFunction(llvm::Function& function) {
 }  // namespace typeart
 
 void MemInstFinderPass::printStats(llvm::raw_ostream& out) const {
-  auto all_stack            = double(NumDetectedAllocs);
-  auto nonarray_stack       = double(NumFilteredNonArrayAllocs);
-  auto malloc_alloc_stack   = double(NumFilteredMallocAllocs);
-  auto call_filter_stack    = double(NumCallFilteredAllocs);
-  auto filter_pointer_stack = double(NumFilteredPointerAllocs);
+  const auto scope_exit_cleanup_counter = llvm::make_scope_exit([&]() {
+    NumDetectedAllocs         = 0;
+    NumFilteredNonArrayAllocs = 0;
+    NumFilteredMallocAllocs   = 0;
+    NumCallFilteredAllocs     = 0;
+    NumFilteredPointerAllocs  = 0;
+    NumDetectedHeap           = 0;
+    NumFilteredGlobals        = 0;
+    NumDetectedGlobals        = 0;
+  });
+  auto all_stack                        = double(NumDetectedAllocs);
+  auto nonarray_stack                   = double(NumFilteredNonArrayAllocs);
+  auto malloc_alloc_stack               = double(NumFilteredMallocAllocs);
+  auto call_filter_stack                = double(NumCallFilteredAllocs);
+  auto filter_pointer_stack             = double(NumFilteredPointerAllocs);
 
   const auto call_filter_stack_p =
       (call_filter_stack /

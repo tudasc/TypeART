@@ -93,6 +93,15 @@ function(typeart_configure_script input output)
 
   list(JOIN TYPEART_SAN_FLAGS " " TYPEART_SAN_FLAGS)
 
+  if(${LLVM_VERSION_MAJOR} GREATER_EQUAL 18)
+    # FIXME workaround, enabled by default? > not compat with dimeta
+    set(TYPEART_INITIAL_FLAGS "-Xclang -fexperimental-assignment-tracking=disabled")
+  endif()
+
+  if(ARG_WITH_FILTER)
+    set(TYPEART_FILTER_FLAG "export TYPEART_FILTER=\${TYPEART_FILTER:-1}")
+  endif()
+
   typeart_target_generate_file(${input} ${output})
 endfunction()
 
@@ -181,23 +190,29 @@ typeart_configure_script(typeart-tmpl.sh.in apply.sh
 
 typeart_configure_script(reduce-tester.in reduce-tester.sh)
 
+if(TYPEART_USE_LEGACY_WRAPPER)
+  set(TYPEART_WRAPPER_FILE typeart-wrapper.in)
+else()
+  set(TYPEART_WRAPPER_FILE typeart-wrapperv2.in)
+endif()
+
 typeart_configure_script(
-  typeart-wrapper.in typeart-clang${CMAKE_DEBUG_POSTFIX}
+  ${TYPEART_WRAPPER_FILE} typeart-clang${CMAKE_DEBUG_POSTFIX}
   INSTALL_MODE ON
   COMPILER ${TYPEART_CLANG_EXEC}
 )
 typeart_configure_script(
-  typeart-wrapper.in typeart-clang++${CMAKE_DEBUG_POSTFIX}
+  ${TYPEART_WRAPPER_FILE} typeart-clang++${CMAKE_DEBUG_POSTFIX}
   INSTALL_MODE ON
   COMPILER ${TYPEART_CLANGCXX_EXEC}
 )
 
 typeart_configure_script(
-  typeart-wrapper.in typeart-clang-test
+  ${TYPEART_WRAPPER_FILE} typeart-clang-test
   COMPILER ${TYPEART_CLANG_EXEC}
 )
 typeart_configure_script(
-  typeart-wrapper.in typeart-clang++-test
+  ${TYPEART_WRAPPER_FILE} typeart-clang++-test
   COMPILER ${TYPEART_CLANGCXX_EXEC}
 )
 
@@ -207,13 +222,13 @@ endif()
 
 if(MPI_C_FOUND)
   typeart_configure_script(
-    typeart-wrapper.in typeart-mpicc${CMAKE_DEBUG_POSTFIX}
+    ${TYPEART_WRAPPER_FILE} typeart-mpicc${CMAKE_DEBUG_POSTFIX}
     INSTALL_MODE ON
     WITH_FILTER ON
     COMPILER "${TYPEART_MPICC}"
   )
   typeart_configure_script(
-    typeart-wrapper.in typeart-mpicc-test
+    ${TYPEART_WRAPPER_FILE} typeart-mpicc-test
     WITH_FILTER ON
     COMPILER "${TYPEART_MPICC}"
   )
@@ -221,13 +236,13 @@ endif()
 
 if(MPI_CXX_FOUND)
   typeart_configure_script(
-    typeart-wrapper.in typeart-mpic++${CMAKE_DEBUG_POSTFIX}
+    ${TYPEART_WRAPPER_FILE} typeart-mpic++${CMAKE_DEBUG_POSTFIX}
     INSTALL_MODE ON
     WITH_FILTER ON
     COMPILER "${TYPEART_MPICXX}"
   )
   typeart_configure_script(
-    typeart-wrapper.in typeart-mpic++-test
+    ${TYPEART_WRAPPER_FILE} typeart-mpic++-test
     WITH_FILTER ON
     COMPILER "${TYPEART_MPICXX}"
   )

@@ -22,13 +22,16 @@
 #include "instrumentation/MemOpArgCollector.h"
 #include "instrumentation/MemOpInstrumentation.h"
 #include "instrumentation/TypeARTFunctions.h"
+#include "support/ConfigurationBase.h"
 #include "support/Logger.h"
+#include "support/ModuleDumper.h"
 #include "support/Table.h"
 #include "support/Util.h"
 #include "typegen/TypeGenerator.h"
 
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/ScopeExit.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/Statistic.h"
 #include "llvm/ADT/StringRef.h"
@@ -227,6 +230,12 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
   }
 
   void printStats(llvm::raw_ostream& out) {
+    const auto scope_exit_cleanup_counter = llvm::make_scope_exit([&]() {
+      NumInstrumentedAlloca  = 0;
+      NumInstrumentedFrees   = 0;
+      NumInstrumentedGlobal  = 0;
+      NumInstrumentedMallocs = 0;
+    });
     meminst_finder->printStats(out);
 
     const auto get_ta_mode = [&]() {
@@ -270,7 +279,10 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
   llvm::PreservedAnalyses run(llvm::Module& m, llvm::ModuleAnalysisManager&) {
     bool changed{false};
     changed |= doInitialization(m);
+    const bool heap = configuration()[config::ConfigStdArgs::heap];  // Must happen after doInit
+    dump_module(m, heap ? util::module::ModulePhase::kBase : util::module::ModulePhase::kOpt);
     changed |= runOnModule(m);
+    dump_module(m, heap ? util::module::ModulePhase::kHeap : util::module::ModulePhase::kStack);
     changed |= doFinalization();
     return changed ? llvm::PreservedAnalyses::none() : llvm::PreservedAnalyses::all();
   }
@@ -388,6 +400,24 @@ bool LegacyTypeArtPass::doFinalization(llvm::Module&) {
 llvm::PassPluginLibraryInfo getTypeartPassPluginInfo() {
   using namespace llvm;
   return {LLVM_PLUGIN_API_VERSION, "TypeART", LLVM_VERSION_STRING, [](PassBuilder& pass_builder) {
+            pass_builder.registerPipelineStartEPCallback([](auto& MPM, OptimizationLevel) {
+              auto parameters = typeart::util::pass::parsePassParameters(typeart::config::pass::parse_typeart_config,
+                                                                         "typeart<heap;stats>", "typeart");
+              if (!parameters) {
+                LOG_FATAL("Error parsing heap params: " << parameters.takeError())
+                return;
+              }
+              MPM.addPass(typeart::pass::TypeArtPass(typeart::pass::TypeArtPass(parameters.get())));
+            });
+            pass_builder.registerOptimizerLastEPCallback([](auto& MPM, OptimizationLevel) {
+              auto parameters = typeart::util::pass::parsePassParameters(typeart::config::pass::parse_typeart_config,
+                                                                         "typeart<no-heap;stack;stats>", "typeart");
+              if (!parameters) {
+                LOG_FATAL("Error parsing stack params: " << parameters.takeError())
+                return;
+              }
+              MPM.addPass(typeart::pass::TypeArtPass(typeart::pass::TypeArtPass(parameters.get())));
+            });
             pass_builder.registerPipelineParsingCallback(
                 [](StringRef name, ModulePassManager& module_pm, ArrayRef<PassBuilder::PipelineElement>) {
                   if (typeart::util::pass::checkParametrizedPassName(name, "typeart")) {
