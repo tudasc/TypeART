@@ -18,7 +18,6 @@ function typeart_is_wrapper_disabled_fn() {
     return 1
     ;;
   esac
-
   return 0
 }
 
@@ -48,9 +47,8 @@ function typeart_global_init_fn() {
   readonly typeart_san_flags="@TYPEART_SAN_FLAGS@"
   readonly typeart_plugin="-fpass-plugin="${typeart_pass}""
 
-
   typeart_more_flags="@TYPEART_INITIAL_FLAGS@"
-
+  @TYPEART_FILTER_FLAG@
   case "${TYPEART_WRAPPER_EMIT_IR}" in
   on | ON | 1 | true | TRUE)
     export TYPEART_PASS_INTERNAL_EMIT_IR=1
@@ -86,15 +84,16 @@ function typeart_parse_cmd_line_fn() {
 
 function typeart_main_driver_fn() {
   typeart_global_init_fn
+
   typeart_is_wrapper_disabled_fn
   if [ "$?" == 1 ]; then
     # shellcheck disable=SC2068
     $typeart_compiler $@
     return 0
   fi
-
-  typeart_parse_cmd_line_fn "$@"
   
+  typeart_parse_cmd_line_fn "$@"
+
   typeart_is_linking_fn "$@"
   if [ "$?" == 1 ]; then
     typeart_more_flags+=" ${typeart_ldflags}"

@@ -98,6 +98,10 @@ function(typeart_configure_script input output)
     set(TYPEART_INITIAL_FLAGS "-Xclang -fexperimental-assignment-tracking=disabled")
   endif()
 
+  if(ARG_WITH_FILTER)
+    set(TYPEART_FILTER_FLAG "export TYPEART_FILTER=\${TYPEART_FILTER:-1}")
+  endif()
+
   typeart_target_generate_file(${input} ${output})
 endfunction()
 
