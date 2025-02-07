@@ -388,7 +388,35 @@ class DimetaTypeManager final : public TypeIDGenerator {
       LOG_DEBUG("Alloca found")
       auto val = dimeta::located_type_for(alloc);
       if (val) {
+#if LLVM_VERSION_MAJOR == 14
         LOG_DEBUG("Registering alloca")
+        if (!alloc->getAllocatedType()->isPointerTy()) {
+          // if alloca is not a pointer, but the located_type has a pointer, we remove it
+          // workaround for inlining issue, see test typemapping/05_milc_inline_metadata.c
+          LOG_DEBUG("Alloca is not a pointer")
+
+          const auto remove_pointer_level = [](auto& qual) {
+            auto it = llvm::find_if(qual, [](auto qualifier) {
+              switch (qualifier) {
+                case dimeta::Qualifier::kPtr:
+                case dimeta::Qualifier::kRef:
+                case dimeta::Qualifier::kPtrToMember:
+                  return true;
+                default:
+                  break;
+              }
+              return false;
+            });
+            if (it != qual.end()) {
+              LOG_DEBUG("Removing pointer level " << static_cast<int>(*it))
+              qual.erase(it);
+            }
+          };
+          std::visit(overload{[&](dimeta::QualifiedFundamental& f) { remove_pointer_level(f.qual); },
+                              [&](dimeta::QualifiedCompound& f) { remove_pointer_level(f.qual); }},
+                     val->type);
+        }
+#endif
         const auto type_id        = getOrRegister(val->type, false);
         const auto array_size_val = array_size(val->type);
         LOG_DEBUG(array_size_val)
