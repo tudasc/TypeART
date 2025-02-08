@@ -64,28 +64,56 @@ std::pair<std::optional<typeart_builtin_type>, int> typeid_if_ptr(const Type& ty
 namespace detail {
 
 template <typename Type, typename Func>
-auto apply_func(const Type& type, Func&& handle_qualified_type) {
+auto apply_function(const Type& type, Func&& handle_qualified_type) {
   using namespace dimeta;
 
   if constexpr (std::is_same_v<Type, typename dimeta::QualifiedCompound> ||
                 std::is_same_v<Type, typename dimeta::QualifiedFundamental>) {
     return std::forward<Func>(handle_qualified_type)(type);
   } else {
-    return std::visit(overload{[&](const dimeta::QualifiedFundamental& f) {
-                                 return apply_func(f, std::forward<Func>(handle_qualified_type));
-                               },
-                               [&](const dimeta::QualifiedCompound& q) {
-                                 return apply_func(q, std::forward<Func>(handle_qualified_type));
-                               }},
-                      type);
+    return std::visit(
+        [&](auto&& qualified_type) {
+          return apply_function(qualified_type, std::forward<Func>(handle_qualified_type));
+        },
+        type);
   }
 }
 
 }  // namespace detail
 
+namespace workaround {
+void remove_pointer_level(const llvm::AllocaInst* alloc, dimeta::LocatedType& val) {
+  // If the alloca instruction is not a pointer, but the located_type has a pointer-like qualifier, we remove it.
+  // Workaround for inlining issue, see test typemapping/05_milc_inline_metadata.c
+  // TODO Should be removed if dimeta fixes it.
+  if (!alloc->getAllocatedType()->isPointerTy()) {
+    LOG_DEBUG("Alloca is not a pointer")
+
+    const auto remove_pointer_level = [](auto& qual) {
+      auto pointer_like_iter = llvm::find_if(qual, [](auto qualifier) {
+        switch (qualifier) {
+          case dimeta::Qualifier::kPtr:
+          case dimeta::Qualifier::kRef:
+          case dimeta::Qualifier::kPtrToMember:
+            return true;
+          default:
+            break;
+        }
+        return false;
+      });
+      if (pointer_like_iter != std::end(qual)) {
+        LOG_DEBUG("Removing pointer level " << static_cast<int>(*pointer_like_iter))
+        qual.erase(pointer_like_iter);
+      }
+    };
+    std::visit([&](auto&& qualified_type) { remove_pointer_level(qualified_type.qual); }, val.type);
+  }
+}
+}  // namespace workaround
+
 template <typename Type>
 dimeta::ArraySize vector_num_elements(const Type& type) {
-  return detail::apply_func(type, [](const auto& t) -> dimeta::Extent {
+  return detail::apply_function(type, [](const auto& t) -> dimeta::Extent {
     if (t.is_vector) {
       int pos{-1};
       // Find kVector tag-position to determine vector size
@@ -110,7 +138,7 @@ dimeta::ArraySize vector_num_elements(const Type& type) {
 
 template <typename Type>
 dimeta::ArraySize array_size(const Type& type) {
-  return detail::apply_func(type, [](const auto& t) -> dimeta::Extent {
+  return detail::apply_function(type, [](const auto& t) -> dimeta::Extent {
     if (t.array_size.size() > 1 || (t.is_vector && t.array_size.size() > 2)) {
       LOG_ERROR("Unsupported array size number count > 1 for array type or > 2 for vector")
     }
@@ -126,7 +154,7 @@ dimeta::ArraySize array_size(const Type& type) {
 
 template <typename Type>
 std::string name_or_typedef_of(const Type& type) {
-  return detail::apply_func(type, [](const auto& qual_type) {
+  return detail::apply_function(type, [](const auto& qual_type) {
     const bool no_name = qual_type.type.name.empty();
     if constexpr (std::is_same_v<Type, typename dimeta::QualifiedCompound>) {
       const bool no_identifier = qual_type.type.identifier.empty();
@@ -388,35 +416,8 @@ class DimetaTypeManager final : public TypeIDGenerator {
       LOG_DEBUG("Alloca found")
       auto val = dimeta::located_type_for(alloc);
       if (val) {
-#if LLVM_VERSION_MAJOR == 14
         LOG_DEBUG("Registering alloca")
-        if (!alloc->getAllocatedType()->isPointerTy()) {
-          // if alloca is not a pointer, but the located_type has a pointer, we remove it
-          // workaround for inlining issue, see test typemapping/05_milc_inline_metadata.c
-          LOG_DEBUG("Alloca is not a pointer")
-
-          const auto remove_pointer_level = [](auto& qual) {
-            auto it = llvm::find_if(qual, [](auto qualifier) {
-              switch (qualifier) {
-                case dimeta::Qualifier::kPtr:
-                case dimeta::Qualifier::kRef:
-                case dimeta::Qualifier::kPtrToMember:
-                  return true;
-                default:
-                  break;
-              }
-              return false;
-            });
-            if (it != qual.end()) {
-              LOG_DEBUG("Removing pointer level " << static_cast<int>(*it))
-              qual.erase(it);
-            }
-          };
-          std::visit(overload{[&](dimeta::QualifiedFundamental& f) { remove_pointer_level(f.qual); },
-                              [&](dimeta::QualifiedCompound& f) { remove_pointer_level(f.qual); }},
-                     val->type);
-        }
-#endif
+        workaround::remove_pointer_level(alloc, val.value());
         const auto type_id        = getOrRegister(val->type, false);
         const auto array_size_val = array_size(val->type);
         LOG_DEBUG(array_size_val)
