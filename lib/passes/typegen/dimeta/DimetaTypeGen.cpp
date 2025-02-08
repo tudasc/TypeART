@@ -18,6 +18,9 @@
 #include "typelib/TypeDatabase.h"
 #include "typelib/TypeInterface.h"
 
+#include "llvm/ADT/StringExtras.h"
+#include "llvm/Support/MD5.h"
+
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
@@ -136,6 +139,34 @@ dimeta::ArraySize vector_num_elements(const Type& type) {
   });
 }
 
+std::string get_anon_struct_identifier(const dimeta::QualifiedCompound& compound) {
+  llvm::MD5 compound_hash;
+  if (compound.type.members.empty()) {
+    LOG_WARNING("Anonymous struct has no members")
+  }
+  for (const auto& [member, offset, size] :
+       llvm::zip(compound.type.members, compound.type.offsets, compound.type.sizes)) {
+    compound_hash.update(member->name);
+    compound_hash.update(offset);
+    compound_hash.update(size);
+    compound_hash.update(std::visit(overload{[&](const dimeta::QualifiedFundamental& member_fundamental) {
+                                               return std::to_string(
+                                                          static_cast<int>(member_fundamental.type.encoding)) +
+                                                      std::to_string(static_cast<int>(member_fundamental.type.extent));
+                                             },
+                                             [&](const dimeta::QualifiedCompound& member_compound) {
+                                               return get_anon_struct_identifier(member_compound);
+                                             }},
+                                    member->member));
+    compound_hash.update("\0");
+  }
+  compound_hash.update(compound.type.extent);
+  compound_hash.update("\0");
+  llvm::MD5::MD5Result hash_result;
+  compound_hash.final(hash_result);
+  return "anonymous_compound_" + std::string(hash_result.digest().str());
+}
+
 template <typename Type>
 dimeta::ArraySize array_size(const Type& type) {
   return detail::apply_function(type, [](const auto& t) -> dimeta::Extent {
@@ -158,6 +189,10 @@ std::string name_or_typedef_of(const Type& type) {
     const bool no_name = qual_type.type.name.empty();
     if constexpr (std::is_same_v<Type, typename dimeta::QualifiedCompound>) {
       const bool no_identifier = qual_type.type.identifier.empty();
+      const bool no_typedef    = qual_type.typedef_name.empty();
+      if (no_identifier && no_name && no_typedef) {
+        return get_anon_struct_identifier(qual_type);
+      }
       if (no_identifier && no_name) {
         return qual_type.typedef_name;
       }
