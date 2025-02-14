@@ -14,7 +14,8 @@
 #define TYPEART_CONFIG_OPTION(name, path, type, default_value, description, upper_path)
 #endif
 
-TYPEART_CONFIG_OPTION(types, "types", std::string, "types.yaml", "Location of the generated type file.", "TYPES")
+TYPEART_CONFIG_OPTION(types, "types", std::string, "typeart-types.yaml", "Location of the generated type file.",
+                      "TYPES")
 TYPEART_CONFIG_OPTION(stats, "stats", bool, false, "Show statistics for TypeArt type pass.", "STATS")
 TYPEART_CONFIG_OPTION(heap, "heap", bool, true, "Instrument heap allocation/free instructions.", "HEAP")
 TYPEART_CONFIG_OPTION(stack, "stack", bool, false, "Instrument stack allocations.", "STACK")

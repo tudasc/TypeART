@@ -1,4 +1,4 @@
-// RUN: echo --- > types.yaml
+// RUN: echo --- > typeart-types.yaml
 // RUN: %wrapper-mpicxx -g %s -o %s.exe
 // RUN: %mpi-exec -np 1 %s.exe 2>&1 | %filecheck %s
 

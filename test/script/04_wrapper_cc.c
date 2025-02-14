@@ -1,4 +1,4 @@
-// RUN: echo --- > types.yaml
+// RUN: echo --- > typeart-types.yaml
 // RUN: %wrapper-cc -O1 %s -o %s.exe
 // RUN: %s.exe 2>&1 | %filecheck %s
 
