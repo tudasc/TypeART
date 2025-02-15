@@ -179,8 +179,8 @@ function toolchain_init() {
 
   readonly typeart_san_flags="@TYPEART_SAN_FLAGS@"
 
-  if [ -e "types.yaml" ]; then
-    rm "types.yaml"
+  if [ -e "typeart-types.yaml" ]; then
+    rm "typeart-types.yaml"
   fi
 }
 
@@ -211,7 +211,7 @@ function make_no_optim() {
       apply_typeart
     fi
   else
-    # First create types.yaml:
+    # First create typeart-types.yaml:
     apply_typeart >/dev/null
 
     if [ $show_ir == 0 ]; then
@@ -231,7 +231,7 @@ function make_with_optim() {
       apply_typeart_optim
     fi
   else
-    # First create types.yaml:
+    # First create typeart-types.yaml:
     apply_typeart_optim >/dev/null
 
     if [ $show_ir == 0 ]; then
@@ -258,8 +258,8 @@ function main_link() {
 
 function execute() {
   if [ $clean_types_file == 1 ]; then
-    if [ -e "types.yaml" ]; then
-      rm "types.yaml"
+    if [ -e "typeart-types.yaml" ]; then
+      rm "typeart-types.yaml"
     fi
   fi
 
