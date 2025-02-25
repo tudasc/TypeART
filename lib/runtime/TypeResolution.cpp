@@ -88,8 +88,11 @@ TypeResolution::TypeArtStatus TypeResolution::getSubTypeInfo(const void* baseAdd
   const int memberType     = containerInfo.member_types[memberIndex];
   const size_t baseOffset  = containerInfo.offsets[memberIndex];
 
-  const size_t internalOffset   = offset - baseOffset;
-  const size_t typeSize         = type_database.getTypeSize(memberType);
+  const size_t internalOffset = offset - baseOffset;
+  const size_t typeSize       = type_database.getTypeSize(memberType);
+  if (typeSize == 0) {
+    return TYPEART_INVALID_ID;
+  }
   const size_t offsetInTypeSize = internalOffset / typeSize;
   const size_t newOffset        = internalOffset % typeSize;
 
@@ -218,6 +221,10 @@ TypeResolution::TypeArtStatus TypeResolution::getContainingTypeInfo(const void* 
     *count  = ptrInfo.count;
     *offset = 0;
     return TYPEART_OK;
+  }
+
+  if (typeSize == 0) {
+    return TYPEART_ERROR;
   }
 
   // The address points inside a known array
