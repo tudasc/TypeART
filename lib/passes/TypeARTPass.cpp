@@ -328,8 +328,6 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
     //  auto& c = f.getContext();
     DataLayout dl(f.getParent());
 
-    llvm::SmallDenseMap<BasicBlock*, size_t> allocCounts;
-
     const auto& fData   = meminst_finder->getFunctionData(f);
     const auto& mallocs = fData.mallocs;
     const auto& allocas = fData.allocas;

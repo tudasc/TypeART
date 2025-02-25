@@ -64,7 +64,7 @@ void MemOpVisitor::collect(llvm::Function& function) {
 
   for (auto& [lifetime, alloc] : lifetime_starts) {
     auto* data = llvm::find_if(
-        allocas, [alloc = std::ref(alloc)](const AllocaData& alloca_data) { return alloca_data.alloca == alloc; });
+        allocas, [alloc_ = std::ref(alloc)](const AllocaData& alloca_data) { return alloca_data.alloca == alloc_; });
     if (data != std::end(allocas)) {
       data->lifetime_start.insert(lifetime);
     }
