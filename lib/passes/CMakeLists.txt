@@ -6,6 +6,7 @@ add_subdirectory(configuration)
 set(PASS_SOURCES
   TypeARTPass.cpp
   support/TypeUtil.cpp
+  support/ModuleDumper.cpp
   instrumentation/InstrumentationHelper.cpp
   instrumentation/TypeARTFunctions.cpp
   instrumentation/MemOpArgCollector.cpp
