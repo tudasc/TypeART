@@ -5,6 +5,7 @@
 // clang-format on
 
 #include "../../lib/runtime/CallbackInterface.h"
+#include "TypeInterface.h"
 #include "util.h"
 
 #include <algorithm>
@@ -19,14 +20,15 @@ const size_t extent{1};
 
 template <typename S, typename E>
 void repeat_alloc(S s, E e) {
-  std::for_each(s, e, [&](auto elem) { __typeart_alloc(reinterpret_cast<const void*>(elem), int{6}, extent); });
+  std::for_each(
+      s, e, [&](auto elem) { __typeart_alloc(reinterpret_cast<const void*>(elem), int{TYPEART_FLOAT_32}, extent); });
 }
 
 template <typename S, typename E>
 void repeat_alloc_free_v2(S s, E e) {
   using namespace std::chrono_literals;
   std::for_each(s, e, [&](auto elem) {
-    __typeart_alloc(reinterpret_cast<const void*>(elem), int{7}, extent);
+    __typeart_alloc(reinterpret_cast<const void*>(elem), int{TYPEART_FLOAT_64}, extent);
     // std::this_thread::sleep_for(1ms);
     __typeart_free(reinterpret_cast<const void*>(elem));
   });
@@ -44,7 +46,7 @@ void repeat_type_check(S s, E e) {
           fprintf(stderr, "[Error]: Length mismatch of %i (%#02x) is: type=%i count=%zu\n", addr, addr, id_result,
                   count_check);
         }
-        if (id_result != int{6}) {
+        if (id_result != int{TYPEART_FLOAT_32}) {
           fprintf(stderr, "[Error]: Type mismatch of %i (%#02x) is: type=%i count=%zu\n", addr, addr, id_result,
                   count_check);
         }

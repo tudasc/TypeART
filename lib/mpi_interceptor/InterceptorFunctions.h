@@ -133,8 +133,8 @@ void ta_print_loc(const void* call_adr) {
     while (fgets(read_buf, sizeof(read_buf), fp)) {
       printf("    %s", read_buf);
     }
+    pclose(fp);
   }
-  pclose(fp);
 }
 
 void ta_exit() {

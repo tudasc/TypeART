@@ -47,7 +47,7 @@ std::optional<OptionValue> TypeARTConfiguration::getValue(std::string_view opt_p
   return configuration_options_->getValue(opt_path);
 }
 
-OptionValue TypeARTConfiguration::getValueOr(std::string_view opt_path, OptionValue alt) const {
+OptionValue TypeARTConfiguration::getValueOr(std::string_view opt_path, const OptionValue& alt) const {
   if (prioritize_commandline) {
     if (auto value = env_options_->getValue(opt_path)) {
       // LOG_DEBUG("Take ENV " << opt_path << "=" << (std::string(value.value())));

@@ -52,8 +52,9 @@ struct DefUseChain {
       return nullptr;
     }
     auto user_iter = working_set.end() - 1;
+    auto* value    = *user_iter;
     working_set.erase(user_iter);
-    return *user_iter;
+    return value;
   }
 
   template <typename AllowedTy, typename SDirection, typename CallBackF>

@@ -41,7 +41,7 @@ inline llvm::Error make_string_error(const char* message) {
   // return llvm::make_error<llvm::StringError>(llvm::inconvertibleErrorCode(), message);
 }
 
-inline llvm::Error make_string_error(std::string message) {
+inline llvm::Error make_string_error(const std::string& message) {
   return llvm::createStringError(llvm::inconvertibleErrorCode(), message);
   // return llvm::make_error<llvm::StringError>( message);
 }

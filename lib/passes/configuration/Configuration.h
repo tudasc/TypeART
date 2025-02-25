@@ -96,7 +96,7 @@ class Configuration {
  public:
   [[nodiscard]] virtual std::optional<OptionValue> getValue(std::string_view opt_path) const = 0;
 
-  [[nodiscard]] virtual OptionValue getValueOr(std::string_view opt_path, OptionValue alt) const {
+  [[nodiscard]] virtual OptionValue getValueOr(std::string_view opt_path, const OptionValue& alt) const {
     return getValue(opt_path).value_or(alt);
   }
 

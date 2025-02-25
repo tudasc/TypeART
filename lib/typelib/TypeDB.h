@@ -28,8 +28,8 @@ namespace builtins {
 
 struct BuiltInQuery {
  private:
-  const std::array<const std::string, TYPEART_NUM_VALID_IDS> names;
-  const std::array<size_t, TYPEART_NUM_VALID_IDS> sizes;
+  std::array<const std::string, TYPEART_NUM_VALID_IDS> names;
+  std::array<size_t, TYPEART_NUM_VALID_IDS> sizes;
 
   template <typename U>
   static constexpr auto type_info(const U& type_data, int type_id) -> decltype(type_data[type_id]) {
