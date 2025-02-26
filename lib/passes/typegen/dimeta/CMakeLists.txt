@@ -41,7 +41,7 @@ set_target_properties(
 typeart_target_coverage_options(${TYPEART_PREFIX}_TypeGenDimetaStatic)
 
 target_link_libraries(${TYPEART_PREFIX}_TypeGenDimetaStatic PUBLIC typeart::TypesStatic)
-target_link_libraries(${TYPEART_PREFIX}_TypeGenDimetaStatic PUBLIC dimeta::Types)
+target_link_libraries(${TYPEART_PREFIX}_TypeGenDimetaStatic PRIVATE dimeta::Types)
 
 target_include_directories(
   ${TYPEART_PREFIX}_TypeGenDimetaStatic ${warning_guard}
