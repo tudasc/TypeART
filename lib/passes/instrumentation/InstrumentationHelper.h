@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2022 TypeART Authors
+// Copyright (c) 2017-2025 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -14,7 +14,6 @@
 #define LIB_INSTRUMENTATIONHELPER_H_
 
 #include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/Optional.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringRef.h"

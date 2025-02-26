@@ -1,5 +1,5 @@
 // clang-format off
-// RUN: %clang-cc -O2 -S -emit-llvm %s -o - | %apply-typeart -S 2>&1 | %filecheck %s --check-prefix CHECK-OPT
+// RUN: %clang-cc -g -O2 -S -emit-llvm %s -o - | %apply-typeart -S 2>&1 | %filecheck %s --check-prefix CHECK-OPT
 // clang-format on
 
 // This is a dummy test illustrating problems with -Xclang approach and higher optimizations, losing infos about the
@@ -15,10 +15,12 @@ typedef struct {
 #define taMalloc(type, count) \
   ((unsigned int)(count) * sizeof(type)) > 0 ? ((type*)malloc((unsigned int)(sizeof(type) * (count)))) : (type*)NULL
 
+// clang-format off
 // CHECK-OPT: tail call void @free
 // CHECK-OPT-NEXT: call void @__typeart_free
-// CHECK-OPT: call void @__typeart_alloc(i8* %{{[0-9a-z]+}}, i32 0,
-// CHECK-OPT: call void @llvm.memcpy.p0i8.p0i8.i64(i8* {{(align (4|16)[[:space:]])?}}%{{[0-9a-z]+}},
+// CHECK-OPT: call void @__typeart_alloc({{i8\*|ptr}} %{{[0-9a-z]+}}, i32 {{(10|12)}},
+// CHECK-OPT: call void @llvm.memcpy.p0{{(i8)?}}.p0{{(i8)?}}.i64({{i8\*|ptr}} {{(align[[:space:]]?(4|16)[[:space:]])?}}%{{[0-9a-z]+}},
+// clang-format on
 void setVartypes(struct_grid* pgrid, int nvars, int* vartypes /* = i32 ptr */) {
   int* new_vartypes;
   // free(pgrid->vartypes);

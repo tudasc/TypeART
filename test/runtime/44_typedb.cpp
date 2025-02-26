@@ -1,7 +1,8 @@
-// RUN: %run %s 2>&1 | %filecheck %s
+// RUN: %run %s --compile_flags "-std=c++17" -o -O3 2>&1 | %filecheck %s
 
 #include "../../lib/runtime/RuntimeInterface.h"
 #include "../../lib/typelib/TypeDatabase.h"
+#include "TypeInterface.h"
 
 #include <cstdio>
 
@@ -22,14 +23,14 @@ int main(int argc, char** argv) {
 
   auto [invalid_db, db_not_loaded] = typeart::make_database("random_missing_types.yaml");
   if (db_not_loaded) {
-    printf("Test database not loaded.\n");
+    printf("[DB] Test database not loaded.\n");
   }
 
-  auto [database, db_load] = typeart::make_database("types.yaml");
+  auto [database, db_load] = typeart::make_database("typeart-types.yaml");
   if (db_load) {
     printf("Error not loaded type file.\n");
   }
-  printf("Unknown: %i %i %i\n", database->isUnknown(0), database->isUnknown(257),
+  printf("Unknown: %i %i %i\n", database->isUnknown(TYPEART_FLOAT_32), database->isUnknown(257),
          database->isUnknown(TYPEART_UNKNOWN_TYPE));
   printf("Unknown struct name: %s\n", database->getTypeName(1000).c_str());
 
@@ -66,7 +67,7 @@ int main(int argc, char** argv) {
   return 0;
 }
 
-// CHECK: Test database not loaded.
+// CHECK: [DB] Test database not loaded.
 // CHECK-NOT: Error not loaded type file.
 // CHECK: Unknown: 0 0 1
 // CHECK: Unknown struct name: typeart_unknown_struct

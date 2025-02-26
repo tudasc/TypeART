@@ -1,4 +1,6 @@
-; RUN: cat %s | %apply-typeart --typeart-global -S 2>&1 | %filecheck %s
+; RUN: cat %s | %apply-typeart --typeart-global=true -S 2>&1 | %filecheck %s
+
+; REQUIRES: !dimeta
 
 ; CHECK: call void @__typeart_alloc_global(i8* bitcast (%struct.params* @par_buf to i8*)
 

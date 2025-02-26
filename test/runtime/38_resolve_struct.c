@@ -1,5 +1,8 @@
 // RUN: %run %s --manual 2>&1 | %filecheck %s
 
+// dimeta creates a different type id (258), making the test fail
+// REQUIRES: !dimeta
+
 #include "../../lib/runtime/CallbackInterface.h"
 #include "util.h"
 
@@ -48,14 +51,14 @@ int main(int argc, char** argv) {
   struct Datastruct data;
   __typeart_alloc((const void*)&data, 257, 1);
 
-  // CHECK: Status OK: 6 1
+  // CHECK: Status OK: 23 1
   type_check((const void*)&data.middle);
 
   struct Datastruct daTYPEART_ar[3];
   // CHECK: [Trace] Alloc [[POINTER:0x[0-9a-f]+]] 257
   __typeart_alloc((const void*)&daTYPEART_ar[0], 257, 3);
 
-  // CHECK: Status OK: 5 2
+  // CHECK: Status OK: 22 2
   type_check((const void*)&daTYPEART_ar[2].end);
   // CHECK: Status OK: 257 1 16 [[POINTER]]
   type_check_containing((const void*)&daTYPEART_ar[2].end);

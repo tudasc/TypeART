@@ -1,0 +1,69 @@
+; RUN: %apply-typeart --typeart-stack=true < %s -S | %filecheck %s
+; REQUIRES: llvm-14
+
+; reduced from CAMPICC test/predefined/104_milc_ReproducerError.c
+
+; CHECK-NOT: call void @__typeart_alloc_stack(i8* {{.*}}, i32 1,
+
+define i32 @main() {
+entry:
+  %c = alloca i64, i32 0, align 8
+  call void @llvm.dbg.value(metadata i64* %c, metadata !18, metadata !DIExpression()), !dbg !32
+  ret i32 0
+}
+
+; Function Attrs: nofree nosync nounwind readnone speculatable willreturn
+declare void @llvm.dbg.value(metadata, metadata, metadata) #0
+
+attributes #0 = { nofree nosync nounwind readnone speculatable willreturn }
+attributes #1 = { argmemonly nofree nosync nounwind willreturn }
+
+!llvm.dbg.cu = !{!0}
+!llvm.module.flags = !{!14, !15, !16, !17}
+
+!0 = distinct !DICompileUnit(language: DW_LANG_C99, file: !1, producer: "clang version 14.0.6", isOptimized: true, runtimeVersion: 0, emissionKind: FullDebug, retainedTypes: !2, splitDebugInlining: false, nameTableKind: None)
+!1 = !DIFile(filename: "milc.c", directory: "tudasc-ta2/build", checksumkind: CSK_MD5, checksum: "fd0b55769b199b4db669ed1dc54da6c6")
+!2 = !{!3, !7, !8, !11}
+!3 = !DIDerivedType(tag: DW_TAG_typedef, name: "MPI_Datatype", file: !4, line: 424, baseType: !5)
+!4 = !DIFile(filename: "/usr/lib/x86_64-linux-gnu/openmpi/include/mpi.h", directory: "", checksumkind: CSK_MD5, checksum: "58b77b3315301c271bf9a6de605bbb3a")
+!5 = !DIDerivedType(tag: DW_TAG_pointer_type, baseType: !6, size: 64)
+!6 = !DICompositeType(tag: DW_TAG_structure_type, name: "ompi_datatype_t", file: !4, line: 424, flags: DIFlagFwdDecl)
+!7 = !DIDerivedType(tag: DW_TAG_pointer_type, baseType: null, size: 64)
+!8 = !DIDerivedType(tag: DW_TAG_typedef, name: "MPI_Op", file: !4, line: 429, baseType: !9)
+!9 = !DIDerivedType(tag: DW_TAG_pointer_type, baseType: !10, size: 64)
+!10 = !DICompositeType(tag: DW_TAG_structure_type, name: "ompi_op_t", file: !4, line: 429, flags: DIFlagFwdDecl)
+!11 = !DIDerivedType(tag: DW_TAG_typedef, name: "MPI_Comm", file: !4, line: 423, baseType: !12)
+!12 = !DIDerivedType(tag: DW_TAG_pointer_type, baseType: !13, size: 64)
+!13 = !DICompositeType(tag: DW_TAG_structure_type, name: "ompi_communicator_t", file: !4, line: 423, flags: DIFlagFwdDecl)
+!14 = !{i32 7, !"Dwarf Version", i32 5}
+!15 = !{i32 2, !"Debug Info Version", i32 3}
+!16 = !{i32 1, !"wchar_size", i32 4}
+!17 = !{i32 7, !"uwtable", i32 1}
+!18 = !DILocalVariable(name: "cpt", arg: 1, scope: !19, file: !20, line: 11, type: !23)
+!19 = distinct !DISubprogram(name: "g_complexsum", scope: !20, file: !20, line: 11, type: !21, scopeLine: 11, flags: DIFlagPrototyped | DIFlagAllCallsDescribed, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !30)
+!20 = !DIFile(filename: "test/staging/milc.c", directory: "tudasc-ta2", checksumkind: CSK_MD5, checksum: "fd0b55769b199b4db669ed1dc54da6c6")
+!21 = !DISubroutineType(types: !22)
+!22 = !{null, !23}
+!23 = !DIDerivedType(tag: DW_TAG_pointer_type, baseType: !24, size: 64)
+!24 = !DIDerivedType(tag: DW_TAG_typedef, name: "complex", file: !20, line: 9, baseType: !25)
+!25 = distinct !DICompositeType(tag: DW_TAG_structure_type, file: !20, line: 6, size: 64, elements: !26)
+!26 = !{!27, !29}
+!27 = !DIDerivedType(tag: DW_TAG_member, name: "imag", scope: !25, file: !20, line: 7, baseType: !28, size: 32)
+!28 = !DIBasicType(name: "float", size: 32, encoding: DW_ATE_float)
+!29 = !DIDerivedType(tag: DW_TAG_member, name: "real", scope: !25, file: !20, line: 8, baseType: !28, size: 32, offset: 32)
+!30 = !{!18, !31}
+!31 = !DILocalVariable(name: "work", scope: !19, file: !20, line: 12, type: !24)
+!32 = !DILocation(line: 0, scope: !19, inlinedAt: !33)
+!33 = distinct !DILocation(line: 24, column: 3, scope: !34)
+!34 = distinct !DISubprogram(name: "main", scope: !20, file: !20, line: 17, type: !35, scopeLine: 17, flags: DIFlagPrototyped | DIFlagAllCallsDescribed, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !41)
+!35 = !DISubroutineType(types: !36)
+!36 = !{!37, !37, !38}
+!37 = !DIBasicType(name: "int", size: 32, encoding: DW_ATE_signed)
+!38 = !DIDerivedType(tag: DW_TAG_pointer_type, baseType: !39, size: 64)
+!39 = !DIDerivedType(tag: DW_TAG_pointer_type, baseType: !40, size: 64)
+!40 = !DIBasicType(name: "char", size: 8, encoding: DW_ATE_signed_char)
+!41 = !{!42, !43, !44, !45}
+!42 = !DILocalVariable(name: "argc", arg: 1, scope: !34, file: !20, line: 17, type: !37)
+!43 = !DILocalVariable(name: "argv", arg: 2, scope: !34, file: !20, line: 17, type: !38)
+!44 = !DILocalVariable(name: "rank", scope: !34, file: !20, line: 19, type: !37)
+!45 = !DILocalVariable(name: "c", scope: !34, file: !20, line: 23, type: !24)

@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2022 TypeART Authors
+// Copyright (c) 2017-2025 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -37,21 +37,22 @@ using namespace llvm;
 
 namespace typeart {
 
-TAFunctionDeclarator::TAFunctionDeclarator(Module& m, InstrumentationHelper&, TAFunctions& tafunc)
-    : m(m), tafunc(tafunc) {
+TAFunctionDeclarator::TAFunctionDeclarator(Module& mod, InstrumentationHelper&, TAFunctions& typeart_funcs)
+    : module(mod), typeart_functions(typeart_funcs) {
 }
 
-llvm::Function* TAFunctionDeclarator::make_function(IFunc id, llvm::StringRef basename,
+llvm::Function* TAFunctionDeclarator::make_function(IFunc func_id, llvm::StringRef basename,
                                                     llvm::ArrayRef<llvm::Type*> args, bool with_omp, bool fixed_name) {
-  const auto make_fname = [&fixed_name](llvm::StringRef name, llvm::ArrayRef<llvm::Type*> args, bool with_omp) {
+  const auto make_fname = [&fixed_name](llvm::StringRef name, llvm::ArrayRef<llvm::Type*> callback_arguments,
+                                        bool with_omp_postfix) {
     std::string fname;
     llvm::raw_string_ostream os(fname);
     os << name;
 
     if (!fixed_name) {
-      os << "_" << std::to_string(args.size());
+      os << "_" << std::to_string(callback_arguments.size());
     }
-    if (with_omp) {
+    if (with_omp_postfix) {
       os << "_"
          << "omp";
     }
@@ -60,11 +61,11 @@ llvm::Function* TAFunctionDeclarator::make_function(IFunc id, llvm::StringRef ba
 
   const auto name = make_fname(basename, args, with_omp);
 
-  if (auto it = f_map.find(name); it != f_map.end()) {
+  if (auto it = function_map.find(name); it != function_map.end()) {
     return it->second;
   }
 
-  auto& c                           = m.getContext();
+  auto& c                           = module.getContext();
   const auto addOptimizerAttributes = [&](llvm::Function* function) {
     function->setDoesNotThrow();
     function->setDoesNotFreeMemory();
@@ -84,13 +85,13 @@ llvm::Function* TAFunctionDeclarator::make_function(IFunc id, llvm::StringRef ba
     function->setLinkage(GlobalValue::ExternalLinkage);
     //     f->setLinkage(GlobalValue::ExternalWeakLinkage);
   };
-  const auto do_make = [&](auto& name, auto f_type) {
-    const bool has_func_declared = m.getFunction(name) != nullptr;
-    auto func_in_module          = m.getOrInsertFunction(name, f_type);
+  const auto do_make = [&](auto& function_name, auto function_type) {
+    const bool has_func_declared = module.getFunction(function_name) != nullptr;
+    auto func_in_module          = module.getOrInsertFunction(function_name, function_type);
 
     Function* function{nullptr};
     if (has_func_declared) {
-      LOG_WARNING("Function " << name << " is already declared in the module.")
+      LOG_WARNING("Function " << function_name << " is already declared in the module.")
       function = dyn_cast<Function>(func_in_module.getCallee()->stripPointerCasts());
     } else {
       function = dyn_cast<Function>(func_in_module.getCallee());
@@ -101,17 +102,17 @@ llvm::Function* TAFunctionDeclarator::make_function(IFunc id, llvm::StringRef ba
     return function;
   };
 
-  auto f = do_make(name, FunctionType::get(Type::getVoidTy(c), args, false));
+  auto generated_function = do_make(name, FunctionType::get(Type::getVoidTy(c), args, false));
 
-  f_map[name] = f;
+  function_map[name] = generated_function;
 
-  tafunc.putFunctionFor(id, f);
+  typeart_functions.putFunctionFor(func_id, generated_function);
 
-  return f;
+  return generated_function;
 }
 
 const llvm::StringMap<llvm::Function*>& TAFunctionDeclarator::getFunctionMap() const {
-  return f_map;
+  return function_map;
 }
 
 TAFunctions::TAFunctions() = default;

@@ -1,9 +1,9 @@
 // clang-format off
-// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %apply-typeart --typeart-stack --typeart-filter -S 2>&1 | %filecheck %s
-// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %opt -O2 -S | %apply-typeart --typeart-stack --typeart-filter -S 2>&1 | %filecheck %s
+// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %apply-typeart --typeart-stack=true --typeart-filter=true -S 2>&1 | %filecheck %s
+// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %opt -O2 -S | %apply-typeart --typeart-stack=true --typeart-filter=true -S 2>&1 | %filecheck %s
 
-// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %apply-typeart --typeart-stack --typeart-filter -S | %filecheck %s --check-prefix=check-inst
-// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %opt -O2 -S | %apply-typeart --typeart-stack --typeart-filter -S | %filecheck %s --check-prefix=check-inst
+// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %apply-typeart --typeart-stack=true --typeart-filter=true -S | %filecheck %s --check-prefix=check-inst
+// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %opt -O2 -S | %apply-typeart --typeart-stack=true --typeart-filter=true -S | %filecheck %s --check-prefix=check-inst
 // REQUIRES: openmp
 // clang-format on
 
@@ -24,7 +24,7 @@ void func(int* x, int* e) {
 
 void foo() {
   // check-inst: define {{.*}} @foo
-  // check-inst: call void @__typeart_alloc_stack(i8* %0, i32 2, i64 1)
+  // check-inst: call void @__typeart_alloc_stack({{i8\*|ptr}} %{{[a-z0-9]}}, i32 12, i64 1)
   int x = 1;
   int y = 2;
 #pragma omp parallel
@@ -45,7 +45,7 @@ void func_other(int* x, int* e) {
 
 void bar(int x_other) {
   // check-inst: define {{.*}} @bar
-  // check-inst: call void @__typeart_alloc_stack(i8* %0, i32 2, i64 1)
+  // check-inst: call void @__typeart_alloc_stack({{i8\*|ptr}} %{{[a-z0-9]+}}, i32 12, i64 1)
   int x = x_other;
   int y = 2;
 #pragma omp parallel

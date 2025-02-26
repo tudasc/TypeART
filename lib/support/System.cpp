@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2022 TypeART Authors
+// Copyright (c) 2017-2025 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -13,7 +13,9 @@
 #include "System.h"
 
 #include <cstdio>
+#include <dlfcn.h>
 #include <filesystem>
+#include <link.h>  // For link_map, see SourceLocation::create
 #include <memory>
 #include <sstream>
 #include <sys/resource.h>
@@ -43,7 +45,7 @@ long Process::getMaxRSS() {
 
 class CommandPipe {
   using UniqueFile = std::unique_ptr<FILE, int (*)(FILE*)>;
-  UniqueFile command;
+  UniqueFile command_;
 
   explicit CommandPipe(UniqueFile command);
 
@@ -53,7 +55,7 @@ class CommandPipe {
   [[nodiscard]] std::string nextLine() const;
 };
 
-CommandPipe::CommandPipe(CommandPipe::UniqueFile command) : command(std::move(command)) {
+CommandPipe::CommandPipe(CommandPipe::UniqueFile command) : command_(std::move(command)) {
 }
 
 std::optional<CommandPipe> CommandPipe::create(std::string_view command) {
@@ -71,7 +73,7 @@ std::string CommandPipe::nextLine() const {
   size_t buffer_length{0};
   std::string result;
 
-  if (getline(&buffer, &buffer_length, command.get()) != -1) {
+  if (getline(&buffer, &buffer_length, command_.get()) != -1) {
     result = buffer;
   }
 
@@ -87,9 +89,9 @@ std::string CommandPipe::nextLine() const {
 }
 
 bool test_command(std::string_view command, std::string_view test_arg) {
-  const auto available = [](const std::string_view command) -> bool {
+  const auto available = [](const std::string_view command_to_try) -> bool {
     constexpr int command_not_found{127};
-    auto* proc        = popen(command.data(), "r");
+    auto* proc        = popen(command_to_try.data(), "r");
     const int ret_val = pclose(proc);
     return WEXITSTATUS(ret_val) != command_not_found;
   };
@@ -125,13 +127,50 @@ class SourceLocHelper {
   }
 };
 
+struct RemoveEnvInScope {
+  explicit RemoveEnvInScope(std::string_view var_name) : var_name_(var_name) {
+    old_val_ = [](std::string_view env_var_name) {
+      const auto* env_data = getenv(env_var_name.data());
+      if (env_data) {
+        return env_data;
+      }
+      return "";
+    }(var_name);
+
+    if (!old_val_.empty()) {
+      setenv(var_name.data(), "", true);
+    }
+  }
+
+  ~RemoveEnvInScope() {
+    if (!old_val_.empty()) {
+      setenv(var_name_.data(), old_val_.data(), true);
+    }
+  }
+
+ private:
+  std::string_view var_name_;
+  std::string_view old_val_;
+};
+
 }  // namespace system
 
-std::optional<SourceLocation> SourceLocation::create(const void* addr) {
-  const auto pipe = [](const void* addr) -> std::optional<system::CommandPipe> {
-    using namespace system;
-    const auto& sloc_helper = SourceLocHelper::get();
+std::optional<SourceLocation> SourceLocation::create(const void* raw_address, intptr_t offset_ptr) {
+  // Preload might cause infinite recursion, hence temp. remove this flag in this scope only:
+  system::RemoveEnvInScope rm_preload_var{"LD_PRELOAD"};
+
+  const auto pipe = [](const void* paddr, intptr_t offset_ptr_value) -> std::optional<system::CommandPipe> {
+    const auto& sloc_helper = system::SourceLocHelper::get();
     const auto& proc        = system::Process::get();
+
+    // FIXME: Inst Pointer points one past what we need with __built_in_return_addr(0), hacky way to fix:
+    const auto addr = [](const auto address_to_offset) {  //  reinterpret_cast<intptr_t>(paddr) - offset_ptr;
+      // Transform addr to VMA Addr:
+      Dl_info info;
+      link_map* link_map;
+      dladdr1((void*)address_to_offset, &info, (void**)&link_map, RTLD_DL_LINKMAP);
+      return address_to_offset - link_map->l_addr;
+    }(reinterpret_cast<intptr_t>(paddr) - offset_ptr_value);
 
     if (sloc_helper.hasLLVMSymbolizer()) {
       std::ostringstream command;
@@ -144,7 +183,7 @@ std::optional<SourceLocation> SourceLocation::create(const void* addr) {
 
     if (sloc_helper.hasAddr2line()) {
       std::ostringstream command;
-      command << "addr2line --demangle=auto -f -e " << proc.exe() << " " << addr;
+      command << "addr2line --demangle=auto -f -e " << proc.exe() << " " << std::hex << addr;
       auto addr2line = system::CommandPipe::create(command.str());
       if (addr2line) {
         return addr2line;
@@ -152,7 +191,7 @@ std::optional<SourceLocation> SourceLocation::create(const void* addr) {
     }
 
     return {};
-  }(addr);
+  }(raw_address, offset_ptr);
 
   if (!pipe) {
     return {};

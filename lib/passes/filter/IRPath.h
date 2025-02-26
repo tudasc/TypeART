@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2022 TypeART Authors
+// Copyright (c) 2017-2025 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -15,12 +15,12 @@
 
 #include "compat/CallSite.h"
 
-#include "llvm/ADT/Optional.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Value.h"
 #include "llvm/Support/raw_ostream.h"
 
+#include <optional>
 #include <unordered_map>
 #include <vector>
 
@@ -35,25 +35,25 @@ struct IRPath {
   //  we should likely skip search, see IRSearch.h
   std::unordered_map<llvm::Value*, int> phi_cache;
 
-  llvm::Optional<Node> getStart() const {
+  std::optional<Node> getStart() const {
     if (path.empty()) {
-      return llvm::None;
+      return {};
     }
     return *path.begin();
   }
 
-  llvm::Optional<Node> getEnd() const {
+  std::optional<Node> getEnd() const {
     return getNodeFromEnd<1>();
   }
 
-  llvm::Optional<Node> getEndPrev() const {
+  std::optional<Node> getEndPrev() const {
     return getNodeFromEnd<2>();
   }
 
   template <unsigned n>
-  llvm::Optional<Node> getNodeFromEnd() const {
+  std::optional<Node> getNodeFromEnd() const {
     if (path.empty() || path.size() < n) {
-      return llvm::None;
+      return {};
     }
     return *std::prev(path.end(), n);
   }
@@ -113,13 +113,13 @@ struct CallsitePath {
   using Node = std::pair<llvm::Function*, IRPath>;
 
   // Structure: [Function (start) or null for global]{1} -> [Path -> Function]* -> (Path)?
-  llvm::Optional<llvm::Function*> start;
+  std::optional<llvm::Function*> start;
   IRPath terminatingPath{};
   std::vector<Node> intermediatePath;
 
   explicit CallsitePath(llvm::Function* root) {
     if (root == nullptr) {
-      start = llvm::None;
+      start = {};
     } else {
       start = root;
     }
@@ -133,32 +133,32 @@ struct CallsitePath {
   llvm::Function* getCurrentFunc() {
     if (intermediatePath.empty()) {
       if (start) {
-        return start.getValue();
+        return start.value();
       }
       return nullptr;
     }
     auto end = getEnd();
     if (end) {
-      return end.getValue().first;
+      return end.value().first;
     }
     return nullptr;
   }
 
-  llvm::Optional<Node> getStart() const {
+  std::optional<Node> getStart() const {
     if (intermediatePath.empty()) {
-      return llvm::None;
+      return {};
     }
     return *intermediatePath.begin();
   }
 
-  llvm::Optional<Node> getEnd() const {
+  std::optional<Node> getEnd() const {
     return getNodeFromEnd<1>();
   }
 
   template <unsigned n>
-  llvm::Optional<Node> getNodeFromEnd() const {
+  std::optional<Node> getNodeFromEnd() const {
     if (intermediatePath.empty() || intermediatePath.size() < n) {
-      return llvm::None;
+      return {};
     }
     return *std::prev(intermediatePath.end(), n);
   }
@@ -167,11 +167,11 @@ struct CallsitePath {
     auto csite = p.getEnd();
     if (csite) {
       // Omp extension: we may pass the outlined area directly as llvm::Function
-      if (auto f = llvm::dyn_cast<llvm::Function>(csite.getValue())) {
+      if (auto f = llvm::dyn_cast<llvm::Function>(csite.value())) {
         intermediatePath.emplace_back(f, p);
         return;
       }
-      llvm::CallSite c(csite.getValue());
+      llvm::CallSite c(csite.value());
       intermediatePath.emplace_back(c.getCalledFunction(), p);
     }
   }
@@ -212,7 +212,7 @@ inline llvm::raw_ostream& operator<<(llvm::raw_ostream& os, const CallsitePath& 
   if (vec.empty()) {
     os << "func_path = [";
     if (p.start) {
-      os << p.start.getValue()->getName();
+      os << p.start.value()->getName();
     } else {
       os << "Module";
     }

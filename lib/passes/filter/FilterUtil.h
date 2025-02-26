@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2022 TypeART Authors
+// Copyright (c) 2017-2025 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -19,8 +19,6 @@
 #include "support/DefUseChain.h"
 #include "support/Logger.h"
 
-#include "llvm/ADT/None.h"
-#include "llvm/ADT/Optional.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/iterator_range.h"
@@ -76,7 +74,7 @@ inline std::pair<llvm::Argument*, int> findArg(CallSite c, const Path& p) {
     return {nullptr, -1};
   }
 
-  Value* in          = arg.getValue();
+  Value* in          = arg.value();
   const auto arg_pos = llvm::find_if(c.args(), [&in](const Use& arg_use) -> bool { return arg_use.get() == in; });
 
   if (arg_pos == c.arg_end()) {
@@ -90,7 +88,7 @@ inline std::pair<llvm::Argument*, int> findArg(CallSite c, const Path& p) {
     if (outlined) {
       // Calc the offset of arg in executor to actual arg of the outline function:
       auto offset        = omp::OmpContext::getArgOffsetToMicrotask(c, arg_num);
-      Argument* argument = (outlined.getValue()->arg_begin() + offset);
+      Argument* argument = (outlined.value()->arg_begin() + offset);
       return {argument, offset};
     }
   }
@@ -139,10 +137,12 @@ ArgCorrelation correlate(CallSite c, const Path& p, TypeID&& isType) {
 }
 }  // namespace detail
 
+#if LLVM_VERSION_MAJOR < 15
 inline ArgCorrelation correlate2void(CallSite c, const Path& p) {
   return detail::correlate(
       c, p, [](llvm::Type* type) { return type->isPointerTy() && type->getPointerElementType()->isIntegerTy(8); });
 }
+#endif
 
 inline ArgCorrelation correlate2pointer(CallSite c, const Path& p) {
   // weaker predicate than void pointer, but more generally applicable
@@ -160,11 +160,11 @@ inline bool isTempAlloc(llvm::Value* in) {
         for (auto& args : f->args()) {
           if (&args == store->getValueOperand()) {
             match = true;
-            return util::DefUseChain::cancel;
+            return util::DefUseChain::kCancel;
           }
         }
       }
-      return util::DefUseChain::no_match;
+      return util::DefUseChain::kNoMatch;
     });
 
     return match;

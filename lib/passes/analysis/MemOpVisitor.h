@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2022 TypeART Authors
+// Copyright (c) 2017-2025 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -14,6 +14,7 @@
 #define LIB_MEMOPVISITOR_H_
 
 #include "MemOpData.h"
+#include "configuration/Configuration.h"
 
 #include "llvm/IR/InstVisitor.h"
 
@@ -41,7 +42,8 @@ struct MemOpVisitor : public llvm::InstVisitor<MemOpVisitor> {
 
  public:
   MemOpVisitor();
-  MemOpVisitor(bool collect_allocas, bool collect_heap);
+  explicit MemOpVisitor(const config::Configuration& config);
+  MemOpVisitor(bool stack, bool heap);
   void collect(llvm::Function& function);
   void collectGlobals(llvm::Module& module);
   void clear();

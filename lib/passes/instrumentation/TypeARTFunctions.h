@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2022 TypeART Authors
+// Copyright (c) 2017-2025 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -61,13 +61,13 @@ class TAFunctions : public TAFunctionQuery {
 };
 
 class TAFunctionDeclarator {
-  llvm::Module& m;
+  llvm::Module& module;
   //  [[maybe_unused]] InstrumentationHelper& instr;
-  TAFunctions& tafunc;
-  llvm::StringMap<llvm::Function*> f_map;
+  TAFunctions& typeart_functions;
+  llvm::StringMap<llvm::Function*> function_map;
 
  public:
-  TAFunctionDeclarator(llvm::Module& m, InstrumentationHelper& instr, TAFunctions& tafunc);
+  TAFunctionDeclarator(llvm::Module& m, InstrumentationHelper& instr, TAFunctions& typeart_func);
   llvm::Function* make_function(IFunc function, llvm::StringRef basename, llvm::ArrayRef<llvm::Type*> args,
                                 bool with_omp = false, bool fixed_name = true);
   const llvm::StringMap<llvm::Function*>& getFunctionMap() const;

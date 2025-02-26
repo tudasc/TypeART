@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2022 TypeART Authors
+// Copyright (c) 2017-2025 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -15,13 +15,14 @@
 
 #include <memory>
 #include <string>
+#include <string_view>
 #include <system_error>
 #include <utility>
 #include <vector>
 
 namespace typeart {
 
-enum class StructTypeFlag : int { USER_DEFINED = 1, LLVM_VECTOR = 2 };
+enum class StructTypeFlag : int { USER_DEFINED = 1, LLVM_VECTOR = 2, FWD_DECL = 4 };
 
 struct StructTypeInfo {
   int type_id;
@@ -36,7 +37,9 @@ struct StructTypeInfo {
 
 class TypeDatabase {
  public:
-  virtual void registerStruct(const StructTypeInfo& struct_info) = 0;
+  virtual void registerStruct(const StructTypeInfo& struct_info, bool overwrite = false) = 0;
+
+  virtual void clear() = 0;
 
   [[nodiscard]] virtual bool isUnknown(int type_id) const = 0;
 
@@ -45,6 +48,8 @@ class TypeDatabase {
   [[nodiscard]] virtual bool isReservedType(int type_id) const = 0;
 
   [[nodiscard]] virtual bool isBuiltinType(int type_id) const = 0;
+
+  [[nodiscard]] virtual bool isPointerType(int type_id) const = 0;
 
   [[nodiscard]] virtual bool isStructType(int type_id) const = 0;
 
@@ -56,6 +61,8 @@ class TypeDatabase {
 
   [[nodiscard]] virtual const StructTypeInfo* getStructInfo(int type_id) const = 0;
 
+  [[nodiscard]] virtual StructTypeInfo* getStructInfo(int type_id) = 0;
+
   [[nodiscard]] virtual size_t getTypeSize(int type_id) const = 0;
 
   [[nodiscard]] virtual const std::vector<StructTypeInfo>& getStructList() const = 0;
@@ -63,7 +70,7 @@ class TypeDatabase {
   virtual ~TypeDatabase() = default;
 };
 
-std::pair<std::unique_ptr<TypeDatabase>, std::error_code> make_database(const std::string& file);
+std::pair<std::unique_ptr<TypeDatabase>, std::error_code> make_database(std::string_view file);
 
 }  // namespace typeart
 

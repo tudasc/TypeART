@@ -82,7 +82,7 @@ int main(int argc, char** argv) {
 // CHECK: [Trace] TypeART Runtime Trace
 
 // Alloc matrix array
-// CHECK: [Trace] Alloc 0x{{.*}} struct.mat_t 16 4
+// CHECK: [Trace] Alloc 0x{{.*}} {{(struct.)?}}mat_t 16 4
 
 // Alloc matrix values
 // CHECK: [Trace] Alloc 0x{{.*}} double 8 64

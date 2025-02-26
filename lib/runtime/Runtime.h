@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2022 TypeART Authors
+// Copyright (c) 2017-2025 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -26,11 +26,12 @@ struct PointerInfo;
 
 namespace debug {
 
-std::string toString(const void* memAddr, int typeId, size_t count, size_t typeSize, const void* calledFrom);
+std::string toString(const void* memAddr, int typeId, size_t count, size_t typeSize, const void* calledFrom,
+                     bool heap = false);
 
-std::string toString(const void* memAddr, int typeId, size_t count, const void* calledFrom);
+std::string toString(const void* memAddr, int typeId, size_t count, const void* calledFrom, bool heap = false);
 
-std::string toString(const void* addr, const PointerInfo& info);
+std::string toString(const void* addr, const PointerInfo& info, bool heap = false);
 
 }  // namespace debug
 

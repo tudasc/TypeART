@@ -33,8 +33,8 @@ int main() {
   return 0;
 }
 // main()
-// CHECK: [Trace] Alloc [[POINTER:0x[0-9a-f]+]] struct.S1 16 6 H
-// CHECK: [Trace] Free [[POINTER]]. typeId: [[typeid:2[5-9][0-9]]] (struct.S1).
+// CHECK: [Trace] Alloc [[POINTER:0x[0-9a-f]+]] {{(struct.)?}}S1 16 6 H
+// CHECK: [Trace] Free [[POINTER]]. typeId: [[typeid:2[5-9][0-9]]] ({{(struct.)?}}S1).
 // foo()
-// CHECK: [Trace] Alloc [[POINTER:0x[0-9a-f]+]] struct.S1 16 3 H
-// CHECK: [Trace] Free [[POINTER]]. typeId: [[typeid]] (struct.S1).
+// CHECK: [Trace] Alloc [[POINTER:0x[0-9a-f]+]] {{(struct.)?}}S1 16 3 H
+// CHECK: [Trace] Free [[POINTER]]. typeId: [[typeid]] ({{(struct.)?}}S1).

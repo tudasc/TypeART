@@ -11,12 +11,10 @@ void foo(int n) {
 
 // clang-format off
 
-// CHECK: [[POINTER:%[0-9a-z]+]] = call noalias{{( align [0-9]+)?}} i8* @calloc(i64{{( noundef)?}} [[SIZE:[0-9a-z]+]], i64{{( noundef)?}} 8)
-// CHECK-NEXT: call void @__typeart_alloc(i8* [[POINTER]], i32 0, i64 80)
-// CHECK-NOT: bitcast i8* [[POINTER]] to double*
+// CHECK: [[POINTER:%[0-9a-z]+]] = call noalias{{( align [0-9]+)?}} {{i8\*|ptr}} @calloc(i64{{( noundef)?}} [[SIZE:[0-9a-z]+]], i64{{( noundef)?}} 8)
+// CHECK-NEXT: call void @__typeart_alloc({{i8\*|ptr}} [[POINTER]], i32 {{(10|2)}}, i64 80)
 
-// CHECK: [[POINTER2:%[0-9a-z]+]] = call noalias{{( align [0-9]+)?}} i8* @calloc(i64{{( noundef)?}} [[SIZE2:%[0-9a-z]+]], i64{{( noundef)?}} 8)
-// CHECK-NOT: call void @__typeart_alloc(i8* [[POINTER2]], i32 0, i64 [[SIZE2]])
-// CHECK-NOT: bitcast i8* [[POINTER]] to double*
+// CHECK: [[POINTER2:%[0-9a-z]+]] = call noalias{{( align [0-9]+)?}} {{i8\*|ptr}} @calloc(i64{{( noundef)?}} [[SIZE2:%[0-9a-z]+]], i64{{( noundef)?}} 8)
+// CHECK-NOT: call void @__typeart_alloc({{i8\*|ptr}} [[POINTER2]], i32 {{(10|2)}}, i64 [[SIZE2]])
 
 // clang-format on

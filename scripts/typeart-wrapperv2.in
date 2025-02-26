@@ -1,0 +1,105 @@
+#!/bin/bash
+#
+# TypeART library
+#
+# Copyright (c) 2017-2025 TypeART Authors
+# Distributed under the BSD 3-Clause license.
+# (See accompanying file LICENSE.txt or copy at
+# https://opensource.org/licenses/BSD-3-Clause)
+#
+# Project home: https://github.com/tudasc/TypeART
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+
+function typeart_is_wrapper_disabled_fn() {
+  case "${TYPEART_WRAPPER}" in
+  off | OFF | 0 | false | FALSE)
+    return 1
+    ;;
+  esac
+  return 0
+}
+
+function typeart_global_init_fn() {
+  local -r typeart_use_rel_path=@TYPEART_RELOCATABLE@
+  if [ "$typeart_use_rel_path" == 0 ]; then
+    local -r typeart_bin_dir="@TYPEART_BINARY_DIR@"
+    local -r typeart_lib_dir="@TYPEART_RT_DIR@"
+    local -r typeart_include_dir="@TYPEART_INCLUDE_DIRS@"
+    local -r typeart_pass="@TYPEART_PASS_DIR@/$<TARGET_FILE_NAME:typeart::TransformPass>"
+  else
+    # shellcheck disable=SC2155
+    local -r typeart_bin_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    # shellcheck disable=SC2155
+    local -r typeart_install_dir="$(dirname "${typeart_bin_dir}")"
+    local -r typeart_lib_dir="${typeart_install_dir}/@CMAKE_INSTALL_LIBDIR@"
+    local -r typeart_include_dir="-I${typeart_install_dir}/@CMAKE_INSTALL_INCLUDEDIR@/@PROJECT_NAME@"
+    local -r typeart_pass="${typeart_lib_dir}/$<TARGET_FILE_NAME:typeart::TransformPass>"
+  fi
+
+  readonly typeart_compiler="@TYPEART_COMPILER@"
+
+  readonly typeart_includes="${typeart_include_dir}"
+  readonly typeart_ldflags="-L${typeart_lib_dir}/ \
+                   -Wl,-rpath,${typeart_lib_dir}/ \
+                   -l$<TARGET_FILE_BASE_NAME:typeart::Runtime>"
+  readonly typeart_san_flags="@TYPEART_SAN_FLAGS@"
+  readonly typeart_plugin="-fpass-plugin="${typeart_pass}""
+
+  typeart_more_flags="@TYPEART_INITIAL_FLAGS@"
+  @TYPEART_FILTER_FLAG@
+  case "${TYPEART_WRAPPER_EMIT_IR}" in
+  on | ON | 1 | true | TRUE)
+    export TYPEART_PASS_INTERNAL_EMIT_IR=1
+    typeart_more_flags+=" -fno-discard-value-names"
+    ;;
+  esac
+}
+
+function typeart_is_linking_fn() {
+  local arg=""
+  for arg in "$@"; do
+    case "$arg" in
+    -c | -S | -E | -emit-llvm)
+      return 0
+    ;;
+    esac
+  done
+  return 1
+}
+
+function typeart_parse_cmd_line_fn() {
+  local typeart_has_debug=0
+  for arg in "$@"; do
+    if [ "$arg" = "-g" ]; then
+      typeart_has_debug=1
+      break
+    fi
+  done
+  if [ $typeart_has_debug == 0 ]; then
+    typeart_more_flags+=" -g"
+  fi
+}
+
+function typeart_main_driver_fn() {
+  typeart_global_init_fn
+
+  typeart_is_wrapper_disabled_fn
+  if [ "$?" == 1 ]; then
+    # shellcheck disable=SC2068
+    $typeart_compiler $@
+    return 0
+  fi
+  
+  typeart_parse_cmd_line_fn "$@"
+
+  typeart_is_linking_fn "$@"
+  if [ "$?" == 1 ]; then
+    typeart_more_flags+=" ${typeart_ldflags}"
+  fi
+
+  $typeart_compiler ${typeart_plugin} ${typeart_includes} ${typeart_more_flags} ${typeart_san_flags} $@
+}
+
+typeart_main_driver_fn "$@"

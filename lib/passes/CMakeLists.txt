@@ -1,25 +1,35 @@
 add_subdirectory(typegen)
 add_subdirectory(filter)
 add_subdirectory(analysis)
+add_subdirectory(configuration)
 
 set(PASS_SOURCES
   TypeARTPass.cpp
-  Commandline.cpp
   support/TypeUtil.cpp
+  support/ModuleDumper.cpp
   instrumentation/InstrumentationHelper.cpp
   instrumentation/TypeARTFunctions.cpp
   instrumentation/MemOpArgCollector.cpp
   instrumentation/MemOpInstrumentation.cpp
   instrumentation/Instrumentation.cpp
-  ../support/FileConfiguration.cpp
   TypeARTConfiguration.cpp
+  Commandline.cpp
 )
+
+if(${LLVM_VERSION_MAJOR} VERSION_LESS_EQUAL "14")
+  set(TYPE_IR_GEN typeart::TypeGenStatic)
+else()
+  set(TYPE_IR_GEN )
+endif()
 
 typeart_make_llvm_module(
   ${TYPEART_PREFIX}_TransformPass "${PASS_SOURCES}"
   LINK_LIBS typeart::MemInstFinder
             typeart::TypesStatic
-            typeart::TypeGenStatic
+            typeart::TypeGenDimetaStatic
+            typeart::PassConfiguration
+            dimeta::Types
+            ${TYPE_IR_GEN}
   INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}
                ${PROJECT_SOURCE_DIR}/lib/
                ${PROJECT_SOURCE_DIR}/lib/passes/

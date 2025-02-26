@@ -2,7 +2,7 @@
 #
 # TypeART library
 #
-# Copyright (c) 2017-2022 TypeART Authors
+# Copyright (c) 2017-2025 TypeART Authors
 # Distributed under the BSD 3-Clause license.
 # (See accompanying file LICENSE.txt or copy at
 # https://opensource.org/licenses/BSD-3-Clause)
@@ -115,7 +115,7 @@ def make_typeart_ir(config):
     env = {
         **os.environ,
         "TYPEART_WRAPPER_EMIT_IR": "1",
-        "TYPEART_TYPE_FILE": str(config.types_file),
+        "TYPEART_TYPES": str(config.types_file),
     }
     subprocess.check_call([typeart_wrapper] + config.wrapper_args + [config.source_file], env=env,
                           cwd=source_dir)

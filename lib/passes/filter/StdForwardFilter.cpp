@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2022 TypeART Authors
+// Copyright (c) 2017-2025 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -74,10 +74,15 @@ FilterAnalysis filter::ForwardFilterImpl::precheck(Value* in, Function* start, c
 
 FilterAnalysis filter::ForwardFilterImpl::decl(CallSite current, const Path& p) const {
   const bool match_sig = matcher->match(current) == Matcher::MatchResult::Match;
+  LOG_DEBUG("Matched sig: " << match_sig)
   if (match_sig) {
     // if we have a deep_matcher it needs to trigger, otherwise analyze
     if (!deep_matcher || deep_matcher->match(current) == Matcher::MatchResult::Match) {
+#if LLVM_VERSION_MAJOR < 15
       auto result = correlate2void(current, p);
+#else
+      auto result = correlate2pointer(current, p);
+#endif
       switch (result) {
         case ArgCorrelation::GlobalMismatch:
           [[fallthrough]];
@@ -110,7 +115,11 @@ FilterAnalysis filter::ForwardFilterImpl::def(CallSite current, const Path& p) c
   const bool match_sig = matcher->match(current) == Matcher::MatchResult::Match;
   if (match_sig) {
     if (!deep_matcher || deep_matcher->match(current) == Matcher::MatchResult::Match) {
+#if LLVM_VERSION_MAJOR < 15
       auto result = correlate2void(current, p);
+#else
+      auto result = correlate2pointer(current, p);
+#endif
       switch (result) {
         case ArgCorrelation::GlobalMismatch:
           [[fallthrough]];

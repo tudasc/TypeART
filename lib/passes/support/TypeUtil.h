@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2022 TypeART Authors
+// Copyright (c) 2017-2025 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -22,9 +22,11 @@ class LLVMContext;
 
 namespace typeart::util::type {
 
+#if LLVM_VERSION_MAJOR < 15
 bool isi64Ptr(llvm::Type* type);
 
 bool isVoidPtr(llvm::Type* type);
+#endif
 
 unsigned getTypeSizeInBytes(llvm::Type* t, const llvm::DataLayout& dl);
 
@@ -41,10 +43,6 @@ unsigned getArrayLengthFlattened(llvm::Type* arrT);
 unsigned getStructSizeInBytes(llvm::Type* structT, const llvm::DataLayout& dl);
 
 unsigned getPointerSizeInBytes(llvm::Type* ptrT, const llvm::DataLayout& dl);
-
-unsigned getTypeSizeForArrayAlloc(llvm::AllocaInst* ai, const llvm::DataLayout& dl);
-
-// bool compareTypes(llvm::Type* t1, llvm::Type* t2);
 
 }  // namespace typeart::util::type
 

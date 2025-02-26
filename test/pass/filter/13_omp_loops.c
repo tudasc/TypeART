@@ -1,11 +1,12 @@
 // clang-format off
-// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %apply-typeart --typeart-stack --typeart-filter -S 2>&1 | %filecheck %s
-// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %opt -O2 -S | %apply-typeart --typeart-stack --typeart-filter -S 2>&1 | %filecheck %s
-// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %opt -O2 -S | %apply-typeart --typeart-stack --typeart-filter --typeart-filter-implementation=cg --typeart-filter-cg-file=%p/05_cg.ipcg -S 2>&1
+// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %apply-typeart --typeart-stack=true --typeart-filter=true -S 2>&1 | %filecheck %s
+// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %opt -O2 -S | %apply-typeart --typeart-stack=true --typeart-filter=true -S 2>&1 | %filecheck %s
+// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %opt -O2 -S | %apply-typeart --typeart-stack=true --typeart-filter=true --typeart-filter-implementation=cg --typeart-filter-cg-file=%p/05_cg.ipcg -S 2>&1
 
-// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %apply-typeart --typeart-stack --typeart-filter -S | %filecheck %s --check-prefix=check-inst
-// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %opt -O2 -S | %apply-typeart --typeart-stack --typeart-filter -S | %filecheck %s --check-prefix=check-inst
-// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %opt -O2 -S | %apply-typeart --typeart-stack --typeart-filter --typeart-filter-implementation=cg --typeart-filter-cg-file=%p/05_cg.ipcg -S | %filecheck %s --check-prefix=check-inst
+// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %apply-typeart --typeart-stack=true --typeart-filter=true -S | %filecheck %s --check-prefix=check-inst
+// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %opt -O2 -S | %apply-typeart --typeart-stack=true --typeart-filter=true -S | %filecheck %s --check-prefix=check-inst
+// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %opt -O2 -S | %apply-typeart --typeart-stack=true --typeart-filter=true --typeart-filter-implementation=cg --typeart-filter-cg-file=%p/05_cg.ipcg -S | %filecheck %s --check-prefix=check-inst
+// REQUIRES: llvm-14
 // REQUIRES: openmp
 // clang-format on
 
@@ -21,7 +22,7 @@ void foo(int count) {
   // check-inst: define {{.*}} @foo
   // check-inst: %d = alloca
   // check-inst: [[POINTER:%[0-9a-z]+]] = bitcast i32* %d to i8*
-  // check-inst: call void @__typeart_alloc_stack(i8* [[POINTER]], i32 2, i64 1)
+  // check-inst: call void @__typeart_alloc_stack(i8* [[POINTER]], i32 12, i64 1)
   // check-inst-not: __typeart_alloc_stack_omp
   int d = 3;
   int e = 4;

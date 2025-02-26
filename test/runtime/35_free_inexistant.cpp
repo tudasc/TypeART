@@ -3,12 +3,13 @@
 // clang-format on
 
 #include "../../lib/runtime/CallbackInterface.h"
+#include "../../lib/typelib/TypeInterface.h"
 #include "util.h"
 
 #include <stdio.h>
 
 int main(int argc, char** argv) {
-  const int type{6};
+  const int type{TYPEART_FLOAT_64};
   const size_t extent{6};
   const size_t expected_count{extent};
 
@@ -36,13 +37,13 @@ int main(int argc, char** argv) {
   // CHECK: [Error]{{.*}}Free on unregistered address
   __typeart_free(reinterpret_cast<const void*>(d));
 
-  // CHECK: [Trace] Alloc 0x{{[0-9a-f]+}} 6 double 8 6
+  // CHECK: [Trace] Alloc 0x{{[0-9a-f]+}} 23 double 8 6
   __typeart_alloc(reinterpret_cast<const void*>(&d[0]), type, extent);
   // CHECK-NOT: [Error]
   // CHECK-NOT: [Check]
   check(&d[0]);
 
-  // CHECK: [Trace] Free 0x{{[0-9a-f]+}} 6 double 8 6
+  // CHECK: [Trace] Free 0x{{[0-9a-f]+}} 23 double 8 6
   __typeart_free(reinterpret_cast<const void*>(d));
   // CHECK: [Error]{{.*}}Free on unregistered address
   __typeart_free(reinterpret_cast<const void*>(d));

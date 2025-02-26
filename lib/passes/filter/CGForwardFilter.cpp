@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2022 TypeART Authors
+// Copyright (c) 2017-2025 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -85,7 +85,11 @@ FilterAnalysis CGFilterImpl::precheck(Value* in, Function* start, const FPath& f
 
 FilterAnalysis CGFilterImpl::decl(CallSite current, const Path& p) {
   if (deep_matcher && deep_matcher->match(current) == Matcher::MatchResult::Match) {
+#if LLVM_VERSION_MAJOR < 15
     auto result = correlate2void(current, p);
+#else
+    auto result = correlate2pointer(current, p);
+#endif
     switch (result) {
       case ArgCorrelation::GlobalMismatch:
         [[fallthrough]];

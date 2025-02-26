@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2022 TypeART Authors
+// Copyright (c) 2017-2025 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -16,10 +16,10 @@
 #include "Runtime.h"
 #include "RuntimeData.h"
 #include "RuntimeInterface.h"
+#include "TypeInterface.h"
 #include "support/Logger.h"
 #include "support/System.h"
 
-#include "llvm/ADT/Optional.h"
 #include "llvm/Support/raw_ostream.h"
 
 #include <cassert>
@@ -67,7 +67,8 @@ inline size_t get_member_index_at(const typeart_struct_layout& structInfo, size_
 
 }  // namespace detail
 
-TypeResolution::TypeResolution(const TypeDB& type_db, Recorder& recorder) : typeDB{type_db}, recorder{recorder} {
+TypeResolution::TypeResolution(const TypeDB& type_db, Recorder& recorder)
+    : type_database{type_db}, runtime_recorder{recorder} {
 }
 
 TypeResolution::TypeArtStatus TypeResolution::getSubTypeInfo(const void* baseAddr, size_t offset,
@@ -87,14 +88,17 @@ TypeResolution::TypeArtStatus TypeResolution::getSubTypeInfo(const void* baseAdd
   const int memberType     = containerInfo.member_types[memberIndex];
   const size_t baseOffset  = containerInfo.offsets[memberIndex];
 
-  const size_t internalOffset   = offset - baseOffset;
-  const size_t typeSize         = typeDB.getTypeSize(memberType);
+  const size_t internalOffset = offset - baseOffset;
+  const size_t typeSize       = type_database.getTypeSize(memberType);
+  if (typeSize == 0) {
+    return TYPEART_INVALID_ID;
+  }
   const size_t offsetInTypeSize = internalOffset / typeSize;
   const size_t newOffset        = internalOffset % typeSize;
 
   // If newOffset != 0, the subtype cannot be atomic, i.e. must be a struct
   if (newOffset != 0) {
-    if (typeDB.isReservedType(memberType)) {
+    if (type_database.isReservedType(memberType)) {
       return TYPEART_BAD_ALIGNMENT;
     }
   }
@@ -176,7 +180,7 @@ TypeResolution::TypeArtStatus TypeResolution::getTypeInfo(const void* addr, cons
   TypeArtStatus status = getContainingTypeInfo(addr, basePtr, ptrInfo, &containing_type_count, &internal_byte_offset);
   if (status != TYPEART_OK) {
     if (status == TYPEART_UNKNOWN_ADDRESS) {
-      recorder.incAddrMissing(addr);
+      runtime_recorder.incAddrMissing(addr);
     }
     return status;
   }
@@ -188,13 +192,13 @@ TypeResolution::TypeArtStatus TypeResolution::getTypeInfo(const void* addr, cons
     return TYPEART_OK;
   }
 
-  if (typeDB.isBuiltinType(containing_type)) {
+  if (type_database.isBuiltinType(containing_type)) {
     // Address points to the middle of a builtin type
     return TYPEART_BAD_ALIGNMENT;
   }
 
   // Resolve struct recursively
-  const auto* structInfo = typeDB.getStructInfo(containing_type);
+  const auto* structInfo = type_database.getStructInfo(containing_type);
   if (structInfo != nullptr) {
     const void* containingTypeAddr = detail::add_byte_offset(addr, -std::ptrdiff_t(internal_byte_offset));
     return getTypeInfoInternal(containingTypeAddr, internal_byte_offset, *structInfo, type, count);
@@ -207,13 +211,20 @@ TypeResolution::TypeArtStatus TypeResolution::getContainingTypeInfo(const void* 
                                                                     const PointerInfo& ptrInfo, size_t* count,
                                                                     size_t* offset) const {
   const auto& basePtrInfo = ptrInfo;
-  size_t typeSize         = typeDB.getTypeSize(basePtrInfo.typeId);
+  size_t typeSize         = type_database.getTypeSize(basePtrInfo.typeId);
+  if (basePtrInfo.typeId == TYPEART_VOID || basePtrInfo.typeId == TYPEART_POINTER) {
+    // typeSize = 1;
+  }
 
   // Check for exact match -> no further checks and offsets calculations needed
   if (basePtr == addr) {
     *count  = ptrInfo.count;
     *offset = 0;
     return TYPEART_OK;
+  }
+
+  if (typeSize == 0) {
+    return TYPEART_ERROR;
   }
 
   // The address points inside a known array
@@ -249,11 +260,11 @@ TypeResolution::TypeArtStatus TypeResolution::getContainingTypeInfo(const void* 
 
 TypeResolution::TypeArtStatus TypeResolution::getStructInfo(int type_id, const StructTypeInfo** structInfo) const {
   // Requested ID must correspond to a struct
-  if (!typeDB.isStructType(type_id)) {
+  if (!type_database.isStructType(type_id)) {
     return TYPEART_WRONG_KIND;
   }
 
-  const auto* result = typeDB.getStructInfo(type_id);
+  const auto* result = type_database.getStructInfo(type_id);
 
   if (result != nullptr) {
     *structInfo = result;
@@ -263,7 +274,7 @@ TypeResolution::TypeArtStatus TypeResolution::getStructInfo(int type_id, const S
 }
 
 const TypeDB& TypeResolution::db() const {
-  return typeDB;
+  return type_database;
 }
 
 namespace detail {
@@ -308,7 +319,7 @@ char* string2char(std::string_view src) {
     return nullptr;
   }
 
-  typeart::RuntimeSystem::get().allocTracker.onAlloc(string_copy, TYPEART_INT8, source_length, ret_addr);
+  typeart::RuntimeSystem::get().allocTracker.onAlloc(string_copy, TYPEART_CHAR_8, source_length, ret_addr);
 
   memcpy(string_copy, src.data(), source_length);
 
@@ -345,7 +356,7 @@ typeart_status typeart_get_containing_type(const void* addr, int* type_id, size_
   typeart::RTGuard guard;
   auto alloc = typeart::RuntimeSystem::get().allocTracker.findBaseAlloc(addr);
   if (alloc) {
-    //    auto& allocVal = alloc.getValue();
+    //    auto& allocVal = alloc.value();
     *type_id      = alloc->second.typeId;
     *base_address = alloc->first;
     return typeart::RuntimeSystem::get().typeResolution.getContainingTypeInfo(addr, alloc->first, alloc->second, count,
@@ -384,7 +395,7 @@ typeart_status typeart_get_return_address(const void* addr, const void** return_
   auto alloc = typeart::RuntimeSystem::get().allocTracker.findBaseAlloc(addr);
 
   if (alloc) {
-    *return_addr = alloc.getValue().second.debug;
+    *return_addr = alloc.value().second.debug;
     return TYPEART_OK;
   }
   *return_addr = nullptr;

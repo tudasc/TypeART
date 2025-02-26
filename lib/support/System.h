@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2022 TypeART Authors
+// Copyright (c) 2017-2025 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -13,6 +13,7 @@
 #ifndef TYPEART_SYSTEM_H
 #define TYPEART_SYSTEM_H
 
+#include <cstdint>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -41,7 +42,7 @@ struct SourceLocation {
   std::string file;
   std::string line;
 
-  static std::optional<SourceLocation> create(const void* addr);
+  static std::optional<SourceLocation> create(const void* addr, intptr_t offset_ptr = 1);
 };
 
 }  // namespace typeart

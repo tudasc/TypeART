@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2022 TypeART Authors
+// Copyright (c) 2017-2025 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -22,11 +22,11 @@ namespace typeart::filter {
 
 class Filter {
  public:
-  Filter()              = default;
-  Filter(const Filter&) = default;
-  Filter(Filter&&)      = default;
+  Filter()                         = default;
+  Filter(const Filter&)            = default;
+  Filter(Filter&&)                 = default;
   Filter& operator=(const Filter&) = default;
-  Filter& operator=(Filter&&) = default;
+  Filter& operator=(Filter&&)      = default;
 
   virtual bool filter(llvm::Value*)                 = 0;
   virtual void setStartingFunction(llvm::Function*) = 0;

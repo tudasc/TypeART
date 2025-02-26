@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2022 TypeART Authors
+// Copyright (c) 2017-2025 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -41,17 +41,17 @@ enum class FilterAnalysis {
 
 template <typename CallSiteHandler, typename Search, typename OmpHelper = omp::EmptyContext>
 class BaseFilter : public Filter {
-  CallSiteHandler handler;
+  CallSiteHandler callsite_handler;
   Search search_dir{};
   bool malloc_mode{false};
   llvm::Function* start_f{nullptr};
 
  public:
-  explicit BaseFilter(const CallSiteHandler& handler) : handler(handler) {
+  explicit BaseFilter(const CallSiteHandler& handler) : callsite_handler(handler) {
   }
 
   template <typename... Args>
-  explicit BaseFilter(Args&&... args) : handler(std::forward<Args>(args)...) {
+  explicit BaseFilter(Args&&... args) : callsite_handler(std::forward<Args>(args)...) {
   }
 
   bool filter(llvm::Value* in) override {
@@ -83,7 +83,7 @@ class BaseFilter : public Filter {
       // is null in case of global:
       llvm::Function* currentF = fpath.getCurrentFunc();
       if (currentF != nullptr) {
-        auto status = handler.precheck(current, currentF, fpath);
+        auto status = callsite_handler.precheck(current, currentF, fpath);
         switch (status) {
           case FilterAnalysis::Filter:
             fpath.pop();
@@ -119,7 +119,7 @@ class BaseFilter : public Filter {
         continue;
       }
 
-      llvm::CallSite c(csite.getValue());
+      llvm::CallSite c(csite.value());
       if (fpath.contains(c)) {
         // Avoid recursion:
         // TODO a continue may be wrong, if the function itself eventually calls "MPI"?
@@ -151,7 +151,7 @@ class BaseFilter : public Filter {
         if (OmpHelper::isOmpExecutor(c)) {
           auto outlined = OmpHelper::getMicrotask(c);
           if (outlined) {
-            path2def.push(outlined.getValue());
+            path2def.push(outlined.value());
           }
         }
       }
@@ -232,7 +232,7 @@ class BaseFilter : public Filter {
       // Indirect calls (sth. like function pointers)
       if (indirect_call) {
         if constexpr (CallSiteHandler::Support::Indirect) {
-          auto status = handler.indirect(site, path);
+          auto status = callsite_handler.indirect(site, path);
           LOG_DEBUG("Indirect call: " << util::try_demangle(site))
           return status;
         } else {
@@ -248,7 +248,7 @@ class BaseFilter : public Filter {
       if (is_decl) {
         if (is_intrinsic) {
           if constexpr (CallSiteHandler::Support::Intrinsic) {
-            auto status = handler.intrinsic(site, path);
+            auto status = callsite_handler.intrinsic(site, path);
             LOG_DEBUG("Intrinsic call: " << util::try_demangle(site))
             return status;
           } else {
@@ -272,7 +272,7 @@ class BaseFilter : public Filter {
 
         // Handle decl (like MPI calls)
         if constexpr (CallSiteHandler::Support::Declaration) {
-          auto status = handler.decl(site, path);
+          auto status = callsite_handler.decl(site, path);
           LOG_DEBUG("Decl call: " << util::try_demangle(site))
           return status;
         } else {
@@ -282,7 +282,7 @@ class BaseFilter : public Filter {
       } else {
         // Handle definitions
         if constexpr (CallSiteHandler::Support::Definition) {
-          auto status = handler.def(site, path);
+          auto status = callsite_handler.def(site, path);
           LOG_DEBUG("Defined call: " << util::try_demangle(site))
           return status;
         } else {

@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2022 TypeART Authors
+// Copyright (c) 2017-2025 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -14,6 +14,8 @@
 
 #include "Instrumentation.h"
 #include "InstrumentationHelper.h"
+#include "configuration/Configuration.h"
+#include "support/ConfigurationBase.h"
 #include "support/Logger.h"
 #include "support/TypeUtil.h"
 #include "support/Util.h"
@@ -39,82 +41,60 @@ using namespace llvm;
 
 namespace typeart {
 
-MemOpArgCollector::MemOpArgCollector(TypeGenerator* tm, InstrumentationHelper& instr)
-    : ArgumentCollector(), type_m(tm), instr_helper(&instr) {
+MemOpArgCollector::MemOpArgCollector(const config::Configuration& typeart_conf, TypeGenerator* tm,
+                                     InstrumentationHelper& instr)
+    : ArgumentCollector(), typeart_config(typeart_conf), type_m(tm), instr_helper(&instr) {
 }
 
 HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
   HeapArgList list;
   list.reserve(mallocs.size());
-  const llvm::DataLayout& dl = instr_helper->getModule()->getDataLayout();
+
+  TypegenImplementation type_gen = typeart_config[config::ConfigStdArgs::typegen];
+  const bool is_llvm_ir_type     = static_cast<int>(type_gen) == static_cast<int>(TypegenImplementation::IR);
+
   for (const MallocData& mdata : mallocs) {
     ArgMap arg_map;
-    const auto malloc_call      = mdata.call;
-    Value* pointer              = malloc_call;
-    BitCastInst* primaryBitcast = mdata.primary;
-    auto kind                   = mdata.kind;
+    const auto malloc_call = mdata.call;
 
-    // Number of bytes allocated
-    auto mallocArg = malloc_call->getOperand(0);
-    int typeId     = type_m->getOrRegisterType(malloc_call->getType()->getPointerElementType(),
-                                           dl);  // retrieveTypeID(tu::getVoidType(c));
-    if (typeId == TYPEART_UNKNOWN_TYPE) {
-      LOG_ERROR("Unknown heap type. Not instrumenting. " << util::dump(*malloc_call));
-      // TODO notify caller that we skipped: via lambda callback function
+    const auto [type_id, num_elements] = type_m->getOrRegisterType(mdata);
+
+    if (type_id == TYPEART_UNKNOWN_TYPE) {
+      LOG_DEBUG("Target type of casted allocation is unknown. Not instrumenting. " << util::dump(*malloc_call));
       continue;
     }
 
-    // Number of bytes per element, 1 for void*
-    unsigned typeSize = tu::getTypeSizeInBytes(malloc_call->getType()->getPointerElementType(), dl);
+    auto type_size = type_m->getTypeDatabase().getTypeSize(type_id);
 
-    // Use the first cast as the determining type (if there is any)
-    if (primaryBitcast != nullptr) {
-      auto* dstPtrType = primaryBitcast->getDestTy()->getPointerElementType();
+    LOG_DEBUG("Type " << type_id << " with " << type_size << " and num elems " << num_elements)
 
-      typeSize = tu::getTypeSizeInBytes(dstPtrType, dl);
+    auto* type_id_const    = instr_helper->getConstantFor(IType::type_id, type_id);
+    Value* type_size_const = instr_helper->getConstantFor(IType::extent, type_size);
 
-      // Resolve arrays
-      // TODO: Write tests for this case
-      if (dstPtrType->isArrayTy()) {
-        dstPtrType = tu::getArrayElementType(dstPtrType);
-      }
-
-      typeId = type_m->getOrRegisterType(dstPtrType, dl);
-      if (typeId == TYPEART_UNKNOWN_TYPE) {
-        LOG_ERROR("Target type of casted allocation is unknown. Not instrumenting. " << util::dump(*malloc_call));
-        LOG_ERROR("Cast: " << util::dump(*primaryBitcast));
-        LOG_ERROR("Target type: " << util::dump(*dstPtrType));
-        // TODO notify caller that we skipped: via lambda callback function
-        continue;
-      }
-    } else {
-      LOG_WARNING("Primary bitcast is null. malloc: " << util::dump(*malloc_call))
-    }
-
-    auto* typeIdConst    = instr_helper->getConstantFor(IType::type_id, typeId);
-    Value* typeSizeConst = instr_helper->getConstantFor(IType::extent, typeSize);
-
-    Value* elementCount{nullptr};
+    Value* element_count{nullptr};
     Value* byte_count{nullptr};
     Value* realloc_ptr{nullptr};
-    switch (kind) {
+    Value* pointer = malloc_call;
+
+    switch (mdata.kind) {
       case MemOpKind::NewLike:
         [[fallthrough]];
       case MemOpKind::MallocLike:
-        if (mdata.array_cookie.hasValue()) {
-          auto array_cookie_data = mdata.array_cookie.getValue();
-          elementCount           = array_cookie_data.cookie_store->getValueOperand();
+        if (mdata.array_cookie) {
+          auto array_cookie_data = mdata.array_cookie.value();
+          element_count          = array_cookie_data.cookie_store->getValueOperand();
           pointer                = array_cookie_data.array_ptr_gep;
         }
 
-        byte_count = mallocArg;
+        byte_count = malloc_call->getOperand(0);
+
         break;
       case MemOpKind::CallocLike: {
-        if (mdata.primary == nullptr) {
+        if (mdata.primary == nullptr && is_llvm_ir_type) {
           // we need the second arg when the calloc type is identified as void* to calculate total bytes allocated
-          typeSizeConst = malloc_call->getOperand(1);
+          type_size_const = malloc_call->getOperand(1);
         }
-        elementCount = malloc_call->getOperand(0);
+        element_count = malloc_call->getOperand(0);
         break;
       }
       case MemOpKind::ReallocLike:
@@ -131,10 +111,10 @@ HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
     }
 
     arg_map[ArgMap::ID::pointer]       = pointer;
-    arg_map[ArgMap::ID::type_id]       = typeIdConst;
-    arg_map[ArgMap::ID::type_size]     = typeSizeConst;
+    arg_map[ArgMap::ID::type_id]       = type_id_const;
+    arg_map[ArgMap::ID::type_size]     = type_size_const;
     arg_map[ArgMap::ID::byte_count]    = byte_count;
-    arg_map[ArgMap::ID::element_count] = elementCount;
+    arg_map[ArgMap::ID::element_count] = element_count;
     arg_map[ArgMap::ID::realloc_ptr]   = realloc_ptr;
     list.emplace_back(HeapArgList::value_type{mdata, arg_map});
   }
@@ -145,24 +125,25 @@ HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
 FreeArgList MemOpArgCollector::collectFree(const FreeDataList& frees) {
   FreeArgList list;
   list.reserve(frees.size());
+
   for (const FreeData& fdata : frees) {
     ArgMap arg_map;
     auto free_call = fdata.call;
 
-    Value* freeArg{nullptr};
+    Value* free_arg{nullptr};
     switch (fdata.kind) {
       case MemOpKind::DeleteLike:
         [[fallthrough]];
       case MemOpKind::FreeLike:
-        freeArg = fdata.array_cookie_gep.hasValue() ? fdata.array_cookie_gep.getValue()->getPointerOperand()
-                                                    : free_call->getOperand(0);
+        free_arg =
+            fdata.array_cookie_gep ? fdata.array_cookie_gep.value()->getPointerOperand() : free_call->getOperand(0);
         break;
       default:
         LOG_ERROR("Unknown free kind. Not instrumenting. " << util::dump(*free_call));
         continue;
     }
 
-    arg_map[ArgMap::ID::pointer] = freeArg;
+    arg_map[ArgMap::ID::pointer] = free_arg;
     list.emplace_back(FreeArgList::value_type{fdata, arg_map});
   }
 
@@ -173,41 +154,42 @@ StackArgList MemOpArgCollector::collectStack(const AllocaDataList& allocs) {
   using namespace llvm;
   StackArgList list;
   list.reserve(allocs.size());
-  const llvm::DataLayout& dl = instr_helper->getModule()->getDataLayout();
 
   for (const AllocaData& adata : allocs) {
     ArgMap arg_map;
-    auto alloca           = adata.alloca;
-    Type* elementType     = alloca->getAllocatedType();
-    Value* numElementsVal = nullptr;
-    // The length can be specified statically through the array type or as a separate argument.
-    // Both cases are handled here.
-    if (adata.is_vla) {
-      numElementsVal = alloca->getArraySize();
-      // This should not happen in generated IR code
-      assert(!elementType->isArrayTy() && "VLAs of array types are currently not supported.");
-    } else {
-      size_t arraySize = adata.array_size;
-      if (elementType->isArrayTy()) {
-        arraySize   = arraySize * tu::getArrayLengthFlattened(elementType);
-        elementType = tu::getArrayElementType(elementType);
-      }
-      numElementsVal = instr_helper->getConstantFor(IType::extent, arraySize);
-    }
+    auto alloca = adata.alloca;
 
-    // unsigned typeSize = tu::getTypeSizeInBytes(elementType, dl);
-    int typeId = type_m->getOrRegisterType(elementType, dl);
+    const auto [type_id, num_elements] = type_m->getOrRegisterType(adata);
 
-    if (typeId == TYPEART_UNKNOWN_TYPE) {
-      LOG_ERROR("Unknown stack type. Not instrumenting. " << util::dump(*elementType));
+    if (type_id == TYPEART_UNKNOWN_TYPE) {
+      LOG_DEBUG("Unknown stack type. Not instrumenting. " << util::dump(*alloca));
       continue;
     }
 
-    auto* typeIdConst = instr_helper->getConstantFor(IType::type_id, typeId);
+    auto type_size = type_m->getTypeDatabase().getTypeSize(type_id);
+    if (type_id == TYPEART_VOID) {
+      type_size = 1;
+    }
+
+    LOG_DEBUG("Alloca Type " << type_id << " with " << type_size << " and num elems " << num_elements)
+
+    Value* num_elements_val{nullptr};
+    // The length can be specified statically through the array type or as a separate argument.
+    // Both cases are handled here.
+    if (adata.is_vla) {
+      LOG_DEBUG("Found VLA array allocation")
+      // This should not happen in generated IR code
+      assert(!alloca->getAllocatedType()->isArrayTy() && "VLAs of array types are currently not supported.");
+      num_elements_val = alloca->getArraySize();
+    } else {
+      num_elements_val = instr_helper->getConstantFor(IType::extent, num_elements);
+    }
+
+    auto* type_id_constant = instr_helper->getConstantFor(IType::type_id, type_id);
 
     arg_map[ArgMap::ID::pointer]       = alloca;
-    arg_map[ArgMap::ID::type_id]       = typeIdConst;
-    arg_map[ArgMap::ID::element_count] = numElementsVal;
+    arg_map[ArgMap::ID::type_id]       = type_id_constant;
+    arg_map[ArgMap::ID::element_count] = num_elements_val;
 
     list.emplace_back(StackArgList::value_type{adata, arg_map});
   }
@@ -218,33 +200,32 @@ StackArgList MemOpArgCollector::collectStack(const AllocaDataList& allocs) {
 GlobalArgList MemOpArgCollector::collectGlobal(const GlobalDataList& globals) {
   GlobalArgList list;
   list.reserve(globals.size());
-  const llvm::DataLayout& dl = instr_helper->getModule()->getDataLayout();
 
   for (const GlobalData& gdata : globals) {
     ArgMap arg_map;
     auto global = gdata.global;
-    auto type   = global->getValueType();
 
-    unsigned numElements = 1;
-    if (type->isArrayTy()) {
-      numElements = tu::getArrayLengthFlattened(type);
-      type        = tu::getArrayElementType(type);
-    }
+    const auto [type_id, num_elements] = type_m->getOrRegisterType(gdata);
 
-    int typeId = type_m->getOrRegisterType(type, dl);
-
-    if (typeId == TYPEART_UNKNOWN_TYPE) {
-      LOG_ERROR("Unknown global type. Not instrumenting. " << util::dump(*type));
+    if (type_id == TYPEART_UNKNOWN_TYPE) {
+      LOG_DEBUG("Unknown global type. Not instrumenting. " << util::dump(*global));
       continue;
     }
 
-    auto* typeIdConst      = instr_helper->getConstantFor(IType::type_id, typeId);
-    auto* numElementsConst = instr_helper->getConstantFor(IType::extent, numElements);
+    auto type_size = type_m->getTypeDatabase().getTypeSize(type_id);
+    if (type_id == TYPEART_VOID) {
+      type_size = 1;
+    }
+
+    LOG_DEBUG("Global Type " << type_id << " with " << type_size << " and num elems " << num_elements)
+
+    auto* type_id_const      = instr_helper->getConstantFor(IType::type_id, type_id);
+    auto* num_elements_const = instr_helper->getConstantFor(IType::extent, num_elements);
     // auto globalPtr         = IRB.CreateBitOrPointerCast(global, instr.getTypeFor(IType::ptr));
 
     arg_map[ArgMap::ID::pointer]       = global;
-    arg_map[ArgMap::ID::type_id]       = typeIdConst;
-    arg_map[ArgMap::ID::element_count] = numElementsConst;
+    arg_map[ArgMap::ID::type_id]       = type_id_const;
+    arg_map[ArgMap::ID::element_count] = num_elements_const;
 
     list.emplace_back(GlobalArgList::value_type{gdata, arg_map});
   }

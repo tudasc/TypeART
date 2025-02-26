@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2022 TypeART Authors
+// Copyright (c) 2017-2025 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -24,11 +24,11 @@ namespace typeart::filter {
 class Matcher {
  public:
   enum class MatchResult : int { Match, NoMatch, ShouldSkip, ShouldContinue };
-  Matcher()               = default;
-  Matcher(const Matcher&) = default;
-  Matcher(Matcher&&)      = default;
+  Matcher()                          = default;
+  Matcher(const Matcher&)            = default;
+  Matcher(Matcher&&)                 = default;
   Matcher& operator=(const Matcher&) = default;
-  Matcher& operator=(Matcher&&) = default;
+  Matcher& operator=(Matcher&&)      = default;
 
   virtual MatchResult match(llvm::CallSite) const = 0;
 
@@ -43,10 +43,10 @@ class NoMatcher final : public Matcher {
 };
 
 class DefaultStringMatcher final : public Matcher {
-  Regex matcher;
+  llvm::Regex matcher;
 
  public:
-  explicit DefaultStringMatcher(const std::string& regex) : matcher(regex, Regex::NoFlags) {
+  explicit DefaultStringMatcher(const std::string& regex) : matcher(regex, llvm::Regex::NoFlags) {
   }
 
   MatchResult match(llvm::CallSite c) const override {
@@ -75,20 +75,20 @@ class FunctionOracleMatcher final : public Matcher {
     const auto f = c.getCalledFunction();
     if (f != nullptr) {
       const auto f_name = util::demangle(f->getName());
-      StringRef f_name_ref{f_name};
+      llvm::StringRef f_name_ref{f_name};
       if (continue_set.count(f_name) > 0) {
         return MatchResult::ShouldContinue;
       }
       if (skip_set.count(f_name) > 0) {
         return MatchResult::ShouldSkip;
       }
-      if (f_name_ref.startswith("__typeart_")) {
+      if (util::starts_with_any_of(f_name_ref, "__typeart_")) {
         return MatchResult::ShouldSkip;
       }
       if (mem_operations.kind(f_name)) {
         return MatchResult::ShouldSkip;
       }
-      if (f_name_ref.startswith("__ubsan") || f_name_ref.startswith("__asan") || f_name_ref.startswith("__msan")) {
+      if (util::starts_with_any_of(f_name_ref, "__ubsan", "__asan", "__msan")) {
         return MatchResult::ShouldContinue;
       }
     }

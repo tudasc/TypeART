@@ -1,7 +1,13 @@
 // clang-format off
 // RUN: %cpp-to-llvm %omp_cpp_flags %s | %apply-typeart -S 2>&1 | %filecheck %s
+// REQUIRES: llvm-14
 // REQUIRES: openmp
 // clang-format on
+
+// CHECK: TypeArtPass [Heap]
+// CHECK-NEXT: Malloc{{[ ]*}}:{{[ ]*}}2
+// CHECK-NEXT: Free{{[ ]*}}:{{[ ]*}}1
+// CHECK-NEXT: Alloca{{[ ]*}}:{{[ ]*}}0
 
 void foo(int** x) {
 #pragma omp parallel  // transformed to @__kmpc_fork_call
@@ -19,8 +25,3 @@ void foo(int** x) {
 // CHECK: call void @__typeart_alloc_omp
 // CHECK: call void @__typeart_free_omp
 // CHECK: call void @__typeart_alloc_omp
-
-// CHECK: TypeArtPass [Heap]
-// CHECK-NEXT: Malloc{{[ ]*}}:{{[ ]*}}2
-// CHECK-NEXT: Free{{[ ]*}}:{{[ ]*}}1
-// CHECK-NEXT: Alloca{{[ ]*}}:{{[ ]*}}0

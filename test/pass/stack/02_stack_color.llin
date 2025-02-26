@@ -1,13 +1,15 @@
-; RUN: %apply-typeart --typeart-stack --typeart-stack-lifetime -S < %s | %filecheck %s
+; RUN: %apply-typeart --typeart-stack=true --typeart-stack-lifetime=true -S < %s | %filecheck %s
+
+; REQUIRES: !dimeta
 
 ; Adapted from LLVM codegen test suite
 
 ; CHECK: call void @llvm.lifetime.start.p0i8(i64 -1, i8* %b)
-; CHECK-NEXT: call void @__typeart_alloc_stack(i8* %b, i32 10, i64 17)
+; CHECK-NEXT: call void @__typeart_alloc_stack(i8* %b, i32 1, i64 17)
 
 ; CHECK: bb2:
 ; CHECK-NEXT: call void @llvm.lifetime.start.p0i8(i64 -1, i8* %b2)
-; CHECK-NEXT: call void @__typeart_alloc_stack(i8* %b2, i32 10, i64 16)
+; CHECK-NEXT: call void @__typeart_alloc_stack(i8* %b2, i32 1, i64 16)
 
 
 

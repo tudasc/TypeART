@@ -23,7 +23,7 @@ int main(void) {
 
   // CHECK-NOT: [Error] return status
   // CHECK: layout->id {{[2-9][0-9]+}}
-  // CHECK: layout->name struct.Datastruct
+  // CHECK: layout->name {{(struct.)?}}Datastruct
   // CHECK: layout->num_members 3
   // CHECK: struct count 1
   typeart_struct_layout layout;

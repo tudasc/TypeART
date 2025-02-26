@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2022 TypeART Authors
+// Copyright (c) 2017-2025 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -49,7 +49,7 @@ struct ArgMap {
   }
 
   /*
-  const llvm::Optional<ArgsContainer::mapped_type> operator[](ArgsContainer::key_type key) const {
+  const std::optional<ArgsContainer::mapped_type> operator[](ArgsContainer::key_type key) const {
     auto it = args.find(key);
     if (it != args.end()) {
       return {it->second};

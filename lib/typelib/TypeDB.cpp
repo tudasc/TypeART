@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2022 TypeART Authors
+// Copyright (c) 2017-2025 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -16,34 +16,74 @@
 #include "support/Logger.h"
 #include "typelib/TypeInterface.h"
 
+#include <ccomplex>
+#include <complex>
+#include <cstddef>
 #include <iostream>
+#include <string_view>
 #include <utility>
 
 namespace typeart {
 
-std::pair<std::unique_ptr<TypeDatabase>, std::error_code> make_database(const std::string& file) {
+namespace builtins {
+
+namespace {
+inline constexpr auto size_complex_float       = sizeof(std::complex<float>);
+inline constexpr auto size_complex_double      = sizeof(std::complex<double>);
+inline constexpr auto size_complex_long_double = sizeof(std::complex<long double>);
+}  // namespace
+
+#define FOR_EACH_TYPEART_BUILTIN(X)                             \
+  X(TYPEART_UNKNOWN_TYPE, "typeart_unknown_type", 0)            \
+  X(TYPEART_POINTER, "ptr", sizeof(void*))                      \
+  X(TYPEART_VOID, "void*", sizeof(void*))                       \
+  X(TYPEART_NULLPOINTER, "nullptr_t", sizeof(void*))            \
+  X(TYPEART_BOOL, "bool", sizeof(bool))                         \
+  X(TYPEART_CHAR_8, "char", sizeof(char))                       \
+  X(TYPEART_UCHAR_8, "unsigned char", sizeof(unsigned char))    \
+  X(TYPEART_UTF_CHAR_8, "char8_t", sizeof(char))                \
+  X(TYPEART_UTF_CHAR_16, "char16_t", sizeof(char16_t))          \
+  X(TYPEART_UTF_CHAR_32, "char32_t", sizeof(char32_t))          \
+  X(TYPEART_INT_8, "int8_t", sizeof(int8_t))                    \
+  X(TYPEART_INT_16, "short", sizeof(int16_t))                   \
+  X(TYPEART_INT_32, "int", sizeof(int32_t))                     \
+  X(TYPEART_INT_64, "long int", sizeof(int64_t))                \
+  X(TYPEART_INT_128, "int128_t", 16)                            \
+  X(TYPEART_UINT_8, "uint8_t", sizeof(uint8_t))                 \
+  X(TYPEART_UINT_16, "unsigned short", sizeof(uint16_t))        \
+  X(TYPEART_UINT_32, "unsigned int", sizeof(uint32_t))          \
+  X(TYPEART_UINT_64, "unsigned long int", sizeof(uint64_t))     \
+  X(TYPEART_UINT_128, "uint128_t", 16)                          \
+  X(TYPEART_FLOAT_8, "float8_t", 1)                             \
+  X(TYPEART_FLOAT_16, "float16_t", 2)                           \
+  X(TYPEART_FLOAT_32, "float", sizeof(float))                   \
+  X(TYPEART_FLOAT_64, "double", sizeof(double))                 \
+  X(TYPEART_FLOAT_128, "long double", sizeof(long double))      \
+  X(TYPEART_COMPLEX_64, "float complex", size_complex_float)    \
+  X(TYPEART_COMPLEX_128, "double complex", size_complex_double) \
+  X(TYPEART_COMPLEX_256, "long double complex", size_complex_long_double)
+
+#define TYPENAME(enum_name, str_name, size) std::string{str_name},
+#define SIZE(enum_name, str_name, size)     (size),
+BuiltInQuery::BuiltInQuery() : names{FOR_EACH_TYPEART_BUILTIN(TYPENAME)}, sizes{FOR_EACH_TYPEART_BUILTIN(SIZE)} {
+}
+#undef SIZE
+#undef TYPENAME
+
+}  // namespace builtins
+
+std::pair<std::unique_ptr<TypeDatabase>, std::error_code> make_database(std::string_view file) {
   auto type_db = std::make_unique<TypeDB>();
-  auto loaded  = io::load(type_db.get(), file);
+  auto loaded  = io::load(type_db.get(), file.data());
   if (!loaded) {
     LOG_DEBUG("Database file not found: " << file)
   }
   return {std::move(type_db), loaded.getError()};
 }
 
-const std::array<std::string, 11> TypeDB::BuiltinNames = {
-    "int8", "int16", "int32", "int64", "half", "float", "double", "float128", "x86_float80", "ppc_float128", "pointer"};
+using namespace builtins;
 
-// TODO: Builtin ID changes lead tsto wrong type sizes/names
-const std::array<size_t, 11> TypeDB::BuiltinSizes = {1,  2,
-                                                     4,  8,
-                                                     2,  4,
-                                                     8,  16,
-                                                     16,  // TODO: Always correct?
-                                                     16, sizeof(void*)};
-
-// TypeInfo TypeDB::InvalidType = TypeInfo{BUILTIN, TA_UNKNOWN_TYPE};
-
-const std::string TypeDB::UnknownStructName{"typeart_unknown_struct"};
+const std::string unknown_struck_name{"typeart_unknown_struct"};
 
 void TypeDB::clear() {
   struct_info_vec.clear();
@@ -52,27 +92,39 @@ void TypeDB::clear() {
 }
 
 bool TypeDB::isBuiltinType(int type_id) const {
-  return type_id >= TYPEART_INT8 && type_id < TYPEART_NUM_VALID_IDS;
+  return BuiltInQuery::is_builtin_type(type_id);
 }
 
 bool TypeDB::isReservedType(int type_id) const {
-  return type_id < TYPEART_NUM_RESERVED_IDS;
+  return BuiltInQuery::is_reserved_type(type_id);
 }
 
 bool TypeDB::isStructType(int type_id) const {
-  return type_id >= TYPEART_NUM_RESERVED_IDS;
+  return BuiltInQuery::is_userdef_type(type_id);
+}
+
+bool TypeDB::isUnknown(int type_id) const {
+  return BuiltInQuery::is_unknown_type(type_id);
+}
+
+bool TypeDB::isPointerType(int type_id) const {
+  return type_id == TYPEART_VOID || type_id == TYPEART_POINTER;
 }
 
 bool TypeDB::isUserDefinedType(int type_id) const {
   const auto* structInfo = getStructInfo(type_id);
+  LOG_DEBUG(structInfo->name << " " << static_cast<int>(structInfo->flag) << " "
+                             << (static_cast<int>(structInfo->flag) == static_cast<int>(StructTypeFlag::USER_DEFINED)))
   return (structInfo != nullptr) &&
-         ((static_cast<int>(structInfo->flag) & static_cast<int>(StructTypeFlag::USER_DEFINED)) != 0);
+         (static_cast<int>(structInfo->flag) == static_cast<int>(StructTypeFlag::USER_DEFINED));
 }
 
 bool TypeDB::isVectorType(int type_id) const {
   const auto* structInfo = getStructInfo(type_id);
+  LOG_DEBUG(structInfo->name << " " << static_cast<int>(structInfo->flag) << " "
+                             << (static_cast<int>(structInfo->flag) == static_cast<int>(StructTypeFlag::LLVM_VECTOR)))
   return (structInfo != nullptr) &&
-         ((static_cast<int>(structInfo->flag) & static_cast<int>(StructTypeFlag::LLVM_VECTOR)) != 0);
+         (static_cast<int>(structInfo->flag) == static_cast<int>(StructTypeFlag::LLVM_VECTOR));
 }
 
 bool TypeDB::isValid(int type_id) const {
@@ -82,7 +134,7 @@ bool TypeDB::isValid(int type_id) const {
   return typeid_to_list_index.find(type_id) != typeid_to_list_index.end();
 }
 
-void TypeDB::registerStruct(const StructTypeInfo& struct_type) {
+void TypeDB::registerStruct(const StructTypeInfo& struct_type, bool overwrite) {
   if (isValid(struct_type.type_id) || !isStructType(struct_type.type_id)) {
     if (isBuiltinType(struct_type.type_id)) {
       LOG_ERROR("Built-in type ID used for struct " << struct_type.name);
@@ -91,18 +143,25 @@ void TypeDB::registerStruct(const StructTypeInfo& struct_type) {
     } else if (isUnknown(struct_type.type_id)) {
       LOG_ERROR("Type ID is reserved for unknown types. Struct: " << struct_type.name);
     } else {
-      LOG_ERROR("Struct type ID already registered for " << struct_type.name << ". Conflicting struct is "
-                                                         << getStructInfo(struct_type.type_id)->name);
+      if (!overwrite) {
+        LOG_ERROR("Struct type ID already registered for " << struct_type.name << ". Conflicting struct is "
+                                                           << getStructInfo(struct_type.type_id)->name);
+        return;
+      }
+      LOG_DEBUG("Overwrite struct " << struct_type.name)
+      auto& info = *getStructInfo(struct_type.type_id);
+      info       = struct_type;
     }
     return;
   }
+
   struct_info_vec.push_back(struct_type);
   typeid_to_list_index.insert({struct_type.type_id, struct_info_vec.size() - 1});
 }
 
 const std::string& TypeDB::getTypeName(int type_id) const {
   if (isBuiltinType(type_id)) {
-    return BuiltinNames[type_id];
+    return builtins.get_name(type_id);
   }
   if (isStructType(type_id)) {
     const auto* structInfo = getStructInfo(type_id);
@@ -110,13 +169,14 @@ const std::string& TypeDB::getTypeName(int type_id) const {
       return structInfo->name;
     }
   }
-  return UnknownStructName;
+
+  return unknown_struck_name;
 }
 
 size_t TypeDB::getTypeSize(int type_id) const {
   if (isReservedType(type_id)) {
     if (isBuiltinType(type_id)) {
-      return BuiltinSizes[type_id];
+      return builtins.get_size(type_id);
     }
     return 0;
   }
@@ -136,12 +196,16 @@ const StructTypeInfo* TypeDB::getStructInfo(int type_id) const {
   return nullptr;
 }
 
-const std::vector<StructTypeInfo>& TypeDB::getStructList() const {
-  return struct_info_vec;
+StructTypeInfo* TypeDB::getStructInfo(int type_id) {
+  const auto index_iter = typeid_to_list_index.find(type_id);
+  if (index_iter != typeid_to_list_index.end()) {
+    return &struct_info_vec[index_iter->second];
+  }
+  return nullptr;
 }
 
-bool TypeDB::isUnknown(int type_id) const {
-  return type_id == TYPEART_UNKNOWN_TYPE;
+const std::vector<StructTypeInfo>& TypeDB::getStructList() const {
+  return struct_info_vec;
 }
 
 }  // namespace typeart

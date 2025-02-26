@@ -1,7 +1,7 @@
 // RUN: %wrapper-cc -S -emit-llvm -O1 %s -o %s.ll
 // RUN: cat %s.ll 2>&1 | %filecheck %s
 
-// RUN: %wrapper-cc -emit-llvm -O1 %s -o %s.bc
+// RUN: %wrapper-cc -c -emit-llvm -O1 %s -o %s.bc
 // RUN: cat %s.bc 2>&1 | %opt -S | %filecheck %s
 
 // RUN: TYPEART_WRAPPER=OFF %wrapper-cc -S -emit-llvm -O1 %s -o %s-van.ll
@@ -12,7 +12,7 @@
 
 // RUN: %wrapper-cc -S -emit-llvm -O1 %s -o - | %filecheck %s
 
-// RUN: %wrapper-cc -emit-llvm -O1 %s -o - | %opt -S | %filecheck %s
+// RUN: %wrapper-cc -c -emit-llvm -O1 %s -o - | %opt -S | %filecheck %s
 
 #include <stdlib.h>
 

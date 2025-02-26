@@ -12,5 +12,5 @@ int main(int argc, char** argv) {
   return 0;
 }
 
-// CHECK-NOT: 10 :   0 ,    {{[1-9]+}} ,    0 , pointer
-// CHECK-pointer: 10 :   0 ,    {{[1-9]+}} ,    0 , pointer
+// CHECK-NOT: 1 :   0 ,    {{[1-9]+}} ,    0 , ptr
+// CHECK-pointer: 1 :   0 ,    {{[1-9]+}} ,    0 , ptr

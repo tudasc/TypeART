@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2022 TypeART Authors
+// Copyright (c) 2017-2025 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -26,7 +26,7 @@ struct DefaultSearch {
 
     if (isa<llvm::PHINode>(val)) {
       // FIXME
-      //  this mechanism tries to avoid endless recurison in loops, i.e.,
+      //  this mechanism tries to avoid endless recursion in loops, i.e.,
       //  do we bounce around multiple phi nodes (visit counter >1), then
       //  we should likely skip search
       // see amg with openmp `amg2013/parcsr_ls/par_lr_interp.c`

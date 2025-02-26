@@ -4,6 +4,7 @@
 // clang-format on
 // FIXME this test doesn't add to the coverage data.
 
+#include "TypeInterface.h"
 #define ENABLE_SOFTCOUNTER 1
 #include "lib/runtime/AccessCounter.h"
 
@@ -115,14 +116,14 @@ void test_stack(softcounter::AccessRecorder& recorder) {
 }
 
 void test_global(softcounter::AccessRecorder& recorder) {
-  recorder.incGlobalAlloc(6, 1);
+  recorder.incGlobalAlloc(TYPEART_FLOAT_64, 1);
   // CHECK: 1
   o_(getGlobalAllocs());
 
   const auto& alloc = recorder.getGlobalAlloc();
   // CHECK: 1
   std::cerr << alloc.size() << '\n';
-  // CHECK: 6 1
+  // CHECK: 23 1
   for (const auto& [id, count] : alloc) {
     std::cerr << id << " " << count << '\n';
   }
