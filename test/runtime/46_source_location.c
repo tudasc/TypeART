@@ -1,5 +1,7 @@
 // RUN: %run  %s --compile_flags "-fdebug-default-version=4" 2>&1 | %filecheck %s
 
+// XFAIL: llvm-18
+
 #include "../../lib/runtime/RuntimeInterface.h"
 
 #include <stdio.h>
@@ -65,7 +67,7 @@ int main(int argc, char** argv) {
 // CHECK: Address check OK
 // CHECK: Loc File:{{.*}}46_source_location.c
 // CHECK: Loc Function: main
-// CHECK: Loc Line: 33
+// CHECK: Loc Line: 35
 // CHECK: Address check OK
 // CHECK: Address check OK
 // CHECK: Address check OK

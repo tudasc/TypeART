@@ -1,0 +1,88 @@
+#!/bin/bash
+
+function typeart_test_parse_cmd_line_fn() {
+  while (("$#")); do
+    case "$1" in
+    --typeart-stats=*)
+      export TYPEART_STATS="${1#--typeart-stats=}"
+      shift
+    ;;
+    --typeart-heap=*)
+      export TYPEART_HEAP="${1#--typeart-heap=}"
+      shift
+    ;;
+    --typeart-stack=*)
+      export TYPEART_STACK="${1#--typeart-stack=}"
+      shift
+    ;;
+    --typeart-global=*)
+      export TYPEART_GLOBAL="${1#--typeart-global=}"
+      shift
+    ;;
+    --typeart-types=*)
+      export TYPEART_TYPE_FILE="${1#--typeart-types=}"
+      shift
+    ;;
+    --typeart-stack-lifetime=*)
+      export TYPEART_STACK_LIFETIME="${1#--typeart-stack-lifetime=}"
+      shift
+    ;;
+    --typeart-typegen=*)
+      export TYPEART_TYPEGEN="${1#--typeart-typegen=}"
+      shift
+    ;;
+    --typeart-filter=*)
+      export TYPEART_FILTER="${1#--typeart-filter=}"
+      shift
+    ;;
+    --typeart-filter-implementation=*)
+      export TYPEART_FILTER_IMPLEMENTATION="${1#--typeart-filter-implementation=}"
+      shift
+    ;;
+    --typeart-filter-glob=*)
+      export TYPEART_FILTER_GLOB="${1#--typeart-filter-glob=}"
+      shift
+    ;;
+    --typeart-filter-glob-deep=*)
+      export TYPEART_FILTER_GLOB_DEEP="${1#--typeart-filter-glob-deep=}"
+      shift
+    ;;
+    --typeart-filter-cg-file=*)
+      export TYPEART_FILTER_CG_FILE="${1#--typeart-filter-cg-file=}"
+      shift
+    ;;
+    --typeart-analysis-filter-non-array-alloca=*)
+      export TYPEART_ANALYSIS_FILTER_NON_ARRAY_ALLOCA="${1#--typeart-analysis-filter-non-array-alloca=}"
+      shift
+    ;;
+    --typeart-analysis-filter-heap-alloca=*)
+      export TYPEART_ANALYSIS_FILTER_HEAP_ALLOCA="${1#--typeart-analysis-filter-heap-alloca=}"
+      shift
+    ;;
+    --typeart-analysis-filter-global=*)
+      export TYPEART_ANALYSIS_FILTER_GLOBAL="${1#--typeart-analysis-filter-global=}"
+      shift
+    ;;
+    --typeart-analysis-filter-pointer-alloca=*)
+      export TYPEART_ANALYSIS_FILTER_POINTER_ALLOCA="${1#--typeart-analysis-filter-pointer-alloca=}"
+      shift
+    ;;
+    *)
+      typeart_test_pass_wrapper_more_args+=" $1"
+      shift 1
+    ;;
+    esac
+  done
+}
+
+function typeart_test_main_opt_fn() {
+    readonly typeart_opt_tool="@TYPEART_OPT_EXEC@"
+    if [ "@NEW_PM_REQUIRED@" == "1" ]; then
+      typeart_test_parse_cmd_line_fn "$@"
+    else
+      typeart_test_pass_wrapper_more_args+="$@"
+    fi
+    $typeart_opt_tool ${typeart_test_pass_wrapper_more_args}
+}
+
+typeart_test_main_opt_fn "$@"

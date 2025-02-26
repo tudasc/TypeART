@@ -24,7 +24,7 @@ inline bool isOmpContext(llvm::Function* f) {
   if (f != nullptr) {
     const auto name_ = demangle(f->getName());
     llvm::StringRef fname(name_);
-    return fname.startswith(".omp") || fname.startswith("__kmpc") || fname.startswith("__omp");
+    return util::starts_with_any_of(fname, ".omp", "__kmpc", "__omp");
   }
   return false;
 }

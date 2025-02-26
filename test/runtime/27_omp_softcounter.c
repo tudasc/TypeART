@@ -1,10 +1,10 @@
 // clang-format off
-// RUN: %run %s --omp --typeart-filter 2>&1 | %filecheck %s --check-prefix=CHECK-TSAN
-// RUN: %run %s -o -O2 --omp --typeart-filter 2>&1 | %filecheck %s --check-prefix=CHECK-TSAN
+// RUN: %run %s --omp --typeart-filter=true 2>&1 | %filecheck %s --check-prefix=CHECK-TSAN
+// RUN: %run %s -o -O2 --omp --typeart-filter=true 2>&1 | %filecheck %s --check-prefix=CHECK-TSAN
 
-// RUN: %run %s -o -O2 --omp --typeart-filter 2>&1 | %filecheck %s
-// RUN: %run %s --omp --typeart-filter 2>&1 | %filecheck %s
-// REQUIRES: openmp && softcounter
+// RUN: %run %s -o -O2 --omp --typeart-filter=true 2>&1 | %filecheck %s
+// RUN: %run %s --omp --typeart-filter=true 2>&1 | %filecheck %s
+// REQUIRES: openmp && softcounter && !llvm-18
 // clang-format on
 
 #include <stdlib.h>

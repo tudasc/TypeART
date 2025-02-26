@@ -1,5 +1,5 @@
-; RUN: cat %s | %apply-typeart --typeart-stack --typeart-analysis-filter-pointer-alloca=false -S 2>&1 | %filecheck %s
-; RUN: cat %s | %apply-typeart --typeart-stack --typeart-filter --typeart-analysis-filter-pointer-alloca=false -S 2>&1 | %filecheck %s -check-prefix=CHECK-FILTER-EXP
+; RUN: cat %s | %apply-typeart --typeart-stack=true --typeart-analysis-filter-pointer-alloca=false -S 2>&1 | %filecheck %s
+; RUN: cat %s | %apply-typeart --typeart-stack=true --typeart-filter=true --typeart-analysis-filter-pointer-alloca=false -S 2>&1 | %filecheck %s -check-prefix=CHECK-FILTER-EXP
 
 ; REQUIRES: !dimeta
 

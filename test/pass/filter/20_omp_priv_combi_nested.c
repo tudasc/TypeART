@@ -1,9 +1,10 @@
 // clang-format off
-// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %apply-typeart --typeart-stack --typeart-filter --typeart-analysis-filter-pointer-alloca=false -S 2>&1 | %filecheck %s
-// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %opt -O2 -S | %apply-typeart --typeart-stack --typeart-filter --typeart-analysis-filter-pointer-alloca=false -S 2>&1 | %filecheck %s --check-prefix=check-opt
+// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %apply-typeart --typeart-stack=true --typeart-filter=true --typeart-analysis-filter-pointer-alloca=false -S 2>&1 | %filecheck %s
+// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %opt -O2 -S | %apply-typeart --typeart-stack=true --typeart-filter=true --typeart-analysis-filter-pointer-alloca=false -S 2>&1 | %filecheck %s --check-prefix=check-opt
 
-// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %apply-typeart --typeart-stack --typeart-filter --typeart-analysis-filter-pointer-alloca=false -S | %filecheck %s --check-prefix=check-inst
-// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %opt -O2 -S | %apply-typeart --typeart-stack --typeart-filter --typeart-analysis-filter-pointer-alloca=false -S | %filecheck %s --check-prefix=check-opt-inst
+// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %apply-typeart --typeart-stack=true --typeart-filter=true --typeart-analysis-filter-pointer-alloca=false -S | %filecheck %s --check-prefix=check-inst
+// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %opt -O2 -S | %apply-typeart --typeart-stack=true --typeart-filter=true --typeart-analysis-filter-pointer-alloca=false -S | %filecheck %s --check-prefix=check-opt-inst
+// REQUIRES: llvm-14
 // REQUIRES: openmp && !dimeta
 // clang-format on
 

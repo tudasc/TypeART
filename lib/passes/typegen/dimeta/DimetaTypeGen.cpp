@@ -18,6 +18,9 @@
 #include "typelib/TypeDatabase.h"
 #include "typelib/TypeInterface.h"
 
+#include "llvm/ADT/StringExtras.h"
+#include "llvm/Support/MD5.h"
+
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
@@ -64,28 +67,56 @@ std::pair<std::optional<typeart_builtin_type>, int> typeid_if_ptr(const Type& ty
 namespace detail {
 
 template <typename Type, typename Func>
-auto apply_func(const Type& type, Func&& handle_qualified_type) {
+auto apply_function(const Type& type, Func&& handle_qualified_type) {
   using namespace dimeta;
 
   if constexpr (std::is_same_v<Type, typename dimeta::QualifiedCompound> ||
                 std::is_same_v<Type, typename dimeta::QualifiedFundamental>) {
     return std::forward<Func>(handle_qualified_type)(type);
   } else {
-    return std::visit(overload{[&](const dimeta::QualifiedFundamental& f) {
-                                 return apply_func(f, std::forward<Func>(handle_qualified_type));
-                               },
-                               [&](const dimeta::QualifiedCompound& q) {
-                                 return apply_func(q, std::forward<Func>(handle_qualified_type));
-                               }},
-                      type);
+    return std::visit(
+        [&](auto&& qualified_type) {
+          return apply_function(qualified_type, std::forward<Func>(handle_qualified_type));
+        },
+        type);
   }
 }
 
 }  // namespace detail
 
+namespace workaround {
+void remove_pointer_level(const llvm::AllocaInst* alloc, dimeta::LocatedType& val) {
+  // If the alloca instruction is not a pointer, but the located_type has a pointer-like qualifier, we remove it.
+  // Workaround for inlining issue, see test typemapping/05_milc_inline_metadata.c
+  // TODO Should be removed if dimeta fixes it.
+  if (!alloc->getAllocatedType()->isPointerTy()) {
+    LOG_DEBUG("Alloca is not a pointer")
+
+    const auto remove_pointer_level = [](auto& qual) {
+      auto pointer_like_iter = llvm::find_if(qual, [](auto qualifier) {
+        switch (qualifier) {
+          case dimeta::Qualifier::kPtr:
+          case dimeta::Qualifier::kRef:
+          case dimeta::Qualifier::kPtrToMember:
+            return true;
+          default:
+            break;
+        }
+        return false;
+      });
+      if (pointer_like_iter != std::end(qual)) {
+        LOG_DEBUG("Removing pointer level " << static_cast<int>(*pointer_like_iter))
+        qual.erase(pointer_like_iter);
+      }
+    };
+    std::visit([&](auto&& qualified_type) { remove_pointer_level(qualified_type.qual); }, val.type);
+  }
+}
+}  // namespace workaround
+
 template <typename Type>
 dimeta::ArraySize vector_num_elements(const Type& type) {
-  return detail::apply_func(type, [](const auto& t) -> dimeta::Extent {
+  return detail::apply_function(type, [](const auto& t) -> dimeta::Extent {
     if (t.is_vector) {
       int pos{-1};
       // Find kVector tag-position to determine vector size
@@ -108,9 +139,37 @@ dimeta::ArraySize vector_num_elements(const Type& type) {
   });
 }
 
+std::string get_anon_struct_identifier(const dimeta::QualifiedCompound& compound) {
+  llvm::MD5 compound_hash;
+  if (compound.type.members.empty()) {
+    LOG_WARNING("Anonymous struct has no members")
+  }
+  for (const auto& [member, offset, size] :
+       llvm::zip(compound.type.members, compound.type.offsets, compound.type.sizes)) {
+    compound_hash.update(member->name);
+    compound_hash.update(offset);
+    compound_hash.update(size);
+    compound_hash.update(std::visit(overload{[&](const dimeta::QualifiedFundamental& member_fundamental) {
+                                               return std::to_string(
+                                                          static_cast<int>(member_fundamental.type.encoding)) +
+                                                      std::to_string(static_cast<int>(member_fundamental.type.extent));
+                                             },
+                                             [&](const dimeta::QualifiedCompound& member_compound) {
+                                               return get_anon_struct_identifier(member_compound);
+                                             }},
+                                    member->member));
+    compound_hash.update("\0");
+  }
+  compound_hash.update(compound.type.extent);
+  compound_hash.update("\0");
+  llvm::MD5::MD5Result hash_result;
+  compound_hash.final(hash_result);
+  return "anonymous_compound_" + std::string(hash_result.digest().str());
+}
+
 template <typename Type>
 dimeta::ArraySize array_size(const Type& type) {
-  return detail::apply_func(type, [](const auto& t) -> dimeta::Extent {
+  return detail::apply_function(type, [](const auto& t) -> dimeta::Extent {
     if (t.array_size.size() > 1 || (t.is_vector && t.array_size.size() > 2)) {
       LOG_ERROR("Unsupported array size number count > 1 for array type or > 2 for vector")
     }
@@ -126,10 +185,14 @@ dimeta::ArraySize array_size(const Type& type) {
 
 template <typename Type>
 std::string name_or_typedef_of(const Type& type) {
-  return detail::apply_func(type, [](const auto& qual_type) {
+  return detail::apply_function(type, [](const auto& qual_type) {
     const bool no_name = qual_type.type.name.empty();
     if constexpr (std::is_same_v<Type, typename dimeta::QualifiedCompound>) {
       const bool no_identifier = qual_type.type.identifier.empty();
+      const bool no_typedef    = qual_type.typedef_name.empty();
+      if (no_identifier && no_name && no_typedef) {
+        return get_anon_struct_identifier(qual_type);
+      }
       if (no_identifier && no_name) {
         return qual_type.typedef_name;
       }
@@ -389,6 +452,7 @@ class DimetaTypeManager final : public TypeIDGenerator {
       auto val = dimeta::located_type_for(alloc);
       if (val) {
         LOG_DEBUG("Registering alloca")
+        workaround::remove_pointer_level(alloc, val.value());
         const auto type_id        = getOrRegister(val->type, false);
         const auto array_size_val = array_size(val->type);
         LOG_DEBUG(array_size_val)

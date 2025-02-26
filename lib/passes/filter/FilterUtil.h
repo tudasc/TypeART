@@ -137,10 +137,12 @@ ArgCorrelation correlate(CallSite c, const Path& p, TypeID&& isType) {
 }
 }  // namespace detail
 
+#if LLVM_VERSION_MAJOR < 15
 inline ArgCorrelation correlate2void(CallSite c, const Path& p) {
   return detail::correlate(
       c, p, [](llvm::Type* type) { return type->isPointerTy() && type->getPointerElementType()->isIntegerTy(8); });
 }
+#endif
 
 inline ArgCorrelation correlate2pointer(CallSite c, const Path& p) {
   // weaker predicate than void pointer, but more generally applicable
@@ -158,11 +160,11 @@ inline bool isTempAlloc(llvm::Value* in) {
         for (auto& args : f->args()) {
           if (&args == store->getValueOperand()) {
             match = true;
-            return util::DefUseChain::cancel;
+            return util::DefUseChain::kCancel;
           }
         }
       }
-      return util::DefUseChain::no_match;
+      return util::DefUseChain::kNoMatch;
     });
 
     return match;

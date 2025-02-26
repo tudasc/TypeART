@@ -11,16 +11,22 @@ env:
 
 jobs:
   run-testbench:
-    runs-on: ubuntu-22.04
-
     strategy:
       fail-fast: false
       matrix:
-        llvm-version: [ 14 ]
+        os: [ ubuntu-22.04, ubuntu-24.04 ]
+        llvm-version: [ 14, 18 ]
         preset:
           - name: release-counter
           - name: release-safeptr-counter
           - name: release-unsafe-counter
+        exclude:
+          - llvm-version: 14
+            os: ubuntu-24.04
+          - llvm-version: 18
+            os: ubuntu-22.04
+
+    runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@v4
@@ -96,15 +102,21 @@ jobs:
           path: artifact
 
   run-AD-testbench:
-    runs-on: ubuntu-22.04
-
     strategy:
       fail-fast: false
       matrix:
-        llvm-version: [ 14 ]
+        os: [ ubuntu-22.04, ubuntu-24.04 ]
+        llvm-version: [ 14, 18 ]
         preset:
           - name: release-counter
           - name: release-unsafe-counter
+        exclude:
+          - llvm-version: 14
+            os: ubuntu-24.04
+          - llvm-version: 18
+            os: ubuntu-22.04
+
+    runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@v4
@@ -165,18 +177,24 @@ jobs:
           path: artifact
 
   run-OMP-testbench:
-    runs-on: ubuntu-22.04
-
     env:
       OMP_NUM_THREAD: 2
 
     strategy:
       fail-fast: false
       matrix:
-        llvm-version: [ 14 ]
+        os: [ ubuntu-22.04, ubuntu-24.04 ]
+        llvm-version: [ 14, 18 ]
         preset:
           - name: release-counter
           - name: release-safeptr-counter
+        exclude:
+          - llvm-version: 14
+            os: ubuntu-24.04
+          - llvm-version: 18
+            os: ubuntu-22.04
+
+    runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@v4

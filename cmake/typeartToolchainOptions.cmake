@@ -91,6 +91,13 @@ mark_as_advanced(TYPEART_TEST_CONFIGURE_IDE)
 option(TYPEART_CONFIG_DIR_IS_SHARE "Install to \"share/cmake/\" instead of \"lib/cmake/\"" OFF)
 mark_as_advanced(TYPEART_CONFIG_DIR_IS_SHARE)
 
+option(TYPEART_USE_LEGACY_WRAPPER "Use the old TypeART compiler wrapper" OFF)
+# mark_as_advanced(TYPEART_USE_NEW_PASSMANAGER)
+
+if(LLVM_VERSION_MAJOR VERSION_GREATER_EQUAL "18")
+  set(TYPEART_USE_NEW_PASSMANAGER ON CACHE BOOL ON FORCE)
+endif()
+
 set(warning_guard "")
 if(NOT TYPEART_IS_TOP_LEVEL)
   option(

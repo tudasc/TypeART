@@ -28,8 +28,8 @@ namespace builtins {
 
 struct BuiltInQuery {
  private:
-  const std::array<const std::string, TYPEART_NUM_VALID_IDS> names;
-  const std::array<size_t, TYPEART_NUM_VALID_IDS> sizes;
+  std::array<const std::string, TYPEART_NUM_VALID_IDS> names;
+  std::array<size_t, TYPEART_NUM_VALID_IDS> sizes;
 
   template <typename U>
   static constexpr auto type_info(const U& type_data, int type_id) -> decltype(type_data[type_id]) {
@@ -82,6 +82,8 @@ class TypeDB final : public TypeDatabase {
   bool isReservedType(int type_id) const override;
 
   bool isBuiltinType(int type_id) const override;
+
+  bool isPointerType(int type_id) const override;
 
   bool isStructType(int type_id) const override;
 

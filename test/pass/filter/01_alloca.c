@@ -1,5 +1,6 @@
 // Template for alloca.ll.in
 // RUN: %filecheck %s
+// REQUIRES: llvm-14
 // XFAIL: *
 
 #include <stdlib.h>

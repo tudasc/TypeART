@@ -15,6 +15,7 @@
 
 #include <memory>
 #include <string>
+#include <string_view>
 #include <system_error>
 #include <utility>
 #include <vector>
@@ -48,6 +49,8 @@ class TypeDatabase {
 
   [[nodiscard]] virtual bool isBuiltinType(int type_id) const = 0;
 
+  [[nodiscard]] virtual bool isPointerType(int type_id) const = 0;
+
   [[nodiscard]] virtual bool isStructType(int type_id) const = 0;
 
   [[nodiscard]] virtual bool isUserDefinedType(int type_id) const = 0;
@@ -67,7 +70,7 @@ class TypeDatabase {
   virtual ~TypeDatabase() = default;
 };
 
-std::pair<std::unique_ptr<TypeDatabase>, std::error_code> make_database(const std::string& file);
+std::pair<std::unique_ptr<TypeDatabase>, std::error_code> make_database(std::string_view file);
 
 }  // namespace typeart
 

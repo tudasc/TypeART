@@ -10,7 +10,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //
 
-// In Clang 11 the CallSite.h, this is a small wrapper reimplementation
+// In Clang 11 CallSite.h was removed, this is a small wrapper reimplementation
 
 #ifndef COMPAT_LLVM_IR_CALLSITE_H
 #define COMPAT_LLVM_IR_CALLSITE_H

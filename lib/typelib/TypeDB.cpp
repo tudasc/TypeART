@@ -20,6 +20,7 @@
 #include <complex>
 #include <cstddef>
 #include <iostream>
+#include <string_view>
 #include <utility>
 
 namespace typeart {
@@ -71,9 +72,9 @@ BuiltInQuery::BuiltInQuery() : names{FOR_EACH_TYPEART_BUILTIN(TYPENAME)}, sizes{
 
 }  // namespace builtins
 
-std::pair<std::unique_ptr<TypeDatabase>, std::error_code> make_database(const std::string& file) {
+std::pair<std::unique_ptr<TypeDatabase>, std::error_code> make_database(std::string_view file) {
   auto type_db = std::make_unique<TypeDB>();
-  auto loaded  = io::load(type_db.get(), file);
+  auto loaded  = io::load(type_db.get(), file.data());
   if (!loaded) {
     LOG_DEBUG("Database file not found: " << file)
   }
@@ -104,6 +105,10 @@ bool TypeDB::isStructType(int type_id) const {
 
 bool TypeDB::isUnknown(int type_id) const {
   return BuiltInQuery::is_unknown_type(type_id);
+}
+
+bool TypeDB::isPointerType(int type_id) const {
+  return type_id == TYPEART_VOID || type_id == TYPEART_POINTER;
 }
 
 bool TypeDB::isUserDefinedType(int type_id) const {

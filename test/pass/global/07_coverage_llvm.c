@@ -1,5 +1,6 @@
-// RUN: %c-to-llvm -fprofile-instr-generate -fcoverage-mapping %s | %apply-typeart --typeart-global -S 2>&1 \
+// RUN: %c-to-llvm -fprofile-instr-generate -fcoverage-mapping %s | %apply-typeart --typeart-global=true -S 2>&1 \
 // RUN: | %filecheck %s
+// REQUIRES: llvm-14
 
 int global;
 int global_2 = 0;

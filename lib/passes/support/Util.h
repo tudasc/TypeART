@@ -13,7 +13,7 @@
 #ifndef LIB_UTIL_H_
 #define LIB_UTIL_H_
 
-//#include "Logger.h"
+// #include "Logger.h"
 
 #include "compat/CallSite.h"
 
@@ -21,6 +21,10 @@
 #include "llvm/IR/Function.h"
 #include "llvm/Support/Regex.h"
 #include "llvm/Support/raw_ostream.h"
+
+#include <algorithm>
+#include <llvm/ADT/StringRef.h>
+#include <string>
 
 namespace typeart::util {
 
@@ -86,7 +90,11 @@ inline std::string dump(const Val& s) {
 template <typename String>
 inline std::string demangle(String&& s) {
   std::string name = std::string{s};
-  auto demangle    = llvm::itaniumDemangle(name.data(), nullptr, nullptr, nullptr);
+#if LLVM_VERSION_MAJOR < 15
+  auto demangle = llvm::itaniumDemangle(name.data(), nullptr, nullptr, nullptr);
+#else
+  auto demangle = llvm::itaniumDemangle(name.data(), false);
+#endif
   if (demangle && !std::string(demangle).empty()) {
     return {demangle};
   }
@@ -120,18 +128,6 @@ inline std::vector<llvm::Instruction*> find_all(llvm::Function* f, Predicate&& p
     }
   }
   return v;
-}
-
-template <typename Predicate>
-inline llvm::Instruction* find_first_of(llvm::Function* f, Predicate&& p) {
-  for (auto& bb : *f) {
-    for (auto& inst : bb) {
-      if (p(inst)) {
-        return &inst;
-      }
-    }
-  }
-  return nullptr;
 }
 
 inline bool regex_matches(const std::string& regex, const std::string& in, bool case_sensitive = false) {
@@ -181,6 +177,29 @@ inline std::string glob2regex(const std::string& glob) {
   }
   glob_reg += "$";
   return glob_reg;
+}
+
+template <typename... StringTy>
+bool with_any_of(llvm::StringRef lhs, StringTy&&... rhs) {
+  return !lhs.empty() && ((lhs == rhs) || ...);
+}
+
+template <typename... StringTy>
+inline bool starts_with_any_of(llvm::StringRef lhs, StringTy... rhs) {
+#if LLVM_VERSION_MAJOR > 15
+  return !lhs.empty() && ((lhs.starts_with(rhs)) || ...);
+#else
+  return !lhs.empty() && ((lhs.startswith(rhs)) || ...);
+#endif
+}
+
+template <typename... StringTy>
+inline bool ends_with_any_of(llvm::StringRef lhs, StringTy... rhs) {
+#if LLVM_VERSION_MAJOR > 15
+  return !lhs.empty() && ((lhs.ends_with(rhs)) || ...);
+#else
+  return !lhs.empty() && ((lhs.endswith(rhs)) || ...);
+#endif
 }
 
 }  // namespace typeart::util
