@@ -36,7 +36,14 @@ void type_check_containing(const void* addr) {
   size_t count_check    = 0;
   typeart_status status;
 
-  status = typeart_get_containing_type(addr, &id_result, &count_check, &base_adrr, &offset);
+  typeart_type_info info;
+  status = typeart_get_type(addr, &info);
+  if (status != TYPEART_OK) {
+    fprintf(stderr, "[Error]: get_type with containing type\n");
+    return;
+  }
+  typeart_base_type_info containing;
+  status = typeart_get_containing_type(info, &containing, &offset);
 
   if (status != TYPEART_OK) {
     fprintf(stderr, "[Error]: Status not OK: %i for %p\n", status, addr);
