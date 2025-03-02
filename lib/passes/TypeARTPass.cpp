@@ -309,7 +309,7 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
   bool runOnFunc(llvm::Function& f) {
     using namespace typeart;
 
-    if (f.isDeclaration() || util::starts_with_any_of(f.getName(), "__typeart")) {
+    if (f.isDeclaration() || util::starts_with_any_of(f.getName(), "__typeart", "typeart")) {
       return false;
     }
 

@@ -32,9 +32,9 @@ int main(void) {
     fprintf(stderr, "[Error] return status\n");
   }
   print_layout(&layout);
-  size_t count;
-  typeart_get_type_length(&data, &count);
-  fprintf(stderr, "struct count %zu\n", count);
+  typeart_type_info info;
+  typeart_get_type(&data, &info);
+  fprintf(stderr, "struct count %zu\n", info.count);
 
   // CHECK-NOT: [Error] status unexpectedly OK
   // CHECK: layout->id

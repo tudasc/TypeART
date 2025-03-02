@@ -1,6 +1,7 @@
 // RUN: %run %s --manual 2>&1 | %filecheck %s
 
 #include "../../lib/runtime/CallbackInterface.h"
+#include "RuntimeInterface.h"
 #include "util.h"
 
 #include <stdio.h>
@@ -12,13 +13,16 @@ int main(int argc, char** argv) {
   const size_t extent = 2;
   __typeart_alloc((const void*)addr, type, extent);
 
-  int id_result         = 0;
-  size_t count_check    = 0;
-  typeart_status status = typeart_get_type((const void*)addr, &id_result, &count_check);
+  int id_result      = 0;
+  size_t count_check = 0;
+  typeart_type_info info;
+  typeart_status status = typeart_get_type((const void*)addr, &info);
 
   if (status != TYPEART_OK) {
     fprintf(stderr, "[Error]: Status not OK: %i\n", status);
   } else {
+    count_check = info.count;
+    id_result   = info.type_id;
     if (extent != count_check) {
       fprintf(stderr, "[Error]: Count check failed %zu\n", count_check);
     }

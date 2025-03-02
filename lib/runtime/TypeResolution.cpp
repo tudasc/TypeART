@@ -287,6 +287,23 @@ inline typeart_status query_type(const void* addr, int* type, size_t* count) {
   return TYPEART_UNKNOWN_ADDRESS;
 }
 
+inline typeart_status query_type(const void* addr, typeart_type_info& info) {
+  auto alloc = typeart::RuntimeSystem::get().allocTracker.findBaseAlloc(addr);
+  typeart::RuntimeSystem::get().recorder.incUsedInRequest(addr);
+  if (alloc) {
+    typeart_base_type_info base;
+    base.base_address   = alloc->first;
+    base.type_id        = alloc->second.typeId;
+    base.count          = alloc->second.count;
+    info.base_type_info = base;
+    info.address        = addr;
+    const auto result   = typeart::RuntimeSystem::get().typeResolution.getTypeInfo(addr, alloc->first, alloc->second,
+                                                                                   &info.type_id, &info.count);
+    return result;
+  }
+  return TYPEART_UNKNOWN_ADDRESS;
+}
+
 inline typeart_status query_struct_layout(int type_id, typeart_struct_layout* struct_layout) {
   const typeart::StructTypeInfo* struct_info;
   typeart_status status = typeart::RuntimeSystem::get().typeResolution.getStructInfo(type_id, &struct_info);
@@ -334,45 +351,77 @@ char* string2char(std::string_view src) {
  *
  */
 
-typeart_status typeart_get_type(const void* addr, int* type_id, size_t* count) {
+typeart_status typeart_get_type(const void* addr, typeart_type_info* base_type) {
   typeart::RTGuard guard;
-  return typeart::detail::query_type(addr, type_id, count);
+  return typeart::detail::query_type(addr, *base_type);
 }
 
-typeart_status typeart_get_type_length(const void* addr, size_t* count) {
-  typeart::RTGuard guard;
-  int type{0};
-  return typeart::detail::query_type(addr, &type, count);
-}
+// typeart_status typeart_get_type(const void* addr, int* type_id, size_t* count) {
+//   typeart::RTGuard guard;
+//   return typeart::detail::query_type(addr, type_id, count);
+// }
 
-typeart_status typeart_get_type_id(const void* addr, int* type_id) {
-  typeart::RTGuard guard;
-  size_t count{0};
-  return typeart::detail::query_type(addr, type_id, &count);
-}
+// typeart_status typeart_get_type_length(const void* addr, size_t* count) {
+//   typeart::RTGuard guard;
+//   int type{0};
+//   return typeart::detail::query_type(addr, &type, count);
+// }
 
-typeart_status typeart_get_containing_type(const void* addr, int* type_id, size_t* count, const void** base_address,
+// typeart_status typeart_get_type_id(const void* addr, int* type_id) {
+//   typeart::RTGuard guard;
+//   size_t count{0};
+//   return typeart::detail::query_type(addr, type_id, &count);
+// }
+
+typeart_status typeart_get_containing_type(typeart_type_info type, typeart_type_info* containing_type,
                                            size_t* byte_offset) {
   typeart::RTGuard guard;
-  auto alloc = typeart::RuntimeSystem::get().allocTracker.findBaseAlloc(addr);
-  if (alloc) {
-    //    auto& allocVal = alloc.value();
-    *type_id      = alloc->second.typeId;
-    *base_address = alloc->first;
-    return typeart::RuntimeSystem::get().typeResolution.getContainingTypeInfo(addr, alloc->first, alloc->second, count,
-                                                                              byte_offset);
-  }
-  return TYPEART_UNKNOWN_ADDRESS;
+  containing_type->type_id = type.base_type_info.type_id;
+  containing_type->count   = type.base_type_info.count;
+  containing_type->address = type.base_type_info.base_address;
+  // size_t count{0};
+  typeart::PointerInfo info;
+  info.count        = type.base_type_info.count;
+  info.typeId       = type.base_type_info.type_id;
+  const auto result = typeart::RuntimeSystem::get().typeResolution.getContainingTypeInfo(
+      type.address, containing_type->address, info, &containing_type->count, byte_offset);
+
+  return result;
 }
 
-typeart_status typeart_get_subtype(const void* base_addr, size_t offset, const typeart_struct_layout* container_layout,
-                                   int* subtype_id, const void** subtype_base_addr, size_t* subtype_byte_offset,
-                                   size_t* subtype_count) {
+// typeart_status typeart_get_containing_type(const void* addr, int* type_id, size_t* count, const void** base_address,
+//                                            size_t* byte_offset) {
+//   typeart::RTGuard guard;
+//   auto alloc = typeart::RuntimeSystem::get().allocTracker.findBaseAlloc(addr);
+//   if (alloc) {
+//     //    auto& allocVal = alloc.value();
+//     *type_id      = alloc->second.typeId;
+//     *base_address = alloc->first;
+//     return typeart::RuntimeSystem::get().typeResolution.getContainingTypeInfo(addr, alloc->first, alloc->second,
+//     count,
+//                                                                               byte_offset);
+//   }
+//   return TYPEART_UNKNOWN_ADDRESS;
+// }
+
+typeart_status typeart_get_subtype(const typeart_struct_layout* container_layout, const void* base_addr, size_t offset,
+                                   typeart_type_info* subtype_info, size_t* subtype_byte_offset) {
   typeart::RTGuard guard;
   auto status = typeart::RuntimeSystem::get().typeResolution.getSubTypeInfo(
-      base_addr, offset, *container_layout, subtype_id, subtype_base_addr, subtype_byte_offset, subtype_count);
+      base_addr, offset, *container_layout, &subtype_info->type_id, &subtype_info->address, subtype_byte_offset,
+      &subtype_info->count);
   return status;
 }
+
+// typeart_status typeart_get_subtype(const void* base_addr, size_t offset, const typeart_struct_layout*
+// container_layout,
+//                                    int* subtype_id, const void** subtype_base_addr, size_t* subtype_byte_offset,
+//                                    size_t* subtype_count) {
+//   typeart::RTGuard guard;
+//   auto status = typeart::RuntimeSystem::get().typeResolution.getSubTypeInfo(
+//       base_addr, offset, *container_layout, subtype_id, subtype_base_addr, subtype_byte_offset, subtype_count);
+//   return status;
+// }
 
 typeart_status typeart_resolve_type_addr(const void* addr, typeart_struct_layout* struct_layout) {
   typeart::RTGuard guard;

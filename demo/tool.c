@@ -51,11 +51,14 @@ void analyseBuffer(const void* buf, int count, MPI_Datatype type) {
 
     printf("Basetype(%s, addr=%p, size=%i , count=%i)\n", type_name, buf, size, count);
 
-    int type_id;
-    size_t count_check;
-    typeart_status status = typeart_get_type(buf, &type_id, &count_check);
+    typeart_type_info info;
+    typeart_status status = typeart_get_type(buf, &info);
 
     if (status == TYPEART_OK) {
+      int type_id;
+      size_t count_check;
+      type_id     = info.type_id;
+      count_check = info.count;
       // If the address corresponds to a struct, fetch the type of the first member
       while (type_id >= TYPEART_NUM_RESERVED_IDS) {
         typeart_struct_layout struct_layout;
