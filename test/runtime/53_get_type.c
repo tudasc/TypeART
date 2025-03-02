@@ -94,7 +94,7 @@ void type_check_sub(const void* addr, size_t offset) {
   // const typeart_struct_layout* container_layout, const void* base_addr,
   //                                       size_t offset, typeart_type_info* subtype_info, size_t* subtype_byte_offset);
   size_t subtype_byte_offset;
-  typeart_type_info subtype_info;
+  typeart_base_type_info subtype_info;
   status = typeart_get_subtype(&layout, base_adrr, offset, &subtype_info,
                                &subtype_byte_offset);  //(base_adrr, offset, &layout, &subtype_id, &base_adrr,
                                                        //&subtype_byte_offset, &count_check);

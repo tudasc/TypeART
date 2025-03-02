@@ -185,7 +185,9 @@ function toolchain_init() {
 }
 
 function source_to_llvm() {
-  $compiler ${omp_flags} ${typeart_includes} ${typeart_san_flags} \
+  # flag errors with implicit conversions when changing API
+  local error_flags="-Werror=incompatible-pointer-types"
+  $compiler ${error_flags} ${omp_flags} ${typeart_includes} ${typeart_san_flags} \
     -O1 -g ${compile_flags} -Xclang -disable-llvm-passes -S -emit-llvm "${source_file}" -o -
 }
 

@@ -370,7 +370,7 @@ typeart_status typeart_get_containing_type(typeart_type_info type, typeart_base_
 }
 
 typeart_status typeart_get_subtype(const typeart_struct_layout* container_layout, const void* base_addr, size_t offset,
-                                   typeart_type_info* subtype_info, size_t* subtype_byte_offset) {
+                                   typeart_base_type_info* subtype_info, size_t* subtype_byte_offset) {
   typeart::RTGuard guard;
   auto status = typeart::RuntimeSystem::get().typeResolution.getSubTypeInfo(
       base_addr, offset, *container_layout, &subtype_info->type_id, &subtype_info->address, subtype_byte_offset,
