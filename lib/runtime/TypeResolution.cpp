@@ -378,17 +378,6 @@ typeart_status typeart_get_subtype(const typeart_struct_layout* container_layout
   return status;
 }
 
-typeart_status typeart_resolve_type_addr(const void* addr, typeart_struct_layout* struct_layout) {
-  typeart::RTGuard guard;
-  int type_id{0};
-  size_t size{0};
-  auto status = typeart::detail::query_type(addr, &type_id, &size);
-  if (status != TYPEART_OK) {
-    return status;
-  }
-  return typeart::detail::query_struct_layout(type_id, struct_layout);
-}
-
 typeart_status typeart_resolve_type_id(int type_id, typeart_struct_layout* struct_layout) {
   typeart::RTGuard guard;
   return typeart::detail::query_struct_layout(type_id, struct_layout);
