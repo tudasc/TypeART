@@ -40,5 +40,5 @@ int main() {
 }
 
 // CHECK: @_ZN2S1D0Ev
-// CHECK: call void @_ZdlPv({{i8\*|ptr}}{{( noundef)?}} [[POINTER2:%[0-9a-z]+]])
+// CHECK: call void @_ZdlPv{{m?}}({{i8\*|ptr}}{{( noundef)?}} [[POINTER2:%[0-9a-z]+]]
 // CHECK-NEXT: call void @__typeart_free({{i8\*|ptr}} {{.*}}[[POINTER2]])

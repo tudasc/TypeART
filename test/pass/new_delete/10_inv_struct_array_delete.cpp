@@ -17,7 +17,7 @@ struct S1 {
 // CHECK: invoke{{.*}} {{i8\*|ptr}} @_Znam(i64{{( noundef)?}} 56)
 // CHECK: call void @__typeart_alloc({{i8\*|ptr}} [[POINTER:%[0-9a-z]+]], i32 {{2[0-9]+}}, i64 3)
 // CHECK: [[MEMORYBLOB:%[0-9a-z]+]] = getelementptr inbounds i8, {{i8\*|ptr}} [[ARRPTR:%[0-9a-z]+]], i64 -8
-// CHECK: call void @_ZdaPv({{i8\*|ptr}}{{( noundef)?}} [[MEMORYBLOB]])
+// CHECK: call void @_ZdaPv{{m?}}({{i8\*|ptr}}{{( noundef)?}} [[MEMORYBLOB]]
 // CHECK-NEXT: call void @__typeart_free({{i8\*|ptr}} [[ARRPTR]])
 void foo() {
   S1* b{nullptr};
@@ -33,7 +33,7 @@ void foo() {
 // CHECK: invoke{{.*}} {{i8\*|ptr}} @_Znam(i64{{( noundef)?}} 40)
 // CHECK: call void @__typeart_alloc({{i8\*|ptr}} [[POINTER:%[0-9a-z]+]], i32 {{2[0-9]+}}, i64 2)
 // CHECK: [[MEMORYBLOB:%[0-9a-z]+]] = getelementptr inbounds i8, {{i8\*|ptr}} [[ARRPTR:%[0-9a-z]+]], i64 -8
-// CHECK: call void @_ZdaPv({{i8\*|ptr}}{{( noundef)?}} [[MEMORYBLOB]])
+// CHECK: call void @_ZdaPv{{m?}}({{i8\*|ptr}}{{( noundef)?}} [[MEMORYBLOB]]
 // CHECK-NEXT: call void @__typeart_free({{i8\*|ptr}} [[ARRPTR]])
 int main() {
   try {
@@ -46,5 +46,5 @@ int main() {
 }
 
 // CHECK: @_ZN2S1D0Ev
-// CHECK: call void @_ZdlPv({{i8\*|ptr}}{{( noundef)?}} [[POINTER2:%[0-9a-z]+]])
+// CHECK: call void @_ZdlPv{{m?}}({{i8\*|ptr}}{{( noundef)?}} [[POINTER2:%[0-9a-z]+]]
 // CHECK-NEXT: call void @__typeart_free({{i8\*|ptr}} [[POINTER2]])
