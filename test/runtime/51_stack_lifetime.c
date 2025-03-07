@@ -5,15 +5,14 @@
 #include <stdio.h>
 
 void type_check(const void* addr) {
-  int id_result      = 0;
-  size_t count_check = 0;
   typeart_status status;
-  status = typeart_get_type(addr, &id_result, &count_check);
+  typeart_type_info info;
+  status = typeart_get_type(addr, &info);
 
   if (status != TYPEART_OK) {
     fprintf(stderr, "[Error]: Status not OK: %i for %p\n", status, addr);
   } else {
-    fprintf(stderr, "Status OK: %i %zu\n", id_result, count_check);
+    fprintf(stderr, "Status OK: %i %zu\n", info.type_id, info.count);
   }
 }
 

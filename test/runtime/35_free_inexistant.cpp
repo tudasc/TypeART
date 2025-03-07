@@ -16,9 +16,12 @@ int main(int argc, char** argv) {
   const auto check = [&](double* addr) {
     int id_result{-1};
     size_t count_check{0};
-    typeart_status status = typeart_get_type(reinterpret_cast<const void*>(addr), &id_result, &count_check);
+    typeart_type_info info;
+    typeart_status status = typeart_get_type(reinterpret_cast<const void*>(addr), &info);
 
     if (status == TYPEART_OK) {
+      id_result   = info.type_id;
+      count_check = info.count;
       if (count_check != expected_count) {
         fprintf(stderr, "[Error]: Count not expected: %zu\n", count_check);
       }
