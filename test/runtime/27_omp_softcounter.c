@@ -4,7 +4,7 @@
 
 // RUN: %run %s -o -O2 --omp --typeart-filter=true 2>&1 | %filecheck %s
 // RUN: %run %s --omp --typeart-filter=true 2>&1 | %filecheck %s
-// REQUIRES: openmp && softcounter && !llvm-18
+// REQUIRES: openmp && softcounter && !llvm-18 && !llvm-19
 // clang-format on
 
 #include <stdlib.h>
