@@ -1,5 +1,5 @@
 ; RUN: %apply-typeart -S < %s | %filecheck %s
-; REQUIRES: llvm-18
+; REQUIRES: llvm-18 || llvm-19
 
 ; llvm-reduce on lulesh.cc with culprit chunk.hpp:allocateData() where pattern is similar to array cookie.
 
