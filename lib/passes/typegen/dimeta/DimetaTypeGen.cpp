@@ -401,14 +401,24 @@ class DimetaTypeManager final : public TypeIDGenerator {
       struct_info.flag = StructTypeFlag::USER_DEFINED;
     }
 
-    struct_info.extent      = compound.extent;
-    struct_info.offsets     = compound.offsets;
-    struct_info.num_members = compound.bases.size() + compound.members.size();
+    struct_info.extent = compound.extent;
 
+    size_t num_bases{0};
     for (const auto& base : compound.bases) {
+      if (base->is_empty_base_class) {
+        continue;
+      }
+      num_bases++;
       struct_info.member_types.push_back(getOrRegister(base->base));
       struct_info.array_sizes.push_back(array_size(base->base));
+      struct_info.offsets.push_back(base->offset);
     }
+
+    struct_info.num_members = compound.members.size() + num_bases;
+    struct_info.offsets.insert(std::end(struct_info.offsets),  //
+                               std::begin(compound.offsets),   //
+                               std::end(compound.offsets));
+
     for (const auto& member : compound.members) {
       struct_info.member_types.push_back(getOrRegister(member->member));
       struct_info.array_sizes.push_back(array_size(member->member));
