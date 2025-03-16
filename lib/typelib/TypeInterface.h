@@ -21,6 +21,7 @@ typedef enum typeart_builtin_type_t {  // NOLINT
   TYPEART_UNKNOWN_TYPE = 0,
 
   TYPEART_POINTER,
+  TYPEART_VTABLE_POINTER,
   TYPEART_VOID,
   TYPEART_NULLPOINTER,
 

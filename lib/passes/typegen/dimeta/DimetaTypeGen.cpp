@@ -54,13 +54,17 @@ template <typename Type>
 std::pair<std::optional<typeart_builtin_type>, int> typeid_if_ptr(const Type& type) {
   using namespace dimeta;
   const auto& quals = type.qual;
-  int count{0};
-  if (!quals.empty()) {
-    count = llvm::count_if(quals, [](auto& qual) { return qual == Qualifier::kPtr || qual == Qualifier::kRef; });
-    if (count > 0) {
-      return {{TYPEART_POINTER}, count};
+  int count = llvm::count_if(quals, [](auto& qual) { return qual == Qualifier::kPtr || qual == Qualifier::kRef; });
+
+  if constexpr (std::is_same_v<Type, typename dimeta::QualifiedFundamental>) {
+    if (type.type.encoding == FundamentalType::Encoding::kVtablePtr) {
+      return {TYPEART_VTABLE_POINTER, count};
     }
   }
+  if (count > 0) {
+    return {{TYPEART_POINTER}, count};
+  }
+
   return {{}, count};
 }
 
@@ -220,6 +224,8 @@ std::optional<typeart_builtin_type> get_builtin_typeid(const dimeta::QualifiedFu
   const auto encoding = type.type.encoding;
 
   switch (encoding) {
+    case FundamentalType::Encoding::kVtablePtr:
+      return TYPEART_VTABLE_POINTER;
     case FundamentalType::Encoding::kUnknown:
       return TYPEART_UNKNOWN_TYPE;
     case FundamentalType::Encoding::kVoid:

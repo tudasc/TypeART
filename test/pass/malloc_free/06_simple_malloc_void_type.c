@@ -8,7 +8,7 @@ void test() {
 }
 
 // CHECK: [[POINTER:%[0-9a-z]+]] = call noalias{{( align [0-9]+)?}} {{i8\*|ptr}} @malloc
-// CHECK-NEXT: call void @__typeart_alloc({{i8\*|ptr}} [[POINTER]], i32 {{(10|2)}}, i64 168)
+// CHECK-NEXT: call void @__typeart_alloc({{i8\*|ptr}} [[POINTER]], i32 {{(11|3)}}, i64 168)
 
 // PASS-OUT: TypeArtPass [Heap]
 // PASS-OUT-NEXT: Malloc{{[ ]*}}:{{[ ]*}}1

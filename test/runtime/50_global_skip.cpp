@@ -18,11 +18,11 @@ int main(int argc, char** argv) {
 }
 
 // CHECK: Allocation type detail (heap, stack, global)
-// CHECK: {{(10|5)}} :   0 ,    {{[0-9]}} ,    0 , {{(int8_t|char)}}
-// CHECK: 12 :   0 ,    {{[0-9]}} ,    1 , int
-// CHECK: 23 :   0 ,    {{[0-9]}} ,    1 , double
+// CHECK: {{(11|6)}} :   0 ,    {{[0-9]}} ,    0 , {{(int8_t|char)}}
+// CHECK: 13 :   0 ,    {{[0-9]}} ,    1 , int
+// CHECK: 24 :   0 ,    {{[0-9]}} ,    1 , double
 
 // CHECK-SKIP: Allocation type detail (heap, stack, global)
-// CHECK-SKIP: {{(10|5)}} :   0 ,    {{[0-9]}} ,    0 , {{(int8_t|char)}}
-// CHECK-SKIP: 12 :   0 ,    {{[0-9]}} ,    0 , int
-// CHECK-SKIP: 23 :   0 ,    {{[0-9]}} ,    0 , double
+// CHECK-SKIP: {{(11|6)}} :   0 ,    {{[0-9]}} ,    0 , {{(int8_t|char)}}
+// CHECK-SKIP: 13 :   0 ,    {{[0-9]}} ,    0 , int
+// CHECK-SKIP: 24 :   0 ,    {{[0-9]}} ,    0 , double

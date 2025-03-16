@@ -57,14 +57,14 @@ int main(int argc, char** argv) {
   struct Datastruct data;
   __typeart_alloc((const void*)&data, 259, 1);
 
-  // CHECK: Status OK: 23 1
+  // CHECK: Status OK: 24 1
   type_check((const void*)&data.middle);
 
   struct Datastruct data_2[3];
   // CHECK: [Trace] Alloc [[POINTER:0x[0-9a-f]+]] 259
   __typeart_alloc((const void*)&data_2[0], 259, 3);
 
-  // CHECK: Status OK: 22 2
+  // CHECK: Status OK: 23 2
   type_check((const void*)&data_2[2].end);
   // CHECK: Status OK: 259 1 16 [[POINTER]]
   type_check_containing((const void*)&data_2[2].end);

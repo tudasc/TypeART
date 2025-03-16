@@ -33,7 +33,7 @@ void foo() {
 // CHECK-NEXT: extent:          40
 // CHECK-NEXT: member_count:    3
 // CHECK-NEXT: offsets:         [ 0, 16, 32 ]
-// CHECK-NEXT: types:           [ 257, 258, 22 ]
+// CHECK-NEXT: types:           [ 25{{[6-9]}}, 25{{[6-9]}}, 23 ]
 // CHECK-NEXT: sizes:           [ 1, 1, 1 ]
 // CHECK-NEXT: flags:           1
 

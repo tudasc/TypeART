@@ -9,7 +9,7 @@
 
 #include <new>
 // CHECK: invoke{{.*}} {{i8\*|ptr}} @_Znam(i64{{( noundef)?}} 16)
-// CHECK: call void @__typeart_alloc({{i8\*|ptr}} [[POINTER:%[0-9a-z]+]], i32 23, i64 2)
+// CHECK: call void @__typeart_alloc({{i8\*|ptr}} [[POINTER:%[0-9a-z]+]], i32 24, i64 2)
 // CHECK: call void @_ZdaPv({{i8\*|ptr}}{{( noundef)?}} [[POINTER2:%[0-9a-z]+]])
 // CHECK-NEXT: call void @__typeart_free({{i8\*|ptr}} {{.*}}[[POINTER2]])
 int main() {
@@ -23,7 +23,7 @@ int main() {
 }
 
 // CHECK: invoke{{.*}} {{i8\*|ptr}} @_Znam(i64{{( noundef)?}} 16)
-// CHECK: call void @__typeart_alloc({{i8\*|ptr}} [[POINTER:%[0-9a-z]+]], i32 23, i64 2)
+// CHECK: call void @__typeart_alloc({{i8\*|ptr}} [[POINTER:%[0-9a-z]+]], i32 24, i64 2)
 // CHECK: call void @_ZdaPv({{i8\*|ptr}}{{( noundef)?}} [[POINTER2:%[0-9a-z]+]])
 // CHECK-NEXT: call void @__typeart_free({{i8\*|ptr}} {{.*}}[[POINTER2]])
 void foo() {

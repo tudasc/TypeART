@@ -51,7 +51,7 @@ void func_other(int* x, int* e) {
 
 void bar(int x_other) {
   // check-inst: define {{.*}} @bar
-  // check-inst: call void @__typeart_alloc_stack({{i8\*|ptr}} %{{[0-9a-z]}}, i32 12, i64 1)
+  // check-inst: call void @__typeart_alloc_stack({{i8\*|ptr}} %{{[0-9a-z]}}, i32 13, i64 1)
   int x = x_other;
   int y = 2;
 #pragma omp parallel

@@ -53,6 +53,6 @@ int main(int argc, char** argv) {
   // CHECK: Addresses re-used          :  200
 
   // CHECK: Allocation type detail (heap, stack, global)
-  // CHECK: 23   : 300 ,     0 ,    0 , double
+  // CHECK: 24   : 300 ,     0 ,    0 , double
   return 0;
 }

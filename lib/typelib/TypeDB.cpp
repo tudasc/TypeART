@@ -36,6 +36,7 @@ inline constexpr auto size_complex_long_double = sizeof(std::complex<long double
 #define FOR_EACH_TYPEART_BUILTIN(X)                             \
   X(TYPEART_UNKNOWN_TYPE, "typeart_unknown_type", 0)            \
   X(TYPEART_POINTER, "ptr", sizeof(void*))                      \
+  X(TYPEART_VTABLE_POINTER, "vtable_ptr", sizeof(void*))        \
   X(TYPEART_VOID, "void*", sizeof(void*))                       \
   X(TYPEART_NULLPOINTER, "nullptr_t", sizeof(void*))            \
   X(TYPEART_BOOL, "bool", sizeof(bool))                         \
