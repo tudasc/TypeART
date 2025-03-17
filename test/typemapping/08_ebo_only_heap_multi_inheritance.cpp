@@ -1,5 +1,5 @@
 // RUN: %remove %tu_yaml
-// RUN: %c-to-llvm %s | %apply-typeart --typeart-stack=true
+// RUN: %cpp-to-llvm %s | %apply-typeart --typeart-stack=true
 // RUN: cat %tu_yaml | %filecheck %s
 
 struct Base {
