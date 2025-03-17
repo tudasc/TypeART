@@ -40,13 +40,13 @@ int main(int argc, char** argv) {
   // CHECK: [Error]{{.*}}Free on unregistered address
   __typeart_free(reinterpret_cast<const void*>(d));
 
-  // CHECK: [Trace] Alloc 0x{{[0-9a-f]+}} 23 double 8 6
+  // CHECK: [Trace] Alloc 0x{{[0-9a-f]+}} 24 double 8 6
   __typeart_alloc(reinterpret_cast<const void*>(&d[0]), type, extent);
   // CHECK-NOT: [Error]
   // CHECK-NOT: [Check]
   check(&d[0]);
 
-  // CHECK: [Trace] Free 0x{{[0-9a-f]+}} 23 double 8 6
+  // CHECK: [Trace] Free 0x{{[0-9a-f]+}} 24 double 8 6
   __typeart_free(reinterpret_cast<const void*>(d));
   // CHECK: [Error]{{.*}}Free on unregistered address
   __typeart_free(reinterpret_cast<const void*>(d));

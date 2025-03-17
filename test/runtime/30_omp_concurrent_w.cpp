@@ -67,9 +67,9 @@ int main(int argc, char** argv) {
 // CHECK-NOT: Error
 
 // CHECK: Allocation type detail (heap, stack, global)
-// CHECK: 23   : 300 ,     0 ,    0 , double
+// CHECK: 24   : 300 ,     0 ,    0 , double
 
 // CHECK: Free allocation type detail (heap, stack)
-// CHECK: 23   : 300 ,     0 , double
+// CHECK: 24   : 300 ,     0 , double
 return 0;
 }

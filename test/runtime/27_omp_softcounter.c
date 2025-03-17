@@ -58,7 +58,7 @@ int main(int argc, char** argv) {
   // CHECK-NEXT: Allocation type detail (heap, stack, global)
   // CHECK: {{(#|-)+}}
   // CHECK-NEXT: Free allocation type detail (heap, stack)
-  // CHECK-NEXT: 23 : 200 ,    0 , double
+  // CHECK-NEXT: 24 : 200 ,    0 , double
   // CHECK: Per-thread counter values (2 threads)
   // CHECK-NEXT: Thread Heap Allocs       : 100 ,  100
   // CHECK-NEXT: Thread Heap Arrays       : 100 ,  100

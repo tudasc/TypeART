@@ -32,7 +32,7 @@ int foo() {
 // CHECK-NEXT:  extent:          24
 // CHECK-NEXT:  member_count:    4
 // CHECK-NEXT:  offsets:         [ 0, 16, 20, 21 ]
-// CHECK-NEXT:  types:           [ 25{{[0-9]}}, 12, 5, 6 ]
+// CHECK-NEXT:  types:           [ 25{{[0-9]}}, 13, 6, 7 ]
 // CHECK-NEXT:  sizes:           [ 1, 1, 1, 1 ]
 // CHECK-NEXT:  flags:           1
 

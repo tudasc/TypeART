@@ -12,4 +12,4 @@ void test() {
 // CHECK-NEXT: Alloca{{[ ]*}}:{{[ ]*}}0
 
 // CHECK: [[POINTER:%[0-9a-z]+]] = call noalias{{( align [0-9]+)?}} {{i8\*|ptr}} @malloc
-// CHECK-NEXT: call void @__typeart_alloc({{i8\*|ptr}} [[POINTER]], i32 12, i64 42)
+// CHECK-NEXT: call void @__typeart_alloc({{i8\*|ptr}} [[POINTER]], i32 13, i64 42)

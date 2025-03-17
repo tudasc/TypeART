@@ -18,18 +18,18 @@ void type_check(const void* addr) {
 
 void correct(int rank) {
   if (rank == 1) {
-    // CHECK: Status OK: 12 9
-    // CHECK: Status OK: 12 8
-    // CHECK: Status OK: 12 7
-    // CHECK: Status OK: 12 1
+    // CHECK: Status OK: 13 9
+    // CHECK: Status OK: 13 8
+    // CHECK: Status OK: 13 7
+    // CHECK: Status OK: 13 1
     int buffer[3][3] = {0, 1, 2, 3, 4, 5, 6, 7, 8};
     type_check(buffer);
     type_check(&buffer[0][1]);
     type_check(&buffer[0][2]);
     type_check(&buffer[2][2]);
   } else {
-    // CHECK: Status OK: 12 3
-    // CHECK: Status OK: 12 1
+    // CHECK: Status OK: 13 3
+    // CHECK: Status OK: 13 1
     int rcv[3] = {0, 1, 2};
     type_check(rcv);
     type_check(&rcv[2]);

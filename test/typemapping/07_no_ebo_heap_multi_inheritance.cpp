@@ -25,7 +25,7 @@ void foo() {
 // CHECK-NEXT: extent:          32
 // CHECK-NEXT: member_count:    4
 // CHECK-NEXT: offsets:         [ 0, 8, 16, 24 ]
-// CHECK-NEXT: types:           [ 25{{[6-9]}}, 25{{[6-9]}}, 23, 1 ]
+// CHECK-NEXT: types:           [ 25{{[6-9]}}, 25{{[6-9]}}, 24, 1 ]
 // CHECK-NEXT: sizes:           [ 1, 1, 1, 1 ]
 // CHECK-NEXT: flags:           1
 

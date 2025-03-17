@@ -9,7 +9,7 @@
 
 #include <new>
 // CHECK: invoke{{.*}} {{i8\*|ptr}} @_Znam(i64{{( noundef)?}} 8)
-// CHECK: call void @__typeart_alloc({{i8\*|ptr}} [[POINTER:%[0-9a-z]+]], i32 12, i64 2)
+// CHECK: call void @__typeart_alloc({{i8\*|ptr}} [[POINTER:%[0-9a-z]+]], i32 13, i64 2)
 int main() {
   try {
     auto s = new int[2];

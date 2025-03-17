@@ -112,7 +112,7 @@ void type_check_sub(const void* addr, size_t offset) {
 
 void test_get_type() {
   DataStruct data[5];
-  // CHECK: Status OK: type_id=22 count=2
+  // CHECK: Status OK: type_id=23 count=2
   type_check(&data[1].c[0]);
 }
 
@@ -124,7 +124,7 @@ void test_get_containing() {
 
 void test_get_subtype() {
   DataStruct data[5];
-  // CHECK: type_id=22 count=1 offset=0
+  // CHECK: type_id=23 count=1 offset=0
   type_check_sub(&data[1], offsetof(DataStruct, c[1]));
 }
 
