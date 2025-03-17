@@ -29,6 +29,14 @@ void foo() {
   Y class_y;
 }
 
+// CHECK: name:            _ZTS1X
+// CHECK-NEXT: extent:          16
+// CHECK-NEXT: member_count:    2
+// CHECK-NEXT: offsets:         [ 0, 8 ]
+// CHECK-NEXT: types:           [ 2, 13 ]
+// CHECK-NEXT: sizes:           [ 1, 1 ]
+// CHECK-NEXT: flags:           1
+
 // CHECK: name:            _ZTS1Y
 // CHECK-NEXT: extent:          40
 // CHECK-NEXT: member_count:    3

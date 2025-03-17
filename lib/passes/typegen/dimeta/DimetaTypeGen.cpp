@@ -54,11 +54,19 @@ template <typename Type>
 std::pair<std::optional<typeart_builtin_type>, int> typeid_if_ptr(const Type& type) {
   using namespace dimeta;
   const auto& quals = type.qual;
-  int count = llvm::count_if(quals, [](auto& qual) { return qual == Qualifier::kPtr || qual == Qualifier::kRef; });
+  const int count =
+      llvm::count_if(quals, [](auto& qual) { return qual == Qualifier::kPtr || qual == Qualifier::kRef; });
 
   if constexpr (std::is_same_v<Type, typename dimeta::QualifiedFundamental>) {
-    if (type.type.encoding == FundamentalType::Encoding::kVtablePtr) {
-      return {TYPEART_VTABLE_POINTER, count};
+    switch (type.type.encoding) {
+      case FundamentalType::Encoding::kVtablePtr:
+        return {TYPEART_VTABLE_POINTER, count};
+      case FundamentalType::Encoding::kNullptr:
+        return {TYPEART_NULLPOINTER, count};
+      case FundamentalType::Encoding::kVoid:
+        return {TYPEART_VOID, count};
+      default:
+        break;
     }
   }
   if (count > 0) {
