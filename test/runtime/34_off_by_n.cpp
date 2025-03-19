@@ -42,10 +42,10 @@ int main(int argc, char** argv) {
   // CHECK-NOT: [Error]
   check(&d[0]);
   check(&d[1]);
-  // CHECK: {{.*}}:Out of bounds for the lookup: (0x{{[0-9a-f]+}} 23 double 8 1 (0x{{[0-9a-f]+}})) #Elements too far: 1
+  // CHECK: {{.*}}:Out of bounds for the lookup: (0x{{[0-9a-f]+}} 24 double 8 1 (0x{{[0-9a-f]+}})) #Elements too far: 1
   // CHECK: [Check]: Status: 1
   check(&d[2]);  // one off
-  // CHECK: {{.*}}:Out of bounds for the lookup: (0x{{[0-9a-f]+}} 23 double 8 1 (0x{{[0-9a-f]+}})) #Elements too far: 4
+  // CHECK: {{.*}}:Out of bounds for the lookup: (0x{{[0-9a-f]+}} 24 double 8 1 (0x{{[0-9a-f]+}})) #Elements too far: 4
   // CHECK: [Check]: Status: 1
   check(&d[5]);  // four off
 

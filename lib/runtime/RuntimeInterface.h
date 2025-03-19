@@ -267,12 +267,20 @@ bool typeart_is_struct_type(int type_id);
 
 /**
  * Returns true if the type ID is a user-defined structure type
- * (struct, class etc.)
+ * (struct, class, union etc.)
  *
  * \param[in] type_id The type ID.
  * \return true, false
  */
 bool typeart_is_userdefined_type(int type_id);
+
+/**
+ * Returns true if the type ID is a (user-defined) union
+ *
+ * \param[in] type_id The type ID.
+ * \return true, false
+ */
+bool typeart_is_union(int type_id);
 
 /**
  * Returns true if the type ID is a LLVM SIMD vector type

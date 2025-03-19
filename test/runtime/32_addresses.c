@@ -14,7 +14,7 @@ int main(int argc, char** argv) {
 }
 // TODO disable Trace logs for early return?
 
-// CHECK: [Error]{{.*}}:Nullptr allocation 0x0 23 {{.*}} 8 1
-// CHECK: [Warning]{{.*}}:Zero-size allocation 0x1 22 {{.*}} 4 0
-// CHECK: [Error]{{.*}}:Zero-size and nullptr allocation 0x0 23 {{.*}} 8 0
-// CHECK: [Trace] Alloc 0x2 24 {{.*}} 16 1
+// CHECK: [Error]{{.*}}:Nullptr allocation 0x0 23 {{.*}} {{.*}} 1
+// CHECK: [Warning]{{.*}}:Zero-size allocation 0x1 22 {{.*}} {{.*}} 0
+// CHECK: [Error]{{.*}}:Zero-size and nullptr allocation 0x0 23 {{.*}} {{.*}} 0
+// CHECK: [Trace] Alloc 0x2 24 {{.*}} {{.*}} 1

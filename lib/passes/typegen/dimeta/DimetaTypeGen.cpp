@@ -54,13 +54,25 @@ template <typename Type>
 std::pair<std::optional<typeart_builtin_type>, int> typeid_if_ptr(const Type& type) {
   using namespace dimeta;
   const auto& quals = type.qual;
-  int count{0};
-  if (!quals.empty()) {
-    count = llvm::count_if(quals, [](auto& qual) { return qual == Qualifier::kPtr || qual == Qualifier::kRef; });
-    if (count > 0) {
-      return {{TYPEART_POINTER}, count};
+  const int count =
+      llvm::count_if(quals, [](auto& qual) { return qual == Qualifier::kPtr || qual == Qualifier::kRef; });
+
+  if constexpr (std::is_same_v<Type, typename dimeta::QualifiedFundamental>) {
+    switch (type.type.encoding) {
+      case FundamentalType::Encoding::kVtablePtr:
+        return {TYPEART_VTABLE_POINTER, count};
+      case FundamentalType::Encoding::kNullptr:
+        return {TYPEART_NULLPOINTER, count};
+      case FundamentalType::Encoding::kVoid:
+        return {TYPEART_VOID, count};
+      default:
+        break;
     }
   }
+  if (count > 0) {
+    return {{TYPEART_POINTER}, count};
+  }
+
   return {{}, count};
 }
 
@@ -220,6 +232,8 @@ std::optional<typeart_builtin_type> get_builtin_typeid(const dimeta::QualifiedFu
   const auto encoding = type.type.encoding;
 
   switch (encoding) {
+    case FundamentalType::Encoding::kVtablePtr:
+      return TYPEART_VTABLE_POINTER;
     case FundamentalType::Encoding::kUnknown:
       return TYPEART_UNKNOWN_TYPE;
     case FundamentalType::Encoding::kVoid:
@@ -279,11 +293,11 @@ std::optional<typeart_builtin_type> get_builtin_typeid(const dimeta::QualifiedFu
     }
     case FundamentalType::Encoding::kComplex: {
       switch (extent) {
-        case 2:
+        case 8:
           return TYPEART_COMPLEX_64;
-        case 4:
+        case 16:
           return TYPEART_COMPLEX_128;
-        case 1:
+        case 32:
           return TYPEART_COMPLEX_256;
         default:
           return TYPEART_UNKNOWN_TYPE;
@@ -398,17 +412,31 @@ class DimetaTypeManager final : public TypeIDGenerator {
     if (q.is_forward_decl) {
       struct_info.flag = StructTypeFlag::FWD_DECL;
     } else {
-      struct_info.flag = StructTypeFlag::USER_DEFINED;
+      if (q.type.type == CompoundType::Tag::kUnion) {
+        struct_info.flag = StructTypeFlag::UNION;
+      } else {
+        struct_info.flag = StructTypeFlag::USER_DEFINED;
+      }
     }
 
-    struct_info.extent      = compound.extent;
-    struct_info.offsets     = compound.offsets;
-    struct_info.num_members = compound.bases.size() + compound.members.size();
+    struct_info.extent = compound.extent;
 
+    size_t num_bases{0};
     for (const auto& base : compound.bases) {
+      if (base->is_empty_base_class) {
+        continue;
+      }
+      num_bases++;
       struct_info.member_types.push_back(getOrRegister(base->base));
       struct_info.array_sizes.push_back(array_size(base->base));
+      struct_info.offsets.push_back(base->offset);
     }
+
+    struct_info.num_members = compound.members.size() + num_bases;
+    struct_info.offsets.insert(std::end(struct_info.offsets),  //
+                               std::begin(compound.offsets),   //
+                               std::end(compound.offsets));
+
     for (const auto& member : compound.members) {
       struct_info.member_types.push_back(getOrRegister(member->member));
       struct_info.array_sizes.push_back(array_size(member->member));

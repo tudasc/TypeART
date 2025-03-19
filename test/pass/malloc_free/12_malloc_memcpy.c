@@ -18,7 +18,7 @@ typedef struct {
 // clang-format off
 // CHECK-OPT: tail call void @free
 // CHECK-OPT-NEXT: call void @__typeart_free
-// CHECK-OPT: call void @__typeart_alloc({{i8\*|ptr}} %{{[0-9a-z]+}}, i32 {{(10|12)}},
+// CHECK-OPT: call void @__typeart_alloc({{i8\*|ptr}} %{{[0-9a-z]+}}, i32 {{(11|13)}},
 // CHECK-OPT: call void @llvm.memcpy.p0{{(i8)?}}.p0{{(i8)?}}.i64({{i8\*|ptr}} {{(align[[:space:]]?(4|16)[[:space:]])?}}%{{[0-9a-z]+}},
 // clang-format on
 void setVartypes(struct_grid* pgrid, int nvars, int* vartypes /* = i32 ptr */) {

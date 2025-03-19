@@ -23,7 +23,7 @@ typedef struct s3_t {
   long b[2];          // 16
   char c;             // 32
   unsigned int d[3];  // 36
-  char e[5];          // 48
+  char e[6];          // 48
   unsigned long f;    // 56
 } s3;
 
@@ -51,7 +51,7 @@ int main(int argc, char** argv) {
 // CHECK: extent:          4
 // CHECK: member_count:    1
 // CHECK: offsets:         [ 0 ]
-// CHECK: types:           [ 12 ]
+// CHECK: types:           [ 13 ]
 // CHECK: sizes:           [ 1 ]
 
 // CHECK: - id:              257
@@ -59,7 +59,7 @@ int main(int argc, char** argv) {
 // CHECK:         extent:          16
 // CHECK: member_count:    3
 // CHECK: offsets:         [ 0, 4, 8 ]
-// CHECK: types:           [ 12, {{(10|5)}}, 13 ]
+// CHECK: types:           [ 13, {{(11|6)}}, 14 ]
 // CHECK: sizes:           [ 1, 1, 1 ]
 
 // CHECK: - id:              258
@@ -67,13 +67,13 @@ int main(int argc, char** argv) {
 // CHECK:         extent:          64
 // CHECK: member_count:    6
 // CHECK: offsets:         [ 0, 16, 32, 36, 48, 56 ]
-// CHECK: types:           [ 12, 13, {{(10|5)}}, {{(12|17)}}, {{(10|5)}}, {{(13|18)}} ]
-// CHECK: sizes:           [ 3, 2, 1, 3, 5, 1 ]
+// CHECK: types:           [ 13, 14, {{(11|6)}}, {{(13|18)}}, {{(11|6)}}, {{(14|19)}} ]
+// CHECK: sizes:           [ 3, 2, 1, 3, 6, 1 ]
 
 // CHECK: - id:              259
 // CHECK: name:            {{(struct.)?}}s4_t
 // CHECK:         extent:          64
 // CHECK: member_count:    4
 // CHECK: offsets:         [ 0, 8, 32, 56 ]
-// CHECK: types:           [ 12, 23, 23, 1 ]
+// CHECK: types:           [ 13, 24, 24, 1 ]
 // CHECK: sizes:           [ 1, 3, 3, 1 ]

@@ -20,10 +20,10 @@ int main() {
 // CHECK-NEXT: Alloca{{[ ]*}}:{{[ ]*}}0
 
 // CHECK: [[POINTER:%[0-9a-z]+]] = call noalias{{( align [0-9]+)?}} {{i8\*|ptr}} @calloc(i64{{( noundef)?}} [[SIZE:[0-9]+]], i64{{( noundef)?}} 8)
-// CHECK-NEXT: call void @__typeart_alloc({{i8\*|ptr}} [[POINTER]], i32 23, i64 [[SIZE]])
+// CHECK-NEXT: call void @__typeart_alloc({{i8\*|ptr}} [[POINTER]], i32 24, i64 [[SIZE]])
 
 // REALLOC: __typeart_free({{i8\*|ptr}} [[POINTER:%[0-9a-z]+]])
 // REALLOC-NEXT: [[POINTER2:%[0-9a-z]+]] = call{{( align [0-9]+)?}} {{i8\*|ptr}} @realloc({{i8\*|ptr}}{{( noundef)?}} [[POINTER]], i64{{( noundef)?}} 160)
-// REALLOC-NEXT: __typeart_alloc({{i8\*|ptr}} [[POINTER2]], i32 23, i64 20)
+// REALLOC-NEXT: __typeart_alloc({{i8\*|ptr}} [[POINTER2]], i32 24, i64 20)
 
 // clang-format on

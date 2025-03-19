@@ -15,7 +15,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ ubuntu-22.04, ubuntu-24.04 ]
-        llvm-version: [ 14, 18 ]
+        llvm-version: [ 14, 18, 19 ]
         preset:
           - name: release-counter
           - name: release-safeptr-counter
@@ -24,6 +24,8 @@ jobs:
           - llvm-version: 14
             os: ubuntu-24.04
           - llvm-version: 18
+            os: ubuntu-22.04
+          - llvm-version: 19
             os: ubuntu-22.04
 
     runs-on: ${{ matrix.os }}
@@ -37,6 +39,12 @@ jobs:
           repository: tudasc/typeart-bench
           ssh-key: ${{ secrets.AUTH_SSH_CI_EXT }}
           path: test-bench
+
+      - name: LLVM apt
+        if: ${{ matrix.llvm-version == 19 }}
+        run: |
+          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+          echo "deb http://apt.llvm.org/noble/ llvm-toolchain-noble-19 main" | sudo tee /etc/apt/sources.list.d/llvm-19.list
 
       - name: Update apt
         run: sudo apt-get update
@@ -106,7 +114,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ ubuntu-22.04, ubuntu-24.04 ]
-        llvm-version: [ 14, 18 ]
+        llvm-version: [ 14, 18, 19 ]
         preset:
           - name: release-counter
           - name: release-unsafe-counter
@@ -114,6 +122,8 @@ jobs:
           - llvm-version: 14
             os: ubuntu-24.04
           - llvm-version: 18
+            os: ubuntu-22.04
+          - llvm-version: 19
             os: ubuntu-22.04
 
     runs-on: ${{ matrix.os }}
@@ -128,6 +138,12 @@ jobs:
           ssh-key: ${{ secrets.AUTH_SSH_CI_EXT_AD }}
           ref: feat/ci
           path: ad-test-bench
+
+      - name: LLVM apt
+        if: ${{ matrix.llvm-version == 19 }}
+        run: |
+          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+          echo "deb http://apt.llvm.org/noble/ llvm-toolchain-noble-19 main" | sudo tee /etc/apt/sources.list.d/llvm-19.list
 
       - name: Update apt
         run: sudo apt-get update
@@ -184,7 +200,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ ubuntu-22.04, ubuntu-24.04 ]
-        llvm-version: [ 14, 18 ]
+        llvm-version: [ 14, 18, 19 ]
         preset:
           - name: release-counter
           - name: release-safeptr-counter
@@ -192,6 +208,8 @@ jobs:
           - llvm-version: 14
             os: ubuntu-24.04
           - llvm-version: 18
+            os: ubuntu-22.04
+          - llvm-version: 19
             os: ubuntu-22.04
 
     runs-on: ${{ matrix.os }}
@@ -206,6 +224,12 @@ jobs:
           ssh-key: ${{ secrets.AUTH_SSH_CI_EXT }}
           ref: ci/omp
           path: omp-test-bench
+
+      - name: LLVM apt
+        if: ${{ matrix.llvm-version == 19 }}
+        run: |
+          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+          echo "deb http://apt.llvm.org/noble/ llvm-toolchain-noble-19 main" | sudo tee /etc/apt/sources.list.d/llvm-19.list
 
       - name: Update apt
         run: sudo apt-get update

@@ -91,6 +91,8 @@ class TypeDB final : public TypeDatabase {
 
   bool isVectorType(int type_id) const override;
 
+  bool isUnion(int type_id) const override;
+
   const std::string& getTypeName(int type_id) const override;
 
   const StructTypeInfo* getStructInfo(int type_id) const override;

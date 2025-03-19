@@ -13,7 +13,7 @@ struct S1 {
 };
 
 // CHECK: [[MEM:%[0-9a-z]+]] = getelementptr inbounds i8, {{i8\*|ptr}} [[ARR:%[0-9a-z]+]], i64 -8
-// CHECK: call void @_ZdaPv({{i8\*|ptr}}{{( noundef)?}} [[MEM]])
+// CHECK: call void @_ZdaPv{{m?}}({{i8\*|ptr}}{{( noundef)?}} [[MEM]]
 // CHECK: call void @__typeart_free({{i8\*|ptr}} [[ARR]])
 int main() {
   S1* ss = new S1[2];

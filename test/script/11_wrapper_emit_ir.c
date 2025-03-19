@@ -13,6 +13,6 @@ int main(int argc, char** argv) {
   return 0;
 }
 
-// CHECK: [Trace] Alloc 0x2 24 long double 16 1
+// CHECK: [Trace] Alloc 0x2 25 long double 16 1
 
 // ir-out: source_filename = "{{.*}}11_wrapper_emit_ir.c"

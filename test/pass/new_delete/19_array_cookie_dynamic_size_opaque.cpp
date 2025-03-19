@@ -1,6 +1,6 @@
 // clang-format off
 // RUN: %cpp-to-llvm %s | %apply-typeart -S 2>&1 | %filecheck %s
-// REQUIRES: llvm-18
+// REQUIRES: llvm-18 || llvm-19
 // clang-format on
 
 // CHECK: TypeArtPass [Heap]

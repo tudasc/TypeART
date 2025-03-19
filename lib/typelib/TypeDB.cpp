@@ -36,6 +36,7 @@ inline constexpr auto size_complex_long_double = sizeof(std::complex<long double
 #define FOR_EACH_TYPEART_BUILTIN(X)                             \
   X(TYPEART_UNKNOWN_TYPE, "typeart_unknown_type", 0)            \
   X(TYPEART_POINTER, "ptr", sizeof(void*))                      \
+  X(TYPEART_VTABLE_POINTER, "vtable_ptr", sizeof(void*))        \
   X(TYPEART_VOID, "void*", sizeof(void*))                       \
   X(TYPEART_NULLPOINTER, "nullptr_t", sizeof(void*))            \
   X(TYPEART_BOOL, "bool", sizeof(bool))                         \
@@ -114,9 +115,11 @@ bool TypeDB::isPointerType(int type_id) const {
 bool TypeDB::isUserDefinedType(int type_id) const {
   const auto* structInfo = getStructInfo(type_id);
   LOG_DEBUG(structInfo->name << " " << static_cast<int>(structInfo->flag) << " "
-                             << (static_cast<int>(structInfo->flag) == static_cast<int>(StructTypeFlag::USER_DEFINED)))
+                             << (static_cast<int>(structInfo->flag) == static_cast<int>(StructTypeFlag::USER_DEFINED))
+                             << " " << (static_cast<int>(structInfo->flag) == static_cast<int>(StructTypeFlag::UNION)))
   return (structInfo != nullptr) &&
-         (static_cast<int>(structInfo->flag) == static_cast<int>(StructTypeFlag::USER_DEFINED));
+         (static_cast<int>(structInfo->flag) == static_cast<int>(StructTypeFlag::USER_DEFINED) ||
+          static_cast<int>(structInfo->flag) == static_cast<int>(StructTypeFlag::UNION));
 }
 
 bool TypeDB::isVectorType(int type_id) const {
@@ -125,6 +128,13 @@ bool TypeDB::isVectorType(int type_id) const {
                              << (static_cast<int>(structInfo->flag) == static_cast<int>(StructTypeFlag::LLVM_VECTOR)))
   return (structInfo != nullptr) &&
          (static_cast<int>(structInfo->flag) == static_cast<int>(StructTypeFlag::LLVM_VECTOR));
+}
+
+bool TypeDB::isUnion(int type_id) const {
+  const auto* structInfo = getStructInfo(type_id);
+  LOG_DEBUG(structInfo->name << " " << static_cast<int>(structInfo->flag) << " "
+                             << (static_cast<int>(structInfo->flag) == static_cast<int>(StructTypeFlag::UNION)))
+  return (structInfo != nullptr) && (static_cast<int>(structInfo->flag) == static_cast<int>(StructTypeFlag::UNION));
 }
 
 bool TypeDB::isValid(int type_id) const {

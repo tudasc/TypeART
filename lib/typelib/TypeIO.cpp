@@ -54,7 +54,7 @@ struct llvm::yaml::ScalarTraits<typeart::StructTypeFlag> {
     } else {
       value = static_cast<typeart::StructTypeFlag>(flag);
     }
-    return StringRef();
+    return {};
   }
 
   // Determine if this scalar needs quotes.
