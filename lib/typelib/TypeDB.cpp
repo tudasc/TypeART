@@ -115,9 +115,11 @@ bool TypeDB::isPointerType(int type_id) const {
 bool TypeDB::isUserDefinedType(int type_id) const {
   const auto* structInfo = getStructInfo(type_id);
   LOG_DEBUG(structInfo->name << " " << static_cast<int>(structInfo->flag) << " "
-                             << (static_cast<int>(structInfo->flag) == static_cast<int>(StructTypeFlag::USER_DEFINED)))
+                             << (static_cast<int>(structInfo->flag) == static_cast<int>(StructTypeFlag::USER_DEFINED))
+                             << " " << (static_cast<int>(structInfo->flag) == static_cast<int>(StructTypeFlag::UNION)))
   return (structInfo != nullptr) &&
-         (static_cast<int>(structInfo->flag) == static_cast<int>(StructTypeFlag::USER_DEFINED));
+         (static_cast<int>(structInfo->flag) == static_cast<int>(StructTypeFlag::USER_DEFINED) ||
+          static_cast<int>(structInfo->flag) == static_cast<int>(StructTypeFlag::UNION));
 }
 
 bool TypeDB::isVectorType(int type_id) const {
@@ -126,6 +128,13 @@ bool TypeDB::isVectorType(int type_id) const {
                              << (static_cast<int>(structInfo->flag) == static_cast<int>(StructTypeFlag::LLVM_VECTOR)))
   return (structInfo != nullptr) &&
          (static_cast<int>(structInfo->flag) == static_cast<int>(StructTypeFlag::LLVM_VECTOR));
+}
+
+bool TypeDB::isUnion(int type_id) const {
+  const auto* structInfo = getStructInfo(type_id);
+  LOG_DEBUG(structInfo->name << " " << static_cast<int>(structInfo->flag) << " "
+                             << (static_cast<int>(structInfo->flag) == static_cast<int>(StructTypeFlag::UNION)))
+  return (structInfo != nullptr) && (static_cast<int>(structInfo->flag) == static_cast<int>(StructTypeFlag::UNION));
 }
 
 bool TypeDB::isValid(int type_id) const {

@@ -22,7 +22,7 @@
 
 namespace typeart {
 
-enum class StructTypeFlag : int { USER_DEFINED = 1, LLVM_VECTOR = 2, FWD_DECL = 4 };
+enum class StructTypeFlag : int { USER_DEFINED = 1, LLVM_VECTOR = 2, FWD_DECL = 4, UNION = 8 };
 
 struct StructTypeInfo {
   int type_id;
@@ -56,6 +56,8 @@ class TypeDatabase {
   [[nodiscard]] virtual bool isUserDefinedType(int type_id) const = 0;
 
   [[nodiscard]] virtual bool isVectorType(int type_id) const = 0;
+
+  [[nodiscard]] virtual bool isUnion(int type_id) const = 0;
 
   [[nodiscard]] virtual const std::string& getTypeName(int type_id) const = 0;
 

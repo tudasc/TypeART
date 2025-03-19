@@ -451,6 +451,11 @@ bool typeart_is_userdefined_type(int type_id) {
   return typeart::RuntimeSystem::get().typeResolution.db().isUserDefinedType(type_id);
 }
 
+bool typeart_is_union(int type_id) {
+  typeart::RTGuard guard;
+  return typeart::RuntimeSystem::get().typeResolution.db().isUnion(type_id);
+}
+
 size_t typeart_get_type_size(int type_id) {
   typeart::RTGuard guard;
   return typeart::RuntimeSystem::get().typeResolution.db().getTypeSize(type_id);

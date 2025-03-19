@@ -412,7 +412,11 @@ class DimetaTypeManager final : public TypeIDGenerator {
     if (q.is_forward_decl) {
       struct_info.flag = StructTypeFlag::FWD_DECL;
     } else {
-      struct_info.flag = StructTypeFlag::USER_DEFINED;
+      if (q.type.type == CompoundType::Tag::kUnion) {
+        struct_info.flag = StructTypeFlag::UNION;
+      } else {
+        struct_info.flag = StructTypeFlag::USER_DEFINED;
+      }
     }
 
     struct_info.extent = compound.extent;
