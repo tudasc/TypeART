@@ -46,15 +46,24 @@ typedef struct typeart_struct_layout_t {  // NOLINT
   const size_t* count;
 } typeart_struct_layout;
 
+typedef struct typeart_base_type_info_t {
+  const void* address;
+  int type_id;
+  size_t count;
+} typeart_base_type_info;
+
+typedef struct typeart_type_info_t {
+  const void* address;
+  int type_id;
+  size_t count;
+  typeart_base_type_info base_type_info;  // API dependent
+} typeart_type_info;
+
 /**
  * Determines the type and array element count at the given address.
  * For nested types with classes/structs, the containing type is resolved recursively, until an exact with the address
  * is found.
- * See typeart_get_type_length and typeart_get_type_id for resolving only one such parameter
- *
- * Note that this function will always return the outermost type lining up with the address.
- * Given a pointer to the start of a struct, the returned type will therefore be that of the struct, not of the first
- * member.
+ * base_type_info is the outermost type and array element count at the given address.
  *
  * Code example:
  * {
@@ -68,8 +77,7 @@ typedef struct typeart_struct_layout_t {  // NOLINT
  * }
  *
  * \param[in] addr The address.
- * \param[out] type_id Type ID
- * \param[out] count Allocation size
+ * \param[out] base_type allocation info at the address addr. The address equals [in] param addr.
  *
  * \return A status code:
  *  - TYPEART_OK: The query was successful and the contents of type and count are valid.
@@ -77,11 +85,7 @@ typedef struct typeart_struct_layout_t {  // NOLINT
  *  - TYPEART_BAD_ALIGNMENT: The given address does not line up with the start of the atomic type at that location.
  *  - TYPEART_INVALID_ID: Encountered unregistered ID during lookup.
  */
-typeart_status typeart_get_type(const void* addr, int* type_id, size_t* count);
-
-typeart_status typeart_get_type_length(const void* addr, size_t* count);
-
-typeart_status typeart_get_type_id(const void* addr, int* type_id);
+typeart_status typeart_get_type(const void* addr, typeart_type_info* type_info);
 
 /**
  * Determines the outermost type and array element count at the given address.
@@ -117,17 +121,18 @@ typeart_status typeart_get_type_id(const void* addr, int* type_id);
  *      to &data[0])
  * }
  *
- * \param[in] addr The address.
- * \param[out] type_id Type ID of the containing type
- * \param[out] count Number of elements in the containing buffer, not counting elements before the given address.
- * \param[out] base_address Address of the containing buffer.
+ * \param[in] type The result of a `typeart_get_type` call on some address.
+ * \param[out] containing_type Type information of the containing type.
  * \param[out] byte_offset The byte offset within that buffer element.
  *
  * \return A status code.
  *  - TYPEART_OK: The query was successful.
  *  - TYPEART_UNKNOWN_ADDRESS: The given address is either not allocated, or was not correctly recorded by the runtime.
  */
-typeart_status typeart_get_containing_type(const void* addr, int* type_id, size_t* count, const void** base_address,
+// typeart_status typeart_get_containing_type(const void* addr, int* type_id, size_t* count, const void** base_address,
+//                                            size_t* byte_offset);
+
+typeart_status typeart_get_containing_type(typeart_type_info type_info, typeart_base_type_info* containing_type,
                                            size_t* byte_offset);
 
 /**
@@ -156,13 +161,11 @@ typeart_status typeart_get_containing_type(const void* addr, int* type_id, size_
  *   -> subtype_count: 1 (length of member float[2] at offset 20)
  * }
  *
+ * \param[in] container_layout typeart_struct_layout corresponding to the containing type
  * \param[in] baseAddr Pointer to the start of the containing type.
  * \param[in] offset Byte offset within the containing type.
- * \param[in] container_layout typeart_struct_layout corresponding to the containing type
- * \param[out] subtype_id The type ID corresponding to the subtype.
- * \param[out] subtype_base_addr Pointer to the start of the subtype.
+ * \param[out] subtype_info The type container to the subtype.
  * \param[out] subtype_byte_offset Byte offset within the subtype.
- * \param[out] subtype_count Number of elements in subarray.
  *
  * \return One of the following status codes:
  *  - TYPEART_OK: Success.
@@ -170,10 +173,8 @@ typeart_status typeart_get_containing_type(const void* addr, int* type_id, size_
  *  - TYPEART_BAD_OFFSET: The provided offset is invalid.
  *  - TYPEART_ERROR: The typeart_struct_layout is invalid.
  */
-typeart_status typeart_get_subtype(const void* base_addr, size_t offset, const typeart_struct_layout* container_layout,
-                                   int* subtype_id, const void** subtype_base_addr, size_t* subtype_byte_offset,
-                                   size_t* subtype_count);
-
+typeart_status typeart_get_subtype(const typeart_struct_layout* container_layout, const void* base_addr, size_t offset,
+                                   typeart_base_type_info* subtype_info, size_t* subtype_byte_offset);
 /**
  * Returns the stored debug address generated by __builtin_return_address(0).
  *
@@ -203,22 +204,6 @@ typeart_status typeart_get_return_address(const void* addr, const void** return_
  *  - TYPEART_ERROR: Memory could not be allocated.
  */
 typeart_status typeart_get_source_location(const void* addr, char** file, char** function, char** line);
-
-/**
- * Given an address, this function provides information about the corresponding struct type.
- * This is more expensive than the below version, since the pointer addr must be resolved.
- *
- * \param[in] addr The pointer address
- * \param[out] struct_layout Data layout of the struct.
- *
- * \return One of the following status codes:
- *  - TYPEART_OK: Success.
- *  - TYPEART_WRONG_KIND: ID does not correspond to a struct type.
- *  - TYPEART_UNKNOWN_ADDRESS: The given address is either not allocated, or was not correctly recorded by the runtime.
- *  - TYPEART_BAD_ALIGNMENT: The given address does not line up with the start of the atomic type at that location.
- *  - TYPEART_INVALID_ID: Encountered unregistered ID during lookup.
- */
-typeart_status typeart_resolve_type_addr(const void* addr, typeart_struct_layout* struct_layout);
 
 /**
  * Given a type ID, this function provides information about the corresponding struct type.
@@ -282,12 +267,20 @@ bool typeart_is_struct_type(int type_id);
 
 /**
  * Returns true if the type ID is a user-defined structure type
- * (struct, class etc.)
+ * (struct, class, union etc.)
  *
  * \param[in] type_id The type ID.
  * \return true, false
  */
 bool typeart_is_userdefined_type(int type_id);
+
+/**
+ * Returns true if the type ID is a (user-defined) union
+ *
+ * \param[in] type_id The type ID.
+ * \return true, false
+ */
+bool typeart_is_union(int type_id);
 
 /**
  * Returns true if the type ID is a LLVM SIMD vector type

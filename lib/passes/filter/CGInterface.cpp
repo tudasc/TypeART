@@ -15,7 +15,6 @@
 #include "support/Logger.h"
 #include "support/Util.h"
 
-#include "llvm/ADT/Optional.h"
 #include "llvm/Support/Error.h"
 #include "llvm/Support/ErrorOr.h"
 #include "llvm/Support/JSON.h"
@@ -137,7 +136,7 @@ void JSONCG::construct_call_information(const std::string& entry_caller, const l
       const auto hasBody = caller->get("hasBody");
       if (hasBody != nullptr) {
         assert(hasBody->kind() == llvm::json::Value::Kind::Boolean && "hasBody must be boolean");
-        hasBodyMap[entry_caller] = hasBody->getAsBoolean().getValue();
+        hasBodyMap[entry_caller] = *hasBody->getAsBoolean();
       }
       const auto calls = caller->getArray("callees");
       assert(calls != nullptr && "Json callee information is missing");
@@ -146,9 +145,9 @@ void JSONCG::construct_call_information(const std::string& entry_caller, const l
         for (const auto& callee : *calls) {
           assert(callee.kind() == llvm::json::Value::Kind::String && "Callees must be strings");
           const auto callee_json_string = callee.getAsString();
-          assert(callee_json_string.hasValue() && "Could not get callee as string");
-          if (callee_json_string.hasValue()) {
-            const std::string callee_string = std::string{callee_json_string.getValue()};
+          assert(callee_json_string && "Could not get callee as string");
+          if (callee_json_string) {
+            const std::string callee_string = std::string{*callee_json_string};
             directly_called_functions[entry_caller].insert(callee_string);
           }
         }
@@ -159,9 +158,9 @@ void JSONCG::construct_call_information(const std::string& entry_caller, const l
         for (const auto& function : *overridingFunctions) {
           assert(function.kind() == llvm::json::Value::Kind::String && "Function names are always strings");
           const auto functionStr = function.getAsString();
-          assert(functionStr.hasValue() && "Retrieving overriding function as String failed");
-          if (functionStr.hasValue()) {
-            const std::string functionName = std::string{functionStr.getValue()};
+          assert(functionStr && "Retrieving overriding function as String failed");
+          if (functionStr) {
+            const std::string functionName = std::string{*functionStr};
             virtualTargets[entry_caller].insert(functionName);
           }
         }

@@ -14,6 +14,8 @@
 
 #include "Instrumentation.h"
 #include "InstrumentationHelper.h"
+#include "configuration/Configuration.h"
+#include "support/ConfigurationBase.h"
 #include "support/Logger.h"
 #include "support/TypeUtil.h"
 #include "support/Util.h"
@@ -39,13 +41,17 @@ using namespace llvm;
 
 namespace typeart {
 
-MemOpArgCollector::MemOpArgCollector(TypeGenerator* tm, InstrumentationHelper& instr)
-    : ArgumentCollector(), type_m(tm), instr_helper(&instr) {
+MemOpArgCollector::MemOpArgCollector(const config::Configuration& typeart_conf, TypeGenerator* tm,
+                                     InstrumentationHelper& instr)
+    : ArgumentCollector(), typeart_config(typeart_conf), type_m(tm), instr_helper(&instr) {
 }
 
 HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
   HeapArgList list;
   list.reserve(mallocs.size());
+
+  TypegenImplementation type_gen = typeart_config[config::ConfigStdArgs::typegen];
+  const bool is_llvm_ir_type     = static_cast<int>(type_gen) == static_cast<int>(TypegenImplementation::IR);
 
   for (const MallocData& mdata : mallocs) {
     ArgMap arg_map;
@@ -58,7 +64,7 @@ HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
       continue;
     }
 
-    const auto type_size = type_m->getTypeDatabase().getTypeSize(type_id);
+    auto type_size = type_m->getTypeDatabase().getTypeSize(type_id);
 
     LOG_DEBUG("Type " << type_id << " with " << type_size << " and num elems " << num_elements)
 
@@ -74,8 +80,8 @@ HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
       case MemOpKind::NewLike:
         [[fallthrough]];
       case MemOpKind::MallocLike:
-        if (mdata.array_cookie.hasValue()) {
-          auto array_cookie_data = mdata.array_cookie.getValue();
+        if (mdata.array_cookie) {
+          auto array_cookie_data = mdata.array_cookie.value();
           element_count          = array_cookie_data.cookie_store->getValueOperand();
           pointer                = array_cookie_data.array_ptr_gep;
         }
@@ -84,7 +90,7 @@ HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
 
         break;
       case MemOpKind::CallocLike: {
-        if (mdata.primary == nullptr) {
+        if (mdata.primary == nullptr && is_llvm_ir_type) {
           // we need the second arg when the calloc type is identified as void* to calculate total bytes allocated
           type_size_const = malloc_call->getOperand(1);
         }
@@ -129,8 +135,8 @@ FreeArgList MemOpArgCollector::collectFree(const FreeDataList& frees) {
       case MemOpKind::DeleteLike:
         [[fallthrough]];
       case MemOpKind::FreeLike:
-        free_arg = fdata.array_cookie_gep.hasValue() ? fdata.array_cookie_gep.getValue()->getPointerOperand()
-                                                     : free_call->getOperand(0);
+        free_arg =
+            fdata.array_cookie_gep ? fdata.array_cookie_gep.value()->getPointerOperand() : free_call->getOperand(0);
         break;
       default:
         LOG_ERROR("Unknown free kind. Not instrumenting. " << util::dump(*free_call));
@@ -160,7 +166,10 @@ StackArgList MemOpArgCollector::collectStack(const AllocaDataList& allocs) {
       continue;
     }
 
-    const auto type_size = type_m->getTypeDatabase().getTypeSize(type_id);
+    auto type_size = type_m->getTypeDatabase().getTypeSize(type_id);
+    if (type_id == TYPEART_VOID) {
+      type_size = 1;
+    }
 
     LOG_DEBUG("Alloca Type " << type_id << " with " << type_size << " and num elems " << num_elements)
 
@@ -204,6 +213,10 @@ GlobalArgList MemOpArgCollector::collectGlobal(const GlobalDataList& globals) {
     }
 
     auto type_size = type_m->getTypeDatabase().getTypeSize(type_id);
+    if (type_id == TYPEART_VOID) {
+      type_size = 1;
+    }
+
     LOG_DEBUG("Global Type " << type_id << " with " << type_size << " and num elems " << num_elements)
 
     auto* type_id_const      = instr_helper->getConstantFor(IType::type_id, type_id);

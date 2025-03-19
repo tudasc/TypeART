@@ -1,3 +1,5 @@
+#include "TypeInterface.h"
+
 #include <RuntimeInterface.h>
 #include <mpi.h>
 #include <stdio.h>
@@ -5,17 +7,26 @@
 int isCompatible(MPI_Datatype mpi_type, typeart_builtin_type recorded_type) {
   // This comparison is not exhaustive and is only used for this simple demo
   switch (recorded_type) {
-    case TYPEART_INT8:
-      return mpi_type == MPI_CHAR || mpi_type == MPI_UNSIGNED_CHAR;
-    case TYPEART_INT16:
-      return mpi_type == MPI_SHORT || mpi_type == MPI_UNSIGNED_SHORT;
-    case TYPEART_INT32:
-      return mpi_type == MPI_INT || mpi_type == MPI_UNSIGNED;
-    case TYPEART_INT64:
-      return mpi_type == MPI_LONG || mpi_type == MPI_UNSIGNED_LONG;
-    case TYPEART_FLOAT:
+    case TYPEART_CHAR_8:
+    case TYPEART_INT_8:
+      return mpi_type == MPI_CHAR;
+    case TYPEART_UCHAR_8:
+      return mpi_type == MPI_UNSIGNED_CHAR;
+    case TYPEART_INT_16:
+      return mpi_type == MPI_SHORT;
+    case TYPEART_UINT_16:
+      return mpi_type == MPI_UNSIGNED_SHORT;
+    case TYPEART_INT_32:
+      return mpi_type == MPI_INT;
+    case TYPEART_UINT_32:
+      return mpi_type == MPI_UNSIGNED;
+    case TYPEART_INT_64:
+      return mpi_type == MPI_LONG;
+    case TYPEART_UINT_64:
+      return mpi_type == MPI_UNSIGNED_LONG;
+    case TYPEART_FLOAT_32:
       return mpi_type == MPI_FLOAT;
-    case TYPEART_DOUBLE:
+    case TYPEART_FLOAT_64:
       return mpi_type == MPI_DOUBLE;
     default:
       break;
@@ -40,11 +51,14 @@ void analyseBuffer(const void* buf, int count, MPI_Datatype type) {
 
     printf("Basetype(%s, addr=%p, size=%i , count=%i)\n", type_name, buf, size, count);
 
-    int type_id;
-    size_t count_check;
-    typeart_status status = typeart_get_type(buf, &type_id, &count_check);
+    typeart_type_info info;
+    typeart_status status = typeart_get_type(buf, &info);
 
     if (status == TYPEART_OK) {
+      int type_id;
+      size_t count_check;
+      type_id     = info.type_id;
+      count_check = info.count;
       // If the address corresponds to a struct, fetch the type of the first member
       while (type_id >= TYPEART_NUM_RESERVED_IDS) {
         typeart_struct_layout struct_layout;

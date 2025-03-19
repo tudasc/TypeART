@@ -49,7 +49,7 @@ struct ArgMap {
   }
 
   /*
-  const llvm::Optional<ArgsContainer::mapped_type> operator[](ArgsContainer::key_type key) const {
+  const std::optional<ArgsContainer::mapped_type> operator[](ArgsContainer::key_type key) const {
     auto it = args.find(key);
     if (it != args.end()) {
       return {it->second};

@@ -18,11 +18,7 @@
 #include "RuntimeData.h"
 
 #include <cstddef>
-
-namespace llvm {
-template <typename T>
-class Optional;
-}  // namespace llvm
+#include <optional>
 
 namespace typeart {
 
@@ -50,7 +46,7 @@ enum class FreeState : unsigned {
 class AllocationTracker {
   PointerMap wrapper;
   const TypeDB& typeDB;
-  Recorder& recorder;
+  Recorder& runtime_recorder;
 
  public:
   AllocationTracker(const TypeDB& db, Recorder& recorder);
@@ -65,7 +61,7 @@ class AllocationTracker {
 
   void onLeaveScope(int alloca_count, const void* retAddr);
 
-  llvm::Optional<RuntimeT::MapEntry> findBaseAlloc(const void* addr);
+  std::optional<RuntimeT::MapEntry> findBaseAlloc(const void* addr);
 
  private:
   AllocState doAlloc(const void* addr, int typeID, size_t count, const void* retAddr);

@@ -67,7 +67,7 @@ Using TypeART involves two phases:
 
 ### 1.1 Compiling a target code
 
-TypeART’s LLVM compiler pass plugins instrument allocations and serialize static type layouts into a YAML file (default: `types.yaml`). We provide compiler wrapper scripts (available in the bin folder of the TypeART installation) for Clang and MPI. By default, these wrappers instrument heap, stack, and global allocations, while MPI wrappers filter allocations unrelated to MPI calls (see [Section 1.1.4](#114-filtering-allocations)).
+TypeART’s LLVM compiler pass plugins instrument allocations and serialize static type layouts into a YAML file (default: `typeart-types.yaml`). We provide compiler wrapper scripts (available in the bin folder of the TypeART installation) for Clang and MPI. By default, these wrappers instrument heap, stack, and global allocations, while MPI wrappers filter allocations unrelated to MPI calls (see [Section 1.1.4](#114-filtering-allocations)).
 
 *Note*: Currently, the compilation must be serialized, e.g., `make -j 1`, to ensure consistent type information across translation units.
 
@@ -92,14 +92,13 @@ $> typeart-clang++ -O2 $(COMPILE_FLAGS) -c code.cpp -o code.o
 $> typeart-clang++ $(LINK_FLAGS) code.o -o binary
 ```
 
-The wrapper performs the following steps:
+The wrapper performs the following steps using Clang's `-fpass-plugin`:
 
-1. Compiles the code to LLVM IR and pipes it to the `opt` tool, retaining original compile flags.
-2. Applies heap instrumentation with TypeART.
+1. Compiles the code to LLVM IR retaining original compile flags.
+2. Applies heap instrumentation with TypeART (before optimizations).
 3. Optimizes the code using provided -O flag.
-4. Applies stack and global instrumentation with TypeART.
-5. Converts the LLVM IR to an object file using `llc`.
-6. Links the TypeART runtime library with the provided linker flags.
+4. Applies stack and global instrumentation with TypeART (after optimizations).
+5. Links the TypeART runtime library with the provided linker flags.
 
 *Note*: Heap allocations are instrumented before optimizations to prevent loss of type information in some cases.
 
@@ -121,9 +120,7 @@ $> cmake --build build --target install -- -j1
 The wrappers `typeart-mpicc` and `typeart-mpic++` are generated for compiling MPI codes with TypeART.
 Here, we rely on detecting the vendor to generate wrappers with appropriate environment variables to force the use of
 the Clang/LLVM compiler.
-We support detection for OpenMPI, Intel MPI and MPICH based on `mpi.h` symbols, and use the following flags for setting
-the Clang
-compiler:
+We support detection for OpenMPI, Intel MPI and MPICH based on `mpi.h` symbols, and use the following flags for setting the Clang compiler:
 
 | Vendor    | Symbol        | C compiler env. var  | C++ compiler env. var  |
 |-----------|---------------|----------------------|------------------------|
@@ -132,102 +129,63 @@ compiler:
 | MPICH     | MPICH_NAME    | MPICH_CC             | MPICH_CXX              |
 
 
-#### 1.1.2 Options for TypeART passes and compiler wrapper
+#### 1.1.2 Options for controlling the TypeART pass
 
-The pass behavior can be configured with the command line options listed below. TypeART also supports a configuration
-file based on a yaml format. *Note:* For now, the TypeART pass prioritizes (1) commandline arguments and then (2)
-environment files (if set) over the file-based configuration option.
+The pass behavior can be configured with the environment flags as listed below. The TypeART pass prioritizes environment flags (if set) over the default configuration option.
 
-##### Pass
+In particular, `TYPEART_OPTIONS` can be set to globally modify the TypeART pass (stack/heap specific options exist).
+The format requires the option names separated by a semicolon, e.g., `TYPEART_OPTIONS="filter-glob=API_*;no-stats"` sets the filter glob target to `API_*` and deactivates stats printing of the TypeART pass. 
+Prepending `no-` to boolean flags sets them to false.
 
-For modification of the pass behavior, we provide several options. Some options have equivalent environment variables.
+**Note**: Single environment options are prioritized over `TYPEART_OPTIONS`.
+
 <!--- @formatter:off --->
 
-| Flag                                         | Env. variable       |   Default    | Description                                                                                                                                        |
-|----------------------------------------------|:--------------------|:------------:|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| `-typeart`                                   | -                   |      -       | Invoke TypeART pass through LLVM `opt`                                                                                                             |
-| `--typeart-config`                           | `TYPEART_CONFIG`    |      -       | Pass configuration file (defines has all options below)                                                                                            |
-| `--typeart-types`                            | `TYPEART_TYPE_FILE` | `types.yaml` | Serialized type layout information of user-defined types. File location and name can also be controlled with the env variable `TYPEART_TYPE_FILE`. |
-| `--typeart-heap`                             | -                   |    `true`    | Instrument heap allocations                                                                                                                        |
-| `--typeart-stack`                            | -                   |   `false`    | Instrument stack and global allocations. Enables instrumentation of global allocations.                                                            |
-| `--typeart-stack-lifetime`                   | -                   |   `true`    | Instrument stack `llvm.lifetime.start` instead of `alloca` directly
-| `--typeart-global`                           | -                   |   `false`    | Instrument global allocations (see --typeart-stack).                                                                                               |
-| `--typeart-typegen`                          | -                   |   `dimeta`   | Values: `dimeta`, `ir`. The env variable `TYPEART_TYPEGEN_IR` set to 1 toggles `--typeart-typegen=ir`, i.e., serializing type information based on LLVM IR.  See [Section 1.1.3](#113-serialized-type-information). |
-| `--typeart-stats`                            | -                   |   `false`    | Show instrumentation statistic counters                                                                                                            |
-| `--typeart-filter`                           | -                   |   `false`    | Filter stack and global allocations. See also [Section 1.1.4](#114-filtering-allocations)                                                          |
-| `--typeart-filter-implementation`            | -                   |    `std`     | Values: `std`, `none`. See also [Section 1.1.4](#114-filtering-allocations)                                                                        |
-| `--typeart-filter-glob`                      | -                   |   `*MPI_*`   | Filter API string target (glob string)                                                                                                             |
-| `--typeart-analysis-filter-global`           | -                   |    `true`    | Filter global alloca based on heuristics                                                                                                           |
-| `--typeart-analysis-filter-heap-alloca`      | -                   |    `true`    | Filter stack alloca that have a store instruction from a heap allocation                                                                           |
-| `--typeart-analysis-filter-non-array-alloca` | -                   |   `false`    | Filter scalar valued allocas                                                                                                                       |
-| `--typeart-analysis-filter-pointer-alloca`   | -                   |    `true`    | Filter allocas of pointer types                                                                                                                    |
+| Env. variable                              | Option name                        |    Default value     | Description                                                                                                                                    |
+| :----------------------------------------- | ---------------------------------- | :------------------: | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `TYPEART_OPTIONS`                          |                                    |                      | Set multiple options at once, separated by `;`.                                                                                                |
+| `TYPEART_OPTIONS_STACK`                    |                                    |                      | Same as above for stack phase only.                                                                                                            |
+| `TYPEART_OPTIONS_HEAP`                     |                                    |                      | Same as above for heap phase only.                                                                                                             |
+| `TYPEART_TYPES`                            | `types`                            | `typeart-types.yaml` | Serialized type layout information of user-defined types. File location and name can also be controlled with the env variable `TYPEART_TYPES`. |
+| `TYPEART_HEAP`                             | `heap`                             |        `true`        | Instrument heap allocations                                                                                                                    |
+| `TYPEART_STACK`                            | `stack`                            |       `false`        | Instrument stack and global allocations. Enables instrumentation of global allocations.                                                        |
+| `TYPEART_STACK_LIFETIME`                   | `stack-lifetime`                   |        `true`        | Instrument stack `llvm.lifetime.start` instead of `alloca` directly                                                                            |
+| `TYPEART_GLOBAL`                           | `global`                           |       `false`        | Instrument global allocations (see stack).                                                                                                     |
+| `TYPEART_TYPEGEN`                          | `typegen`                          |       `dimeta`       | Values: `dimeta`, `ir`. How serializing of type information is done, see [Section 1.1.3](#113-serialized-type-information).                    |
+| `TYPEART_STATS`                            | `stats`                            |       `false`        | Show instrumentation statistic counters                                                                                                        |
+| `TYPEART_FILTER`                           | `filter`                           |       `false`        | Filter stack and global allocations. See also [Section 1.1.4](#114-filtering-allocations)                                                      |
+| `TYPEART_FILTER_IMPLEMENTATION`            | `filter-implementation`            |        `std`         | Values: `std`, `none`. See also [Section 1.1.4](#114-filtering-allocations)                                                                    |
+| `TYPEART_FILTER_GLOB`                      | `filter-glob`                      |       `*MPI_*`       | Filter API string target (glob string)                                                                                                         |
+| `TYPEART_FILTER_GLOB_DEEP`                 | `filter-glob-deep`                 |       `MPI_*`        | Filter values based on specific API: Values passed as ptr are correlated when string matched.                                                  |
+| `TYPEART_ANALYSIS_FILTER_GLOBAL`           | `analysis-filter-global`           |        `true`        | Filter global alloca based on heuristics                                                                                                       |
+| `TYPEART_ANALYSIS_FILTER_HEAP_ALLOCA`      | `analysis-filter-heap-alloca`      |        `true`        | Filter stack alloca that have a store instruction from a heap allocation                                                                       |
+| `TYPEART_ANALYSTS_FILTER_NON_ARRAY_ALLOCA` | `analysis-filter-non-array-alloca` |       `false`        | Filter scalar valued allocas                                                                                                                   |
+| `TYPEART_ANALYSIS_FILTER_POINTER_ALLOCA`   | `analysis-filter-pointer-alloca`   |        `true`        | Filter allocas of pointer types                                                                                                                |
+
+Additionally, there are two debug environment flags for dumping the LLVM IR per phase (pre heap, heap, opt, stack) to a set of files.
+
+| Env. variable                   | Description                                                                                                                     |
+| :------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| `TYPEART_WRAPPER_EMIT_IR`       | If set, the compiler wrapper will create 4 files for each TypeART phase with the file pattern `${source_basename}_heap.ll` etc. |
+| `TYPEART_PASS_INTERNAL_EMIT_IR` | Internal pass use only. Toggled by wrapper.                                                                                     |
 
 <!--- @formatter:on --->
-
-##### Compiler wrapper
-
-For modification of the pass behavior, the wrapper accepts configuration file commandline options. Equivalent
-environment variables can be set.
-<!--- @formatter:off --->
-
-| Flag                            | Env. variable                   | Description                                                           |
-|---------------------------------|---------------------------------|-----------------------------------------------------------------------|
-| `--typeart-config=<file>`       | `TYPEART_WRAPPER_CONFIG`        | Pass yaml file configuration to heap and stack phase of TypeART pass. |
-| `--typeart-heap-config=<file>`  | `TYPEART_WRAPPER_HEAP_CONFIG`   | See above, heap phase only.                                           |
-| `--typeart-stack-config=<file>` | `TYPEART_WRAPPER_STACK_CONFIG`  | See above, stack/global phase only.                                   |
-
-<!--- @formatter:on --->
-
-##### Configuration file
-
-The default file content of the configuration file is listed below. The option names correlate with the command line
-options. Notably, e.g., the option `call-filter: { implementation: false }` correlates
-to `--typeart-filter-implementation=false` etc.
-
-```yaml
----
-types: types.yaml
-heap: true
-stack: false
-global: false
-stats: false
-stack-lifetime: true
-typegen: dimeta
-filter: true
-call-filter:
-  implementation: std
-  glob: '*MPI_*'
-  glob-deep: 'MPI_*'
-  cg-file: ''
-analysis:
-  filter-global: true
-  filter-heap-alloca: false
-  filter-pointer-alloca: true
-  filter-non-array-alloca: false
-...
-
-```
 
 #### 1.1.3 Serialized type information
 
-After instrumentation, the file `types.yaml` (`env TYPEART_TYPE_FILE`) contains the static type information. Each user-defined type layout is
+After instrumentation, the file `typeart-types.yaml` (`env TYPEART_TYPES`) contains the static type information. Each user-defined type layout is
 extracted and an integer `type-id` is attached to it. Built-in types (e.g., float) have pre-defined ids and byte
 layouts.
-To generate these type layouts, TypeART is using either the [LLVM IR type system](https://llvm.org/docs/LangRef.html#type-system) (`--typeart-typegen=ir`), or using the external library [llvm-dimeta](https://github.com/ahueck/llvm-dimeta) (`--typeart-typegen=dimeta`) which extracts type information using [LLVM debug metadata](https://llvm.org/docs/SourceLevelDebugging.html).
-The latter is default.
+To generate these type layouts, TypeART is using either the [LLVM IR type system](https://llvm.org/docs/LangRef.html#type-system) (`typegen=ir`), or using the external library [llvm-dimeta](https://github.com/ahueck/llvm-dimeta) (`typegen=dimeta`) which extracts type information using [LLVM debug metadata](https://llvm.org/docs/SourceLevelDebugging.html).
+The latter is default, the former only works with LLVM 14.
 
 The TypeART instrumentation callbacks use the `type-id`. The runtime library correlates the allocation with the
 respective type (and layout) during execution. Consider the following struct:
 
-After instrumentation, the `types.yaml` file (also controlled via the `TYPEART_TYPE_FILE` environment variable) stores static type information. 
+After instrumentation, the `typeart-types.yaml` file (also controlled via the `TYPEART_TYPES` environment variable) stores static type information. 
 Each user-defined type layout is assigned a unique integer type-id. Built-in types (e.g., float) use predefined type-ids and byte layouts.
 
-Type layouts are generated using one of the following methods:
-
-* LLVM IR Type System: Extracts types directly from LLVM IR (`--typeart-typegen=ir`).
-* LLVM Debug Metadata (Default): Extracts types using the llvm-dimeta library and LLVM debug metadata (`--typeart-typegen=dimeta`).
-
-During execution, TypeART’s runtime library uses the type-id from callbacks to associate allocations with their type and layout. For example, consider the following struct:
+During execution, TypeART’s runtime library uses the type-id from callbacks to associate allocations with their type and layout. For example, consider the following C struct:
 
 ```c
 struct s1_t {
@@ -236,32 +194,30 @@ struct s1_t {
 }
 ```
 
-The TypeART pass may write a `types.yaml` file with the following content:
+The TypeART pass may write a `typeart-types.yaml` file with the following content:
 <!--- @formatter:off --->
 
 ```yaml
-- id: 256            // struct type-id
+- id: 256           // struct type-id
   name: s1_t
-  extent: 16         // size in bytes
+  extent: 16        // size in bytes
   member_count: 2
-  offsets: [ 0, 8 ]  // byte offsets from struct start
-  types: [ 0, 10 ]   // member type-ids (0->char, 10->pointer)
-  sizes: [ 3, 1 ]    // member (array) length
+  offsets: [ 0, 8 ] // byte offsets from struct start
+  types: [ 5, 1 ]   // member type-ids (5->char, 1->pointer)
+  sizes: [ 3, 1 ]   // member (array) length
 ```
 
 <!--- @formatter:on --->
 
-##### Limitations
+##### Limitations of LLVM IR Type System
 
-The type-id system is tailored for LLVM IR types, which imposes certain constraints. For instance, C/C++ types like unsigned integers are currently unsupported (and represented like signed integers). The list of supported built-in type-ids is defined in [TypeInterface.h](lib/typelib/TypeInterface.h) and reflects the types that TypeART can represent.
+The list of supported built-in type-ids is defined in [TypeInterface.h](lib/typelib/TypeInterface.h) and reflects the types that TypeART can represent with **LLVM Debug Metadata**.
+In contrast, when using **LLVM IR Type System**, certain constraints are imposed. For instance, C/C++ types like unsigned integers are unsupported (and represented like signed integers). 
 
 
 #### 1.1.4 Filtering allocations
 
-To improve performance, a translation unit-local (TU) data-flow filter for global and stack variables exist. It follows
-the LLVM IR `use-def` chain. If the allocation provably never reaches the target API, it can be filtered. Otherwise, it
-is instrumented. Use the option `--typeart-filter` to filter and `--typeart-glob=<target API glob>` (default: `*MPI_*`)
-to target the correct API.
+To improve performance, a translation unit-local (TU) data-flow filter for global and stack variables exist. It follows the LLVM IR use-def chain. If the allocation provably never reaches the target API, it can be filtered. Otherwise, it is instrumented. Use the option `filter` to filter and `filter-glob=<target API glob>` (default: `*MPI_*`) to target the correct API.
 
 Consider the following example.
 
@@ -285,11 +241,11 @@ void foo() {
 ### 1.2 Executing an instrumented target code
 
 To execute the instrumented code, the TypeART runtime library (or a derivative) has to be loaded to accept the
-callbacks. The library also requires access to the `types.yaml` file to correlate the `type-id` with the actual type
-layouts. To specify its path, you can use the environment variable `TYPEART_TYPE_FILE`, e.g.:
+callbacks. The library also requires access to the `typeart-types.yaml` file to correlate the `type-id` with the actual type
+layouts. To specify its path, you can use the environment variable `TYPEART_TYPES`, e.g.:
 
 ```shell
-$> export TYPEART_TYPE_FILE=/path/to/types.yaml
+$> export TYPEART_TYPES=/path/to/typeart-types.yaml
 # If the TypeART runtime is not resolved, LD_LIBRARY_PATH is set:
 $> env LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(TYPEART_LIBPATH) ./binary
 ```
@@ -323,7 +279,7 @@ To compile and run the demo targets:
 
 ## 2. Building TypeART
 
-TypeART supports LLVM version 14 (lower LLVM version support is deprecated) and CMake version >= 3.20.
+TypeART supports LLVM version 14 and 18 and CMake version >= 3.20.
 
 ### 2.1 Optional software requirements
 
@@ -355,9 +311,11 @@ $> cmake --build build --target install --parallel
 
 <!--- @formatter:off --->
 
-| Option                |  Default   | Description                                               |
-|-----------------------|:----------:|-----------------------------------------------------------|
-| `TYPEART_MPI_WRAPPER` |    `ON`    | Install TypeART MPI wrapper (mpic, mpic++). Requires MPI. |
+| Option                       | Default | Description                                                                      |
+| ---------------------------- | :-----: | -------------------------------------------------------------------------------- |
+| `TYPEART_MPI_WRAPPER`        |  `ON`   | Install TypeART MPI wrapper (mpic, mpic++). Requires MPI.                        |
+| `TYPEART_USE_LEGACY_WRAPPER` |  `OFF`  | Use legacy wrapper invoking opt/llc directly instead of Clang's `-fpass-plugin`. |
+
 
 <!--- @formatter:on --->
 
@@ -420,7 +378,7 @@ Example using CMake [FetchContent](https://cmake.org/cmake/help/latest/module/Fe
 FetchContent_Declare(
   typeart
   GIT_REPOSITORY https://github.com/tudasc/TypeART
-  GIT_TAG v1.9
+  GIT_TAG v1.9.1
   GIT_SHALLOW 1
 )
 FetchContent_MakeAvailable(typeart)

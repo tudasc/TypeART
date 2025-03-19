@@ -15,9 +15,8 @@
 
 #include "RuntimeData.h"
 
-#include "llvm/ADT/Optional.h"
-
 #include <algorithm>
+#include <optional>
 
 namespace typeart {
 namespace mixin {
@@ -69,9 +68,9 @@ struct MapOp {
   }
 
   template <typename PointerMap>
-  [[nodiscard]] inline static llvm::Optional<RuntimeT::MapEntry> find(PointerMap&& slocked_map, MemAddr addr) {
+  [[nodiscard]] inline static std::optional<RuntimeT::MapEntry> find(PointerMap&& slocked_map, MemAddr addr) {
     if (slocked_map->empty() || addr < slocked_map->begin()->first) {
-      return llvm::None;
+      return {};
     }
 
     auto it = slocked_map->lower_bound(addr);
@@ -89,14 +88,14 @@ struct MapOp {
   }
 
   template <typename PointerMap>
-  [[nodiscard]] inline static llvm::Optional<RuntimeT::MappedType> remove(PointerMap&& xlocked_map, MemAddr addr) {
+  [[nodiscard]] inline static std::optional<RuntimeT::MappedType> remove(PointerMap&& xlocked_map, MemAddr addr) {
     const auto it = xlocked_map->find(addr);
     if (it != xlocked_map->end()) {
       auto removed = it->second;
       xlocked_map->erase(it);
       return removed;
     }
-    return llvm::None;
+    return {};
   }
 
   template <BulkOperation Operation, typename PointerMap, typename FwdIter, typename Callback>
@@ -114,7 +113,7 @@ struct MapOp {
 
 template <typename BaseOp>
 struct StandardMapBase : protected BaseOp {
-  [[nodiscard]] inline llvm::Optional<RuntimeT::MapEntry> find(MemAddr addr) const {
+  [[nodiscard]] inline std::optional<RuntimeT::MapEntry> find(MemAddr addr) const {
     return BaseOp::find(detail::as_ptr(this->map()), addr);
   }
 
@@ -122,7 +121,7 @@ struct StandardMapBase : protected BaseOp {
     return BaseOp::put(detail::as_ptr(this->map()), addr, entry);
   }
 
-  [[nodiscard]] inline llvm::Optional<RuntimeT::MappedType> remove(MemAddr addr) {
+  [[nodiscard]] inline std::optional<RuntimeT::MappedType> remove(MemAddr addr) {
     return BaseOp::remove(detail::as_ptr(this->map()), addr);
   }
 
@@ -139,7 +138,7 @@ struct SharedMutexMap : public BaseOp {
   mutable std::shared_mutex alloc_m;
 
  public:
-  [[nodiscard]] inline llvm::Optional<RuntimeT::MapEntry> find(MemAddr addr) const {
+  [[nodiscard]] inline std::optional<RuntimeT::MapEntry> find(MemAddr addr) const {
     std::shared_lock<std::shared_mutex> guard(alloc_m);
     return BaseOp::find(addr);
   }
@@ -149,7 +148,7 @@ struct SharedMutexMap : public BaseOp {
     return BaseOp::put(addr, entry);
   }
 
-  [[nodiscard]] inline llvm::Optional<RuntimeT::MappedType> remove(MemAddr addr) {
+  [[nodiscard]] inline std::optional<RuntimeT::MappedType> remove(MemAddr addr) {
     std::lock_guard<std::shared_mutex> guard(alloc_m);
     return BaseOp::remove(addr);
   }
@@ -164,7 +163,7 @@ struct SharedMutexMap : public BaseOp {
 #ifdef USE_SAFEPTR
 template <typename BaseOp>
 struct SafePtrdMap : protected BaseOp {
-  [[nodiscard]] inline llvm::Optional<RuntimeT::MapEntry> find(MemAddr addr) const {
+  [[nodiscard]] inline std::optional<RuntimeT::MapEntry> find(MemAddr addr) const {
     auto slockedAllocs = sf::slock_safe_ptr(this->map());
     return BaseOp::find(slockedAllocs, addr);
   }
@@ -174,7 +173,7 @@ struct SafePtrdMap : protected BaseOp {
     return BaseOp::put(guard, addr, entry);
   }
 
-  [[nodiscard]] inline llvm::Optional<RuntimeT::MappedType> remove(MemAddr addr) {
+  [[nodiscard]] inline std::optional<RuntimeT::MappedType> remove(MemAddr addr) {
     auto guard = sf::xlock_safe_ptr(this->map());
     return BaseOp::remove(guard, addr);
   }

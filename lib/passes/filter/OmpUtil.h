@@ -13,15 +13,18 @@
 #ifndef TYPEART_FILTER_OMPUTIL_H
 #define TYPEART_FILTER_OMPUTIL_H
 
+#include "IRPath.h"
 #include "compat/CallSite.h"
 #include "support/DefUseChain.h"
 #include "support/OmpUtil.h"
+#include "support/Util.h"
 
-#include "llvm/ADT/Optional.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Operator.h"
 #include "llvm/Support/Casting.h"
+
+#include <optional>
 
 namespace typeart::filter::omp {
 struct EmptyContext {
@@ -35,7 +38,7 @@ struct OmpContext {
     const auto called = c.getCalledFunction();
     if (called != nullptr) {
       // TODO probably not complete (openmp task?, see isOmpTask*())
-      return called->getName().startswith("__kmpc_fork_call");
+      return util::starts_with_any_of(called->getName(), "__kmpc_fork_call");
     }
     return false;
   }
@@ -43,7 +46,7 @@ struct OmpContext {
   static bool isOmpTaskAlloc(const llvm::CallSite& c) {
     const auto called = c.getCalledFunction();
     if (called != nullptr) {
-      return called->getName().startswith("__kmpc_omp_task_alloc");
+      return util::starts_with_any_of(called->getName(), "__kmpc_omp_task_alloc");
     }
     return false;
   }
@@ -51,7 +54,7 @@ struct OmpContext {
   static bool isOmpTaskCall(const llvm::CallSite& c) {
     const auto called = c.getCalledFunction();
     if (called != nullptr) {
-      return called->getName().endswith("__kmpc_omp_task");
+      return util::ends_with_any_of(called->getName(), "__kmpc_omp_task");
     }
     return false;
   }
@@ -59,7 +62,7 @@ struct OmpContext {
   static bool isOmpTaskRelated(const llvm::CallSite& c) {
     const auto called = c.getCalledFunction();
     if (called != nullptr) {
-      return called->getName().startswith("__kmpc_omp_task");
+      return util::starts_with_any_of(called->getName(), "__kmpc_omp_task");
     }
     return false;
   }
@@ -69,15 +72,14 @@ struct OmpContext {
     if (!is_execute) {
       const auto called = c.getCalledFunction();
       if (called != nullptr) {
-        const auto name = called->getName();
         // TODO extend this if required
-        return name.startswith("__kmpc") || name.startswith("omp_");
+        return util::starts_with_any_of(called->getName(), "__kmpc", "omp_");
       }
     }
     return false;
   }
 
-  static llvm::Optional<llvm::Function*> getMicrotask(const llvm::CallSite& c) {
+  static std::optional<llvm::Function*> getMicrotask(const llvm::CallSite& c) {
     using namespace llvm;
     if (isOmpExecutor(c)) {
       auto f = llvm::dyn_cast<llvm::Function>(c.getArgOperand(2)->stripPointerCasts());
@@ -87,7 +89,7 @@ struct OmpContext {
       auto f = llvm::dyn_cast<llvm::Function>(c.getArgOperand(5)->stripPointerCasts());
       return {f};
     }
-    return llvm::None;
+    return {};
   }
 
   static bool canDiscardMicrotaskArg(llvm::CallSite c, const Path& path) {
@@ -97,7 +99,7 @@ struct OmpContext {
       return false;
     }
 
-    Value* in          = arg.getValue();
+    Value* in          = arg.value();
     const auto arg_pos = llvm::find_if(c.args(), [&in](const Use& arg_use) -> bool { return arg_use.get() == in; });
 
     if (arg_pos == c.arg_end()) {
@@ -130,7 +132,7 @@ struct OmpContext {
     util::DefUseChain finder;
     finder.traverse_custom(
         alloc,
-        [](auto val) -> llvm::Optional<decltype(val->users())> {
+        [](auto val) -> std::optional<decltype(val->users())> {
           if (auto cinst = llvm::dyn_cast<llvm::StoreInst>(val)) {
             return cinst->getValueOperand()->users();
           }
@@ -140,12 +142,13 @@ struct OmpContext {
           llvm::CallSite site(value);
           if (site.isCall() || site.isInvoke()) {
             const auto called = site.getCalledFunction();
-            if (called != nullptr && called->getName().startswith("__kmpc_omp_task(")) {
+
+            if (called != nullptr && util::starts_with_any_of(called->getName(), "__kmpc_omp_task(")) {
               found = true;
-              return util::DefUseChain::cancel;
+              return util::DefUseChain::kCancel;
             }
           }
-          return util::DefUseChain::no_match;
+          return util::DefUseChain::kNoMatch;
         });
     return found;
   }
@@ -167,9 +170,9 @@ struct OmpContext {
         auto calls = util::find_all(f, [&](auto& inst) {
           llvm::CallSite s(&inst);
           if (s.isCall() || s.isInvoke()) {
-            if (auto f = s.getCalledFunction()) {
+            if (auto called_function = s.getCalledFunction()) {
               // once true, the find_all should cancel
-              return f->getName().startswith("__kmpc_omp_task_alloc");
+              return util::starts_with_any_of(called_function->getName(), "__kmpc_omp_task_alloc");
             }
           }
           return false;
@@ -181,9 +184,9 @@ struct OmpContext {
           chain.traverse(i, [&v, &found](auto val) {
             if (v == val) {
               found = true;
-              return util::DefUseChain::cancel;
+              return util::DefUseChain::kCancel;
             }
-            return util::DefUseChain::no_match;
+            return util::DefUseChain::kNoMatch;
           });
           if (found) {
             return true;

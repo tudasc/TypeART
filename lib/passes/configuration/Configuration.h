@@ -15,39 +15,15 @@
 
 #include "support/Logger.h"
 
-#include "llvm/ADT/Optional.h"
+#include "llvm/ADT/StringMap.h"
 
+#include <optional>
 #include <string>
 #include <string_view>
 #include <variant>
 #include <vector>
 
 namespace typeart::config {
-
-struct ConfigStdArgs final {
-#define TYPEART_CONFIG_OPTION(name, path, type, def_value, description) static constexpr char name[] = path;
-#include "ConfigurationBaseOptions.h"
-#undef TYPEART_CONFIG_OPTION
-};
-
-struct ConfigStdArgValues final {
-#define TYPEART_CONFIG_OPTION(name, path, type, def_value, description) \
-  static constexpr decltype(def_value) name{def_value};
-#include "ConfigurationBaseOptions.h"
-#undef TYPEART_CONFIG_OPTION
-};
-
-struct ConfigStdArgTypes final {
-#define TYPEART_CONFIG_OPTION(name, path, type, default_value, description) using name##_ty = type;
-#include "ConfigurationBaseOptions.h"
-#undef TYPEART_CONFIG_OPTION
-};
-
-struct ConfigStdArgDescriptions final {
-#define TYPEART_CONFIG_OPTION(name, path, type, default_value, description) static constexpr char name[] = description;
-#include "ConfigurationBaseOptions.h"
-#undef TYPEART_CONFIG_OPTION
-};
 
 namespace detail {
 template <typename T, typename Types>
@@ -113,16 +89,15 @@ class OptionValue final {
   }
 };
 
+using OptionsMap       = llvm::StringMap<OptionValue>;
+using OptOccurrenceMap = llvm::StringMap<bool>;
+
 class Configuration {
  public:
-  [[nodiscard]] virtual llvm::Optional<OptionValue> getValue(std::string_view opt_path) const = 0;
+  [[nodiscard]] virtual std::optional<OptionValue> getValue(std::string_view opt_path) const = 0;
 
-  [[nodiscard]] virtual OptionValue getValueOr(std::string_view opt_path, OptionValue alt) const {
-    const auto val = getValue(opt_path);
-    if (val.hasValue()) {
-      return val.getValue();
-    }
-    return alt;
+  [[nodiscard]] virtual OptionValue getValueOr(std::string_view opt_path, const OptionValue& alt) const {
+    return getValue(opt_path).value_or(alt);
   }
 
   [[nodiscard]] virtual OptionValue operator[](std::string_view opt_path) const {

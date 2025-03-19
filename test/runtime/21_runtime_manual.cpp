@@ -4,6 +4,7 @@
 // clang-format on
 // FIXME this test doesn't add to the coverage data.
 
+#include "TypeInterface.h"
 #define ENABLE_SOFTCOUNTER 1
 #include "lib/runtime/AccessCounter.h"
 
@@ -27,8 +28,8 @@ std::vector<MemAddr> sorted_v(const std::unordered_set<MemAddr>& set) {
 }
 
 void test_heap(softcounter::AccessRecorder& recorder) {
-  recorder.incHeapAlloc(10, 1);
-  recorder.incHeapAlloc(10, 1);
+  recorder.incHeapAlloc(11, 1);
+  recorder.incHeapAlloc(11, 1);
 
   // CHECK: 2
   o_(getCurHeapAllocs());
@@ -38,7 +39,7 @@ void test_heap(softcounter::AccessRecorder& recorder) {
   auto hallocs = sorted_v(recorder.getHeapAlloc());
   // CHECK: 1
   std::cerr << hallocs.size() << '\n';
-  // CHECK: 10 2
+  // CHECK: 11 2
   for (const auto& [id, count] : hallocs) {
     std::cerr << id << " " << count << '\n';
   }
@@ -115,14 +116,14 @@ void test_stack(softcounter::AccessRecorder& recorder) {
 }
 
 void test_global(softcounter::AccessRecorder& recorder) {
-  recorder.incGlobalAlloc(6, 1);
+  recorder.incGlobalAlloc(TYPEART_FLOAT_64, 1);
   // CHECK: 1
   o_(getGlobalAllocs());
 
   const auto& alloc = recorder.getGlobalAlloc();
   // CHECK: 1
   std::cerr << alloc.size() << '\n';
-  // CHECK: 6 1
+  // CHECK: 24 1
   for (const auto& [id, count] : alloc) {
     std::cerr << id << " " << count << '\n';
   }

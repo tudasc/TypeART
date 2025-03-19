@@ -23,6 +23,7 @@
 #endif
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
+#pragma GCC diagnostic ignored "-Wshadow"
 #include "absl/container/btree_map.h"
 #pragma GCC diagnostic pop
 #endif

@@ -98,9 +98,10 @@ int ta_check_buffer(const char* mpi_name, const void* called_from, const void* b
     ta_print_loc(called_from);
     return -1;
   }
-  int typeId;
-  size_t count                    = 0;
-  typeart_status typeart_status_v = typeart_get_type(buf, &typeId, &count);
+  // int typeId;
+  // size_t count                    = 0;
+  typeart_type_info info;
+  typeart_status typeart_status_v = typeart_get_type(buf, &info);
   if (typeart_status_v != TYPEART_OK) {
     ++mcounter.error;
     const char* msg = ta_get_error_message(typeart_status_v);
@@ -119,7 +120,7 @@ int ta_check_buffer(const char* mpi_name, const void* called_from, const void* b
 }
 
 void ta_print_loc(const void* call_adr) {
-  const char* exe = getenv("TA_EXE_TARGET");
+  const char* exe = getenv("TYPEART_EXE_TARGET");
   if (exe == NULL || exe[0] == '\0') {
     return;
   }
@@ -133,8 +134,8 @@ void ta_print_loc(const void* call_adr) {
     while (fgets(read_buf, sizeof(read_buf), fp)) {
       printf("    %s", read_buf);
     }
+    pclose(fp);
   }
-  pclose(fp);
 }
 
 void ta_exit() {

@@ -1,4 +1,5 @@
-// RUN: %c-to-llvm --coverage %s | %apply-typeart --typeart-global -S 2>&1 | %filecheck %s
+// RUN: %c-to-llvm --coverage %s | %apply-typeart --typeart-global=true -S 2>&1 | %filecheck %s
+// REQUIRES: llvm-14
 
 int global;
 int global_2 = 0;

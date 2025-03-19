@@ -1,9 +1,10 @@
 // clang-format off
-// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %apply-typeart --typeart-stack --typeart-filter -S 2>&1 | %filecheck %s
-// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %opt -O2 -S | %apply-typeart --typeart-stack --typeart-filter -S 2>&1 | %filecheck %s
+// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %apply-typeart --typeart-stack=true --typeart-filter=true -S 2>&1 | %filecheck %s
+// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %opt -O2 -S | %apply-typeart --typeart-stack=true --typeart-filter=true -S 2>&1 | %filecheck %s
 
-// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %apply-typeart --typeart-stack --typeart-filter -S | %filecheck %s --check-prefix=check-inst
-// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %opt -O2 -S | %apply-typeart --typeart-stack --typeart-filter -S | %filecheck %s --check-prefix=check-inst
+// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %apply-typeart --typeart-stack=true --typeart-filter=true -S | %filecheck %s --check-prefix=check-inst
+// RUN: %c-to-llvm -fno-discard-value-names %omp_c_flags %s | %opt -O2 -S | %apply-typeart --typeart-stack=true --typeart-filter=true -S | %filecheck %s --check-prefix=check-inst
+// REQUIRES: llvm-14
 
 // REQUIRES: openmp && !dimeta
 
@@ -42,7 +43,7 @@ void bar(int count) {
   // check-inst: define {{.*}} @.omp_outlined
   // check-inst: [[ALLOCA1:%d[0-9]]] = alloca i32
   // check-inst: [[POINTER1:%[0-9a-z]+]] = bitcast i32* [[ALLOCA1]] to i8*
-  // check-inst: call void @__typeart_alloc_stack_omp(i8* [[POINTER1]], i32 2, i64 1)
+  // check-inst: call void @__typeart_alloc_stack_omp(i8* [[POINTER1]], i32 12, i64 1)
 #pragma omp parallel for schedule(dynamic, 1) lastprivate(d) shared(e)
   for (int i = 0; i < count; ++i) {
     // Analysis should not filter d, but e...
@@ -54,13 +55,13 @@ void bar2(int count) {
   // check-inst: define {{.*}} @bar2
   // check-inst: %d = alloca
   // check-inst: [[POINTER2:%[0-9a-z]+]] = bitcast i32* %d to i8*
-  // check-inst: call void @__typeart_alloc_stack(i8* [[POINTER2]], i32 2, i64 1)
+  // check-inst: call void @__typeart_alloc_stack(i8* [[POINTER2]], i32 12, i64 1)
   int d   = 3;
   float e = 4.f;
   // check-inst: define {{.*}} @.omp_outlined
   // check-inst: [[ALLOCA3:%d[0-9]]] = alloca i32
   // check-inst: [[POINTER3:%[0-9a-z]+]] = bitcast i32* [[ALLOCA3]] to i8*
-  // check-inst: call void @__typeart_alloc_stack_omp(i8* [[POINTER3]], i32 2, i64 1)
+  // check-inst: call void @__typeart_alloc_stack_omp(i8* [[POINTER3]], i32 12, i64 1)
 #pragma omp parallel for schedule(dynamic, 1) lastprivate(d) shared(e)
   for (int i = 0; i < count; ++i) {
     // Analysis should not filter d, but e...
@@ -79,7 +80,7 @@ void foo_bar(int count) {
   // check-inst: define {{.*}} @.omp_outlined
   // check-inst: %d = alloca
   // check-inst: [[POINTER4:%[0-9a-z]+]] = bitcast i32* %d to i8*
-  // check-inst: call void @__typeart_alloc_stack_omp(i8* [[POINTER4]], i32 2, i64 1)
+  // check-inst: call void @__typeart_alloc_stack_omp(i8* [[POINTER4]], i32 12, i64 1)
 #pragma omp parallel for schedule(dynamic, 1) private(d, e)
   for (int i = 0; i < count; ++i) {
     MPI_Send((void*)&d, e);

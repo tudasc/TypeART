@@ -23,11 +23,11 @@ int main(int argc, char** argv) {
 
   // CHECK-NOT: Error
 
-  // CHECK: [Trace] Free 0x{{.*}} 0 int8 1 4
-  // CHECK-DAG: [Trace] Free 0x{{.*}} 6 double 8 1
+  // CHECK: [Trace] Free 0x{{.*}} {{(11|6)}} {{(int8_t|char)}} 1 4
+  // CHECK-DAG: [Trace] Free 0x{{.*}} 24 double 8 1
 
-  // CHECK-DAG: [Trace] Free 0x{{.*}} 0 int8 1 4
-  // CHECK-DAG: [Trace] Free 0x{{.*}} 6 double 8 1
+  // CHECK-DAG: [Trace] Free 0x{{.*}} {{(11|6)}} {{(int8_t|char)}} 1 4
+  // CHECK-DAG: [Trace] Free 0x{{.*}} 24 double 8 1
 
   return 0;
 }

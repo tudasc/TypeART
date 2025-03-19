@@ -1,4 +1,4 @@
-; RUN: %apply-typeart --typeart-stack --typeart-stack-lifetime -S < %s | %llc -x=ir --filetype=obj -o %s.o
+; RUN: %apply-typeart --typeart-stack=true --typeart-stack-lifetime=true -S < %s | %llc -x=ir --filetype=obj -o %s.o
 ; RUN: %wrapper-cc %s.o -o %s.exe
 ; RUN: %s.exe 2>&1 | %filecheck %s
 
@@ -8,10 +8,10 @@
 
 ; CHECK: [Error]{{.*}}Free on unregistered address
 ; CHECK: Allocation type detail (heap, stack, global)
-; CHECK-NEXT: 10 :   0 ,    2 ,    0 , pointer
+; CHECK-NEXT: 1 :   0 ,    2 ,    0 , ptr
 ; CHECK-NEXT: #########################################
 ; CHECK-NEXT: Free allocation type detail (heap, stack)
-; CHECK-NEXT; 10 :   0 ,    1 , pointer
+; CHECK-NEXT; 1 :   0 ,    1 , ptr
 
 target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
 target triple = "x86_64-unknown-linux-gnu"

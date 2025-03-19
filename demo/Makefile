@@ -16,18 +16,6 @@ demo_broken: 02_broken_struct_example.c
 	$(MPICC) -O1 -g -c $< -o $@.o
 	$(MPICC) $@.o -o $@
 
-toy-stack: toy.c  
-	$(MPICC) -O1 -g -c $< -o $@.o
-	$(MPICC) $@.o -o $@
-
-toy: toy.c
-	$(MPICC) -DNOSTACK -O1 -g -c $< -o $@.o
-	$(MPICC) $@.o -o $@
-
-runtoy: toy toy-stack
-	./toy
-	./toy-stack
-
 run: run-demo run-demo_broken
 
 run-demo: demo libtool.so

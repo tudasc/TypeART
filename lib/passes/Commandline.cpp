@@ -13,20 +13,43 @@
 #include "Commandline.h"
 
 #include "analysis/MemInstFinder.h"
+#include "configuration/Configuration.h"
+#include "configuration/EnvironmentConfiguration.h"
+#include "support/ConfigurationBase.h"
 #include "support/Logger.h"
 #include "typegen/TypeGenerator.h"
 
+#include "llvm/ADT/StringSwitch.h"
 #include "llvm/Support/CommandLine.h"
+
+#include <charconv>
+#include <string>
+#include <string_view>
+#include <type_traits>
 
 using namespace llvm;
 
-namespace typeart::config::cl {
+namespace typeart::config {
+
+// namespace util {
+
+// std::string get_type_file_path() {
+//   auto flag_value = env::get_env_flag(config::EnvironmentStdArgs::types);
+//   return flag_value.value_or(ConfigStdArgValues::types);
+// }
+
+// }  // namespace util
+
+namespace cl {
 struct CommandlineStdArgs final {
-#define TYPEART_CONFIG_OPTION(name, path, type, def_value, description) static constexpr char name[] = "typeart-" path;
+#define TYPEART_CONFIG_OPTION(name, path, type, def_value, description, upper_path) \
+  static constexpr char name[] = "typeart-" path;
 #include "support/ConfigurationBaseOptions.h"
 #undef TYPEART_CONFIG_OPTION
 };
-}  // namespace typeart::config::cl
+}  // namespace cl
+
+}  // namespace typeart::config
 
 using typeart::config::ConfigStdArgDescriptions;
 using typeart::config::ConfigStdArgTypes;
@@ -37,6 +60,7 @@ cl::OptionCategory typeart_category("TypeART instrumentation pass", "These contr
 
 static cl::opt<ConfigStdArgTypes::types_ty> cl_typeart_type_file(CommandlineStdArgs::types,
                                                                  cl::desc(ConfigStdArgDescriptions::types),
+                                                                 cl::init(ConfigStdArgValues::types),
                                                                  cl::cat(typeart_category));
 
 static cl::opt<ConfigStdArgTypes::stats_ty> cl_typeart_stats(CommandlineStdArgs::stats,
@@ -57,12 +81,7 @@ static cl::opt<ConfigStdArgTypes::global_ty> cl_typeart_instrument_global(Comman
 static cl::opt<ConfigStdArgTypes::stack_ty> cl_typeart_instrument_stack(CommandlineStdArgs::stack,
                                                                         cl::desc(ConfigStdArgDescriptions::stack),
                                                                         cl::init(ConfigStdArgValues::stack),
-                                                                        cl::cat(typeart_category),
-                                                                        cl::callback([](const bool& opt) {
-                                                                          if (opt) {
-                                                                            ::cl_typeart_instrument_global = true;
-                                                                          }
-                                                                        }));
+                                                                        cl::cat(typeart_category));
 
 static cl::opt<ConfigStdArgTypes::stack_lifetime_ty> cl_typeart_instrument_stack_lifetime(
     CommandlineStdArgs::stack_lifetime, cl::desc(ConfigStdArgDescriptions::stack_lifetime),
@@ -122,19 +141,19 @@ static cl::opt<ConfigStdArgTypes::analysis_filter_pointer_alloc_ty> cl_typeart_f
 
 namespace typeart::config::cl {
 
-std::string get_type_file_path() {
-  if (!cl_typeart_type_file.empty()) {
-    LOG_DEBUG("Using cl::opt for types file " << cl_typeart_type_file.getValue());
-    return cl_typeart_type_file.getValue();
-  }
-  const char* type_file = std::getenv("TYPEART_TYPE_FILE");
-  if (type_file != nullptr) {
-    LOG_DEBUG("Using env var for types file " << type_file)
-    return std::string{type_file};
-  }
-  LOG_DEBUG("Loading default types file types.yaml");
-  return "types.yaml";
-}
+// std::string get_type_file_path() {
+// if (!cl_typeart_type_file.empty()) {
+//   LOG_DEBUG("Using cl::opt for types file " << cl_typeart_type_file.getValue());
+//   return cl_typeart_type_file.getValue();
+// }
+//   const char* type_file = std::getenv("TYPEART_TYPE_FILE");
+//   if (type_file != nullptr) {
+//     LOG_DEBUG("Using env var for types file " << type_file)
+//     return std::string{type_file};
+//   }
+//   LOG_DEBUG("Loading default types file types.yaml");
+//   return "types.yaml";
+// }
 
 namespace detail {
 template <typename ClOpt>
@@ -151,14 +170,12 @@ config::OptionValue make_opt(const ClOpt& cl_opt) {
 }
 
 template <typename ClOpt>
-std::pair<StringRef, typename CommandLineOptions::OptionsMap::mapped_type> make_entry(std::string&& key,
-                                                                                      ClOpt&& cl_opt) {
+std::pair<StringRef, typename OptionsMap::mapped_type> make_entry(std::string&& key, ClOpt&& cl_opt) {
   return {key, make_opt(std::forward<ClOpt>(cl_opt))};
 }
 
 template <typename ClOpt>
-std::pair<StringRef, typename CommandLineOptions::ClOccurrenceMap::mapped_type> make_occurr_entry(std::string&& key,
-                                                                                                  ClOpt&& cl_opt) {
+std::pair<StringRef, typename OptOccurrenceMap::mapped_type> make_occurr_entry(std::string&& key, ClOpt&& cl_opt) {
   return {key, (cl_opt.getNumOccurrences() > 0)};
 }
 }  // namespace detail
@@ -167,8 +184,16 @@ CommandLineOptions::CommandLineOptions() {
   using namespace config;
   using namespace typeart::config::cl::detail;
 
+  // const auto type_file = [&]() {
+  //   if (!cl_typeart_type_file.empty()) {
+  //     LOG_DEBUG("Using cl::opt for types file " << cl_typeart_type_file.getValue());
+  //     return cl_typeart_type_file.getValue();
+  //   }
+  //   return util::get_type_file_path();
+  // }();
+
   mapping_ = {
-      make_entry(ConfigStdArgs::types, get_type_file_path()),
+      make_entry(ConfigStdArgs::types, cl_typeart_type_file),
       make_entry(ConfigStdArgs::stats, cl_typeart_stats),
       make_entry(ConfigStdArgs::heap, cl_typeart_instrument_heap),
       make_entry(ConfigStdArgs::global, cl_typeart_instrument_global),
@@ -204,14 +229,20 @@ CommandLineOptions::CommandLineOptions() {
       make_occurr_entry(ConfigStdArgs::analysis_filter_pointer_alloc, cl_typeart_filter_pointer_alloca),
       make_occurr_entry(ConfigStdArgs::analysis_filter_alloca_non_array, cl_typeart_filter_stack_non_array),
   };
+
+  if (!occurence_mapping_.lookup(ConfigStdArgs::global) && occurence_mapping_.lookup(ConfigStdArgs::stack)) {
+    const auto stack_value                    = mapping_.lookup(ConfigStdArgs::stack);
+    mapping_[ConfigStdArgs::global]           = OptionValue{static_cast<bool>(stack_value)};
+    occurence_mapping_[ConfigStdArgs::global] = true;
+  }
 }
 
-llvm::Optional<typeart::config::OptionValue> CommandLineOptions::getValue(std::string_view opt_path) const {
+std::optional<typeart::config::OptionValue> CommandLineOptions::getValue(std::string_view opt_path) const {
   auto key = llvm::StringRef(opt_path.data());
-  if (mapping_.count(key) != 0U) {
+  if (occurence_mapping_.lookup(key)) {
     return mapping_.lookup(key);
   }
-  return llvm::None;
+  return {};
 }
 
 [[maybe_unused]] bool CommandLineOptions::valueSpecified(std::string_view opt_path) const {

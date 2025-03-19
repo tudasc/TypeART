@@ -57,7 +57,7 @@ void serialize(const Recorder& r, std::ostringstream& buf) {
     const auto memory_use = memory::estimate(r.getMaxStackAllocs(), r.getMaxHeapAllocs(), r.getGlobalAllocs());
 
     Table t("Alloc Stats from softcounters");
-    t.wrap_length = true;
+    t.wrap_length_ = true;
     t.put(Row::make("Total heap", r.getHeapAllocs(), r.getHeapArray()));
     t.put(Row::make("Total stack", r.getStackAllocs(), r.getStackArray()));
     t.put(Row::make("Total global", r.getGlobalAllocs(), r.getGlobalArray()));
@@ -100,7 +100,7 @@ void serialize(const Recorder& r, std::ostringstream& buf) {
     };
 
     Table type_table("Allocation type detail (heap, stack, global)");
-    type_table.table_header = '#';
+    type_table.table_header_ = '#';
     for (auto type_id : type_id_set) {
       type_table.put(Row::make(std::to_string(type_id), count(r.getHeapAlloc(), type_id),
                                count(r.getStackAlloc(), type_id), count(r.getGlobalAlloc(), type_id),
@@ -110,7 +110,7 @@ void serialize(const Recorder& r, std::ostringstream& buf) {
     type_table.print(buf);
 
     Table type_table_free("Free allocation type detail (heap, stack)");
-    type_table_free.table_header = '#';
+    type_table_free.table_header_ = '#';
     for (auto type_id : type_id_set) {
       type_table_free.put(Row::make(std::to_string(type_id), count(r.getHeapFree(), type_id),
                                     count(r.getStackFree(), type_id), typeart_get_type_name(type_id)));
@@ -122,7 +122,7 @@ void serialize(const Recorder& r, std::ostringstream& buf) {
     std::stringstream ss;
     ss << "Per-thread counter values (" << numThreads << " threads)";
     Table thread_table(ss.str());
-    thread_table.table_header = '#';
+    thread_table.table_header_ = '#';
 
     auto print_thread_row = [&thread_table](std::string name, const std::vector<Counter>& vals) {
       Row row(std::move(name));

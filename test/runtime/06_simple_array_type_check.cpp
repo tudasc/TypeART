@@ -1,4 +1,4 @@
-// RUN: %run %s 2>&1 | %filecheck %s
+// RUN: %run %s --compile_flags %dimeta_def 2>&1 | %filecheck %s
 
 #include "../../lib/typelib/TypeInterface.h"
 #include "util.h"
@@ -25,7 +25,7 @@ void performTypeChecks(int n, typeart_builtin_type typeId) {
 int main(int argc, char** argv) {
   const int n = 42;
 
-  // CHECK: [Trace] Alloc 0x{{.*}} int8 1 42
+  // CHECK: [Trace] Alloc 0x{{.*}} {{(int8_t|char)}} 1 42
   // CHECK: Error: Unknown address
   // CHECK: Ok
   // CHECK: Ok
@@ -37,23 +37,14 @@ int main(int argc, char** argv) {
   // CHECK: Ok
   // CHECK: Ok
   // CHECK: [Trace] Free 0x{{.*}}
-  performTypeChecks<char>(n, TYPEART_INT8);
 
-  // CHECK: [Trace] Alloc 0x{{.*}} int16 2 42
-  // CHECK: Error: Unknown address
-  // CHECK: Ok
-  // CHECK: Ok
-  // CHECK: Ok
-  // CHECK: Error: Unknown address
-  // CHECK: Error: Bad alignment
-  // CHECK: Error: Bad alignment
-  // CHECK: Ok
-  // CHECK: Ok
-  // CHECK: Ok
-  // CHECK: [Trace] Free 0x{{.*}}
-  performTypeChecks<short>(n, TYPEART_INT16);
+#if DIMETA == 1
+  performTypeChecks<char>(n, TYPEART_CHAR_8);
+#else
+  performTypeChecks<char>(n, TYPEART_INT_8);
+#endif
 
-  // CHECK: [Trace] Alloc 0x{{.*}} int32 4 42
+  // CHECK: [Trace] Alloc 0x{{.*}} short 2 42
   // CHECK: Error: Unknown address
   // CHECK: Ok
   // CHECK: Ok
@@ -61,13 +52,27 @@ int main(int argc, char** argv) {
   // CHECK: Error: Unknown address
   // CHECK: Error: Bad alignment
   // CHECK: Error: Bad alignment
-  // CHECK: Error: Bad alignment
+  // CHECK: Ok
   // CHECK: Ok
   // CHECK: Ok
   // CHECK: [Trace] Free 0x{{.*}}
-  performTypeChecks<int>(n, TYPEART_INT32);
+  performTypeChecks<short>(n, TYPEART_INT_16);
 
-  // CHECK: [Trace] Alloc 0x{{.*}} int64 8 42
+  // CHECK: [Trace] Alloc 0x{{.*}} int 4 42
+  // CHECK: Error: Unknown address
+  // CHECK: Ok
+  // CHECK: Ok
+  // CHECK: Ok
+  // CHECK: Error: Unknown address
+  // CHECK: Error: Bad alignment
+  // CHECK: Error: Bad alignment
+  // CHECK: Error: Bad alignment
+  // CHECK: Ok
+  // CHECK: Ok
+  // CHECK: [Trace] Free 0x{{.*}}
+  performTypeChecks<int>(n, TYPEART_INT_32);
+
+  // CHECK: [Trace] Alloc 0x{{.*}} long int 8 42
   // CHECK: Error: Unknown address
   // CHECK: Ok
   // CHECK: Ok
@@ -79,7 +84,7 @@ int main(int argc, char** argv) {
   // CHECK: Error: Bad alignment
   // CHECK: Ok
   // CHECK: [Trace] Free 0x{{.*}}
-  performTypeChecks<long>(n, TYPEART_INT64);
+  performTypeChecks<long>(n, TYPEART_INT_64);
 
   // CHECK: [Trace] Alloc 0x{{.*}} float 4 42
   // CHECK: Error: Unknown address
@@ -93,7 +98,7 @@ int main(int argc, char** argv) {
   // CHECK: Ok
   // CHECK: Ok
   // CHECK: [Trace] Free 0x{{.*}}
-  performTypeChecks<float>(n, TYPEART_FLOAT);
+  performTypeChecks<float>(n, TYPEART_FLOAT_32);
 
   // CHECK: [Trace] Alloc 0x{{.*}} double 8 42
   // CHECK: Error: Unknown address
@@ -107,9 +112,9 @@ int main(int argc, char** argv) {
   // CHECK: Error: Bad alignment
   // CHECK: Ok
   // CHECK: [Trace] Free 0x{{.*}}
-  performTypeChecks<double>(n, TYPEART_DOUBLE);
+  performTypeChecks<double>(n, TYPEART_FLOAT_64);
 
-  // CHECK: [Trace] Alloc 0x{{.*}} pointer 8 42
+  // CHECK: [Trace] Alloc 0x{{.*}} ptr 8 42
   // CHECK: Error: Unknown address
   // CHECK: Ok
   // CHECK: Ok

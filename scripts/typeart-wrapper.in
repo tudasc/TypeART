@@ -13,17 +13,6 @@
 #
 
 function typeart_global_env_var_init_fn() {
-  if [ -n "${TYPEART_WRAPPER_CONFIG+x}" ]; then
-    typeart_cmdline_args_heap="${TYPEART_WRAPPER_CONFIG}"
-    typeart_cmdline_args_stack="${TYPEART_WRAPPER_CONFIG}"
-  fi
-  if [ -n "${TYPEART_WRAPPER_HEAP_CONFIG+x}" ]; then
-    typeart_cmdline_args_heap="${TYPEART_WRAPPER_HEAP_CONFIG}"
-  fi
-  if [ -n "${TYPEART_WRAPPER_STACK_CONFIG+x}" ]; then
-    typeart_cmdline_args_stack="${TYPEART_WRAPPER_STACK_CONFIG}"
-  fi
-
   # shellcheck disable=SC2153
   case "${TYPEART_WRAPPER_EMIT_IR}" in
   on | ON | 1 | true | TRUE)
@@ -72,20 +61,17 @@ function typeart_global_init_fn() {
                    -l$<TARGET_FILE_BASE_NAME:typeart::Runtime>"
   readonly typeart_san_flags="@TYPEART_SAN_FLAGS@"
 
-  typeart_plugin="-load "${typeart_pass}" -typeart"
-  # shellcheck disable=SC2027
+  typeart_plugin="-load-pass-plugin "${typeart_pass}" -passes=typeart<"
+
   case "${TYPEART_TYPEGEN_IR}" in
   on | ON | 1 | true | TRUE)
-    typeart_plugin+=" --typeart-typegen=ir"
+    typeart_plugin+="typegen=ir;"
     ;;
   esac
 
-  readonly typeart_stack_mode_args="--typeart-heap=false --typeart-stack --typeart-stats @TYPEART_CALLFILTER@"
-  readonly typeart_heap_mode_args="--typeart-heap=true --typeart-stats"
+  readonly typeart_stack_mode_args="no-heap;stack;stats@TYPEART_CALLFILTER@>"
+  readonly typeart_heap_mode_args="heap;stats>"
 
-  # Used for values passed to wrapper:
-  typeart_cmdline_args_heap=""
-  typeart_cmdline_args_stack=""
   typeart_global_env_var_init_fn
 
   readonly typeart_to_llvm_flags="-g -O1 -Xclang -disable-llvm-passes -c -emit-llvm"
@@ -197,32 +183,6 @@ function typeart_handle_binary_fn() {
   return 2
 }
 
-function typeart_parse_typeart_cmd_line_fn() {
-  typeart_other_args=""
-
-  while (("$#")); do
-    case "$1" in
-    --typeart-config=*)
-      typeart_cmdline_args_heap="${1##-typeart-config=}"
-      typeart_cmdline_args_stack="${1##-typeart-config=}"
-      shift
-      ;;
-    --typeart-heap-config=*)
-      typeart_cmdline_args_heap="${1##-typeart-heap-config=}"
-      shift
-      ;;
-    --typeart-stack-config=*)
-      typeart_cmdline_args_stack="${1##-typeart-stack-config=}"
-      shift
-      ;;
-    *) # preserve other arguments
-      typeart_other_args+=" $1"
-      shift
-      ;;
-    esac
-  done
-}
-
 # shellcheck disable=SC2034
 function typeart_parse_cmd_line_fn() {
   typeart_found_src_file=0
@@ -320,8 +280,7 @@ function typeart_parse_cmd_line_fn() {
 }
 
 function typeart_parse_commands_fn() {
-  typeart_parse_typeart_cmd_line_fn "$@"
-  typeart_parse_cmd_line_fn ${typeart_other_args}
+  typeart_parse_cmd_line_fn "$@"
 }
 
 function typeart_main_link_fn() {
@@ -401,9 +360,9 @@ function typeart_main_compile_fn() {
   # shellcheck disable=SC2086
   typeart_compiler_fn "${out_basename}"_base.ll ${typeart_wrapper_more_args} ${typeart_includes} ${typeart_san_flags} \
     ${typeart_to_llvm_flags} ${typeart_to_llvm_more_flags} "${typeart_source_file}" -o - |
-    typeart_opt_fn "${out_basename}"_heap.ll ${typeart_plugin} ${typeart_heap_mode_args} ${typeart_cmdline_args_heap} |
+    typeart_opt_fn "${out_basename}"_heap.ll ${typeart_plugin}${typeart_heap_mode_args} |
     typeart_opt_fn "${out_basename}"_opt.ll ${typeart_optimize} |
-    typeart_opt_fn "${out_basename}"_stack.ll ${typeart_plugin} ${typeart_stack_mode_args} ${typeart_cmdline_args_stack} |
+    typeart_opt_fn "${out_basename}"_stack.ll ${typeart_plugin}${typeart_stack_mode_args} |
     typeart_tu_out_fn
 }
 

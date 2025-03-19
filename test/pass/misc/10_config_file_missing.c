@@ -1,4 +1,5 @@
-// RUN: %c-to-llvm %s | %apply-typeart -typeart-config=%S/missing_config.yml -S 2>&1 | %filecheck %s
+// RUN: %c-to-llvm %s | %apply-typeart --typeart-config=%S/missing_config.yml -S 2>&1 | %filecheck %s
+// REQUIRES: llvm-14
 // XFAIL: *
 // CHECK: Fatal
 

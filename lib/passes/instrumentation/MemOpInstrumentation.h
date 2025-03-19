@@ -14,19 +14,24 @@
 #define TYPEART_MEMOPINSTRUMENTATION_H
 
 #include "Instrumentation.h"
+#include "configuration/Configuration.h"
 
 namespace typeart {
-
+namespace config {
+class Configuration;
+}
 class TAFunctionQuery;
 class InstrumentationHelper;
 
 class MemOpInstrumentation final : public MemoryInstrument {
-  TAFunctionQuery* fquery;
-  InstrumentationHelper* instr_helper;
+  const config::Configuration& typeart_config;
+  TAFunctionQuery* function_query;
+  InstrumentationHelper* instrumentation_helper;
   bool instrument_lifetime{false};
 
  public:
-  MemOpInstrumentation(TAFunctionQuery& fquery, InstrumentationHelper& instr, bool lifetime_instrument = false);
+  MemOpInstrumentation(const config::Configuration& typeart_conf, TAFunctionQuery& fquery,
+                       InstrumentationHelper& instr);
   InstrCount instrumentHeap(const HeapArgList& heap) override;
   InstrCount instrumentFree(const FreeArgList& frees) override;
   InstrCount instrumentStack(const StackArgList& stack) override;

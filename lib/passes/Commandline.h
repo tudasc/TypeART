@@ -13,24 +13,18 @@
 #ifndef TYPEART_COMMANDLINE_H
 #define TYPEART_COMMANDLINE_H
 
-#include "support/Configuration.h"
-
-#include "llvm/ADT/StringMap.h"
+#include "configuration/Configuration.h"
 
 namespace typeart::config::cl {
 
 class CommandLineOptions final : public config::Configuration {
- public:
-  using OptionsMap      = llvm::StringMap<config::OptionValue>;
-  using ClOccurrenceMap = llvm::StringMap<bool>;
-
  private:
   OptionsMap mapping_;
-  ClOccurrenceMap occurence_mapping_;
+  OptOccurrenceMap occurence_mapping_;
 
  public:
   CommandLineOptions();
-  [[nodiscard]] llvm::Optional<config::OptionValue> getValue(std::string_view opt_path) const override;
+  [[nodiscard]] std::optional<config::OptionValue> getValue(std::string_view opt_path) const override;
   [[maybe_unused]] [[nodiscard]] bool valueSpecified(std::string_view opt_path) const;
 };
 

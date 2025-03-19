@@ -20,7 +20,6 @@
 #include "support/Util.h"
 #include "typelib/TypeInterface.h"
 
-#include "llvm/ADT/None.h"
 #include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/IR/Constants.h"
@@ -35,6 +34,7 @@
 
 #include <cassert>
 #include <cstddef>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -50,41 +50,38 @@ std::unique_ptr<TypeGenerator> make_ir_typeidgen(std::string_view file,
 
 using namespace llvm;
 
-llvm::Optional<typeart_builtin_type> get_builtin_typeid(llvm::Type* type) {
+std::optional<typeart_builtin_type> get_builtin_typeid(llvm::Type* type) {
   auto& c = type->getContext();
 
   switch (type->getTypeID()) {
     case llvm::Type::IntegerTyID: {
       if (type == Type::getInt8Ty(c)) {
-        return TYPEART_INT8;
+        return TYPEART_INT_8;
       }
       if (type == Type::getInt16Ty(c)) {
-        return TYPEART_INT16;
+        return TYPEART_INT_16;
       }
       if (type == Type::getInt32Ty(c)) {
-        return TYPEART_INT32;
+        return TYPEART_INT_32;
       }
       if (type == Type::getInt64Ty(c)) {
-        return TYPEART_INT64;
+        return TYPEART_INT_64;
       }
       return TYPEART_UNKNOWN_TYPE;
     }
     case llvm::Type::HalfTyID:
-      return TYPEART_HALF;
+      return TYPEART_FLOAT_16;
     case llvm::Type::FloatTyID:
-      return TYPEART_FLOAT;
+      return TYPEART_FLOAT_32;
     case llvm::Type::DoubleTyID:
-      return TYPEART_DOUBLE;
-    case llvm::Type::FP128TyID:
-      return TYPEART_FP128;
+      return TYPEART_FLOAT_64;
     case llvm::Type::X86_FP80TyID:
-      return TYPEART_X86_FP80;
-    case llvm::Type::PPC_FP128TyID:
-      return TYPEART_PPC_FP128;
+    case llvm::Type::FP128TyID:
+      return TYPEART_FLOAT_128;
     case llvm::Type::PointerTyID:
       return TYPEART_POINTER;
     default:
-      return None;
+      return {};
   }
 }
 
@@ -94,7 +91,7 @@ int TypeManager::getOrRegisterVector(llvm::VectorType* type, const llvm::DataLay
   VectorTypeHandler handler{&structMap, typeDB.get(), type, dl, *this};
   const auto type_id = handler.getID();
   if (type_id) {
-    return type_id.getValue();
+    return type_id.value();
   }
 
   // Type is not registered - reserve new ID and create struct info object:
@@ -111,8 +108,8 @@ int TypeManager::getOrRegisterVector(llvm::VectorType* type, const llvm::DataLay
 
   const int id = reserveNextTypeId();
 
-  const auto [element_id, element_type, element_name] = element_data.getValue();
-  const auto [vector_name, vector_bytes, vector_size] = vector_data.getValue();
+  const auto [element_id, element_type, element_name] = element_data.value();
+  const auto [vector_name, vector_bytes, vector_size] = vector_data.value();
 
   std::vector<int> memberTypeIDs;
   std::vector<size_t> arraySizes;
@@ -150,7 +147,7 @@ int TypeManager::getOrRegisterVector(llvm::VectorType* type, const llvm::DataLay
 int TypeManager::getTypeID(llvm::Type* type, const DataLayout& dl) const {
   auto builtin_id = get_builtin_typeid(type);
   if (builtin_id) {
-    return builtin_id.getValue();
+    return builtin_id.value();
   }
 
   switch (type->getTypeID()) {
@@ -163,7 +160,7 @@ int TypeManager::getTypeID(llvm::Type* type, const DataLayout& dl) const {
       VectorTypeHandler handle{&structMap, typeDB.get(), dyn_cast<VectorType>(type), dl, *this};
       const auto type_id = handle.getID();
       if (type_id) {
-        return type_id.getValue();
+        return type_id.value();
       }
       break;
     }
@@ -171,7 +168,7 @@ int TypeManager::getTypeID(llvm::Type* type, const DataLayout& dl) const {
       StructTypeHandler handle{&structMap, typeDB.get(), dyn_cast<StructType>(type)};
       const auto type_id = handle.getID();
       if (type_id) {
-        return type_id.getValue();
+        return type_id.value();
       }
       break;
     }
@@ -191,7 +188,7 @@ int TypeManager::getTypeID(llvm::Type* type, const DataLayout& dl) const {
 int TypeManager::getOrRegisterType(llvm::Type* type, const llvm::DataLayout& dl) {
   auto builtin_id = get_builtin_typeid(type);
   if (builtin_id) {
-    return builtin_id.getValue();
+    return builtin_id.value();
   }
 
   switch (type->getTypeID()) {
@@ -217,7 +214,7 @@ int TypeManager::getOrRegisterStruct(llvm::StructType* type, const llvm::DataLay
   StructTypeHandler handle{&structMap, typeDB.get(), type};
   const auto type_id = handle.getID();
   if (type_id) {
-    return type_id.getValue();
+    return type_id.value();
   }
 
   const auto name = handle.getName();

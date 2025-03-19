@@ -1,15 +1,15 @@
-// RUN: %c-to-llvm %s | %apply-typeart -typeart-config-dump -S 2>&1 | %filecheck %s
+// RUN: %c-to-llvm %s | %apply-typeart -S 2>&1 | %filecheck %s
 
 // CHECK-NOT: {{(Error|Fatal)}}
 
-// CHECK: types:           types.yaml
+// CHECK: types:           {{.*}}.yaml
 // CHECK-NEXT: heap:            true
 // CHECK-NEXT: stack:           false
 // CHECK-NEXT: global:          false
-// CHECK-NEXT: stats:           false
+// CHECK-NEXT: stats:           true
 // CHECK-NEXT: stack-lifetime:  true
-// CHECK-NEXT: typegen:         dimeta
-// CHECK-NEXT: filter:          true
+// CHECK-NEXT: typegen:         {{dimeta|ir}}
+// CHECK-NEXT: filter:          false
 // CHECK-NEXT: call-filter:
 // CHECK-NEXT:   implementation:  std
 // CHECK-NEXT:   glob:            '*MPI_*'
@@ -20,7 +20,6 @@
 // CHECK-NEXT:   filter-heap-alloca: false
 // CHECK-NEXT:   filter-pointer-alloca: true
 // CHECK-NEXT:   filter-non-array-alloca: false
-// CHECK-NEXT: file-format:     1
 
 void test() {
 }

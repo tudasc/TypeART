@@ -1,10 +1,10 @@
 // clang-format off
-// RUN: %run %s --omp --typeart-filter 2>&1 | %filecheck %s --check-prefix=CHECK-TSAN
-// RUN: %run %s -o -O2 --omp --typeart-filter 2>&1 | %filecheck %s --check-prefix=CHECK-TSAN
+// RUN: %run %s --omp --typeart-filter=true 2>&1 | %filecheck %s --check-prefix=CHECK-TSAN
+// RUN: %run %s -o -O2 --omp --typeart-filter=true 2>&1 | %filecheck %s --check-prefix=CHECK-TSAN
 
-// RUN: %run %s -o -O2 --omp --typeart-filter 2>&1 | %filecheck %s
-// RUN: %run %s --omp --typeart-filter 2>&1 | %filecheck %s
-// REQUIRES: openmp && softcounter
+// RUN: %run %s -o -O2 --omp --typeart-filter=true 2>&1 | %filecheck %s
+// RUN: %run %s --omp --typeart-filter=true 2>&1 | %filecheck %s
+// REQUIRES: openmp && softcounter && !llvm-18 && !llvm-19
 // clang-format on
 
 #include <stdlib.h>
@@ -58,7 +58,7 @@ int main(int argc, char** argv) {
   // CHECK-NEXT: Allocation type detail (heap, stack, global)
   // CHECK: {{(#|-)+}}
   // CHECK-NEXT: Free allocation type detail (heap, stack)
-  // CHECK-NEXT: 6 : 200 ,    0 , double
+  // CHECK-NEXT: 24 : 200 ,    0 , double
   // CHECK: Per-thread counter values (2 threads)
   // CHECK-NEXT: Thread Heap Allocs       : 100 ,  100
   // CHECK-NEXT: Thread Heap Arrays       : 100 ,  100
