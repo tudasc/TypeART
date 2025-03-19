@@ -1,7 +1,7 @@
 FetchContent_Declare(
   llvm-dimeta
   GIT_REPOSITORY https://github.com/ahueck/llvm-dimeta
-  GIT_TAG devel
+  GIT_TAG v0.2.0
   GIT_SHALLOW 1
 )
 
