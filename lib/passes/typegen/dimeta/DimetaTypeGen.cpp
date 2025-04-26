@@ -276,6 +276,9 @@ std::optional<typeart_builtin_type> get_builtin_typeid(const dimeta::QualifiedFu
       }
     }
     case FundamentalType::Encoding::kSignedInt: {
+      if (type.type.name == "wchar_t") {
+        return TYPEART_WCHAR;
+      }
       switch (extent) {
         case 4:
           return TYPEART_INT_32;
