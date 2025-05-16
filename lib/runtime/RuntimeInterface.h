@@ -59,6 +59,12 @@ typedef struct typeart_type_info_t {
   typeart_base_type_info base_type_info;  // API dependent
 } typeart_type_info;
 
+typedef struct typeart_source_loc_t {
+  char* file;
+  char* function; 
+  char* line;
+} typeart_source_location;
+
 /**
  * Determines the type and array element count at the given address.
  * For nested types with classes/structs, the containing type is resolved recursively, until an exact with the address
@@ -194,16 +200,26 @@ typeart_status typeart_get_return_address(const void* addr, const void** return_
  * caller.
  *
  * \param[in] addr The address.
- * \param[out] file The file where the address was created at.
- * \param[out] function The function where the address was created at.
- * \param[out] line The approximate line where the address was created at.
+ * \param[out] source_loc The file/function/line where the address was created at.
  *
  * \return One of the following status codes:
  *  - TYPEART_OK: Success.
  *  - TYPEART_UNKNOWN_ADDRESS: The given address is either not allocated, or was not recorded by the runtime.
  *  - TYPEART_ERROR: Memory could not be allocated.
  */
-typeart_status typeart_get_source_location(const void* addr, char** file, char** function, char** line);
+ typeart_status typeart_get_source_location(const void* addr, typeart_source_location* source_loc);
+
+ /**
+ * Free previously allocated typeart_source_location. 
+ *
+ * \param[in] source_loc The file/function/line where the address was created at.
+ *
+ * \return One of the following status codes:
+ *  - TYPEART_OK: Success.
+ *  - TYPEART_ERROR: source_loc was NULL.
+ */
+ typeart_status typeart_free_source_location(typeart_source_location* source_loc);
+
 
 /**
  * Given a type ID, this function provides information about the corresponding struct type.

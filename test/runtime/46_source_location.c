@@ -37,26 +37,22 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  char* file;
-  char* func;
-  char* line;
-
-  if (typeart_get_source_location(addr, &file, &func, &line) != TYPEART_OK) {
+  typeart_source_location location;
+  if (typeart_get_source_location(addr, &location) != TYPEART_OK) {
     fprintf(stderr, "Error getting source loc\n");
     return -1;
   }
 
-  fprintf(stderr, "Loc File: %s\n", file);
-  fprintf(stderr, "Loc Function: %s\n", func);
-  fprintf(stderr, "Loc Line: %s\n", line);
+  fprintf(stderr, "Loc File: %s\n", location.file);
+  fprintf(stderr, "Loc Function: %s\n", location.function);
+  fprintf(stderr, "Loc Line: %s\n", location.line);
 
-  check_addr(file);
-  check_addr(func);
-  check_addr(line);
+  typeart_free_source_location(&location);
 
-  free(file);
-  free(line);
-  free(func);
+  if (location.file != NULL || location.function != NULL || location.line != NULL) {
+    fprintf(stderr, "Error free'ing source loc\n");
+    return -1;
+  }
 
   return 0;
 }
@@ -66,6 +62,3 @@ int main(int argc, char** argv) {
 // CHECK: Loc File:{{.*}}46_source_location.c
 // CHECK: Loc Function: main
 // CHECK: Loc Line: 3{{(3|5)}}
-// CHECK: Address check OK
-// CHECK: Address check OK
-// CHECK: Address check OK
