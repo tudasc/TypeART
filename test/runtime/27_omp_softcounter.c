@@ -40,8 +40,8 @@ int main(int argc, char** argv) {
   // CHECK-NEXT: Total heap                 : 200 ,  200 ,    -
   // CHECK-NEXT: Total stack                :   0 ,    0 ,    -
   // CHECK-NEXT: Total global               :   0 ,    0 ,    -
-  // CHECK-NEXT: Max. Heap                  :   {{[1-2]}} ,    - ,    -
-  // CHECK-NEXT: Max. Stack                 :   0 ,    - ,    -
+  // CHECK-NEXT: Max. heap                  :   {{[1-2]}} ,    - ,    -
+  // CHECK-NEXT: Max. stack                 :   0 ,    - ,    -
   // CHECK-NEXT: Addresses checked          :   0 ,    - ,    -
   // CHECK-NEXT: Distinct addresses checked :   0 ,    - ,    -
   // CHECK-NEXT: Addresses re-used          :   0 ,    - ,    -
