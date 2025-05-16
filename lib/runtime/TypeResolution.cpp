@@ -278,14 +278,14 @@ const TypeDB& TypeResolution::db() const {
 }
 
 namespace detail {
-inline typeart_status query_type(const void* addr, int* type, size_t* count) {
-  auto alloc = typeart::RuntimeSystem::get().allocTracker.findBaseAlloc(addr);
-  typeart::RuntimeSystem::get().recorder.incUsedInRequest(addr);
-  if (alloc) {
-    return typeart::RuntimeSystem::get().typeResolution.getTypeInfo(addr, alloc->first, alloc->second, type, count);
-  }
-  return TYPEART_UNKNOWN_ADDRESS;
-}
+// inline typeart_status query_type(const void* addr, int* type, size_t* count) {
+//   auto alloc = typeart::RuntimeSystem::get().allocTracker.findBaseAlloc(addr);
+//   typeart::RuntimeSystem::get().recorder.incUsedInRequest(addr);
+//   if (alloc) {
+//     return typeart::RuntimeSystem::get().typeResolution.getTypeInfo(addr, alloc->first, alloc->second, type, count);
+//   }
+//   return TYPEART_UNKNOWN_ADDRESS;
+// }
 
 inline typeart_status query_type(const void* addr, typeart_type_info& info) {
   auto alloc = typeart::RuntimeSystem::get().allocTracker.findBaseAlloc(addr);
@@ -297,6 +297,9 @@ inline typeart_status query_type(const void* addr, typeart_type_info& info) {
     base.count          = alloc->second.count;
     info.base_type_info = base;
     info.address        = addr;
+    
+    typeart::RuntimeSystem::get().recorder.incTypeQuery(base.type_id);
+    
     const auto result   = typeart::RuntimeSystem::get().typeResolution.getTypeInfo(addr, alloc->first, alloc->second,
                                                                                    &info.type_id, &info.count);
     return result;
