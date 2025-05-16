@@ -54,28 +54,29 @@ void serialize(const Recorder& r, std::ostringstream& buf) {
   if constexpr (std::is_same_v<Recorder, NoneRecorder>) {
     return;
   } else {
-    const auto memory_use = memory::estimate(r.getMaxStackAllocs(), r.getMaxHeapAllocs(), r.getGlobalAllocs());
+    // const auto memory_use = memory::estimate(r.getMaxStackAllocs(), r.getMaxHeapAllocs(), r.getGlobalAllocs());
 
     Table t("Alloc Stats from softcounters");
     t.wrap_length_ = true;
     t.put(Row::make("Total heap", r.getHeapAllocs(), r.getHeapArray()));
     t.put(Row::make("Total stack", r.getStackAllocs(), r.getStackArray()));
     t.put(Row::make("Total global", r.getGlobalAllocs(), r.getGlobalArray()));
-    t.put(Row::make("Max. Heap Allocs", r.getMaxHeapAllocs()));
-    t.put(Row::make("Max. Stack Allocs", r.getMaxStackAllocs()));
+    t.put(Row::make("Max. heap", r.getMaxHeapAllocs()));
+    t.put(Row::make("Max. stack", r.getMaxStackAllocs()));
     t.put(Row::make("Addresses checked", r.getAddrChecked()));
-    t.put(Row::make("Distinct Addresses checked", r.getSeen().size()));
+    t.put(Row::make("Distinct addresses checked", r.getSeen().size()));
     t.put(Row::make("Addresses re-used", r.getAddrReuses()));
     t.put(Row::make("Addresses missed", r.getAddrMissing()));
-    t.put(Row::make("Distinct Addresses missed", r.getMissing().size()));
+    t.put(Row::make("Distinct addresses missed", r.getMissing().size()));
     t.put(Row::make("Total free heap", r.getHeapAllocsFree(), r.getHeapArrayFree()));
     t.put(Row::make("Total free stack", r.getStackAllocsFree(), r.getStackArrayFree()));
-    t.put(Row::make("OMP Stack/Heap/Free", r.getOmpStackCalls(), r.getOmpHeapCalls(), r.getOmpFreeCalls()));
-    t.put(Row::make("Null/Zero/NullZero Addr", r.getNullAlloc(), r.getZeroAlloc(), r.getNullAndZeroAlloc()));
+    t.put(Row::make("OMP stack/heap/free", r.getOmpStackCalls(), r.getOmpHeapCalls(), r.getOmpFreeCalls()));
+    t.put(Row::make("Null/Zero/NullZero addr", r.getNullAlloc(), r.getZeroAlloc(), r.getNullAndZeroAlloc()));
     t.put(Row::make("User-def. types", r.getNumUDefTypes()));
-    t.put(Row::make("Estimated memory use (KiB)", size_t(std::round(memory_use.map + memory_use.stack))));
-    t.put(Row::make("Bytes per node map/stack", memory::MemOverhead::perNodeSizeMap,
-                    memory::MemOverhead::perNodeSizeStack));
+    t.put(Row::make("Distinct query types", r.getTypeQuery().size()));
+    // t.put(Row::make("Estimated memory use (KiB)", size_t(std::round(memory_use.map + memory_use.stack))));
+    // t.put(Row::make("Bytes per node map/stack", memory::MemOverhead::perNodeSizeMap,
+    // memory::MemOverhead::perNodeSizeStack));
 
     t.print(buf);
 
@@ -108,17 +109,32 @@ void serialize(const Recorder& r, std::ostringstream& buf) {
     }
 
     type_table.print(buf);
+    {
+      Table type_table_free("Free allocation type detail (heap, stack)");
+      type_table_free.table_header_ = '#';
+      for (auto type_id : type_id_set) {
+        type_table_free.put(Row::make(std::to_string(type_id), count(r.getHeapFree(), type_id),
+                                      count(r.getStackFree(), type_id), typeart_get_type_name(type_id)));
+      }
 
-    Table type_table_free("Free allocation type detail (heap, stack)");
-    type_table_free.table_header_ = '#';
-    for (auto type_id : type_id_set) {
-      type_table_free.put(Row::make(std::to_string(type_id), count(r.getHeapFree(), type_id),
-                                    count(r.getStackFree(), type_id), typeart_get_type_name(type_id)));
+      type_table_free.print(buf);
+    }
+    {
+      Table type_table_query("Query type detail");
+      type_table_query.table_header_ = '#';
+      const auto& query_map          = r.getTypeQuery();
+      for (const auto& [query_type_id, query_count] : query_map) {
+        type_table_query.put(
+            Row::make(std::to_string(query_type_id), query_count, typeart_get_type_name(query_type_id)));
+      }
+
+      type_table_query.print(buf);
     }
 
-    type_table_free.print(buf);
-
     const auto numThreads = r.getNumThreads();
+    if (numThreads < 2) {
+      return;
+    }
     std::stringstream ss;
     ss << "Per-thread counter values (" << numThreads << " threads)";
     Table thread_table(ss.str());
