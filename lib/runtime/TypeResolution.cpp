@@ -23,6 +23,7 @@
 #include "llvm/Support/raw_ostream.h"
 
 #include <cassert>
+#include <charconv>
 #include <cstddef>
 #include <cstdint>
 #include <utility>
@@ -331,7 +332,7 @@ inline typeart_status query_struct_layout(int type_id, typeart_struct_layout* st
 }
 
 char* string2char(std::string_view src) {
-  const void* ret_addr       = __builtin_return_address(0);
+  // const void* ret_addr       = __builtin_return_address(0);
   const size_t source_length = src.size() + 1;  // +1 for '\0'
   char* string_copy          = (char*)malloc(sizeof(char) * source_length);
 
@@ -339,7 +340,7 @@ char* string2char(std::string_view src) {
     return nullptr;
   }
 
-  typeart::RuntimeSystem::get().allocTracker.onAlloc(string_copy, TYPEART_CHAR_8, source_length, ret_addr);
+  // typeart::RuntimeSystem::get().allocTracker.onAlloc(string_copy, TYPEART_CHAR_8, source_length, ret_addr);
 
   memcpy(string_copy, src.data(), source_length);
 
@@ -398,18 +399,41 @@ typeart_status typeart_get_return_address(const void* addr, const void** return_
   return TYPEART_UNKNOWN_ADDRESS;
 }
 
-typeart_status_t typeart_get_source_location(const void* addr, char** file, char** function, char** line) {
+// typeart_status_t typeart_get_source_location(const void* addr, char** file, char** function, char** line) {
+//   using namespace typeart::detail;
+//   typeart::RTGuard guard;
+
+//   auto source_loc = typeart::SourceLocation::create(addr);
+
+//   if (source_loc) {
+//     *file     = string2char(source_loc->file);
+//     *function = string2char(source_loc->function);
+//     *line     = string2char(source_loc->line);
+
+//     if (*file == nullptr || *function == nullptr || *line == nullptr) {
+//       return TYPEART_ERROR;
+//     }
+
+//     return TYPEART_OK;
+//   }
+
+//   return TYPEART_UNKNOWN_ADDRESS;
+// }
+
+typeart_status_t typeart_get_source_location(const void* addr, typeart_source_location* source_location) {
   using namespace typeart::detail;
   typeart::RTGuard guard;
 
   auto source_loc = typeart::SourceLocation::create(addr);
 
   if (source_loc) {
-    *file     = string2char(source_loc->file);
-    *function = string2char(source_loc->function);
-    *line     = string2char(source_loc->line);
+    source_location->file     = string2char(source_loc->file);
+    source_location->function = string2char(source_loc->function);
+    source_location->line     = 0;
+    const auto& line          = source_loc->line;
+    auto [ptr, ec]            = std::from_chars(line.data(), line.data() + line.size(), source_location->line);
 
-    if (*file == nullptr || *function == nullptr || *line == nullptr) {
+    if (source_location->file == nullptr || source_location->function == nullptr || ec != std::errc{}) {
       return TYPEART_ERROR;
     }
 
@@ -417,6 +441,24 @@ typeart_status_t typeart_get_source_location(const void* addr, char** file, char
   }
 
   return TYPEART_UNKNOWN_ADDRESS;
+}
+
+typeart_status_t typeart_free_source_location(typeart_source_location* source_location) {
+  using namespace typeart::detail;
+  typeart::RTGuard guard;
+
+  if (source_location == nullptr) {
+    return TYPEART_ERROR;
+  }
+
+  free(source_location->file);
+  free(source_location->function);
+
+  source_location->file     = nullptr;
+  source_location->function = nullptr;
+  source_location->line     = 0;
+
+  return TYPEART_OK;
 }
 
 const char* typeart_get_type_name(int type_id) {
