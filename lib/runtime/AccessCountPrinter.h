@@ -76,7 +76,7 @@ void serialize(const Recorder& r, std::ostringstream& buf) {
     t.put(Row::make("Distinct query types", r.getTypeQuery().size()));
     // t.put(Row::make("Estimated memory use (KiB)", size_t(std::round(memory_use.map + memory_use.stack))));
     // t.put(Row::make("Bytes per node map/stack", memory::MemOverhead::perNodeSizeMap,
-                    // memory::MemOverhead::perNodeSizeStack));
+    // memory::MemOverhead::perNodeSizeStack));
 
     t.print(buf);
 
@@ -122,9 +122,10 @@ void serialize(const Recorder& r, std::ostringstream& buf) {
     {
       Table type_table_query("Query type detail");
       type_table_query.table_header_ = '#';
-      const auto& query_map = r.getTypeQuery();
+      const auto& query_map          = r.getTypeQuery();
       for (const auto& [query_type_id, query_count] : query_map) {
-        type_table_query.put(Row::make(std::to_string(query_type_id), query_count, typeart_get_type_name(query_type_id)));
+        type_table_query.put(
+            Row::make(std::to_string(query_type_id), query_count, typeart_get_type_name(query_type_id)));
       }
 
       type_table_query.print(buf);
