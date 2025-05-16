@@ -45,11 +45,11 @@ int main(int argc, char** argv) {
 
   fprintf(stderr, "Loc File: %s\n", location.file);
   fprintf(stderr, "Loc Function: %s\n", location.function);
-  fprintf(stderr, "Loc Line: %s\n", location.line);
+  fprintf(stderr, "Loc Line: %i\n", location.line);
 
   typeart_free_source_location(&location);
 
-  if (location.file != NULL || location.function != NULL || location.line != NULL) {
+  if (location.file != NULL || location.function != NULL) {
     fprintf(stderr, "Error free'ing source loc\n");
     return -1;
   }

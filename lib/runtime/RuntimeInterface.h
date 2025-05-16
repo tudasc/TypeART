@@ -62,7 +62,7 @@ typedef struct typeart_type_info_t {
 typedef struct typeart_source_loc_t {
   char* file;
   char* function;
-  char* line;
+  unsigned line;
 } typeart_source_location;
 
 /**

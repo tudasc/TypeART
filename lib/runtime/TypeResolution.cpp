@@ -23,6 +23,7 @@
 #include "llvm/Support/raw_ostream.h"
 
 #include <cassert>
+#include <charconv>
 #include <cstddef>
 #include <cstdint>
 #include <utility>
@@ -428,9 +429,11 @@ typeart_status_t typeart_get_source_location(const void* addr, typeart_source_lo
   if (source_loc) {
     source_location->file     = string2char(source_loc->file);
     source_location->function = string2char(source_loc->function);
-    source_location->line     = string2char(source_loc->line);
+    source_location->line     = 0;
+    const auto& line          = source_loc->line;
+    auto [ptr, ec]            = std::from_chars(line.data(), line.data() + line.size(), source_location->line);
 
-    if (source_location->file == nullptr || source_location->function == nullptr || source_location->line == nullptr) {
+    if (source_location->file == nullptr || source_location->function == nullptr || ec != std::errc{}) {
       return TYPEART_ERROR;
     }
 
@@ -450,11 +453,10 @@ typeart_status_t typeart_free_source_location(typeart_source_location* source_lo
 
   free(source_location->file);
   free(source_location->function);
-  free(source_location->line);
 
   source_location->file     = nullptr;
   source_location->function = nullptr;
-  source_location->line     = nullptr;
+  source_location->line     = 0;
 
   return TYPEART_OK;
 }
