@@ -61,7 +61,7 @@ typedef struct typeart_type_info_t {
 
 typedef struct typeart_source_loc_t {
   char* file;
-  char* function; 
+  char* function;
   char* line;
 } typeart_source_location;
 
@@ -207,10 +207,10 @@ typeart_status typeart_get_return_address(const void* addr, const void** return_
  *  - TYPEART_UNKNOWN_ADDRESS: The given address is either not allocated, or was not recorded by the runtime.
  *  - TYPEART_ERROR: Memory could not be allocated.
  */
- typeart_status typeart_get_source_location(const void* addr, typeart_source_location* source_loc);
+typeart_status typeart_get_source_location(const void* addr, typeart_source_location* source_loc);
 
- /**
- * Free previously allocated typeart_source_location. 
+/**
+ * Free previously allocated typeart_source_location.
  *
  * \param[in] source_loc The file/function/line where the address was created at.
  *
@@ -218,8 +218,7 @@ typeart_status typeart_get_return_address(const void* addr, const void** return_
  *  - TYPEART_OK: Success.
  *  - TYPEART_ERROR: source_loc was NULL.
  */
- typeart_status typeart_free_source_location(typeart_source_location* source_loc);
-
+typeart_status typeart_free_source_location(typeart_source_location* source_loc);
 
 /**
  * Given a type ID, this function provides information about the corresponding struct type.
