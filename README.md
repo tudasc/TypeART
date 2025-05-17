@@ -378,7 +378,7 @@ Example using CMake [FetchContent](https://cmake.org/cmake/help/latest/module/Fe
 FetchContent_Declare(
   typeart
   GIT_REPOSITORY https://github.com/tudasc/TypeART
-  GIT_TAG v1.9.1
+  GIT_TAG v2.1
   GIT_SHALLOW 1
 )
 FetchContent_MakeAvailable(typeart)
