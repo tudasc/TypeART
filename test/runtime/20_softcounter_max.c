@@ -35,4 +35,4 @@ int main(void) {
 // CHECK-NEXT: 24 :   6 ,    0 ,    0 , double
 // CHECK-NEXT: {{(#|-)+}}
 // CHECK-NEXT: Free allocation type detail (heap, stack)
-// CHECK-NEXT: 24 :   0 ,    0 , double
+// CHECK-NOT: 24 :   0 ,    0 , double
