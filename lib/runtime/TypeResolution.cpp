@@ -299,10 +299,10 @@ inline typeart_status query_type(const void* addr, typeart_type_info& info) {
     info.base_type_info = base;
     info.address        = addr;
 
-    typeart::RuntimeSystem::get().recorder.incTypeQuery(base.type_id);
-
     const auto result = typeart::RuntimeSystem::get().typeResolution.getTypeInfo(addr, alloc->first, alloc->second,
                                                                                  &info.type_id, &info.count);
+
+    typeart::RuntimeSystem::get().recorder.incTypeQuery(base.type_id);
     return result;
   }
   return TYPEART_UNKNOWN_ADDRESS;
