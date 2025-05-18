@@ -279,7 +279,7 @@ To compile and run the demo targets:
 
 ## 2. Building TypeART
 
-TypeART supports LLVM version 14 and 18 and CMake version >= 3.20.
+TypeART supports LLVM version 14, 18 and 19, and CMake version >= 3.20.
 
 ### 2.1 Optional software requirements
 
