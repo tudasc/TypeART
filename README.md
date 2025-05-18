@@ -62,7 +62,7 @@ its [project page](https://itc.rwth-aachen.de/must/).
 
 Using TypeART involves two phases:
 
-1. Compilation: Compile your code with Clang/LLVM (version 14) using the TypeART LLVM pass plugin. The plugin (1) serializes static type information to a file and (2) instruments relevant allocations. See [Section 1.1](#11-compiling-a-target-code).
+1. Compilation: Compile your code with Clang/LLVM using the TypeART LLVM pass plugin. The plugin (1) serializes static type information to a file and (2) instruments relevant allocations. See [Section 1.1](#11-compiling-a-target-code).
 2. Execution: Run the instrumented program with a TypeART runtime client, which uses the callback data to perform analysis facilitating the static type information. See [Section 1.2](#12-executing-an-instrumented-target-code).
 
 ### 1.1 Compiling a target code
