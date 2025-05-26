@@ -62,7 +62,7 @@ its [project page](https://itc.rwth-aachen.de/must/).
 
 Using TypeART involves two phases:
 
-1. Compilation: Compile your code with Clang/LLVM (version 14) using the TypeART LLVM pass plugin. The plugin (1) serializes static type information to a file and (2) instruments relevant allocations. See [Section 1.1](#11-compiling-a-target-code).
+1. Compilation: Compile your code with Clang/LLVM using the TypeART LLVM pass plugin. The plugin (1) serializes static type information to a file and (2) instruments relevant allocations. See [Section 1.1](#11-compiling-a-target-code).
 2. Execution: Run the instrumented program with a TypeART runtime client, which uses the callback data to perform analysis facilitating the static type information. See [Section 1.2](#12-executing-an-instrumented-target-code).
 
 ### 1.1 Compiling a target code
@@ -279,7 +279,7 @@ To compile and run the demo targets:
 
 ## 2. Building TypeART
 
-TypeART supports LLVM version 14 and 18 and CMake version >= 3.20.
+TypeART supports LLVM version 14, 18 and 19, and CMake version >= 3.20.
 
 ### 2.1 Optional software requirements
 
@@ -378,7 +378,7 @@ Example using CMake [FetchContent](https://cmake.org/cmake/help/latest/module/Fe
 FetchContent_Declare(
   typeart
   GIT_REPOSITORY https://github.com/tudasc/TypeART
-  GIT_TAG v1.9.1
+  GIT_TAG v2.1
   GIT_SHALLOW 1
 )
 FetchContent_MakeAvailable(typeart)

@@ -231,6 +231,11 @@ std::optional<typeart_builtin_type> get_builtin_typeid(const dimeta::QualifiedFu
   const auto extent   = type.type.extent;
   const auto encoding = type.type.encoding;
 
+  if (type.type.name == "wchar_t" || type.typedef_name == "wchar_t") {
+    // Clang 18 typedef's wchar_t
+    return TYPEART_WCHAR;
+  }
+
   switch (encoding) {
     case FundamentalType::Encoding::kVtablePtr:
       return TYPEART_VTABLE_POINTER;

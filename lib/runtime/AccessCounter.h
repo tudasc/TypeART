@@ -193,6 +193,11 @@ class AccessRecorder {
 
   ~AccessRecorder() = default;
 
+  inline void incTypeQuery(int type_id) {
+    std::lock_guard lock(typeQueryMutex);
+    ++typeQuery[type_id];
+  }
+
   inline void incHeapAlloc(int typeId, size_t count) {
     ++curHeapAllocs;
 
@@ -446,6 +451,10 @@ class AccessRecorder {
     std::shared_lock slock(seenMutex);
     return seen;
   }
+  TypeCountMap getTypeQuery() const {
+    std::shared_lock slock(typeQueryMutex);
+    return typeQuery;
+  }
   TypeCountMap getStackAlloc() const {
     std::shared_lock slock(stackAllocMutex);
     return stackAlloc;
@@ -524,6 +533,9 @@ class AccessRecorder {
 
   TypeCountMap heapFree;
   mutable MutexT heapFreeMutex;
+
+  TypeCountMap typeQuery;
+  mutable MutexT typeQueryMutex;
 };
 
 /**
@@ -531,6 +543,8 @@ class AccessRecorder {
  */
 class NoneRecorder {
  public:
+  [[maybe_unused]] inline void incTypeQuery(int) {
+  }
   [[maybe_unused]] inline void incHeapAlloc(int, size_t) {
   }
   [[maybe_unused]] inline void incStackAlloc(int, size_t) {
