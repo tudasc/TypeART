@@ -105,7 +105,18 @@ static std::unique_ptr<typeart::filter::Filter> make_filter(const MemInstFinderC
     auto json_cg = JSONCG::getJSON(cg_file);
     auto matcher = std::make_unique<DefaultStringMatcher>(util::glob2regex(glob));
     return std::make_unique<CGForwardFilter>(glob, std::move(json_cg), std::move(matcher));
-  } else {
+  } else if (filter_id == FilterImplementation::acg) {
+    const std::string acg_file = config[config::ConfigStdArgs::filter_cg_file];
+    if (acg_file.empty()) {
+      LOG_FATAL("ACG File not set!");
+      std::exit(1);
+    }
+    LOG_DEBUG("Return ACG filter with CG file @ " << acg_file)
+    
+    return std::make_unique<NoOpFilter>(); // TODO
+  }
+
+  else {
     LOG_DEBUG("Return default filter")
     auto matcher         = std::make_unique<DefaultStringMatcher>(util::glob2regex(glob));
     const auto deep_glob = config[config::ConfigStdArgs::filter_glob_deep];
