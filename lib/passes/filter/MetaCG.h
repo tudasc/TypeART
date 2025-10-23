@@ -15,6 +15,10 @@
 
 #include <llvm/Support/JSON.h>
 
+#include <support/Logger.h>
+
+#include <string_view>
+#include <charconv>
 #include <utility>
 
 template <>
@@ -31,12 +35,14 @@ namespace typeart::filter::metacg {
 /// Holds information about the generator used to serialize the callgraph
 struct Generator { std::string name, sha, version; };
 
+namespace json = llvm::json;
+
 inline bool fromJSON(json::Value const& json, Generator& r, json::Path const& path) {
   json::ObjectMapper o{json, path};
   return o && o.map("name", r.name) && o.map("sha", r.sha) && o.map("version", r.version);
 }
 
-/// MetaCGv3 header
+/// MetaCGv4 header
 struct Header {
   Generator gen;
   std::string version;
@@ -138,15 +144,19 @@ struct Md {
   /// Performs a lookup into the metadata object with the given key `name` and attempts to deserialize
   /// it into the requested type.
   template <typename T>
-  Expected<T> as(StringRef const name) const {
+  llvm::Expected<T> as(llvm::StringRef const name) const {
     if (v.getAsNull())
-      return createStringError("No metadata object");
+      return llvm::createStringError("No metadata object");
 
     json::Path::Root root{};
-    if (T r{}; fromJSON(*(v.getAsObject()->get(name)), r, root))
+    auto p = v.getAsObject()->get(name);
+	 if (!p)
+		 return llvm::createStringError("Member not found");
+
+    if (T r{}; fromJSON(*p, r, root))
       return r;
 
-    return createStringError("Failed to deserialize metadata");
+    return llvm::createStringError("Failed to deserialize metadata");
   }
 
 private:
@@ -158,92 +168,107 @@ inline bool fromJSON(json::Value const& json, Md& r, json::Path const&) {
   return true;
 }
 
-/// Represents a function in the callgraph
-struct Fn {
-  std::string name, origin;
-  bool has_body;
-  Md meta;
-};
+/// Represents edges from a node to its callees and associated edge metadata
+using Edges = std::unordered_map<size_t, Md>;
 
-inline bool fromJSON(json::Value const& json, Fn& r, json::Path const& path) {
-  json::ObjectMapper o{json, path};
-  return o
-    && o.map("functionName", r.name)
-    && o.map("origin", r.origin)
-    && o.map("hasBody", r.has_body)
-    && o.map("meta", r.meta);
-}
-
-/// Represents the edges of the callgraph
-struct EdgeContainer {
-  friend struct CallGraph;
-
-  friend bool fromJSON(json::Value const& json, EdgeContainer& r, json::Path const& path);
-
-  EdgeContainer() = default;
-
-private:
-  std::unordered_map<std::pair<size_t, size_t>, Md> underlying{};
-};
-
-inline bool fromJSON(json::Value const& json, EdgeContainer& r, json::Path const& path) {
-  auto const outer = json.getAsArray();
+inline bool fromJSON(json::Value const& json, Edges& r, json::Path const& path) {
+  auto const outer = json.getAsObject();
   if (!outer)
     return false;
 
-  for (json::Value const& v: *outer) {
-    auto const inner = v.getAsArray();
-    if (!inner)
-      return false;
+  for (auto const& [k, v] : *outer) {
+    auto k_str = k.str();
 
-    auto const first = (*inner)[0].getAsArray();
-    auto const second = (*inner)[1];
-    if (!first)
+    size_t hash{};
+    if (std::from_chars(k_str.data(), k_str.data() + k_str.size(), hash).ec == std::errc{})
+      r.insert({hash, Md{v}});
+    else
       return false;
-
-    r.underlying.insert({
-      {*(*first)[0].getAsUINT64(), *(*first)[1].getAsUINT64()},
-      Md{second}
-    });
   }
 
   return true;
 }
 
-/// Represents the nodes of the callgraph
-struct NodeContainer {
-  friend struct CallGraph;
+/// Represents a node in the callgraph
+struct Node {
+  std::optional<std::string> name;
+  std::optional<std::string> origin;
+  bool has_body;
+  Md meta;
+  Edges callees;
+};
 
-  NodeContainer() = default;
+inline bool fromJSON(json::Value const& json, Node& r, json::Path const& path) {
+  json::ObjectMapper o{json, path};
+  return o
+    && o.map("functionName", r.name)
+    && o.map("origin", r.origin)
+    && o.map("hasBody", r.has_body)
+    && o.map("meta", r.meta)
+    && o.map("callees", r.callees);
+}
 
-  friend bool fromJSON(json::Value const& json, NodeContainer& r, json::Path const& path);
+/// Represents the callgraph's nodes and their associated IDs
+using Nodes = std::unordered_map<size_t, Node>;
 
-  /// Translates a function name to its corresponding node ID if it exists
-  std::optional<size_t> byName(StringRef const name) const {
-    for (auto const& [id, f]: underlying) {
-      if (f.name == name)
-        return id;
-    }
+inline bool fromJSON(json::Value const& json, Nodes& r, json::Path const& path) {
+  auto const outer = json.getAsObject();
+  if (!outer)
+    return false;
+
+  for (auto const& [k, v] : *outer) {
+    auto k_str = k.str();
+
+    Node node {};
+    if (auto const parsed = fromJSON(v, node, path); !parsed)
+      return false;
+
+    size_t hash{};
+    if (std::from_chars(k_str.data(), k_str.data() + k_str.size(), hash).ec == std::errc{})
+      r.insert({hash, node});
+    else
+      return false;
+  }
+
+  return true;
+}
+
+/// MetaCGv4 callgraph
+struct CallGraph {
+  Md meta;
+  Nodes nodes;
+};
+
+inline bool fromJSON(json::Value const& json, CallGraph& r, json::Path const& path) {
+  json::ObjectMapper o{json, path};
+  return o
+    && o.map("meta", r.meta)
+    && o.map("nodes", r.nodes);
+}
+
+/// Top-level MetaCGv4 object container
+struct Mcg {
+  std::optional<size_t> byName(std::string_view const name) const {
+    for (auto const& [hash, node] : this->graph.nodes)
+      if (node.name == name)
+        return hash;
 
     return {};
   }
 
-  /// Translates a node identifier to a function descriptor
-  std::optional<Fn> forId(size_t const id) const {
-    for (auto const& [idx, f]: underlying) {
-      if (idx == id)
-        return f;
-    }
+  std::optional<Node> forId(size_t id) const {
+    for (auto const& [hash, node] : this->graph.nodes)
+      if (hash == id)
+        return node;
 
     return {};
   }
 
-  /// Returns the parameter outputs for `node`'s incoming argument at position `idx`
   std::optional<std::vector<MdArgOutput>> outputs(size_t node, size_t idx) const {
-    if (underlying.find(node) == underlying.end())
+    if (this->graph.nodes.find(node) == this->graph.nodes.end())
       return {};
 
-    auto argflow = underlying.at(node).meta.as<MdArgflow>("argflow");
+    auto argflow = this->graph.nodes.at(node).meta.as<MdArgflow>("argflow");
     if (!argflow)
       return {};
 
@@ -255,47 +280,6 @@ struct NodeContainer {
     return {};
   }
 
-private:
-  std::unordered_map<size_t, Fn> underlying{};
-};
-
-inline bool fromJSON(json::Value const& json, NodeContainer& r, json::Path const& path) {
-  auto const outer = json.getAsArray();
-  if (!outer)
-    return false;
-
-  for (json::Value const& v: *outer) {
-    auto const inner = v.getAsArray();
-    if (!inner)
-      return false;
-
-    auto const first = (*inner)[0].getAsUINT64();
-    if (!first)
-      return false;
-
-    Fn f{};
-    if (auto const second = fromJSON((*inner)[1], f, path); !second)
-      return false;
-
-    r.underlying.insert({*first, f});
-  }
-
-  return true;
-}
-
-/// Represents the complete callgraph
-struct CallGraph {
-  EdgeContainer edges;
-  NodeContainer nodes;
-};
-
-inline bool fromJSON(json::Value const& json, CallGraph& r, json::Path const& path) {
-  json::ObjectMapper o{json, path};
-  return o && o.map("edges", r.edges) && o.map("nodes", r.nodes);
-}
-
-/// Top-level MetaCGv3 object container
-struct Mcg {
   CallGraph graph;
   Header hdr;
 };
@@ -305,14 +289,14 @@ inline bool fromJSON(json::Value const& json, Mcg& r,json::Path const& path) {
   return o && o.map("_CG", r.graph) && o.map("_MetaCG", r.hdr);
 }
 
-/// Deserializes the MetaCGv3 format from text
-inline Expected<Mcg> parse(StringRef const json) {
+/// Deserializes the MetaCGv4 format from text
+inline llvm::Expected<Mcg> parse(llvm::StringRef const json) {
   if (auto parsed = json::parse<Mcg>(json); parsed) {
     LOG_DEBUG("Generated by: " << parsed->hdr.gen.name << '\n' << "Version: " << parsed->hdr.version << '\n');
     return *parsed;
   }
   else
-    return Expected<Mcg>{parsed.takeError()};
+    return llvm::Expected<Mcg>{parsed.takeError()};
 }
 
 } // namespace typeart::filter::metacg

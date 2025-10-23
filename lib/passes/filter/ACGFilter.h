@@ -15,7 +15,6 @@
 
 #include "compat/CallSite.h"
 #include "FilterBase.h"
-#include "Matcher.h"
 #include "MetaCG.h"
 
 namespace typeart::filter {

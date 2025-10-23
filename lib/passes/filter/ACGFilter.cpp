@@ -31,31 +31,34 @@ FilterAnalysis AcgFilterImpl::reachesMatching(const ArrayRef<size_t> nodes, cons
 
   for (const auto id : nodes) {
     enqueue(id, idx);
-    LOG_DEBUG("Starting node with parameter [" << idx << "]: " << mcg.graph.nodes.forId(id)->name << '\n');
+    LOG_DEBUG("Starting node with parameter [" << idx << "]: " << mcg.forId(id)->name << '\n');
   }
 
   while (!workq.empty()) {
     // Grab the current node ID and translate it into its corresponding function descriptor to check
     // if its name matches our matcher.
     const auto [current, cur_idx] = workq.pop_back_val();
-    LOG_DEBUG("> Inspecting node: " << mcg.graph.nodes.forId(current)->name << '\n');
-    if (const auto fn = mcg.graph.nodes.forId(current); fn && matcher.match(fn->name)) {
+    LOG_DEBUG("> Inspecting node: " << mcg.forId(current)->name << '\n');
+    if (const auto fn = mcg.forId(current); fn && fn->name && matcher.match(*fn->name)) {
       LOG_DEBUG("-> Matches matcher, keeping\n");
       return FilterAnalysis::Keep;
-    } else if (fn && !fn->has_body)
+    } else if (fn && !fn->has_body) {
+      LOG_DEBUG("-> Function has no body, keeping\n");
       return FilterAnalysis::Keep;
+    }
 
-    const auto outs = mcg.graph.nodes.outputs(current, cur_idx);
+    const auto outs = mcg.outputs(current, cur_idx);
     if (!outs) {
       LOG_DEBUG("-> Failed to get outputs\n");
       continue;
     }
 
-    for (const auto& out : *outs)
+    for (const auto& out : *outs) {
       for (const auto callee : out.callees) {
         enqueue(callee, out.idx);
-        LOG_DEBUG("-> Enqueued callee: " << mcg.graph.nodes.forId(callee)->name << '\n');
+        LOG_DEBUG("-> Enqueued callee: " << mcg.forId(callee)->name << '\n');
       }
+    }
   }
 
   return FilterAnalysis::Continue;
@@ -67,6 +70,7 @@ FilterAnalysis AcgFilterImpl::precheck(Value* in, Function* start, const FPath&)
 
   FunctionAnalysis analysis{};
   analysis.analyze(start);
+
   // Filter if we're in a leaf function
   if (analysis.empty())
     return FilterAnalysis::Filter;
@@ -102,32 +106,41 @@ FilterAnalysis AcgFilterImpl::def(const CallSite current, const Path& p) {
   // of this call, then compare all recorded calls in `current`'s parent function's function descriptor to
   // get a list of potential call targets.
   if (!current.getCalledFunction()) {
-    const auto parentNode = mcg.graph.nodes.byName(current.getFunction()->getName());
+    const auto* callLoc = current.getLocation();
+    if (!callLoc)
+      return FilterAnalysis::Keep;
+
+    // Resolve the parent scope via debug metadata as it should stay consistent even through inlining
+    const auto* parentScope = dyn_cast<DISubprogram>(callLoc->getScope());
+    if (!parentScope)
+      return FilterAnalysis::Keep;
+
+    const auto parentNode = mcg.byName(parentScope->getName());
     if (!parentNode)
       return FilterAnalysis::Keep;
 
-    const auto parent = mcg.graph.nodes.forId(*parentNode);
+    const auto parent = mcg.forId(*parentNode);
     assert(parent && "Malformed MCG");
 
     auto md = parent->meta.as<metacg::MdLocals>("localflow");
     if (!md)
       return FilterAnalysis::Keep;
 
-    for (const auto& local : md->locals) {
-      // TODO: How to potentially translate current.getLocation() to non-inlined mcg src loc
-      if (const auto* diLoc = current.getLocation();
-          local.loc == metacg::SrcLoc{diLoc ? diLoc->getColumn() : 0, diLoc ? diLoc->getLine() : 0})
+    for (const auto& local : md->locals)
+      if (local.loc == metacg::SrcLoc{callLoc->getColumn(), callLoc->getLine()})
         callees.append(local.callees.begin(), local.callees.end());
-    }
 
-    const auto outs = mcg.graph.nodes.outputs(*parentNode, idx);
+    const auto outs = mcg.outputs(*parentNode, idx);
     for (const auto& out : *outs)
       callees.append(out.callees.begin(), out.callees.end());
-  } else if (const auto node = mcg.graph.nodes.byName(current.getCalledFunction()->getName()); node)
+  }
+  // Otherwise simply add the called function to the list of callees to search from
+  else if (const auto node = mcg.byName(current.getCalledFunction()->getName()); node) {
     callees.push_back(*node);
-  else
+  } else {
     // Be conservative if the function is not recorded in the call graph
     return FilterAnalysis::Keep;
+  }
 
   // Determine if any of the potential callees can pass the parameters at index `idx` to a matching function
   return reachesMatching(callees, idx);
