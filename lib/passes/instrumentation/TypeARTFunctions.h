@@ -16,12 +16,7 @@
 #include "InstrumentationHelper.h"
 #include "configuration/Configuration.h"
 
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/StringMap.h"
-#include "llvm/ADT/StringRef.h"
-
 #include <memory>
-#include <unordered_map>
 
 namespace llvm {
 class Function;

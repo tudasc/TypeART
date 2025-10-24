@@ -19,6 +19,7 @@
 #include "TypeInterface.h"
 #include "analysis/MemOpData.h"
 #include "configuration/Configuration.h"
+#include "instrumentation/TypeIDProvider.h"
 #include "support/ConfigurationBase.h"
 #include "support/Logger.h"
 #include "support/OmpUtil.h"
@@ -41,6 +42,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/Utils/ModuleUtils.h"
 
+#include <memory>
 #include <string>
 
 namespace llvm {
@@ -52,8 +54,12 @@ using namespace llvm;
 namespace typeart {
 
 MemOpInstrumentation::MemOpInstrumentation(const config::Configuration& typeart_conf, TAFunctionQuery* fquery,
-                                           InstrumentationHelper& instr)
-    : MemoryInstrument(), typeart_config(typeart_conf), function_query(fquery), instrumentation_helper(&instr) {
+                                           std::unique_ptr<TypeRegistry> type_id_handle, InstrumentationHelper& instr)
+    : MemoryInstrument(),
+      typeart_config(typeart_conf),
+      function_query(fquery),
+      type_id_handler(std::move(type_id_handle)),
+      instrumentation_helper(&instr) {
   instrument_lifetime = typeart_config[config::ConfigStdArgs::stack_lifetime];
 }
 
@@ -144,8 +150,9 @@ InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
 
     // const auto callback_id = omp ? IFunc::heap_omp : IFunc::heap;
     const auto callback_id = ifunc_for_function(IFunc::heap, malloc.call);
+    auto type_id_param     = type_id_handler->getOrRegister(typeid_value);
     IRB.CreateCall(function_query->getFunctionFor(callback_id),
-                   ArrayRef<Value*>{malloc_call, typeid_value, element_count});
+                   ArrayRef<Value*>{malloc_call, type_id_param, element_count});
     ++counter;
   }
 
@@ -202,8 +209,9 @@ InstrCount MemOpInstrumentation::instrumentStack(const StackArgList& stack) {
     const auto instrument_stack = [&](IRBuilder<>& IRB, Value* data_ptr, Instruction* anchor) {
       // const auto callback_id = util::omp::isOmpContext(anchor->getFunction()) ? IFunc::stack_omp : IFunc::stack;
       const auto callback_id = ifunc_for_function(IFunc::stack, alloca);
+      auto type_id_param     = type_id_handler->getOrRegister(typeIdConst);
       IRB.CreateCall(function_query->getFunctionFor(callback_id),
-                     ArrayRef<Value*>{data_ptr, typeIdConst, numElementsVal});
+                     ArrayRef<Value*>{data_ptr, type_id_param, numElementsVal});
       ++counter;
 
       auto* bblock = anchor->getParent();
@@ -245,8 +253,9 @@ InstrCount MemOpInstrumentation::instrumentGlobal(const GlobalArgList& globals) 
       auto numElementsVal    = args.get_value(ArgMap::ID::element_count);
       auto globalPtr         = IRB.CreateBitOrPointerCast(global, instrumentation_helper->getTypeFor(IType::ptr));
       const auto callback_id = ifunc_for_function(IFunc::global, global);
+      auto type_id_param     = type_id_handler->getOrRegister(typeIdConst);
       IRB.CreateCall(function_query->getFunctionFor(callback_id),
-                     ArrayRef<Value*>{globalPtr, typeIdConst, numElementsVal});
+                     ArrayRef<Value*>{globalPtr, type_id_param, numElementsVal});
       ++counter;
     }
   };

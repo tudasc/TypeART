@@ -10,8 +10,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //
 
-#ifndef TYPEART_CONFIGURATION_OPTIONS_H
-#define TYPEART_CONFIGURATION_OPTIONS_H
+#ifndef LIB_PASSES_CONFIGURATION_TYPEARTOPTIONS
+#define LIB_PASSES_CONFIGURATION_TYPEARTOPTIONS
 
 #include "analysis/MemInstFinder.h"
 #include "configuration/Configuration.h"
@@ -76,4 +76,4 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& out_s, const TypeARTConfigOptio
 
 }  // namespace typeart::config
 
-#endif /* TYPEART_CONFIGURATION_OPTIONS_H */
+#endif /* LIB_PASSES_CONFIGURATION_TYPEARTOPTIONS */

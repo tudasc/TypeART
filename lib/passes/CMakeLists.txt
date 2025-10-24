@@ -12,6 +12,7 @@ set(PASS_SOURCES
   instrumentation/MemOpArgCollector.cpp
   instrumentation/MemOpInstrumentation.cpp
   instrumentation/Instrumentation.cpp
+  instrumentation/TypeIDProvider.cpp
   TypeARTConfiguration.cpp
   Commandline.cpp
 )
