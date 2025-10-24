@@ -51,9 +51,9 @@ using namespace llvm;
 
 namespace typeart {
 
-MemOpInstrumentation::MemOpInstrumentation(const config::Configuration& typeart_conf, TAFunctionQuery& fquery,
+MemOpInstrumentation::MemOpInstrumentation(const config::Configuration& typeart_conf, TAFunctionQuery* fquery,
                                            InstrumentationHelper& instr)
-    : MemoryInstrument(), typeart_config(typeart_conf), function_query(&fquery), instrumentation_helper(&instr) {
+    : MemoryInstrument(), typeart_config(typeart_conf), function_query(fquery), instrumentation_helper(&instr) {
   instrument_lifetime = typeart_config[config::ConfigStdArgs::stack_lifetime];
 }
 
@@ -61,6 +61,9 @@ InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
   InstrCount counter{0};
   auto type_gen              = typeart_config[config::ConfigStdArgs::typegen];
   const bool is_llvm_ir_type = static_cast<int>(type_gen) == static_cast<int>(TypegenImplementation::IR);
+
+  function_query->getFunctionFor(IFunc::free);
+
   for (const auto& [malloc, args] : heap) {
     auto kind         = malloc.kind;
     auto* malloc_call = args.get_as<Instruction>(ArgMap::ID::pointer);
@@ -139,7 +142,8 @@ InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
         continue;
     }
 
-    const auto callback_id = omp ? IFunc::heap_omp : IFunc::heap;
+    // const auto callback_id = omp ? IFunc::heap_omp : IFunc::heap;
+    const auto callback_id = ifunc_for_function(IFunc::heap, malloc.call);
     IRB.CreateCall(function_query->getFunctionFor(callback_id),
                    ArrayRef<Value*>{malloc_call, typeid_value, element_count});
     ++counter;
@@ -174,8 +178,9 @@ InstrCount MemOpInstrumentation::instrumentFree(const FreeArgList& frees) {
 
     IRBuilder<> IRB(insertBefore);
 
-    auto parent_f          = fdata.call->getFunction();
-    const auto callback_id = util::omp::isOmpContext(parent_f) ? IFunc::free_omp : IFunc::free;
+    // auto parent_f          = fdata.call->getFunction();
+    // const auto callback_id = util::omp::isOmpContext(parent_f) ? IFunc::free_omp : IFunc::free;
+    const auto callback_id = ifunc_for_function(IFunc::free, fdata.call);
 
     IRB.CreateCall(function_query->getFunctionFor(callback_id), ArrayRef<Value*>{free_arg});
     ++counter;
@@ -195,7 +200,8 @@ InstrCount MemOpInstrumentation::instrumentStack(const StackArgList& stack) {
     auto* numElementsVal = args.get_value(ArgMap::ID::element_count);
 
     const auto instrument_stack = [&](IRBuilder<>& IRB, Value* data_ptr, Instruction* anchor) {
-      const auto callback_id = util::omp::isOmpContext(anchor->getFunction()) ? IFunc::stack_omp : IFunc::stack;
+      // const auto callback_id = util::omp::isOmpContext(anchor->getFunction()) ? IFunc::stack_omp : IFunc::stack;
+      const auto callback_id = ifunc_for_function(IFunc::stack, alloca);
       IRB.CreateCall(function_query->getFunctionFor(callback_id),
                      ArrayRef<Value*>{data_ptr, typeIdConst, numElementsVal});
       ++counter;
@@ -234,11 +240,12 @@ InstrCount MemOpInstrumentation::instrumentGlobal(const GlobalArgList& globals) 
   const auto instrumentGlobalsInCtor = [&](auto& IRB) {
     for (const auto& [gdata, args] : globals) {
       // Instruction* global = args.get_as<llvm::Instruction>("pointer");
-      auto global         = gdata.global;
-      auto typeIdConst    = args.get_value(ArgMap::ID::type_id);
-      auto numElementsVal = args.get_value(ArgMap::ID::element_count);
-      auto globalPtr      = IRB.CreateBitOrPointerCast(global, instrumentation_helper->getTypeFor(IType::ptr));
-      IRB.CreateCall(function_query->getFunctionFor(IFunc::global),
+      auto global            = gdata.global;
+      auto typeIdConst       = args.get_value(ArgMap::ID::type_id);
+      auto numElementsVal    = args.get_value(ArgMap::ID::element_count);
+      auto globalPtr         = IRB.CreateBitOrPointerCast(global, instrumentation_helper->getTypeFor(IType::ptr));
+      const auto callback_id = ifunc_for_function(IFunc::global, global);
+      IRB.CreateCall(function_query->getFunctionFor(callback_id),
                      ArrayRef<Value*>{globalPtr, typeIdConst, numElementsVal});
       ++counter;
     }

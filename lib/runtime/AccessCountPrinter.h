@@ -55,7 +55,6 @@ void serialize(const Recorder& r, std::ostringstream& buf) {
     return;
   } else {
     // const auto memory_use = memory::estimate(r.getMaxStackAllocs(), r.getMaxHeapAllocs(), r.getGlobalAllocs());
-
     Table overview_table("Alloc Stats from softcounters");
     overview_table.wrap_length_ = true;
     overview_table.put(Row::make("Total heap", r.getHeapAllocs(), r.getHeapArray()));

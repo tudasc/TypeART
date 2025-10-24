@@ -83,6 +83,11 @@ static cl::opt<ConfigStdArgTypes::stack_ty> cl_typeart_instrument_stack(Commandl
                                                                         cl::init(ConfigStdArgValues::stack),
                                                                         cl::cat(typeart_category));
 
+static cl::opt<ConfigStdArgTypes::heap_ty> cl_typeart_instrument(CommandlineStdArgs::instrumentation,
+                                                                 cl::desc(ConfigStdArgDescriptions::instrumentation),
+                                                                 cl::init(ConfigStdArgValues::instrumentation),
+                                                                 cl::cat(typeart_category));
+
 static cl::opt<ConfigStdArgTypes::stack_lifetime_ty> cl_typeart_instrument_stack_lifetime(
     CommandlineStdArgs::stack_lifetime, cl::desc(ConfigStdArgDescriptions::stack_lifetime),
     cl::init(ConfigStdArgValues::stack_lifetime), cl::cat(typeart_category));
@@ -198,6 +203,7 @@ CommandLineOptions::CommandLineOptions() {
       make_entry(ConfigStdArgs::heap, cl_typeart_instrument_heap),
       make_entry(ConfigStdArgs::global, cl_typeart_instrument_global),
       make_entry(ConfigStdArgs::stack, cl_typeart_instrument_stack),
+      make_entry(ConfigStdArgs::instrumentation, cl_typeart_instrument),
       make_entry(ConfigStdArgs::stack_lifetime, cl_typeart_instrument_stack_lifetime),
       make_entry(ConfigStdArgs::typegen, cl_typeart_typegen_implementation),
       make_entry(ConfigStdArgs::filter, cl_typeart_call_filter),
@@ -217,6 +223,7 @@ CommandLineOptions::CommandLineOptions() {
       make_occurr_entry(ConfigStdArgs::heap, cl_typeart_instrument_heap),
       make_occurr_entry(ConfigStdArgs::global, cl_typeart_instrument_global),
       make_occurr_entry(ConfigStdArgs::stack, cl_typeart_instrument_stack),
+      make_occurr_entry(ConfigStdArgs::instrumentation, cl_typeart_instrument),
       make_occurr_entry(ConfigStdArgs::stack_lifetime, cl_typeart_instrument_stack_lifetime),
       make_occurr_entry(ConfigStdArgs::typegen, cl_typeart_typegen_implementation),
       make_occurr_entry(ConfigStdArgs::filter, cl_typeart_call_filter),

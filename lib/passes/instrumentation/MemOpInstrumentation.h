@@ -10,8 +10,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //
 
-#ifndef TYPEART_MEMOPINSTRUMENTATION_H
-#define TYPEART_MEMOPINSTRUMENTATION_H
+#ifndef LIB_PASSES_INSTRUMENTATION_MEMOPINSTRUMENTATION
+#define LIB_PASSES_INSTRUMENTATION_MEMOPINSTRUMENTATION
 
 #include "Instrumentation.h"
 #include "configuration/Configuration.h"
@@ -30,7 +30,7 @@ class MemOpInstrumentation final : public MemoryInstrument {
   bool instrument_lifetime{false};
 
  public:
-  MemOpInstrumentation(const config::Configuration& typeart_conf, TAFunctionQuery& fquery,
+  MemOpInstrumentation(const config::Configuration& typeart_conf, TAFunctionQuery* fquery,
                        InstrumentationHelper& instr);
   InstrCount instrumentHeap(const HeapArgList& heap) override;
   InstrCount instrumentFree(const FreeArgList& frees) override;
@@ -39,4 +39,4 @@ class MemOpInstrumentation final : public MemoryInstrument {
 };
 
 }  // namespace typeart
-#endif  // TYPEART_MEMOPINSTRUMENTATION_H
+#endif /* LIB_PASSES_INSTRUMENTATION_MEMOPINSTRUMENTATION */

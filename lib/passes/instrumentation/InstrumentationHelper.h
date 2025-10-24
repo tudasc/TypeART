@@ -60,7 +60,6 @@ class InstrumentationHelper {
 
   llvm::Type* getTypeFor(IType id);
   llvm::ConstantInt* getConstantFor(IType id, size_t val = 0);
-  const std::map<std::string, llvm::Function*>& getFunctionMap() const;
 
   virtual ~InstrumentationHelper();
 };
