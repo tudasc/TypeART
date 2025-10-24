@@ -157,7 +157,7 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
 
     declareInstrumentationFunctions(m);
     {
-      auto type_id_handler = get_type_id_handler(m, configuration());
+      auto type_id_handler = get_type_id_handler(m, &typeManager->getTypeDatabase(), configuration());
       auto arg_collector =
           std::make_unique<MemOpArgCollector>(configuration(), typeManager.get(), instrumentation_helper);
       // const bool instrument_stack_lifetime = configuration()[config::ConfigStdArgs::stack_lifetime];

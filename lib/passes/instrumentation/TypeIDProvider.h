@@ -1,6 +1,9 @@
 #ifndef LIB_PASSES_INSTRUMENTATION_MODULETYPEREGISTRY
 #define LIB_PASSES_INSTRUMENTATION_MODULETYPEREGISTRY
 
+#include "TypeDatabase.h"
+#include "TypeGenerator.h"
+
 #include <memory>
 
 namespace llvm {
@@ -20,7 +23,8 @@ class TypeRegistry {
   virtual ~TypeRegistry()                                        = default;
 };
 
-std::unique_ptr<TypeRegistry> get_type_id_handler(llvm::Module& m, const config::Configuration& configuration);
+std::unique_ptr<TypeRegistry> get_type_id_handler(llvm::Module& m, const TypeDatabase* type_db,
+                                                  const config::Configuration& configuration);
 
 }  // namespace typeart
 
