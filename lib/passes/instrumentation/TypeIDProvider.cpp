@@ -16,6 +16,7 @@
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 
@@ -134,32 +135,85 @@ struct GlobalTypeRegistrar {
         llvm::ArrayRef<llvm::Value*>{constant_zero_i32, constant_zero_i32});
   }
 
-  llvm::GlobalVariable* getOrRegisterBuiltin(int type_id) {
-    const auto name      = type_db_->getTypeName(type_id);
-    const auto type_size = type_db_->getTypeSize(type_id);
+  llvm::GlobalVariable* registerGlobalStruct(const std::string& name, int type_id, uint64_t type_size,
+                                             uint64_t member_count, llvm::Constant* offset_ptr,
+                                             llvm::Constant* members_data_ptr, llvm::Constant* count_ptr) {
+    llvm::GlobalVariable* global_struct = create_global(name, struct_layout_type_, false);
+    llvm::Constant* name_str            = create_global_constant_string(name);
 
-    llvm::GlobalVariable* global_builtin_struct = create_global(name, struct_layout_type_, false);
-    llvm::Constant* name_str                    = create_global_constant_string(name);
-    llvm::Constant* offset_ptr                  = create_global_array_ptr(helper::concat("offsets_", name), {0});
-    llvm::Constant* count_ptr                   = create_global_array_ptr(helper::concat("counts_", name), {1});
+    std::vector<llvm::Constant*> members = {
+        ir_build.getInt32(type_id),
+        name_str,
+        ir_build.getInt64(type_size),
+        ir_build.getInt64(member_count),
+        offset_ptr,
+        members_data_ptr,
+        count_ptr,
+        ir_build.getInt32(static_cast<int>(StructTypeFlag::USER_DEFINED))};  // TODO: use real type
 
-    llvm::Constant* null_member = llvm::ConstantPointerNull::get(llvm::PointerType::getUnqual(module_->getContext()));
-    std::vector<llvm::Constant*> members = {ir_build.getInt32(type_id),    //
-                                            name_str,                      //
-                                            ir_build.getInt64(type_size),  //
-                                            ir_build.getInt64(1),          //
-                                            offset_ptr,                    //
-                                            null_member,                   //
-                                            count_ptr,
-                                            ir_build.getInt32(static_cast<int>(StructTypeFlag::USER_DEFINED))};
-    llvm::Constant* init                 = llvm::ConstantStruct::get(struct_layout_type_, members);
+    llvm::Constant* init = llvm::ConstantStruct::get(struct_layout_type_, members);
 
-    global_builtin_struct->setInitializer(init);
+    global_struct->setInitializer(init);
 
     global_types_.global_type_data.try_emplace(
-        name, GlobalTypeData::TypeData{init, global_builtin_struct, name_str, offset_ptr, count_ptr});
+        name, GlobalTypeData::TypeData{init, global_struct, name_str, offset_ptr, count_ptr});
 
-    return global_builtin_struct;
+    return global_struct;
+  }
+
+  llvm::GlobalVariable* registerBuiltin(int type_id) {
+    //  struct StructTypeInfo {
+    //   int type_id;
+    //   std::string name;
+    //   size_t extent;
+    //   size_t num_members;
+    //   std::vector<size_t> offsets;
+    //   std::vector<int> member_types;
+    //   std::vector<size_t> array_sizes;
+    //   StructTypeFlag flag;
+    // };
+    StructTypeInfo type_struct{type_id, type_db_->getTypeName(type_id), type_db_->getTypeSize(type_id), 1, {0}, {},
+                               {1},     StructTypeFlag::USER_DEFINED};
+    return registerTypeStruct(&type_struct);
+  }
+
+  llvm::GlobalVariable* registerTypeStruct(const StructTypeInfo* type_struct) {
+    const auto name      = type_struct->name;
+    const auto type_size = type_struct->extent;
+
+    llvm::Constant* offset_ptr = create_global_array_ptr(helper::concat("offsets_", name), type_struct->offsets);
+    llvm::Constant* count_ptr  = create_global_array_ptr(helper::concat("counts_", name), type_struct->array_sizes);
+
+    llvm::Constant* members_array;
+    std::optional<llvm::Type*> ptr_type;  // TODO: make this unqual?
+    std::vector<llvm::Constant*> member_types{};
+
+    for (auto member_type_id : type_struct->member_types) {
+      llvm::Constant* member = getOrRegister(member_type_id);
+      if (!ptr_type) {
+        ptr_type.emplace(member->getType());
+      }
+      member_types.emplace_back(member);
+    }
+
+    const auto member_count = type_struct->member_types.size();
+    if (ptr_type) {
+      assert(member_count == type_struct->num_members);
+      llvm::ArrayType* member_array_ty = llvm::ArrayType::get(ptr_type.value(), member_count);
+      llvm::Constant* init             = llvm::ConstantArray::get(member_array_ty, member_types);
+      members_array = create_global(helper::concat("member_types_", name), member_array_ty, true, init);
+    } else {
+      llvm::Constant* null_member = llvm::ConstantPointerNull::get(llvm::PointerType::getUnqual(module_->getContext()));
+      members_array               = null_member;
+    }
+
+    return registerGlobalStruct(name, type_struct->type_id, type_size, member_count, offset_ptr, members_array,
+                                count_ptr);
+  }
+
+  llvm::GlobalVariable* registerUserDefined(int type_id) {
+    const auto type_struct = type_db_->getStructInfo(type_id);
+    return registerTypeStruct(type_struct);
   }
 
  public:
@@ -172,10 +226,9 @@ struct GlobalTypeRegistrar {
 
     const bool is_builtin = type_db_->isBuiltinType(type_id);
     if (is_builtin) {
-      return getOrRegisterBuiltin(type_id);
+      return registerBuiltin(type_id);
     }
-    // TODO handle user def type
-    return nullptr;
+    return registerUserDefined(type_id);
   }
 };
 }  // namespace typedb
