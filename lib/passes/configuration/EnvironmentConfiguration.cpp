@@ -113,6 +113,9 @@ EnvironmentFlagsOptions::EnvironmentFlagsOptions() {
                                                EnvironmentStdArgsValues::global),
       make_entry<ConfigStdArgTypes::stack_ty>(ConfigStdArgs::stack, EnvironmentStdArgs::stack,
                                               EnvironmentStdArgsValues::stack),
+      make_entry<ConfigStdArgTypes::instrumentation_ty>(ConfigStdArgs::instrumentation,
+                                                        EnvironmentStdArgs::instrumentation,
+                                                        EnvironmentStdArgsValues::instrumentation),
       make_entry<ConfigStdArgTypes::stack_lifetime_ty>(
           ConfigStdArgs::stack_lifetime, EnvironmentStdArgs::stack_lifetime, EnvironmentStdArgsValues::stack_lifetime),
       make_entry<typeart::TypegenImplementation>(ConfigStdArgs::typegen, EnvironmentStdArgs::typegen,
@@ -148,6 +151,7 @@ EnvironmentFlagsOptions::EnvironmentFlagsOptions() {
       make_occurr_entry(ConfigStdArgs::heap, EnvironmentStdArgs::heap),
       make_occurr_entry(ConfigStdArgs::global, EnvironmentStdArgs::global),
       make_occurr_entry(ConfigStdArgs::stack, EnvironmentStdArgs::stack),
+      make_occurr_entry(ConfigStdArgs::instrumentation, EnvironmentStdArgs::instrumentation),
       make_occurr_entry(ConfigStdArgs::stack_lifetime, EnvironmentStdArgs::stack_lifetime),
       make_occurr_entry(ConfigStdArgs::typegen, EnvironmentStdArgs::typegen),
       make_occurr_entry(ConfigStdArgs::filter, EnvironmentStdArgs::filter),

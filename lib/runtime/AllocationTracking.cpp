@@ -18,6 +18,7 @@
 #include "RuntimeData.h"
 #include "TypeDB.h"
 #include "support/Logger.h"
+#include "typelib/TypeDatabase.h"
 
 #include "llvm/Support/raw_ostream.h"
 
@@ -171,8 +172,7 @@ AllocState AllocationTracker::doAlloc(const void* addr, int typeId, size_t count
 
 FreeState AllocationTracker::doFreeHeap(const void* addr, const void* retAddr) {
   if (unlikely(addr == nullptr)) {
-    LOG_ERROR("Free on nullptr "
-              << "(" << retAddr << ")");
+    LOG_ERROR("Free on nullptr " << "(" << retAddr << ")");
     return FreeState::ADDR_SKIPPED | FreeState::NULL_PTR;
   }
 
@@ -285,4 +285,12 @@ void __typeart_leave_scope_omp(int alloca_count) {
   TYPEART_RUNTIME_GUARD;
   const void* retAddr = __builtin_return_address(0);
   typeart::RuntimeSystem::get().allocTracker.onLeaveScope(alloca_count, retAddr);
+}
+
+void __typeart_alloc_mty(const void* addr, const void* info, size_t count) {
+  TYPEART_RUNTIME_GUARD;
+  const void* retAddr     = __builtin_return_address(0);
+  const auto* info_struct = reinterpret_cast<const typeart::StructTypeInfo*>(info);
+  // LOG_MSG("Callback with " << intptr_t(addr) << " " << info_struct->type_id);
+  typeart::RuntimeSystem::get().allocTracker.onAllocStack(addr, info_struct->type_id, count, retAddr);
 }

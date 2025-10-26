@@ -105,13 +105,16 @@ struct GlobalTypeRegistrar {
 
   llvm::GlobalVariable* create_global(llvm::StringRef name, llvm::Type* type, bool constant = true,
                                       llvm::Constant* init = nullptr) {
+    // TODO: https://llvm.org/docs/LangRef.html#linkage w.r.t. forward declared types
     llvm::GlobalVariable* global_struct = new llvm::GlobalVariable(
-        *module_, type, constant, llvm::GlobalValue::LinkOnceODRLinkage, init, helper::create_prefixed_name(name));
+        *module_, type, constant, llvm::GlobalValue::LinkOnceAnyLinkage, init, helper::create_prefixed_name(name));
     return global_struct;
   }
 
   llvm::Constant* create_global_constant_string(llvm::StringRef name) {
+    // TODO think about linkage
     auto* name_str = ir_build.CreateGlobalStringPtr(name, helper::create_prefixed_name("typename_", name), 0, module_);
+
     return name_str;
   }
 
@@ -185,13 +188,13 @@ struct GlobalTypeRegistrar {
     llvm::Constant* count_ptr  = create_global_array_ptr(helper::concat("counts_", name), type_struct->array_sizes);
 
     llvm::Constant* members_array;
-    std::optional<llvm::Type*> ptr_type;  // TODO: make this unqual?
+    llvm::Type* ptr_type{nullptr};  // TODO: make this unqual?
     std::vector<llvm::Constant*> member_types{};
 
     for (auto member_type_id : type_struct->member_types) {
       llvm::Constant* member = getOrRegister(member_type_id);
       if (!ptr_type) {
-        ptr_type.emplace(member->getType());
+        ptr_type = member->getType();
       }
       member_types.emplace_back(member);
     }
@@ -199,7 +202,7 @@ struct GlobalTypeRegistrar {
     const auto member_count = type_struct->member_types.size();
     if (ptr_type) {
       assert(member_count == type_struct->num_members);
-      llvm::ArrayType* member_array_ty = llvm::ArrayType::get(ptr_type.value(), member_count);
+      llvm::ArrayType* member_array_ty = llvm::ArrayType::get(ptr_type, member_count);
       llvm::Constant* init             = llvm::ConstantArray::get(member_array_ty, member_types);
       members_array = create_global(helper::concat("member_types_", name), member_array_ty, true, init);
     } else {
