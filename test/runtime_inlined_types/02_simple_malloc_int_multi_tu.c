@@ -1,5 +1,9 @@
 // clang-format off
 // RUN: export TYPEART_INSTRUMENTATION=1 
+
+// : %cpp-to-llvm -DTYPEART_TU_ONE %s | %apply-typeart -typeart-instumentation=true -S > %s_1.ll
+// : %cpp-to-llvm %s | %apply-typeart -typeart-instumentation=true -S > %s.ll
+
 // RUN: %wrapper-cc -c -O1 %s -DTYPEART_TU_ONE -o %s_1.o
 // RUN: %wrapper-cc -c -O1 %s -o %s.o
 // RUN: %wrapper-cc -O1 %s.o %s_1.o -o %s.exe

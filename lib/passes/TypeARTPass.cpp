@@ -158,6 +158,7 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
     declareInstrumentationFunctions(m);
     {
       auto type_id_handler = get_type_id_handler(m, &typeManager->getTypeDatabase(), configuration());
+      // const bool heap   = configuration()[config::ConfigStdArgs::heap];
       if (has_cu_types) {
         LOG_DEBUG("Registering compilation unit types list")
         type_id_handler->registerModule(mdata);

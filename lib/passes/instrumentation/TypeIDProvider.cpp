@@ -11,6 +11,7 @@
 #include <llvm/ADT/StringRef.h>
 #include <llvm/IR/Constant.h>
 #include <llvm/IR/Constants.h>
+#include <llvm/IR/GlobalValue.h>
 #include <llvm/IR/GlobalVariable.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Module.h>
@@ -107,19 +108,26 @@ struct GlobalTypeRegistrar {
     });
   }
 
-  llvm::GlobalVariable* create_global(llvm::StringRef name, llvm::Type* type, bool constant = true,
-                                      llvm::Constant* init = nullptr) {
+  llvm::GlobalVariable* create_global(
+      llvm::StringRef name, llvm::Type* type, llvm::Constant* init = nullptr,
+      llvm::GlobalVariable::LinkageTypes link_type = llvm::GlobalValue::WeakODRLinkage) {
     // TODO: https://llvm.org/docs/LangRef.html#linkage w.r.t. forward declared types
-    auto* global_struct = new llvm::GlobalVariable(*module_, type, constant, llvm::GlobalValue::LinkOnceAnyLinkage,
-                                                   init, helper::create_prefixed_name(name));
+    auto* global_struct =
+        new llvm::GlobalVariable(*module_, type, true, link_type, init, helper::create_prefixed_name(name));
     return global_struct;
   }
 
   llvm::Constant* create_global_constant_string(llvm::StringRef name) {
     // TODO think about linkage
-    auto* name_str = ir_build.CreateGlobalStringPtr(name, helper::create_prefixed_name("typename_", name), 0, module_);
-
-    return name_str;
+    // auto* name_str = ir_build.CreateGlobalStringPtr(name, helper::create_prefixed_name("typename_", name), 0,
+    // module_);
+    auto* global_string =
+        ir_build.CreateGlobalString(name, helper::create_prefixed_name("typename_", name), 0, module_);
+    global_string->setConstant(true);
+    global_string->setLinkage(llvm::GlobalValue::WeakODRLinkage);
+    auto* i32_zero = llvm::ConstantInt::get(llvm::Type::getInt32Ty(module_->getContext()), 0);
+    return llvm::ConstantExpr::getInBoundsGetElementPtr(global_string->getValueType(), global_string,
+                                                        llvm::ArrayRef<llvm::Constant*>{i32_zero, i32_zero});
   }
 
   llvm::Constant* create_global_array_ptr(const llvm::StringRef name, llvm::ArrayRef<uint64_t> values) {
@@ -134,7 +142,7 @@ struct GlobalTypeRegistrar {
 
     auto* array_ty         = llvm::ArrayType::get(int64_ty, values.size());
     auto* constant_array   = llvm::ConstantArray::get(array_ty, constants);
-    auto* gv               = create_global(name, array_ty, true, constant_array);
+    auto* gv               = create_global(name, array_ty, constant_array);
     auto constant_zero_i32 = llvm::ConstantInt::get(llvm::Type::getInt32Ty(context), 0);
     return llvm::ConstantExpr::getGetElementPtr(  //
         array_ty,                                 //
@@ -145,7 +153,7 @@ struct GlobalTypeRegistrar {
   llvm::GlobalVariable* registerGlobalStruct(const std::string& name, int type_id, uint64_t type_size,
                                              uint64_t member_count, llvm::Constant* offset_ptr,
                                              llvm::Constant* members_data_ptr, llvm::Constant* count_ptr) {
-    llvm::GlobalVariable* global_struct = create_global(name, struct_layout_type_, false);
+    llvm::GlobalVariable* global_struct = create_global(name, struct_layout_type_);
     llvm::Constant* name_str            = create_global_constant_string(name);
 
     std::vector<llvm::Constant*> members = {
@@ -164,6 +172,17 @@ struct GlobalTypeRegistrar {
 
     global_types_.global_type_data.try_emplace(
         name, GlobalTypeData::TypeData{init, global_struct, name_str, offset_ptr, count_ptr});
+
+    return global_struct;
+  }
+
+  llvm::GlobalVariable* registerGlobalStructDecl(const std::string& name) {
+    auto* global_struct = create_global(name, struct_layout_type_, nullptr, llvm::GlobalValue::ExternalWeakLinkage);
+    // new llvm::GlobalVariable(*module_, struct_layout_type_, true, llvm::GlobalValue::ExternalWeakLinkage, nullptr,
+    //                          helper::create_prefixed_name(name));
+    // llvm::Constant* name_str = create_global_constant_string(name);
+    global_types_.global_type_data.try_emplace(
+        name, GlobalTypeData::TypeData{nullptr, global_struct, nullptr, nullptr, nullptr});
 
     return global_struct;
   }
@@ -188,6 +207,10 @@ struct GlobalTypeRegistrar {
     const auto name      = type_struct->name;
     const auto type_size = type_struct->extent;
 
+    if (type_struct->flag == StructTypeFlag::FWD_DECL) {
+      return registerGlobalStructDecl(name);
+    }
+
     llvm::Constant* offset_ptr = create_global_array_ptr(helper::concat("offsets_", name), type_struct->offsets);
     llvm::Constant* count_ptr  = create_global_array_ptr(helper::concat("counts_", name), type_struct->array_sizes);
 
@@ -208,7 +231,7 @@ struct GlobalTypeRegistrar {
       assert(member_count == type_struct->num_members);
       llvm::ArrayType* member_array_ty = llvm::ArrayType::get(ptr_type, member_count);
       llvm::Constant* init             = llvm::ConstantArray::get(member_array_ty, member_types);
-      members_array = create_global(helper::concat("member_types_", name), member_array_ty, true, init);
+      members_array                    = create_global(helper::concat("member_types_", name), member_array_ty, init);
     } else {
       llvm::Constant* null_member = llvm::ConstantPointerNull::get(llvm::PointerType::getUnqual(module_->getContext()));
       members_array               = null_member;
@@ -224,18 +247,17 @@ struct GlobalTypeRegistrar {
   }
 
  public:
-  llvm::GlobalVariable* getOrRegister(int type_id) {
+  llvm::Constant* getOrRegister(int type_id) {
     const auto name = type_db_->getTypeName(type_id);
-
-    if (global_types_.has_type_name(name)) {
-      return global_types_.get_type(name).type;
-    }
-
-    const bool is_builtin = type_db_->isBuiltinType(type_id);
-    if (is_builtin) {
-      return registerBuiltin(type_id);
-    }
-    return registerUserDefined(type_id);
+    return module_->getOrInsertGlobal(helper::create_prefixed_name(name), struct_layout_type_,
+                                      [&]() -> llvm::GlobalVariable* {
+                                        LOG_DEBUG("Registering << " << type_id << " " << name)
+                                        const bool is_builtin = type_db_->isBuiltinType(type_id);
+                                        if (is_builtin) {
+                                          return registerBuiltin(type_id);
+                                        }
+                                        return registerUserDefined(type_id);
+                                      });
   }
 };
 }  // namespace typedb

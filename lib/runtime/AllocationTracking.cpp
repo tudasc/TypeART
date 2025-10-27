@@ -291,6 +291,6 @@ void __typeart_alloc_mty(const void* addr, const void* info, size_t count) {
   TYPEART_RUNTIME_GUARD;
   const void* retAddr     = __builtin_return_address(0);
   const auto* info_struct = reinterpret_cast<const typeart::StructTypeInfo*>(info);
-  // LOG_MSG("Callback with " << intptr_t(addr) << " " << info_struct->type_id);
+  LOG_MSG("Callback with " << intptr_t(info) << " " << info_struct->type_id);
   typeart::RuntimeSystem::get().allocTracker.onAllocStack(addr, info_struct->type_id, count, retAddr);
 }
