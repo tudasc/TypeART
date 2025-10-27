@@ -20,7 +20,8 @@ class Configuration;
 class TypeRegistry {
  public:
   virtual llvm::Value* getOrRegister(llvm::Value* type_id_const) = 0;
-  virtual ~TypeRegistry()                                        = default;
+  virtual void registerModule(const ModuleData&);
+  virtual ~TypeRegistry() = default;
 };
 
 std::unique_ptr<TypeRegistry> get_type_id_handler(llvm::Module& m, const TypeDatabase* type_db,

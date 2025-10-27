@@ -4,6 +4,7 @@
 #include "TypeInterface.h"
 #include "configuration/Configuration.h"
 #include "support/ConfigurationBase.h"
+#include "support/Logger.h"
 
 #include <llvm/ADT/ArrayRef.h>
 #include <llvm/ADT/StringMap.h>
@@ -21,6 +22,9 @@
 #include <utility>
 
 namespace typeart {
+
+void TypeRegistry::registerModule(const ModuleData&) {
+}
 
 class TypeRegistryNoOp final : public TypeRegistry {
  public:
@@ -106,8 +110,8 @@ struct GlobalTypeRegistrar {
   llvm::GlobalVariable* create_global(llvm::StringRef name, llvm::Type* type, bool constant = true,
                                       llvm::Constant* init = nullptr) {
     // TODO: https://llvm.org/docs/LangRef.html#linkage w.r.t. forward declared types
-    llvm::GlobalVariable* global_struct = new llvm::GlobalVariable(
-        *module_, type, constant, llvm::GlobalValue::LinkOnceAnyLinkage, init, helper::create_prefixed_name(name));
+    auto* global_struct = new llvm::GlobalVariable(*module_, type, constant, llvm::GlobalValue::LinkOnceAnyLinkage,
+                                                   init, helper::create_prefixed_name(name));
     return global_struct;
   }
 
@@ -193,14 +197,14 @@ struct GlobalTypeRegistrar {
 
     for (auto member_type_id : type_struct->member_types) {
       llvm::Constant* member = getOrRegister(member_type_id);
-      if (!ptr_type) {
+      if (ptr_type == nullptr) {
         ptr_type = member->getType();
       }
       member_types.emplace_back(member);
     }
 
     const auto member_count = type_struct->member_types.size();
-    if (ptr_type) {
+    if (ptr_type != nullptr) {
       assert(member_count == type_struct->num_members);
       llvm::ArrayType* member_array_ty = llvm::ArrayType::get(ptr_type, member_count);
       llvm::Constant* init             = llvm::ConstantArray::get(member_array_ty, member_types);
@@ -215,7 +219,7 @@ struct GlobalTypeRegistrar {
   }
 
   llvm::GlobalVariable* registerUserDefined(int type_id) {
-    const auto type_struct = type_db_->getStructInfo(type_id);
+    const auto* const type_struct = type_db_->getStructInfo(type_id);
     return registerTypeStruct(type_struct);
   }
 
@@ -242,6 +246,13 @@ class TypeRegistryGlobals final : public TypeRegistry {
 
  public:
   TypeRegistryGlobals(llvm::Module& m, const TypeDatabase* type_db) : module_(&m), registrar_(&m, type_db) {
+  }
+
+  void registerModule(const ModuleData& m) override {
+    for (const auto& type : m.types_list) {
+      const auto type_id = registrar_.getOrRegister(type.type_id);
+      LOG_DEBUG("Registering type_id " << type_id)
+    }
   }
 
   llvm::Value* getOrRegister(llvm::Value* type_id_const) override {

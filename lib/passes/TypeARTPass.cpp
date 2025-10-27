@@ -153,11 +153,16 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
 
     instrumentation_helper.setModule(m);
     ModuleData mdata{&m};
-    typeManager->registerModule(mdata);
+    const auto has_cu_types = typeManager->registerModule(mdata);
 
     declareInstrumentationFunctions(m);
     {
       auto type_id_handler = get_type_id_handler(m, &typeManager->getTypeDatabase(), configuration());
+      if (has_cu_types) {
+        LOG_DEBUG("Registering compilation unit types list")
+        type_id_handler->registerModule(mdata);
+      }
+
       auto arg_collector =
           std::make_unique<MemOpArgCollector>(configuration(), typeManager.get(), instrumentation_helper);
       // const bool instrument_stack_lifetime = configuration()[config::ConfigStdArgs::stack_lifetime];
@@ -174,16 +179,17 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
     /*
      * Persist the accumulated type definition information for this module.
      */
-    const std::string types_file = configuration()[config::ConfigStdArgs::types];
-    LOG_DEBUG("Writing type file to " << types_file);
+    if (!configuration()[config::ConfigStdArgs::instrumentation]) {
+      const std::string types_file = configuration()[config::ConfigStdArgs::types];
+      LOG_DEBUG("Writing type file to " << types_file);
 
-    const auto [stored, error] = typeManager->store();
-    if (stored) {
-      LOG_DEBUG("Success!");
-    } else {
-      LOG_FATAL("Failed writing type config to " << types_file << ". Reason: " << error.message());
+      const auto [stored, error] = typeManager->store();
+      if (stored) {
+        LOG_DEBUG("Success!");
+      } else {
+        LOG_FATAL("Failed writing type config to " << types_file << ". Reason: " << error.message());
+      }
     }
-
     const bool print_stats = configuration()[config::ConfigStdArgs::stats];
     if (print_stats) {
       auto& out = llvm::errs();

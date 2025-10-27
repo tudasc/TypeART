@@ -52,8 +52,8 @@ inline bool checkParametrizedPassName(llvm::StringRef Name, llvm::StringRef Pass
 /// Expected<> template class.
 ///
 template <typename ParametersParseCallableT>
-inline auto parsePassParameters(ParametersParseCallableT&& Parser, llvm::StringRef Name, llvm::StringRef PassName)
-    -> decltype(Parser(llvm::StringRef{})) {
+inline auto parsePassParameters(ParametersParseCallableT&& Parser, llvm::StringRef Name,
+                                llvm::StringRef PassName) -> decltype(Parser(llvm::StringRef{})) {
   using namespace llvm;
   using ParametersT = typename decltype(Parser(StringRef{}))::value_type;
 

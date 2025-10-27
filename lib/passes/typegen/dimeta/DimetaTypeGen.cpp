@@ -502,19 +502,23 @@ class DimetaTypeManager final : public TypeIDGenerator {
     return {TYPEART_UNKNOWN_TYPE, 0};
   }
 
-  void registerModule(const ModuleData& module) override {
+  bool registerModule(ModuleData& module) override {
     using namespace dimeta;
     // std::optional<CompileUnitTypeList> compile_unit_types(const llvm::Module*)
     LOG_DEBUG("Register module types")
     auto cu_types_list = dimeta::compile_unit_types(module.module).value_or(dimeta::CompileUnitTypeList{});
 
+    std::vector<TypeIdentifier> cu_types;
     for (const auto& cu : cu_types_list) {
       const QualifiedTypeList& list = cu.types;
       for (const auto& cu_type : list) {
-        getOrRegister(cu_type);
+        cu_types.emplace_back(TypeIdentifier{getOrRegister(cu_type)});
       }
     }
+    const bool has_cu_types = !cu_types.empty();
+    module.types_list       = std::move(cu_types);
     LOG_DEBUG("Done: Register module types")
+    return has_cu_types;
   }
 
   TypeIdentifier getOrRegisterType(const MallocData& data) override {

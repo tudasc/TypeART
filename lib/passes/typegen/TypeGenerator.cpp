@@ -58,7 +58,8 @@ const TypeDatabase& TypeIDGenerator::getTypeDatabase() const {
   return *this->typeDB.get();
 }
 
-void TypeIDGenerator::registerModule(const ModuleData&) {
+bool TypeIDGenerator::registerModule(ModuleData&) {
+  return false;
 }
 
 }  // namespace typeart::types
