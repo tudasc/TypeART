@@ -29,4 +29,4 @@ int main(void) {
 #endif
 
 // CHECK: Allocation type detail (heap, stack, global)
-// CHECK-NEXT: 13 :   0 ,    2 ,    0 , int
+// CHECK-NEXT: 13 :   2 ,    0 ,    0 , int

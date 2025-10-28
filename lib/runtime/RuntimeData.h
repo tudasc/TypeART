@@ -25,6 +25,7 @@
 #pragma GCC diagnostic ignored "-Wpedantic"
 #pragma GCC diagnostic ignored "-Wshadow"
 #include "absl/container/btree_map.h"
+#include "absl/container/flat_hash_map.h"
 #pragma GCC diagnostic pop
 #endif
 
@@ -33,10 +34,12 @@
 #error TypeART-RT: Set ABSL and PHMAP, mutually exclusive.
 #endif
 #include "parallel_hashmap/btree.h"
+#include "parallel_hashmap/phmap.h"
 #endif
 
 #if !defined(TYPEART_PHMAP) && !defined(TYPEART_ABSEIL)
 #include <map>
+#include <unordered_map>
 #endif
 
 #ifdef USE_SAFEPTR
@@ -65,14 +68,17 @@ struct RuntimeT {
   static constexpr char StackName[] = "std::vector";
 #ifdef TYPEART_PHMAP
   using PointerMapBaseT           = phmap::btree_map<MemAddr, PointerInfo>;
+  using TypeLookupMapT            = phmap::flat_hash_map<MemAddr, int>;
   static constexpr char MapName[] = "phmap::btree_map";
 #endif
 #ifdef TYPEART_ABSEIL
   using PointerMapBaseT           = absl::btree_map<MemAddr, PointerInfo>;
+  using TypeLookupMapT            = absl::flat_hash_map<MemAddr, int>;
   static constexpr char MapName[] = "absl::btree_map";
 #endif
 #if !defined(TYPEART_PHMAP) && !defined(TYPEART_ABSEIL)
   using PointerMapBaseT           = std::map<MemAddr, PointerInfo>;
+  using TypeLookupMapT            = std::unordered_map<MemAddr, int>;
   static constexpr char MapName[] = "std::map";
 #endif
 #ifdef USE_SAFEPTR

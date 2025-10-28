@@ -7,11 +7,18 @@
 // clang-format on
 
 #include <stdlib.h>
+
+struct DataHolder {
+  double a;
+  float b;
+  int c;
+};
+
 int main(void) {
-  int* p = (int*)malloc(42 * sizeof(int));
+  struct DataHolder* p = (struct DataHolder*)malloc(2 * sizeof(struct DataHolder));
   free(p);
   return 0;
 }
 
 // CHECK: Allocation type detail (heap, stack, global)
-// CHECK-NEXT: 13 :   1 ,    0 ,    0 , int
+// CHECK-NEXT: 256 :   1 ,    0 ,    0 , DataHolder

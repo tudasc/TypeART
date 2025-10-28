@@ -22,6 +22,7 @@ set(RUNTIME_LIB_SOURCES
     RuntimeInterface.h
     TypeResolution.cpp
     AllocationTracking.cpp
+    GlobalTypeDefCallbacks.cpp
     AllocationTracking.h
     TypeResolution.h
     Runtime.cpp

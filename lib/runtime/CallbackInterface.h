@@ -41,6 +41,7 @@ void __typeart_leave_scope_omp(int alloca_count);
 void __typeart_alloc_mty(const void* addr, const void* info, size_t count);
 void __typeart_alloc_global_mty(const void* addr, const void* info, size_t count);
 void __typeart_alloc_stack_mty(const void* addr, const void* info, size_t count);
+void __typeart_register_type(const void* type);
 #ifdef __cplusplus
 }
 #endif

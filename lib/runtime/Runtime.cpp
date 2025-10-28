@@ -64,7 +64,8 @@ inline void printTraceStart() {
 
 static constexpr const char* defaultTypeFileName = config::ConfigStdArgValues::types;
 
-RuntimeSystem::RuntimeSystem() : rtScopeInit(), typeResolution(typeDB, recorder), allocTracker(typeDB, recorder) {
+RuntimeSystem::RuntimeSystem()
+    : rtScopeInit(), typeResolution(typeDB, recorder), allocTracker(typeDB, recorder), type_translator(typeDB) {
   debug::printTraceStart();
 
   auto loadTypes = [this](const std::string& file, std::error_code& ec) -> bool {

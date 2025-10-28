@@ -15,6 +15,7 @@
 
 #include "AccessCounter.h"
 #include "AllocationTracking.h"
+#include "GlobalTypeDefCallbacks.h"
 #include "TypeDB.h"
 #include "TypeResolution.h"
 
@@ -60,6 +61,7 @@ struct RuntimeSystem {
   Recorder recorder{};
   TypeResolution typeResolution;
   AllocationTracker allocTracker;
+  GlobalTypeTranslator type_translator;
 
   static thread_local bool rtScope;
 
