@@ -3,20 +3,26 @@
 #include "TypeDatabase.h"
 #include "TypeInterface.h"
 #include "configuration/Configuration.h"
+#include "instrumentation/TypeARTFunctions.h"
 #include "support/ConfigurationBase.h"
 #include "support/Logger.h"
 
 #include <llvm/ADT/ArrayRef.h>
 #include <llvm/ADT/StringMap.h>
 #include <llvm/ADT/StringRef.h>
+#include <llvm/IR/BasicBlock.h>
 #include <llvm/IR/Constant.h>
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/GlobalValue.h>
 #include <llvm/IR/GlobalVariable.h>
 #include <llvm/IR/IRBuilder.h>
+#include <llvm/IR/InstrTypes.h>
+#include <llvm/IR/Instruction.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
+#include <llvm/Support/Casting.h>
+#include <llvm/Transforms/Utils/ModuleUtils.h>
 #include <memory>
 #include <optional>
 #include <string>
@@ -79,15 +85,80 @@ struct GlobalTypeData {
   }
 };
 
+struct GlobalTypeCallback {
+  llvm::Module* module_;
+  const TAFunctionQuery* f_query_;
+  llvm::StringRef ctor_function_name{"__typeart_init_module_type_globals"};
+
+ private:
+  bool has_function() const {
+    auto func = module_->getFunction(ctor_function_name);
+    return func != nullptr;
+  }
+
+  llvm::BasicBlock* make_type_callback() const {
+    using namespace llvm;
+    const auto makeCtorFuncBody = [&]() -> BasicBlock* {
+      auto& c                = module_->getContext();
+      FunctionType* ctorType = FunctionType::get(llvm::Type::getVoidTy(c), false);
+      Function* ctorFunction = Function::Create(ctorType, Function::PrivateLinkage, ctor_function_name, module_);
+      BasicBlock* entry      = BasicBlock::Create(c, "entry", ctorFunction);
+      auto ret_inst          = ReturnInst::Create(c);
+      // llvm::IRBuilder<> Builder(entry);
+      ret_inst->insertInto(entry, entry->getFirstInsertionPt());
+      // Builder.CreateRetVoid();
+
+      llvm::appendToGlobalCtors(*module_, ctorFunction, 0, nullptr);
+
+      return entry;
+    };
+
+    auto func = module_->getFunction(ctor_function_name);
+    if (func == nullptr) {
+      return makeCtorFuncBody();
+    }
+    return &func->getEntryBlock();
+  }
+
+  llvm::BasicBlock* get_entry() {
+    auto func = module_->getFunction(ctor_function_name);
+    if (func == nullptr) {
+      return make_type_callback();
+    }
+    return &func->getEntryBlock();
+  }
+
+ public:
+  GlobalTypeCallback(llvm::Module* module, const TAFunctionQuery* f_query) : module_(module), f_query_(f_query) {
+  }
+
+  void insert(llvm::Constant* global) {
+    auto block = get_entry();
+    for (auto& inst : *block) {
+      if (auto* call_base = llvm::dyn_cast<llvm::CallBase>(&inst)) {
+        auto argument = call_base->getArgOperand(0);
+        if (global == argument) {
+          LOG_DEBUG("Skipping, already contained");
+          return;
+        }
+      }
+    }
+    llvm::IRBuilder<> IRB{&*block->getFirstInsertionPt()};
+
+    IRB.CreateCall(f_query_->getFunctionFor(IFunc::type), llvm::ArrayRef<llvm::Value*>{global});
+  }
+};
+
 struct GlobalTypeRegistrar {
   llvm::Module* module_;
   const TypeDatabase* type_db_;
   llvm::IRBuilder<> ir_build;
+  GlobalTypeCallback type_callback;
   llvm::StructType* struct_layout_type_;
   GlobalTypeData global_types_;
 
-  GlobalTypeRegistrar(llvm::Module* m, const TypeDatabase* type_db)
-      : module_(m), type_db_(type_db), ir_build(m->getContext()) {
+  GlobalTypeRegistrar(llvm::Module* m, const TypeDatabase* type_db, const TAFunctionQuery* f_query)
+      : module_(m), type_db_(type_db), ir_build(m->getContext()), type_callback(module_, f_query) {
     declareLayout();
   }
 
@@ -95,7 +166,7 @@ struct GlobalTypeRegistrar {
   void declareLayout() {
     auto& context = module_->getContext();
     llvm::IRBuilder<> Builder(context);
-    struct_layout_type_ = llvm::StructType::create(context, "struct.typeart_struct_layout_t");
+    struct_layout_type_ = llvm::StructType::create(context, "struct._typeart_struct_layout_t");
     struct_layout_type_->setBody({
         Builder.getInt32Ty(),                   // int type_id
         llvm::PointerType::getUnqual(context),  // const char* name
@@ -110,7 +181,7 @@ struct GlobalTypeRegistrar {
 
   llvm::GlobalVariable* create_global(
       llvm::StringRef name, llvm::Type* type, llvm::Constant* init = nullptr,
-      llvm::GlobalVariable::LinkageTypes link_type = llvm::GlobalValue::WeakODRLinkage) {
+      llvm::GlobalVariable::LinkageTypes link_type = llvm::GlobalValue::WeakODRLinkage) const {
     // TODO: https://llvm.org/docs/LangRef.html#linkage w.r.t. forward declared types
     auto* global_struct =
         new llvm::GlobalVariable(*module_, type, true, link_type, init, helper::create_prefixed_name(name));
@@ -200,7 +271,9 @@ struct GlobalTypeRegistrar {
     // };
     StructTypeInfo type_struct{type_id, type_db_->getTypeName(type_id), type_db_->getTypeSize(type_id), 1, {0}, {},
                                {1},     StructTypeFlag::USER_DEFINED};
-    return registerTypeStruct(&type_struct);
+
+    auto global = registerTypeStruct(&type_struct);
+    return global;
   }
 
   llvm::GlobalVariable* registerTypeStruct(const StructTypeInfo* type_struct) {
@@ -249,15 +322,22 @@ struct GlobalTypeRegistrar {
  public:
   llvm::Constant* getOrRegister(int type_id) {
     const auto name = type_db_->getTypeName(type_id);
-    return module_->getOrInsertGlobal(helper::create_prefixed_name(name), struct_layout_type_,
-                                      [&]() -> llvm::GlobalVariable* {
-                                        LOG_DEBUG("Registering << " << type_id << " " << name)
-                                        const bool is_builtin = type_db_->isBuiltinType(type_id);
-                                        if (is_builtin) {
-                                          return registerBuiltin(type_id);
-                                        }
-                                        return registerUserDefined(type_id);
-                                      });
+    return module_->getOrInsertGlobal(
+        helper::create_prefixed_name(name), struct_layout_type_, [&]() -> llvm::GlobalVariable* {
+          LOG_DEBUG("Registering << " << type_id << " " << name)
+          const bool is_builtin = type_db_->isBuiltinType(type_id);
+          if (is_builtin) {
+            auto global = registerBuiltin(type_id);
+            type_callback.insert(global);
+            return global;
+          }
+          auto global         = registerUserDefined(type_id);
+          const auto fwd_decl = StructTypeFlag::FWD_DECL == type_db_->getStructInfo(type_id)->flag;
+          if (!fwd_decl) {
+            type_callback.insert(global);
+          }
+          return global;
+        });
   }
 };
 }  // namespace typedb
@@ -267,13 +347,14 @@ class TypeRegistryGlobals final : public TypeRegistry {
   typedb::GlobalTypeRegistrar registrar_;
 
  public:
-  TypeRegistryGlobals(llvm::Module& m, const TypeDatabase* type_db) : module_(&m), registrar_(&m, type_db) {
+  TypeRegistryGlobals(llvm::Module& m, const TypeDatabase* type_db, const TAFunctionQuery* f_query)
+      : module_(&m), registrar_(&m, type_db, f_query) {
   }
 
   void registerModule(const ModuleData& m) override {
     for (const auto& type : m.types_list) {
       const auto type_id = registrar_.getOrRegister(type.type_id);
-      LOG_DEBUG("Registering type_id " << type_id)
+      LOG_DEBUG("Registering type_id " << *type_id)
     }
   }
 
@@ -283,9 +364,10 @@ class TypeRegistryGlobals final : public TypeRegistry {
 };
 
 std::unique_ptr<TypeRegistry> get_type_id_handler(llvm::Module& m, const TypeDatabase* type_db,
-                                                  const config::Configuration& configuration) {
+                                                  const config::Configuration& configuration,
+                                                  const TAFunctionQuery* f_query) {
   if (configuration[config::ConfigStdArgs::instrumentation]) {
-    return std::make_unique<TypeRegistryGlobals>(m, type_db);
+    return std::make_unique<TypeRegistryGlobals>(m, type_db, f_query);
   }
   return std::make_unique<TypeRegistryNoOp>();
 }

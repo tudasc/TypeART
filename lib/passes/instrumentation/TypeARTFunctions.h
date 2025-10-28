@@ -31,17 +31,7 @@ namespace config {
 class Configuration;
 }
 
-enum class IFunc : unsigned {
-  heap,
-  stack,
-  global,
-  free,
-  scope,
-  heap_omp,
-  stack_omp,
-  free_omp,
-  scope_omp,
-};
+enum class IFunc : unsigned { heap, stack, global, free, scope, heap_omp, stack_omp, free_omp, scope_omp, type };
 
 IFunc ifunc_for_function(IFunc general_type, llvm::Value* value);
 

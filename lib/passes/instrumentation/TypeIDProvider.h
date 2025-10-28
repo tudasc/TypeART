@@ -1,6 +1,7 @@
 #ifndef LIB_PASSES_INSTRUMENTATION_MODULETYPEREGISTRY
 #define LIB_PASSES_INSTRUMENTATION_MODULETYPEREGISTRY
 
+#include "TypeARTFunctions.h"
 #include "TypeDatabase.h"
 #include "TypeGenerator.h"
 
@@ -25,7 +26,8 @@ class TypeRegistry {
 };
 
 std::unique_ptr<TypeRegistry> get_type_id_handler(llvm::Module& m, const TypeDatabase* type_db,
-                                                  const config::Configuration& configuration);
+                                                  const config::Configuration& configuration,
+                                                  const TAFunctionQuery* f_query);
 
 }  // namespace typeart
 

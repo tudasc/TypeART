@@ -253,6 +253,7 @@ TypeArtFunc typeart_free_omp         = typeart_free;
 TypeArtFunc typeart_leave_scope_omp  = typeart_leave_scope;
 
 TypeArtFunc typeart_alloc_mty{"__typeart_alloc_mty"};
+TypeArtFunc typeart_register_type{"__typeart_register_type"};
 
 }  // namespace callbacks
 
@@ -272,6 +273,7 @@ std::unique_ptr<TAFunctionQuery> declare_instrumentation_functions(llvm::Module&
   if (module_local_types) {
     auto alloc_arg_types_mty = instrumentation_helper.make_parameters(IType::ptr, IType::ptr, IType::extent);
     typeart_alloc.f          = decl.make_function(IFunc::heap, typeart_alloc_mty.name, alloc_arg_types_mty);
+    typeart_register_type.f  = decl.make_function(IFunc::type, typeart_register_type.name, free_arg_types);
   } else {
     typeart_alloc.f = decl.make_function(IFunc::heap, typeart_alloc.name, alloc_arg_types);
   }

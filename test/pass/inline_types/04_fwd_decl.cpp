@@ -2,7 +2,7 @@
 
 // RUN: %cpp-to-llvm %s | %apply-typeart -typeart-instumentation=true -S | %filecheck --match-full-lines %s
 
-// CHECK: @_typeart__ZTS6Domain = extern_weak constant %struct.typeart_struct_layout_t
+// CHECK: @_typeart__ZTS6Domain = extern_weak constant %struct._typeart_struct_layout_t
 
 // REQUIRES: llvm-18 || llvm-19
 
