@@ -7,32 +7,19 @@
 #include "support/Logger.h"
 #include "typelib/TypeDatabase.h"
 
+#include <cstdint>
+
 namespace typeart {
 
 class GlobalTypeTranslator final {
  private:
   RuntimeT::TypeLookupMapT translator_map;
-  TypeDB& type_db;
-  struct GlobalTypeInfo {
-    int type_id;
-    const char* name;
-    size_t extent;
-    size_t num_members;
-    const void* offsets;
-    const GlobalTypeInfo* member_types;
-    const void* array_sizes;
-    int flag;
-  };
-
-  int struct_count{0};
-
-  int next_type_id();
-
-  int register_t(const GlobalTypeInfo* type);
+  class Impl;
+  std::unique_ptr<Impl> pImpl;
 
  public:
-  explicit GlobalTypeTranslator(TypeDB& db) : type_db(db) {
-  }
+  explicit GlobalTypeTranslator(TypeDB& db);
+  ~GlobalTypeTranslator();
 
   void register_type(const void* type);
 
@@ -43,6 +30,11 @@ class GlobalTypeTranslator final {
   inline int get_type_id_for(MemAddr addr) const {
     return translator_map.find(addr)->second;
   }
+
+  GlobalTypeTranslator(const GlobalTypeTranslator&)                = delete;
+  GlobalTypeTranslator& operator=(const GlobalTypeTranslator&)     = delete;
+  GlobalTypeTranslator(GlobalTypeTranslator&&) noexcept            = delete;
+  GlobalTypeTranslator& operator=(GlobalTypeTranslator&&) noexcept = delete;
 };
 
 }  // namespace typeart
