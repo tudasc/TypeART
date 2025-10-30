@@ -15,7 +15,6 @@
 
 #include "Instrumentation.h"
 #include "configuration/Configuration.h"
-#include "instrumentation/TypeIDProvider.h"
 
 #include <memory>
 
@@ -26,17 +25,19 @@ class Configuration;
 class TAFunctionQuery;
 class InstrumentationHelper;
 class TypeRegistry;
+class InstrumentationInserter;
 
 class MemOpInstrumentation final : public MemoryInstrument {
   const config::Configuration& typeart_config;
   TAFunctionQuery* function_query;
-  std::unique_ptr<TypeRegistry> type_id_handler;
+  // std::unique_ptr<TypeRegistry> type_id_handler;
+  std::unique_ptr<InstrumentationInserter> function_instrumenter_;
   InstrumentationHelper* instrumentation_helper;
   bool instrument_lifetime{false};
 
  public:
-  MemOpInstrumentation(const config::Configuration& typeart_conf, TAFunctionQuery* fquery,
-                       std::unique_ptr<TypeRegistry> type_id_handler, InstrumentationHelper& instr);
+  MemOpInstrumentation(const config::Configuration& typeart_conf, TAFunctionQuery* fquery, InstrumentationHelper& instr,
+                       std::unique_ptr<InstrumentationInserter> function_instrumenter);
   InstrCount instrumentHeap(const HeapArgList& heap) override;
   InstrCount instrumentFree(const FreeArgList& frees) override;
   InstrCount instrumentStack(const StackArgList& stack) override;

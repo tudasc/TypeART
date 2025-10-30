@@ -13,6 +13,7 @@ set(PASS_SOURCES
   instrumentation/MemOpInstrumentation.cpp
   instrumentation/Instrumentation.cpp
   instrumentation/TypeIDProvider.cpp
+  instrumentation/CallBackFunctionInserter.cpp
   TypeARTConfiguration.cpp
   Commandline.cpp
 )

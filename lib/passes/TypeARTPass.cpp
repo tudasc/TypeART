@@ -19,9 +19,11 @@
 #include "configuration/PassBuilderUtil.h"
 #include "configuration/PassConfiguration.h"
 #include "configuration/TypeARTOptions.h"
+#include "instrumentation/CallBackFunctionInserter.h"
 #include "instrumentation/MemOpArgCollector.h"
 #include "instrumentation/MemOpInstrumentation.h"
 #include "instrumentation/TypeARTFunctions.h"
+#include "instrumentation/TypeIDProvider.h"
 #include "support/ConfigurationBase.h"
 #include "support/Logger.h"
 #include "support/ModuleDumper.h"
@@ -167,8 +169,9 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
       auto arg_collector =
           std::make_unique<MemOpArgCollector>(configuration(), typeManager.get(), instrumentation_helper);
       // const bool instrument_stack_lifetime = configuration()[config::ConfigStdArgs::stack_lifetime];
+      auto cb_provider    = make_callback_inserter(configuration(), std::move(type_id_handler), functions.get());
       auto mem_instrument = std::make_unique<MemOpInstrumentation>(configuration(), functions.get(),
-                                                                   std::move(type_id_handler), instrumentation_helper);
+                                                                   instrumentation_helper, std::move(cb_provider));
 
       instrumentation_context =
           std::make_unique<InstrumentationContext>(std::move(arg_collector), std::move(mem_instrument));

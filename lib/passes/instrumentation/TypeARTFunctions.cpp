@@ -31,6 +31,7 @@
 #include "llvm/Support/raw_ostream.h"
 
 #include <memory>
+#include <optional>
 #include <string>
 
 namespace typeart {
@@ -80,7 +81,7 @@ IFunc ifunc_for_function(IFunc general_type, llvm::Value* value) {
     type = detail::ifunc_type_for(function);
   } else if (auto alloca = llvm::dyn_cast<AllocaInst>(value)) {
     type = detail::ifunc_type_for(alloca->getFunction());
-  } else if (auto global = llvm::dyn_cast<GlobalVariable>(value)) {
+  } else if (llvm::isa<GlobalVariable>(value)) {
     type = detail::ifunc_type_for(nullptr);
   } else if (auto callbase = llvm::dyn_cast<CallBase>(value)) {
     type = detail::ifunc_type_for(callbase->getFunction());
@@ -124,10 +125,15 @@ class TAFunctions final : public TAFunctionQuery {
   // densemap has problems with IFunc
   using FMap = std::unordered_map<IFunc, llvm::Function*>;
   FMap typeart_callbacks;
+  FMap typeart_callbacks_alternatives;
+  bool with_alternative_{false};
 
  public:
+  explicit TAFunctions(bool with_alternatives) : with_alternative_(with_alternatives) {
+  }
   llvm::Function* getFunctionFor(IFunc id) const override;
-  void putFunctionFor(IFunc id, llvm::Function* f);
+  void putFunctionFor(IFunc id, llvm::Function* f, bool alternative = false);
+  void putAlternativeFunctionFor(IFunc id, llvm::Function* f);
 };
 
 class TAFunctionDeclarator {
@@ -138,7 +144,8 @@ class TAFunctionDeclarator {
 
  public:
   TAFunctionDeclarator(llvm::Module& m, InstrumentationHelper& instr, TAFunctions& typeart_func);
-  llvm::Function* make_function(IFunc function, llvm::StringRef basename, llvm::ArrayRef<llvm::Type*> args);
+  llvm::Function* make_function(IFunc function, llvm::StringRef basename, llvm::ArrayRef<llvm::Type*> args,
+                                bool alternative = false);
   const llvm::StringMap<llvm::Function*>& getFunctionMap() const;
   virtual ~TAFunctionDeclarator() = default;
 };
@@ -148,7 +155,7 @@ TAFunctionDeclarator::TAFunctionDeclarator(Module& mod, InstrumentationHelper&, 
 }
 
 llvm::Function* TAFunctionDeclarator::make_function(IFunc func_id, llvm::StringRef basename,
-                                                    llvm::ArrayRef<llvm::Type*> args) {
+                                                    llvm::ArrayRef<llvm::Type*> args, bool alternative) {
   const auto make_fname = [&func_id](llvm::StringRef name, llvm::ArrayRef<llvm::Type*> callback_arguments) {
     std::string fname;
     llvm::raw_string_ostream os(fname);
@@ -208,12 +215,15 @@ llvm::Function* TAFunctionDeclarator::make_function(IFunc func_id, llvm::StringR
     return function;
   };
 
-  auto generated_function = do_make(name, FunctionType::get(Type::getVoidTy(c), args, false));
+  auto* generated_function = do_make(name, FunctionType::get(Type::getVoidTy(c), args, false));
 
   function_map[name] = generated_function;
 
-  typeart_functions.putFunctionFor(func_id, generated_function);
-
+  if (alternative) {
+    typeart_functions.putAlternativeFunctionFor(func_id, generated_function);
+  } else {
+    typeart_functions.putFunctionFor(func_id, generated_function);
+  }
   return generated_function;
 }
 
@@ -222,15 +232,31 @@ const llvm::StringMap<llvm::Function*>& TAFunctionDeclarator::getFunctionMap() c
 }
 
 Function* TAFunctions::getFunctionFor(IFunc id) const {
-  auto element = typeart_callbacks.find(id);
-  if (element == std::end(typeart_callbacks)) {
-    LOG_WARNING("No functions for id " << int(id))
-    return nullptr;
+  const auto find_ = [&](const auto& map_) -> std::optional<Function*> {
+    const auto element = map_.find(id);
+    if (element == std::end(map_)) {
+      LOG_WARNING("No functions for id " << int(id))
+      return {};
+    }
+    return element->second;
+  };
+
+  if (with_alternative_) {
+    auto result = find_(typeart_callbacks_alternatives);
+    if (result) {
+      return result.value();
+    }
   }
-  return element->second;
+
+  auto result = find_(typeart_callbacks);
+  return result.value_or(nullptr);
 }
 
-void TAFunctions::putFunctionFor(IFunc id, llvm::Function* f) {
+void TAFunctions::putFunctionFor(IFunc id, llvm::Function* f, bool alternative) {
+  if (alternative) {
+    typeart_callbacks_alternatives[id] = f;
+    return;
+  }
   typeart_callbacks[id] = f;
 }
 
@@ -253,6 +279,8 @@ TypeArtFunc typeart_free_omp         = typeart_free;
 TypeArtFunc typeart_leave_scope_omp  = typeart_leave_scope;
 
 TypeArtFunc typeart_alloc_mty{"__typeart_alloc_mty"};
+TypeArtFunc typeart_alloc_stack_mty{"__typeart_alloc_stack_mty"};
+TypeArtFunc typeart_alloc_global_mty{"__typeart_alloc_global_mty"};
 TypeArtFunc typeart_register_type{"__typeart_register_type"};
 
 }  // namespace callbacks
@@ -260,7 +288,7 @@ TypeArtFunc typeart_register_type{"__typeart_register_type"};
 std::unique_ptr<TAFunctionQuery> declare_instrumentation_functions(llvm::Module& m,
                                                                    const config::Configuration& configuration) {
   using namespace callbacks;
-  auto functions = std::make_unique<TAFunctions>();
+  auto functions = std::make_unique<TAFunctions>(false);
   InstrumentationHelper instrumentation_helper;
   instrumentation_helper.setModule(m);
   TAFunctionDeclarator decl(m, instrumentation_helper, *functions.get());

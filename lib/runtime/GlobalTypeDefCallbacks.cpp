@@ -32,7 +32,6 @@ class GlobalTypeTranslator::Impl {
  public:
   TypeDB& type_db_;
   RuntimeT::TypeLookupMapT& translator_map_;
-  builtins::BuiltInQuery query_;
 
   struct GlobalTypeInfo {
     int type_id;
@@ -62,7 +61,7 @@ class GlobalTypeTranslator::Impl {
       return translator_map_[type];
     }
 
-    const bool built_in = query_.is_builtin_type(type->type_id);
+    const bool built_in = builtins::BuiltInQuery::is_builtin_type(type->type_id);
     if (built_in) {
       translator_map_.try_emplace(type, type->type_id);
       return type->type_id;
