@@ -3,6 +3,7 @@
 #include "configuration/Configuration.h"
 #include "instrumentation/TypeIDProvider.h"
 #include "support/ConfigurationBase.h"
+#include "support/Logger.h"
 
 #include "llvm/IR/Function.h"
 #include "llvm/IR/GlobalVariable.h"
@@ -13,10 +14,10 @@
 namespace typeart {
 
 class CallbackFunctionInserter final : public InstrumentationInserter {
-  const config::Configuration& configuration_;
   std::unique_ptr<TypeRegistry> type_id_handler_;
   TAFunctionQuery* function_query_;
-  bool mixed_mode{false};
+  TypeSerializationImplementation mode_;
+  // bool mixed_mode{false};
 
  private:
   llvm::CallInst* create_instrumentation_call(llvm::IRBuilder<>& IRB, IFunc callback_type,
@@ -45,7 +46,9 @@ class CallbackFunctionInserter final : public InstrumentationInserter {
 CallbackFunctionInserter::CallbackFunctionInserter(const config::Configuration& configuration,
                                                    std::unique_ptr<TypeRegistry> type_id_handler,
                                                    TAFunctionQuery* function_query)
-    : configuration_(configuration), type_id_handler_(std::move(type_id_handler)), function_query_(function_query) {
+    : type_id_handler_(std::move(type_id_handler)), function_query_(function_query) {
+  mode_ = configuration[config::ConfigStdArgs::type_serialization];
+  // mixed_mode                            = value == TypeSerializationImplementation::HYBRID;
 }
 
 // Private Helper Definition
@@ -55,14 +58,15 @@ llvm::CallInst* CallbackFunctionInserter::create_instrumentation_call(llvm::IRBu
                                                                       llvm::Value* element_count,
                                                                       llvm::Value* typeid_value) {
   const auto callback_id = ifunc_for_function(callback_type, instruction_or_value);
-
   auto type_id_param_out = type_id_handler_->getOrRegister(typeid_value);
 
-  return IRB.CreateCall(function_query_->getFunctionFor(callback_id),
-                        llvm::ArrayRef<llvm::Value*>{pointer_value, type_id_param_out, element_count});
+  const auto mode = llvm::isa<llvm::GlobalVariable>(type_id_param_out) ? mode_ : TypeSerializationImplementation::FILE;
+  LOG_FATAL(int(mode));
+  auto function = function_query_->getFunctionFor(callback_id, mode);
+
+  return IRB.CreateCall(function, llvm::ArrayRef<llvm::Value*>{pointer_value, type_id_param_out, element_count});
 }
 
-// Public Function Definitions
 llvm::CallInst* CallbackFunctionInserter::insert_heap_instrumentation(llvm::IRBuilder<>& IRB, llvm::CallBase* heap_call,
                                                                       llvm::Value* pointer_value,
                                                                       llvm::Value* element_count,

@@ -13,6 +13,7 @@
 #include "TypeARTFunctions.h"
 
 #include "configuration/Configuration.h"
+#include "instrumentation/TypeIDProvider.h"
 #include "support/ConfigurationBase.h"
 #include "support/Logger.h"
 #include "support/OmpUtil.h"
@@ -33,6 +34,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <utility>
 
 namespace typeart {
 class InstrumentationHelper;
@@ -125,15 +127,12 @@ class TAFunctions final : public TAFunctionQuery {
   // densemap has problems with IFunc
   using FMap = std::unordered_map<IFunc, llvm::Function*>;
   FMap typeart_callbacks;
-  FMap typeart_callbacks_alternatives;
-  bool with_alternative_{false};
 
  public:
-  explicit TAFunctions(bool with_alternatives) : with_alternative_(with_alternatives) {
-  }
-  llvm::Function* getFunctionFor(IFunc id) const override;
-  void putFunctionFor(IFunc id, llvm::Function* f, bool alternative = false);
-  void putAlternativeFunctionFor(IFunc id, llvm::Function* f);
+  llvm::Function* getFunctionFor(
+      IFunc id, TypeSerializationImplementation impl = TypeSerializationImplementation::FILE) const override;
+  void putFunctionFor(IFunc id, llvm::Function* f);
+  // void putAlternativeFunctionFor(IFunc id, llvm::Function* f);
 };
 
 class TAFunctionDeclarator {
@@ -219,11 +218,11 @@ llvm::Function* TAFunctionDeclarator::make_function(IFunc func_id, llvm::StringR
 
   function_map[name] = generated_function;
 
-  if (alternative) {
-    typeart_functions.putAlternativeFunctionFor(func_id, generated_function);
-  } else {
-    typeart_functions.putFunctionFor(func_id, generated_function);
-  }
+  // if (alternative) {
+  //   typeart_functions.putAlternativeFunctionFor(func_id, generated_function);
+  // } else {
+  typeart_functions.putFunctionFor(func_id, generated_function);
+  // }
   return generated_function;
 }
 
@@ -231,7 +230,7 @@ const llvm::StringMap<llvm::Function*>& TAFunctionDeclarator::getFunctionMap() c
   return function_map;
 }
 
-Function* TAFunctions::getFunctionFor(IFunc id) const {
+Function* TAFunctions::getFunctionFor(IFunc id, TypeSerializationImplementation impl) const {
   const auto find_ = [&](const auto& map_) -> std::optional<Function*> {
     const auto element = map_.find(id);
     if (element == std::end(map_)) {
@@ -241,27 +240,34 @@ Function* TAFunctions::getFunctionFor(IFunc id) const {
     return element->second;
   };
 
-  if (with_alternative_) {
-    auto result = find_(typeart_callbacks_alternatives);
-    if (result) {
-      return result.value();
-    }
-  }
-
   auto result = find_(typeart_callbacks);
   return result.value_or(nullptr);
 }
 
-void TAFunctions::putFunctionFor(IFunc id, llvm::Function* f, bool alternative) {
-  if (alternative) {
-    typeart_callbacks_alternatives[id] = f;
-    return;
-  }
+void TAFunctions::putFunctionFor(IFunc id, llvm::Function* f) {
   typeart_callbacks[id] = f;
 }
 
-namespace callbacks {
+class TAFunctionAlternatives : public TAFunctionQuery {
+  TAFunctions standard_;
+  TAFunctions alternative_;
 
+ public:
+  TAFunctionAlternatives(TAFunctions standard, TAFunctions alternative)
+      : standard_(std::move(standard)), alternative_(std::move(alternative)) {
+  }
+  Function* getFunctionFor(IFunc id, TypeSerializationImplementation impl) const override {
+    if (impl != TypeSerializationImplementation::FILE) {
+      auto alternative = alternative_.getFunctionFor(id);
+      if (alternative != nullptr) {
+        return alternative;
+      }
+    }
+    return standard_.getFunctionFor(id);
+  }
+};
+
+namespace callbacks {
 struct TypeArtFunc {
   const std::string name;
   llvm::Value* f{nullptr};
@@ -288,24 +294,27 @@ TypeArtFunc typeart_register_type{"__typeart_register_type"};
 std::unique_ptr<TAFunctionQuery> declare_instrumentation_functions(llvm::Module& m,
                                                                    const config::Configuration& configuration) {
   using namespace callbacks;
-  auto functions = std::make_unique<TAFunctions>(false);
+  TAFunctions functions;
+  TAFunctions functions_alternative;
   InstrumentationHelper instrumentation_helper;
   instrumentation_helper.setModule(m);
-  TAFunctionDeclarator decl(m, instrumentation_helper, *functions.get());
+  TAFunctionDeclarator decl(m, instrumentation_helper, functions);
+  TAFunctionDeclarator decl_alternatives(m, instrumentation_helper, functions_alternative);
 
   auto alloc_arg_types      = instrumentation_helper.make_parameters(IType::ptr, IType::type_id, IType::extent);
   auto free_arg_types       = instrumentation_helper.make_parameters(IType::ptr);
   auto leavescope_arg_types = instrumentation_helper.make_parameters(IType::stack_count);
 
-  const bool module_local_types = configuration[config::ConfigStdArgs::instrumentation];
-  if (module_local_types) {
-    auto alloc_arg_types_mty = instrumentation_helper.make_parameters(IType::ptr, IType::ptr, IType::extent);
-    typeart_alloc.f          = decl.make_function(IFunc::heap, typeart_alloc_mty.name, alloc_arg_types_mty);
-    typeart_register_type.f  = decl.make_function(IFunc::type, typeart_register_type.name, free_arg_types);
-  } else {
-    typeart_alloc.f = decl.make_function(IFunc::heap, typeart_alloc.name, alloc_arg_types);
-  }
+  // const TypeSerializationImplementation local_types = configuration[config::ConfigStdArgs::type_serialization];
+  auto alloc_arg_types_mty = instrumentation_helper.make_parameters(IType::ptr, IType::ptr, IType::extent);
+  typeart_alloc_mty.f      = decl_alternatives.make_function(IFunc::heap, typeart_alloc_mty.name, alloc_arg_types_mty);
+  typeart_alloc_stack_mty.f =
+      decl_alternatives.make_function(IFunc::stack, typeart_alloc_stack_mty.name, alloc_arg_types_mty);
+  typeart_alloc_global_mty.f =
+      decl_alternatives.make_function(IFunc::global, typeart_alloc_global_mty.name, alloc_arg_types_mty);
+  typeart_register_type.f = decl.make_function(IFunc::type, typeart_register_type.name, free_arg_types);
 
+  typeart_alloc.f        = decl.make_function(IFunc::heap, typeart_alloc.name, alloc_arg_types);
   typeart_alloc_stack.f  = decl.make_function(IFunc::stack, typeart_alloc_stack.name, alloc_arg_types);
   typeart_alloc_global.f = decl.make_function(IFunc::global, typeart_alloc_global.name, alloc_arg_types);
   typeart_free.f         = decl.make_function(IFunc::free, typeart_free.name, free_arg_types);
@@ -317,7 +326,9 @@ std::unique_ptr<TAFunctionQuery> declare_instrumentation_functions(llvm::Module&
 
   typeart_leave_scope_omp.f = decl.make_function(IFunc::scope_omp, typeart_leave_scope_omp.name, leavescope_arg_types);
 
-  return functions;
+  // TODO: mty for OMP
+
+  return std::make_unique<TAFunctionAlternatives>(functions, functions_alternative);
 }
 
 }  // namespace typeart

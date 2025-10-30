@@ -183,7 +183,7 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
     /*
      * Persist the accumulated type definition information for this module.
      */
-    if (!configuration()[config::ConfigStdArgs::instrumentation]) {
+    if (!configuration()[config::ConfigStdArgs::type_serialization]) {
       const std::string types_file = configuration()[config::ConfigStdArgs::types];
       LOG_DEBUG("Writing type file to " << types_file);
 

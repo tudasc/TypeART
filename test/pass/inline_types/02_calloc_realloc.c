@@ -1,6 +1,6 @@
 // clang-format off
-// RUN: %c-to-llvm %s | %apply-typeart -typeart-instumentation=true -S 2>&1 | %filecheck %s --check-prefix=REALLOC
-// RUN: %c-to-llvm %s | %apply-typeart -typeart-instumentation=true -S 2>&1 | %filecheck %s
+// RUN: %c-to-llvm %s | %apply-typeart -typeart-type-serialization=inline -S 2>&1 | %filecheck %s --check-prefix=REALLOC
+// RUN: %c-to-llvm %s | %apply-typeart -typeart-type-serialization=inline -S 2>&1 | %filecheck %s
 
 // REQUIRES: llvm-18 || llvm-19
 // clang-format on

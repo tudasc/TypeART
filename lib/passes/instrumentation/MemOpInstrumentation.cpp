@@ -96,8 +96,8 @@ InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
 
     Value* element_count{nullptr};
 
-    auto parent_f  = malloc.call->getFunction();
-    const bool omp = util::omp::isOmpContext(parent_f);
+    // auto parent_f = malloc.call->getFunction();
+    // const bool omp = util::omp::isOmpContext(parent_f);
 
     const bool dimeta_calc_byte_size = !is_llvm_ir_type && (typeid_value->equalsInt(TYPEART_VOID));
 

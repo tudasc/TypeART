@@ -31,8 +31,8 @@ class MemOpInstrumentation final : public MemoryInstrument {
   const config::Configuration& typeart_config;
   TAFunctionQuery* function_query;
   // std::unique_ptr<TypeRegistry> type_id_handler;
-  std::unique_ptr<InstrumentationInserter> function_instrumenter_;
   InstrumentationHelper* instrumentation_helper;
+  std::unique_ptr<InstrumentationInserter> function_instrumenter_;
   bool instrument_lifetime{false};
 
  public:

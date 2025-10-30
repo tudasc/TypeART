@@ -351,13 +351,39 @@ class TypeRegistryGlobals final : public TypeRegistry {
   }
 };
 
+class TypeRegistryAlternatives final : public TypeRegistry {
+  TypeRegistryGlobals globals;
+  TypeRegistryNoOp noops;
+
+ public:
+  TypeRegistryAlternatives(llvm::Module& m, const TypeDatabase* type_db, const TAFunctionQuery* f_query)
+      : globals(m, type_db, f_query) {
+  }
+
+  void registerModule(const ModuleData& m) override {
+    globals.registerModule(m);
+  }
+
+  llvm::Value* getOrRegister(llvm::Value* type_id_const) override {
+    if (builtins::BuiltInQuery::is_builtin_type(helper::get_type_id(type_id_const))) {
+      return noops.getOrRegister(type_id_const);
+    }
+    return globals.getOrRegister(type_id_const);
+  }
+};
+
 std::unique_ptr<TypeRegistry> get_type_id_handler(llvm::Module& m, const TypeDatabase* type_db,
                                                   const config::Configuration& configuration,
                                                   const TAFunctionQuery* f_query) {
-  if (configuration[config::ConfigStdArgs::instrumentation]) {
-    return std::make_unique<TypeRegistryGlobals>(m, type_db, f_query);
+  TypeSerializationImplementation impl = configuration[config::ConfigStdArgs::type_serialization];
+  switch (impl) {
+    case typeart::TypeSerializationImplementation::FILE:
+      return std::make_unique<TypeRegistryNoOp>();
+    case typeart::TypeSerializationImplementation::HYBRID:
+      return std::make_unique<TypeRegistryAlternatives>(m, type_db, f_query);
+    default:
+      return std::make_unique<TypeRegistryGlobals>(m, type_db, f_query);
   }
-  return std::make_unique<TypeRegistryNoOp>();
 }
 
 }  // namespace typeart

@@ -1,5 +1,5 @@
 // clang-format off
-// RUN: export TYPEART_INSTRUMENTATION=1 
+// RUN: export TYPEART_TYPE_SERIALIZATION=inline
 // RUN: %wrapper-cc -O1 %s -o %s.exe
 // RUN: %s.exe 2>&1 | %filecheck %s
 

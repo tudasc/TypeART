@@ -1,5 +1,5 @@
 // clang-format off
-// RUN: export TYPEART_INSTRUMENTATION=1 
+// RUN: export TYPEART_TYPE_SERIALIZATION=inline
 
 // : %cpp-to-llvm -DTYPEART_TU_ONE %s | %apply-typeart -typeart-instumentation=true -S > %s_1.ll
 // : %cpp-to-llvm %s | %apply-typeart -typeart-instumentation=true -S > %s.ll

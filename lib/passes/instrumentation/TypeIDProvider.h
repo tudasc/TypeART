@@ -1,10 +1,12 @@
 #ifndef LIB_PASSES_INSTRUMENTATION_MODULETYPEREGISTRY
 #define LIB_PASSES_INSTRUMENTATION_MODULETYPEREGISTRY
 
-#include "TypeARTFunctions.h"
-#include "TypeDatabase.h"
-#include "TypeGenerator.h"
+// #include "TypeARTFunctions.h"
+// #include "instrumentation/TypeARTFunctions.h"
+#include "typegen/TypeGenerator.h"
+#include "typelib/TypeDatabase.h"
 
+#include <cstdint>
 #include <memory>
 
 namespace llvm {
@@ -14,9 +16,12 @@ class Module;
 
 namespace typeart {
 
+enum class TypeSerializationImplementation : uint8_t { FILE, INLINE, HYBRID };
+
 namespace config {
 class Configuration;
 }
+class TAFunctionQuery;
 
 class TypeRegistry {
  public:

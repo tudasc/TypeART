@@ -9,6 +9,7 @@
 // CHECK-NEXT: stats:           true
 // CHECK-NEXT: stack-lifetime:  true
 // CHECK-NEXT: typegen:         {{dimeta|ir}}
+// CHECK-NEXT: type-serialization:         file
 // CHECK-NEXT: filter:          false
 // CHECK-NEXT: call-filter:
 // CHECK-NEXT:   implementation:  std

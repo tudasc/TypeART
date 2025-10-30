@@ -1,6 +1,4 @@
-// RUN: export TYPEART_INSTRUMENTATION=1
-
-// RUN: %cpp-to-llvm %s | %apply-typeart -typeart-instumentation=true -S | %filecheck --match-full-lines %s
+// RUN: %cpp-to-llvm %s | %apply-typeart -typeart-type-serialization=inline -S | %filecheck --match-full-lines %s
 
 // CHECK: @_typeart__ZTS6Domain = extern_weak constant %struct._typeart_struct_layout_t
 

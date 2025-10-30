@@ -15,6 +15,7 @@
 
 #include "analysis/MemInstFinder.h"
 #include "configuration/Configuration.h"
+#include "instrumentation/TypeIDProvider.h"
 #include "support/ConfigurationBase.h"
 #include "typegen/TypeGenerator.h"
 
@@ -50,6 +51,7 @@ struct TypeARTConfigOptions {
   bool statistics{ConfigStdArgValues::stats};
   bool stack_lifetime{ConfigStdArgValues::stack_lifetime};
   TypegenImplementation typegen{TypegenImplementation::DIMETA};
+  TypeSerializationImplementation type_serialization{TypeSerializationImplementation::FILE};
   bool filter{false};
 
   TypeARTCallFilterOptions filter_config{};

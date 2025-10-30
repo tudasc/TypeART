@@ -15,6 +15,7 @@
 
 #include "InstrumentationHelper.h"
 #include "configuration/Configuration.h"
+#include "instrumentation/TypeIDProvider.h"
 
 #include <memory>
 
@@ -37,8 +38,9 @@ IFunc ifunc_for_function(IFunc general_type, llvm::Value* value);
 
 class TAFunctionQuery {
  public:
-  virtual llvm::Function* getFunctionFor(IFunc id) const = 0;
-  virtual ~TAFunctionQuery()                             = default;
+  virtual llvm::Function* getFunctionFor(
+      IFunc id, TypeSerializationImplementation impl = TypeSerializationImplementation::FILE) const = 0;
+  virtual ~TAFunctionQuery()                                                                        = default;
 };
 
 std::unique_ptr<TAFunctionQuery> declare_instrumentation_functions(llvm::Module& m,
