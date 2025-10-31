@@ -49,6 +49,7 @@ target_link_libraries(
           $<$<BOOL:${TYPEART_MPI_LOGGER}>:MPI::MPI_CXX>
           $<$<BOOL:${TYPEART_PHMAP}>:phpmap::phpmap>
           $<$<BOOL:${TYPEART_ABSEIL}>:absl::btree>
+          $<$<BOOL:${TYPEART_ABSEIL}>:absl::flat_hash_map>
           $<$<BOOL:${TYPEART_SAFEPTR}>:sf::pointer>
           $<$<NOT:$<BOOL:${TYPEART_DISABLE_THREAD_SAFETY}>>:Threads::Threads>
 )

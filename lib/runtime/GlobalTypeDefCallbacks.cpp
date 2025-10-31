@@ -58,9 +58,8 @@ class GlobalTypeTranslator::Impl {
   }
 
   int register_t(const GlobalTypeInfo* type) {
-    // const bool built_in = type->type_id < TYPEART_NUM_VALID_IDS;
-    if (translator_map_.contains(type)) {
-      return translator_map_[type];
+    if (auto element = translator_map_.find(type); element != translator_map_.end()) {
+      return element->second;
     }
 
     const bool built_in = builtins::BuiltInQuery::is_builtin_type(type->type_id);
@@ -76,8 +75,6 @@ class GlobalTypeTranslator::Impl {
     type_descriptor.num_members = type->num_members;
     type_descriptor.flag        = static_cast<StructTypeFlag>(type->flag);
 
-    // const auto* array_sizes  = static_cast<const std::int64_t*>(type->array_sizes);
-    // const auto* array_offset = static_cast<const std::int64_t*>(type->offsets);
     type_descriptor.array_sizes.reserve(type->num_members);
     type_descriptor.offsets.reserve(type->num_members);
     type_descriptor.member_types.reserve(type->num_members);
@@ -86,7 +83,7 @@ class GlobalTypeTranslator::Impl {
       const auto offset     = type->offsets[i];
       type_descriptor.array_sizes.emplace_back(array_size);
       type_descriptor.offsets.emplace_back(offset);
-      const auto member_id = register_t(reinterpret_cast<const GlobalTypeInfo*>(type->member_types[i]));
+      const auto member_id = register_t(type->member_types[i]);
       type_descriptor.member_types.emplace_back(member_id);
     }
 
