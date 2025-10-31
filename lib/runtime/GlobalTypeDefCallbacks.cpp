@@ -22,30 +22,32 @@
 
 namespace typeart {
 
+#define CONCAT_(x, y) x##y
+#define CONCAT(x, y)  CONCAT_(x, y)
+#define GUARDNAME     CONCAT(typeart_guard_, __LINE__)
 #define TYPEART_RUNTIME_GUARD     \
   typeart::RTGuard GUARDNAME;     \
   if (!GUARDNAME.shouldTrack()) { \
     return;                       \
   }
 
+struct GlobalTypeInfo {
+  int type_id;
+  const char* name;
+  size_t extent;
+  size_t num_members;
+  const std::int64_t* offsets;
+  const GlobalTypeInfo** member_types;
+  const std::int64_t* array_sizes;
+  int flag;
+};
+
 class GlobalTypeTranslator::Impl {
- public:
   TypeDB& type_db_;
   RuntimeT::TypeLookupMapT& translator_map_;
-
-  struct GlobalTypeInfo {
-    int type_id;
-    const char* name;
-    size_t extent;
-    size_t num_members;
-    const std::int64_t* offsets;
-    const GlobalTypeInfo** member_types;
-    const std::int64_t* array_sizes;
-    int flag;
-  };
-
   int struct_count{0};
 
+ public:
   explicit Impl(TypeDB& db, RuntimeT::TypeLookupMapT& translator_map) : type_db_(db), translator_map_(translator_map) {
   }
 
@@ -96,10 +98,11 @@ class GlobalTypeTranslator::Impl {
 
 GlobalTypeTranslator::GlobalTypeTranslator(TypeDB& db) : pImpl(std::make_unique<Impl>(db, translator_map)) {
 }
+
 GlobalTypeTranslator::~GlobalTypeTranslator() = default;
 
 void GlobalTypeTranslator::register_type(const void* type) {
-  const auto* info_struct = reinterpret_cast<const GlobalTypeTranslator::Impl::GlobalTypeInfo*>(type);
+  const auto* info_struct = reinterpret_cast<const GlobalTypeInfo*>(type);
   pImpl->register_t(info_struct);
 }
 

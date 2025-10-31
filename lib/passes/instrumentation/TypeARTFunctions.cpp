@@ -288,6 +288,8 @@ TypeArtFunc typeart_alloc_mty{"__typeart_alloc_mty"};
 TypeArtFunc typeart_alloc_stack_mty{"__typeart_alloc_stack_mty"};
 TypeArtFunc typeart_alloc_global_mty{"__typeart_alloc_global_mty"};
 TypeArtFunc typeart_register_type{"__typeart_register_type"};
+TypeArtFunc typeart_alloc_omp_mty        = typeart_alloc_mty;
+TypeArtFunc typeart_alloc_stacks_omp_mty = typeart_alloc_stack_mty;
 
 }  // namespace callbacks
 
@@ -326,7 +328,9 @@ std::unique_ptr<TAFunctionQuery> declare_instrumentation_functions(llvm::Module&
 
   typeart_leave_scope_omp.f = decl.make_function(IFunc::scope_omp, typeart_leave_scope_omp.name, leavescope_arg_types);
 
-  // TODO: mty for OMP
+  typeart_alloc_omp_mty.f = decl.make_function(IFunc::heap_omp, typeart_alloc_omp_mty.name, alloc_arg_types_mty);
+  typeart_alloc_stacks_omp_mty.f =
+      decl.make_function(IFunc::stack_omp, typeart_alloc_stacks_omp_mty.name, alloc_arg_types_mty);
 
   return std::make_unique<TAFunctionAlternatives>(functions, functions_alternative);
 }

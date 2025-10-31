@@ -42,6 +42,9 @@ void __typeart_alloc_mty(const void* addr, const void* info, size_t count);
 void __typeart_alloc_global_mty(const void* addr, const void* info, size_t count);
 void __typeart_alloc_stack_mty(const void* addr, const void* info, size_t count);
 void __typeart_register_type(const void* type);
+
+void __typeart_alloc_global_mty_omp(const void* addr, const void* info, size_t count);
+void __typeart_alloc_stack_mty_omp(const void* addr, const void* info, size_t count);
 #ifdef __cplusplus
 }
 #endif

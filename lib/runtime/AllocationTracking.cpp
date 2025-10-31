@@ -307,3 +307,17 @@ void __typeart_alloc_global_mty(const void* addr, const void* info, size_t count
   typeart::RuntimeSystem::get().allocTracker.onAllocGlobal(
       addr, typeart::RuntimeSystem::get().type_translator.get_type_id_for(info), count, retAddr);
 }
+
+void __typeart_alloc_omp_mty(const void* addr, const void* info, size_t count) {
+  TYPEART_RUNTIME_GUARD;
+  const void* retAddr = __builtin_return_address(0);
+  typeart::RuntimeSystem::get().allocTracker.onAlloc(
+      addr, typeart::RuntimeSystem::get().type_translator.get_type_id_for(info), count, retAddr);
+}
+
+void __typeart_alloc_stack_omp_mty(const void* addr, const void* info, size_t count) {
+  TYPEART_RUNTIME_GUARD;
+  const void* retAddr = __builtin_return_address(0);
+  typeart::RuntimeSystem::get().allocTracker.onAllocStack(
+      addr, typeart::RuntimeSystem::get().type_translator.get_type_id_for(info), count, retAddr);
+}
