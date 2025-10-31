@@ -146,7 +146,7 @@ InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
         continue;
     }
 
-    function_instrumenter_->insert_heap_instrumentation(IRB, malloc.call, malloc_call, element_count, typeid_value);
+    function_instrumenter_->insert_heap_instrumentation(IRB, malloc.call, {malloc_call, element_count, typeid_value});
 
     // const auto callback_id = ifunc_for_function(IFunc::heap, malloc.call);
     // auto type_id_param     = function_instrumenter->getOrRegister(typeid_value);
@@ -213,7 +213,7 @@ InstrCount MemOpInstrumentation::instrumentStack(const StackArgList& stack) {
       // auto type_id_param     = function_instrumenter->getOrRegister(typeIdConst);
       // IRB.CreateCall(function_query->getFunctionFor(callback_id),
       //                ArrayRef<Value*>{data_ptr, type_id_param, numElementsVal});
-      function_instrumenter_->insert_stack_instrumentation(IRB, alloca, data_ptr, numElementsVal, typeIdConst);
+      function_instrumenter_->insert_stack_instrumentation(IRB, alloca, {data_ptr, numElementsVal, typeIdConst});
       ++counter;
 
       auto* bblock = anchor->getParent();
@@ -258,7 +258,7 @@ InstrCount MemOpInstrumentation::instrumentGlobal(const GlobalArgList& globals) 
       // auto type_id_param     = function_instrumenter->getOrRegister(typeIdConst);
       // IRB.CreateCall(function_query->getFunctionFor(callback_id),
       //                ArrayRef<Value*>{globalPtr, type_id_param, numElementsVal});
-      function_instrumenter_->insert_global_instrumentation(IRB, global, globalPtr, numElementsVal, typeIdConst);
+      function_instrumenter_->insert_global_instrumentation(IRB, global, {globalPtr, numElementsVal, typeIdConst});
       ++counter;
     }
   };

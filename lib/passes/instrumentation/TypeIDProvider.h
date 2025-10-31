@@ -25,7 +25,7 @@ class TAFunctionQuery;
 
 class TypeRegistry {
  public:
-  virtual llvm::Value* getOrRegister(llvm::Value* type_id_const) = 0;
+  [[nodiscard]] virtual llvm::Value* getOrRegister(llvm::Value* type_id_const) = 0;
   virtual void registerModule(const ModuleData&);
   virtual ~TypeRegistry() = default;
 };

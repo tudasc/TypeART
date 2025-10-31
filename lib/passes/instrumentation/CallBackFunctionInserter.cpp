@@ -21,24 +21,20 @@ class CallbackFunctionInserter final : public InstrumentationInserter {
 
  private:
   llvm::CallInst* create_instrumentation_call(llvm::IRBuilder<>& IRB, IFunc callback_type,
-                                              llvm::Value* instruction_or_value, llvm::Value* pointer_value,
-                                              llvm::Value* element_count, llvm::Value* typeid_value);
+                                              llvm::Value* instruction_or_value, InstrumentationPayload args);
 
  public:
   CallbackFunctionInserter(const config::Configuration& configuration, std::unique_ptr<TypeRegistry> type_id_handler,
                            TAFunctionQuery* function_query);
 
   llvm::CallInst* insert_heap_instrumentation(llvm::IRBuilder<>& IRB, llvm::CallBase* heap_call,
-                                              llvm::Value* pointer_value, llvm::Value* element_count,
-                                              llvm::Value* typeid_value) override;
+                                              InstrumentationPayload) override;
 
   llvm::CallInst* insert_stack_instrumentation(llvm::IRBuilder<>& IRB, llvm::Instruction* alloca,
-                                               llvm::Value* pointer_value, llvm::Value* element_count,
-                                               llvm::Value* typeid_value) override;
+                                               InstrumentationPayload) override;
 
   llvm::CallInst* insert_global_instrumentation(llvm::IRBuilder<>& IRB, llvm::GlobalValue* global_var,
-                                                llvm::Value* pointer_value, llvm::Value* element_count,
-                                                llvm::Value* typeid_value) override;
+                                                InstrumentationPayload) override;
 
   llvm::CallInst* insert_free_instrumentation(llvm::IRBuilder<>& IRB, llvm::Value* pointer_value) override;
 };
@@ -54,40 +50,32 @@ CallbackFunctionInserter::CallbackFunctionInserter(const config::Configuration& 
 // Private Helper Definition
 llvm::CallInst* CallbackFunctionInserter::create_instrumentation_call(llvm::IRBuilder<>& IRB, IFunc callback_type,
                                                                       llvm::Value* instruction_or_value,
-                                                                      llvm::Value* pointer_value,
-                                                                      llvm::Value* element_count,
-                                                                      llvm::Value* typeid_value) {
+                                                                      InstrumentationPayload args) {
   const auto callback_id = ifunc_for_function(callback_type, instruction_or_value);
-  auto type_id_param_out = type_id_handler_->getOrRegister(typeid_value);
+  auto type_id_param_out = type_id_handler_->getOrRegister(args.typeid_value);
 
   const auto mode = llvm::isa<llvm::GlobalVariable>(type_id_param_out) ? mode_ : TypeSerializationImplementation::FILE;
-  LOG_FATAL(int(mode));
-  auto function = function_query_->getFunctionFor(callback_id, mode);
+  auto function   = function_query_->getFunctionFor(callback_id, mode);
 
-  return IRB.CreateCall(function, llvm::ArrayRef<llvm::Value*>{pointer_value, type_id_param_out, element_count});
+  return IRB.CreateCall(function,
+                        llvm::ArrayRef<llvm::Value*>{args.pointer_value, type_id_param_out, args.element_count});
 }
 
 llvm::CallInst* CallbackFunctionInserter::insert_heap_instrumentation(llvm::IRBuilder<>& IRB, llvm::CallBase* heap_call,
-                                                                      llvm::Value* pointer_value,
-                                                                      llvm::Value* element_count,
-                                                                      llvm::Value* typeid_value) {
-  return create_instrumentation_call(IRB, IFunc::heap, heap_call, pointer_value, element_count, typeid_value);
+                                                                      InstrumentationPayload args) {
+  return create_instrumentation_call(IRB, IFunc::heap, heap_call, args);
 }
 
 llvm::CallInst* CallbackFunctionInserter::insert_stack_instrumentation(llvm::IRBuilder<>& IRB,
                                                                        llvm::Instruction* alloca,
-                                                                       llvm::Value* pointer_value,
-                                                                       llvm::Value* element_count,
-                                                                       llvm::Value* typeid_value) {
-  return create_instrumentation_call(IRB, IFunc::stack, alloca, pointer_value, element_count, typeid_value);
+                                                                       InstrumentationPayload args) {
+  return create_instrumentation_call(IRB, IFunc::stack, alloca, args);
 }
 
 llvm::CallInst* CallbackFunctionInserter::insert_global_instrumentation(llvm::IRBuilder<>& IRB,
                                                                         llvm::GlobalValue* global_var,
-                                                                        llvm::Value* pointer_value,
-                                                                        llvm::Value* element_count,
-                                                                        llvm::Value* typeid_value) {
-  return create_instrumentation_call(IRB, IFunc::global, global_var, pointer_value, element_count, typeid_value);
+                                                                        InstrumentationPayload args) {
+  return create_instrumentation_call(IRB, IFunc::global, global_var, args);
 }
 
 llvm::CallInst* CallbackFunctionInserter::insert_free_instrumentation(llvm::IRBuilder<>& IRB,

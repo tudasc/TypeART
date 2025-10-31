@@ -22,21 +22,24 @@ class Configuration;
 class TypeRegistry;
 class TAFunctionQuery;
 
+struct InstrumentationPayload {
+  llvm::Value* pointer_value;
+  llvm::Value* element_count;
+  llvm::Value* typeid_value;
+};
+
 class InstrumentationInserter {
  public:
   virtual ~InstrumentationInserter() = default;
 
   virtual llvm::CallInst* insert_heap_instrumentation(llvm::IRBuilder<>& IRB, llvm::CallBase* heap_call,
-                                                      llvm::Value* pointer_value, llvm::Value* element_count,
-                                                      llvm::Value* typeid_value) = 0;
+                                                      InstrumentationPayload) = 0;
 
   virtual llvm::CallInst* insert_stack_instrumentation(llvm::IRBuilder<>& IRB, llvm::Instruction* alloca,
-                                                       llvm::Value* pointer_value, llvm::Value* element_count,
-                                                       llvm::Value* typeid_value) = 0;
+                                                       InstrumentationPayload) = 0;
 
   virtual llvm::CallInst* insert_global_instrumentation(llvm::IRBuilder<>& IRB, llvm::GlobalValue* global_var,
-                                                        llvm::Value* pointer_value, llvm::Value* element_count,
-                                                        llvm::Value* typeid_value) = 0;
+                                                        InstrumentationPayload) = 0;
 
   virtual llvm::CallInst* insert_free_instrumentation(llvm::IRBuilder<>& IRB, llvm::Value* pointer_value) = 0;
 };

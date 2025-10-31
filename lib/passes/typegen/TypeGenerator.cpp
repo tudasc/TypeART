@@ -55,7 +55,7 @@ int TypeIDGenerator::reserveNextTypeId() {
 }
 
 const TypeDatabase& TypeIDGenerator::getTypeDatabase() const {
-  return *this->typeDB.get();
+  return *this->typeDB;
 }
 
 bool TypeIDGenerator::registerModule(ModuleData&) {

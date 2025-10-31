@@ -38,7 +38,7 @@ IFunc ifunc_for_function(IFunc general_type, llvm::Value* value);
 
 class TAFunctionQuery {
  public:
-  virtual llvm::Function* getFunctionFor(
+  [[nodiscard]] virtual llvm::Function* getFunctionFor(
       IFunc id, TypeSerializationImplementation impl = TypeSerializationImplementation::FILE) const = 0;
   virtual ~TAFunctionQuery()                                                                        = default;
 };
