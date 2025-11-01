@@ -98,7 +98,9 @@ function typeart_main_driver_fn() {
   if [ "$?" == 1 ]; then
     typeart_more_flags+=" ${typeart_ldflags}"
   fi
-
+  
+  export TYPEART_TYPE_SERIALIZATION="${TYPEART_TYPE_SERIALIZATION:-hybrid}"
+  
   $typeart_compiler ${typeart_plugin} ${typeart_includes} ${typeart_more_flags} ${typeart_san_flags} $@
 }
 

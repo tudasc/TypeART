@@ -50,6 +50,7 @@
 
 #include <cassert>
 #include <cstddef>
+#include <llvm/Config/llvm-config.h>
 #include <llvm/Support/Error.h>
 #include <memory>
 #include <optional>
@@ -183,7 +184,10 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
     /*
      * Persist the accumulated type definition information for this module.
      */
-    if (!configuration()[config::ConfigStdArgs::type_serialization]) {
+    // TODO: inline/hybrid types not supported in non-opaque mode
+    const bool emit_type_file_always     = bool(LLVM_VERSION_MAJOR < 15);
+    TypeSerializationImplementation mode = configuration()[config::ConfigStdArgs::type_serialization];
+    if (emit_type_file_always || mode == TypeSerializationImplementation::FILE) {
       const std::string types_file = configuration()[config::ConfigStdArgs::types];
       LOG_DEBUG("Writing type file to " << types_file);
 

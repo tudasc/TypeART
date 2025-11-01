@@ -101,8 +101,10 @@ void remove_pointer_level(const llvm::AllocaInst* alloc, dimeta::LocatedType& va
   // If the alloca instruction is not a pointer, but the located_type has a pointer-like qualifier, we remove it.
   // Workaround for inlining issue, see test typemapping/05_milc_inline_metadata.c
   // TODO Should be removed if dimeta fixes it.
-  if (!alloc->getAllocatedType()->isPointerTy()) {
-    LOG_DEBUG("Alloca is not a pointer")
+  // Further refinement, array-like allocas to pointers stay untouched (second condition):
+  // this will cause MPI handle arrays (typedef "ptr to opaque struct") to be considered a pointer
+  if (!alloc->getAllocatedType()->isPointerTy() && !alloc->getAllocatedType()->isArrayTy()) {
+    LOG_DEBUG("Alloca is not a pointer type: " << *alloc->getAllocatedType())
 
     const auto remove_pointer_level = [](auto& qual) {
       auto pointer_like_iter = llvm::find_if(qual, [](auto qualifier) {
@@ -488,7 +490,7 @@ class DimetaTypeManager final : public TypeIDGenerator {
         workaround::remove_pointer_level(alloc, val.value());
         const auto type_id        = getOrRegister(val->type, false);
         const auto array_size_val = array_size(val->type);
-        LOG_DEBUG(array_size_val)
+        LOG_DEBUG("Array size of alloca " << array_size_val)
         return {type_id, array_size_val};
       }
     } else if (auto* global = llvm::dyn_cast<llvm::GlobalVariable>(type)) {

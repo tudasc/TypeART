@@ -16,6 +16,7 @@
 #include "CallbackInterface.h"
 #include "Runtime.h"
 #include "RuntimeData.h"
+#include "RuntimeInterface.h"
 #include "TypeDB.h"
 #include "support/Logger.h"
 #include "typelib/TypeDatabase.h"
@@ -290,34 +291,34 @@ void __typeart_leave_scope_omp(int alloca_count) {
 void __typeart_alloc_mty(const void* addr, const void* info, size_t count) {
   TYPEART_RUNTIME_GUARD;
   const void* retAddr = __builtin_return_address(0);
-  typeart::RuntimeSystem::get().allocTracker.onAlloc(
-      addr, typeart::RuntimeSystem::get().type_translator.get_type_id_for(info), count, retAddr);
+  const auto type_id  = typeart::RuntimeSystem::get().type_translator.get_type_id_for(info);
+  typeart::RuntimeSystem::get().allocTracker.onAlloc(addr, type_id, count, retAddr);
 }
 
 void __typeart_alloc_stack_mty(const void* addr, const void* info, size_t count) {
   TYPEART_RUNTIME_GUARD;
   const void* retAddr = __builtin_return_address(0);
-  typeart::RuntimeSystem::get().allocTracker.onAllocStack(
-      addr, typeart::RuntimeSystem::get().type_translator.get_type_id_for(info), count, retAddr);
+  const auto type_id  = typeart::RuntimeSystem::get().type_translator.get_type_id_for(info);
+  typeart::RuntimeSystem::get().allocTracker.onAllocStack(addr, type_id, count, retAddr);
 }
 
 void __typeart_alloc_global_mty(const void* addr, const void* info, size_t count) {
   TYPEART_RUNTIME_GUARD;
   const void* retAddr = __builtin_return_address(0);
-  typeart::RuntimeSystem::get().allocTracker.onAllocGlobal(
-      addr, typeart::RuntimeSystem::get().type_translator.get_type_id_for(info), count, retAddr);
+  const auto type_id  = typeart::RuntimeSystem::get().type_translator.get_type_id_for(info);
+  typeart::RuntimeSystem::get().allocTracker.onAllocGlobal(addr, type_id, count, retAddr);
 }
 
 void __typeart_alloc_omp_mty(const void* addr, const void* info, size_t count) {
   TYPEART_RUNTIME_GUARD;
   const void* retAddr = __builtin_return_address(0);
-  typeart::RuntimeSystem::get().allocTracker.onAlloc(
-      addr, typeart::RuntimeSystem::get().type_translator.get_type_id_for(info), count, retAddr);
+  const auto type_id  = typeart::RuntimeSystem::get().type_translator.get_type_id_for(info);
+  typeart::RuntimeSystem::get().allocTracker.onAlloc(addr, type_id, count, retAddr);
 }
 
 void __typeart_alloc_stack_omp_mty(const void* addr, const void* info, size_t count) {
   TYPEART_RUNTIME_GUARD;
   const void* retAddr = __builtin_return_address(0);
-  typeart::RuntimeSystem::get().allocTracker.onAllocStack(
-      addr, typeart::RuntimeSystem::get().type_translator.get_type_id_for(info), count, retAddr);
+  const auto type_id  = typeart::RuntimeSystem::get().type_translator.get_type_id_for(info);
+  typeart::RuntimeSystem::get().allocTracker.onAllocStack(addr, type_id, count, retAddr);
 }

@@ -270,6 +270,7 @@ struct GlobalTypeRegistrar {
     const auto type_size = type_struct->extent;
 
     if (type_struct->flag == StructTypeFlag::FWD_DECL) {
+      LOG_DEBUG("Type is forward decl " << name)
       return registerGlobalStructDecl(name);
     }
 
@@ -311,6 +312,9 @@ struct GlobalTypeRegistrar {
 
   llvm::GlobalVariable* registerUserDefined(int type_id) {
     const auto* const type_struct = type_db_->getStructInfo(type_id);
+    if (type_struct == nullptr) {
+      LOG_WARNING("Struct info is nullptr for id " << type_id)
+    }
     return registerTypeStruct(type_struct);
   }
 
@@ -351,8 +355,11 @@ class TypeRegistryGlobals final : public TypeRegistry {
       if (builtins::BuiltInQuery::is_builtin_type(type.type_id)) {
         continue;
       }
+      if (!registrar_.type_db_->isValid(type.type_id)) {
+        continue;
+      }
+      LOG_DEBUG("Registering type_id " << type.type_id)
       const auto* type_id = registrar_.getOrRegister(type.type_id);
-      LOG_DEBUG("Registering type_id " << *type_id)
     }
   }
 

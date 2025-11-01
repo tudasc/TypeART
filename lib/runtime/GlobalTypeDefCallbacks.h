@@ -28,7 +28,11 @@ class GlobalTypeTranslator final {
   }
 
   inline int get_type_id_for(MemAddr addr) const {
-    return translator_map.find(addr)->second;
+    if (auto element = translator_map.find(addr); element != translator_map.end()) {
+      return element->second;
+    }
+    LOG_DEBUG("Unknown type for address " << addr)
+    return TYPEART_UNKNOWN_TYPE;
   }
 
   GlobalTypeTranslator(const GlobalTypeTranslator&)                = delete;
