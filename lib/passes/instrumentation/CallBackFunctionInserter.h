@@ -41,7 +41,8 @@ class InstrumentationInserter {
   virtual llvm::CallInst* insert_global_instrumentation(llvm::IRBuilder<>& IRB, llvm::GlobalValue* global_var,
                                                         InstrumentationPayload) = 0;
 
-  virtual llvm::CallInst* insert_free_instrumentation(llvm::IRBuilder<>& IRB, llvm::Value* pointer_value) = 0;
+  virtual llvm::CallInst* insert_free_instrumentation(llvm::IRBuilder<>& IRB, llvm::CallBase* heap_call,
+                                                      llvm::Value* pointer_value) = 0;
 };
 
 std::unique_ptr<InstrumentationInserter> make_callback_inserter(const config::Configuration& configuration,

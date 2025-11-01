@@ -36,7 +36,8 @@ class CallbackFunctionInserter final : public InstrumentationInserter {
   llvm::CallInst* insert_global_instrumentation(llvm::IRBuilder<>& IRB, llvm::GlobalValue* global_var,
                                                 InstrumentationPayload) override;
 
-  llvm::CallInst* insert_free_instrumentation(llvm::IRBuilder<>& IRB, llvm::Value* pointer_value) override;
+  llvm::CallInst* insert_free_instrumentation(llvm::IRBuilder<>& IRB, llvm::CallBase* call,
+                                              llvm::Value* pointer_value) override;
 };
 
 CallbackFunctionInserter::CallbackFunctionInserter(const config::Configuration& configuration,
@@ -78,9 +79,9 @@ llvm::CallInst* CallbackFunctionInserter::insert_global_instrumentation(llvm::IR
   return create_instrumentation_call(IRB, IFunc::global, global_var, args);
 }
 
-llvm::CallInst* CallbackFunctionInserter::insert_free_instrumentation(llvm::IRBuilder<>& IRB,
+llvm::CallInst* CallbackFunctionInserter::insert_free_instrumentation(llvm::IRBuilder<>& IRB, llvm::CallBase* call,
                                                                       llvm::Value* pointer_value) {
-  const auto callback_id = ifunc_for_function(IFunc::free, pointer_value);
+  const auto callback_id = ifunc_for_function(IFunc::free, call);
   return IRB.CreateCall(function_query_->getFunctionFor(callback_id), llvm::ArrayRef<llvm::Value*>{pointer_value});
 }
 

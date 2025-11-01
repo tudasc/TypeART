@@ -43,6 +43,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/Utils/ModuleUtils.h"
 
+#include <llvm/IR/InstrTypes.h>
 #include <memory>
 #include <string>
 
@@ -138,7 +139,8 @@ InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
         element_count              = calculate_element_count(bytes);
 
         IRBuilder<> free_before_realloc(malloc_call);
-        function_instrumenter_->insert_free_instrumentation(free_before_realloc, target_memory_address);
+        function_instrumenter_->insert_free_instrumentation(free_before_realloc, llvm::dyn_cast<CallBase>(malloc_call),
+                                                            target_memory_address);
         break;
       }
       default:
@@ -184,7 +186,7 @@ InstrCount MemOpInstrumentation::instrumentFree(const FreeArgList& frees) {
 
     IRBuilder<> IRB(insertBefore);
 
-    function_instrumenter_->insert_free_instrumentation(IRB, free_arg);
+    function_instrumenter_->insert_free_instrumentation(IRB, fdata.call, free_arg);
 
     // auto parent_f          = fdata.call->getFunction();
     // const auto callback_id = util::omp::isOmpContext(parent_f) ? IFunc::free_omp : IFunc::free;

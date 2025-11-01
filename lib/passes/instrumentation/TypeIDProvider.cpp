@@ -78,11 +78,19 @@ struct GlobalTypeData {
   llvm::StringMap<TypeData> global_type_data;
 
   inline bool has_type_name(llvm::StringRef name) const {
+#if LLVM_VERSION_MAJOR > 17
     return global_type_data.contains(name);
+#else
+    return global_type_data.find(name) != global_type_data.end();
+#endif
   }
 
   inline const TypeData& get_type(llvm::StringRef name) const {
+#if LLVM_VERSION_MAJOR > 17
     return global_type_data.at(name);
+#else
+    return global_type_data.find(name)->second;
+#endif
   }
 };
 
@@ -105,9 +113,11 @@ struct GlobalTypeCallback {
       Function* ctorFunction = Function::Create(ctorType, Function::PrivateLinkage, ctor_function_name, module_);
       BasicBlock* entry      = BasicBlock::Create(c, "entry", ctorFunction);
       auto* ret_inst         = ReturnInst::Create(c);
-      // llvm::IRBuilder<> Builder(entry);
+#if LLVM_VERSION_MAJOR > 17
       ret_inst->insertInto(entry, entry->getFirstInsertionPt());
-      // Builder.CreateRetVoid();
+#else
+      entry->getInstList().push_back(ret_inst);
+#endif
 
       llvm::appendToGlobalCtors(*module_, ctorFunction, 0, nullptr);
 
@@ -376,6 +386,13 @@ std::unique_ptr<TypeRegistry> get_type_id_handler(llvm::Module& m, const TypeDat
                                                   const config::Configuration& configuration,
                                                   const TAFunctionQuery* f_query) {
   TypeSerializationImplementation impl = configuration[config::ConfigStdArgs::type_serialization];
+#if LLVM_VERSION_MAJOR < 15
+  if (impl != typeart::TypeSerializationImplementation::FILE) {
+    LOG_WARNING("Warning unsupported type serialization mode.")
+  }
+  // using llvm-14 would require opaque pointer mode for globals
+  return std::make_unique<TypeRegistryNoOp>();
+#else
   switch (impl) {
     case typeart::TypeSerializationImplementation::FILE:
       return std::make_unique<TypeRegistryNoOp>();
@@ -384,6 +401,7 @@ std::unique_ptr<TypeRegistry> get_type_id_handler(llvm::Module& m, const TypeDat
     default:
       return std::make_unique<TypeRegistryGlobals>(m, type_db, f_query);
   }
+#endif
 }
 
 }  // namespace typeart
