@@ -2,14 +2,12 @@
 #define LIB_RUNTIME_GLOBALTYPEDEFCALLBACKS
 
 #include "RuntimeData.h"
-#include "TypeDB.h"
 #include "TypeInterface.h"
 #include "support/Logger.h"
-#include "typelib/TypeDatabase.h"
-
-#include <cstdint>
 
 namespace typeart {
+
+class TypeDB;
 
 class GlobalTypeTranslator final {
  private:
@@ -31,7 +29,7 @@ class GlobalTypeTranslator final {
     if (auto element = translator_map.find(addr); element != translator_map.end()) {
       return element->second;
     }
-    LOG_DEBUG("Unknown type for address " << addr)
+    LOG_WARNING("Unknown type for address " << addr)
     return TYPEART_UNKNOWN_TYPE;
   }
 

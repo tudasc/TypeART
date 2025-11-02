@@ -16,13 +16,13 @@
 #include "AccessCounter.h"
 #include "RuntimeData.h"
 #include "RuntimeInterface.h"
-#include "TypeDB.h"
-#include "TypeInterface.h"
 
 #include <cstddef>
-#include <string>
 
 namespace typeart {
+
+class TypeDB;
+struct StructTypeInfo;
 
 struct PointerInfo;
 

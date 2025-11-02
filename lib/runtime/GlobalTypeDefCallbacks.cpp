@@ -1,6 +1,5 @@
 #include "GlobalTypeDefCallbacks.h"
 
-#include "AccessCounter.h"
 #include "AllocationTracking.h"
 #include "CallbackInterface.h"
 #include "Runtime.h"
@@ -9,8 +8,6 @@
 #include "TypeInterface.h"
 #include "support/Logger.h"
 #include "typelib/TypeDatabase.h"
-
-#include "llvm/Support/raw_ostream.h"
 
 #include <algorithm>
 #include <cassert>

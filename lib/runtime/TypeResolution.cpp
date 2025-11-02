@@ -16,16 +16,14 @@
 #include "Runtime.h"
 #include "RuntimeData.h"
 #include "RuntimeInterface.h"
+#include "TypeDB.h"
 #include "TypeInterface.h"
 #include "support/Logger.h"
 #include "support/System.h"
 
-#include "llvm/Support/raw_ostream.h"
-
 #include <cassert>
 #include <charconv>
 #include <cstddef>
-#include <cstdint>
 #include <utility>
 #include <vector>
 

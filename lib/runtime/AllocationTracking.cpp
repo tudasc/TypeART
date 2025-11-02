@@ -16,10 +16,8 @@
 #include "CallbackInterface.h"
 #include "Runtime.h"
 #include "RuntimeData.h"
-#include "RuntimeInterface.h"
 #include "TypeDB.h"
 #include "support/Logger.h"
-#include "typelib/TypeDatabase.h"
 
 #include "llvm/Support/raw_ostream.h"
 

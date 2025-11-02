@@ -19,13 +19,10 @@
 #include "TypeInterface.h"
 #include "support/ConfigurationBase.h"
 #include "support/Logger.h"
-// #include "llvm/Support/raw_ostream.h"
 
 #include <cstdlib>
 #include <iostream>
-#include <set>
 #include <sstream>
-#include <unordered_map>
 #include <vector>
 
 namespace typeart {

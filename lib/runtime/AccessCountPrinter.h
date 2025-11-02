@@ -17,14 +17,9 @@
 #include "support/Logger.h"
 #include "support/Table.h"
 
-#include <fstream>
-#include <map>
 #include <set>
 #include <sstream>
 #include <string>
-#include <string_view>
-#include <unordered_map>
-#include <unordered_set>
 #include <utility>
 
 namespace typeart::softcounter {
