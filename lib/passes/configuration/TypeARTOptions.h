@@ -51,7 +51,11 @@ struct TypeARTConfigOptions {
   bool statistics{ConfigStdArgValues::stats};
   bool stack_lifetime{ConfigStdArgValues::stack_lifetime};
   TypegenImplementation typegen{TypegenImplementation::DIMETA};
+#if LLVM_VERSION_MAJOR > 14
+  TypeSerializationImplementation type_serialization{TypeSerializationImplementation::HYBRID};
+#else
   TypeSerializationImplementation type_serialization{TypeSerializationImplementation::FILE};
+#endif
   bool filter{false};
 
   TypeARTCallFilterOptions filter_config{};

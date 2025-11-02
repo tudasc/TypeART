@@ -42,6 +42,11 @@ class TypeRegistryNoOp final : public TypeRegistry {
 };
 
 namespace helper {
+
+void replace_whitespace_with_underscore(std::string& s) {
+  std::replace_if(s.begin(), s.end(), [](unsigned char c) { return std::isspace(c); }, '_');
+}
+
 inline int get_type_id(llvm::Value* type_id_const) {
   auto* constant_int = llvm::dyn_cast<llvm::ConstantInt>(type_id_const);
   assert(constant_int && "Expected llvm::ConstantInt");
@@ -305,8 +310,10 @@ struct GlobalTypeRegistrar {
   }
 
   llvm::GlobalVariable* registerBuiltin(int type_id) {
-    StructTypeInfo type_struct{type_id, type_db_->getTypeName(type_id), type_db_->getTypeSize(type_id), 1, {0}, {},
-                               {1},     StructTypeFlag::BUILTIN};
+    auto type_name = type_db_->getTypeName(type_id);
+    helper::replace_whitespace_with_underscore(type_name);
+    StructTypeInfo type_struct{type_id, type_name, type_db_->getTypeSize(type_id), 1, {0},
+                               {},      {1},       StructTypeFlag::BUILTIN};
     return registerTypeStruct(&type_struct);
   }
 

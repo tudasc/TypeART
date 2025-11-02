@@ -1,3 +1,4 @@
+// RUN: export TYPEART_TYPE_SERIALIZATION=file
 // RUN: %run %s --clean_types 2>&1 | %filecheck %s
 
 struct Datastruct {

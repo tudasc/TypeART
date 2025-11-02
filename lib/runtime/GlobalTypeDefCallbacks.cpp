@@ -19,6 +19,7 @@
 
 namespace typeart {
 
+#define unlikely(x)   __builtin_expect(!!(x), 0)
 #define CONCAT_(x, y) x##y
 #define CONCAT(x, y)  CONCAT_(x, y)
 #define GUARDNAME     CONCAT(typeart_guard_, __LINE__)
@@ -55,6 +56,11 @@ class GlobalTypeTranslator::Impl {
   }
 
   int register_t(const GlobalTypeInfo* type) {
+    if (unlikely(type == nullptr)) {
+      LOG_FATAL("Type descriptor is NULL, is it a weak extern global due to fwd decl?");
+      return TYPEART_UNKNOWN_TYPE;
+    }
+
     if (auto element = translator_map_.find(type); element != translator_map_.end()) {
       return element->second;
     }
@@ -104,5 +110,9 @@ void GlobalTypeTranslator::register_type(const void* type) {
 
 void __typeart_register_type(const void* type_ptr) {
   TYPEART_RUNTIME_GUARD;
+  if (unlikely(type_ptr == nullptr)) {
+    LOG_FATAL("type_ptr is NULL\n");
+    return;
+  }
   typeart::RuntimeSystem::get().type_translator.register_type(type_ptr);
 }
