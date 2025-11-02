@@ -67,6 +67,10 @@ function typeart_test_parse_cmd_line_fn() {
       export TYPEART_ANALYSIS_FILTER_POINTER_ALLOCA="${1#--typeart-analysis-filter-pointer-alloca=}"
       shift
     ;;
+    --typeart-type-serialization=*)
+      export TYPEART_TYPE_SERIALIZATION="${1#--typeart-type-serialization=}"
+      shift
+    ;;
     *)
       typeart_test_pass_wrapper_more_args+=" $1"
       shift 1
