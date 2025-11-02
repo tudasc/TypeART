@@ -71,6 +71,10 @@ function typeart_test_parse_cmd_line_fn() {
       export TYPEART_TYPE_SERIALIZATION="${1#--typeart-type-serialization=}"
       shift
     ;;
+    --typeart-config=*)
+      export TYPEART_CONFIG_FILE="${1#--typeart-config=}"
+      shift
+    ;;
     *)
       typeart_test_pass_wrapper_more_args+=" $1"
       shift 1
