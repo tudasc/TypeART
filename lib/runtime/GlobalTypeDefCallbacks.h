@@ -7,7 +7,7 @@
 
 namespace typeart {
 
-class TypeDB;
+class TypeDatabase;
 
 class GlobalTypeTranslator final {
  private:
@@ -16,7 +16,7 @@ class GlobalTypeTranslator final {
   std::unique_ptr<Impl> pImpl;
 
  public:
-  explicit GlobalTypeTranslator(TypeDB& db);
+  explicit GlobalTypeTranslator(TypeDatabase& db);
   ~GlobalTypeTranslator();
 
   void register_type(const void* type);

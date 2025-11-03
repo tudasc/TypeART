@@ -4,7 +4,6 @@
 #include "CallbackInterface.h"
 #include "Runtime.h"
 #include "RuntimeData.h"
-#include "TypeDB.h"
 #include "TypeInterface.h"
 #include "support/Logger.h"
 #include "typelib/TypeDatabase.h"
@@ -41,17 +40,23 @@ struct GlobalTypeInfo {
 };
 
 class GlobalTypeTranslator::Impl {
-  TypeDB& type_db_;
+  TypeDatabase& type_db_;
   RuntimeT::TypeLookupMapT& translator_map_;
   int struct_count{0};
+  // a fwd_decl and the decl must have the same type_id:
+  RuntimeT::HashmapT<const char*, int> name_typid_fwd_decl_dedup_;
 
  public:
-  explicit Impl(TypeDB& db, RuntimeT::TypeLookupMapT& translator_map) : type_db_(db), translator_map_(translator_map) {
+  explicit Impl(TypeDatabase& db, RuntimeT::TypeLookupMapT& translator_map) : type_db_(db), translator_map_(translator_map) {
   }
 
-  int next_type_id() {
+  int next_type_id(const GlobalTypeInfo* type) {
+    if(auto it_type = name_typid_fwd_decl_dedup_.find(type->name); it_type != name_typid_fwd_decl_dedup_.end()){
+      return it_type->second;
+    }
     const int id = static_cast<int>(TYPEART_NUM_RESERVED_IDS) + struct_count;
     ++struct_count;
+    name_typid_fwd_decl_dedup_.try_emplace(type->name, id);
     return id;
   }
 
@@ -72,7 +77,7 @@ class GlobalTypeTranslator::Impl {
     }
 
     StructTypeInfo type_descriptor;
-    type_descriptor.type_id     = next_type_id();
+    type_descriptor.type_id     = next_type_id(type);
     type_descriptor.name        = type->name;
     type_descriptor.extent      = type->extent;
     type_descriptor.num_members = type->num_members;
@@ -90,13 +95,15 @@ class GlobalTypeTranslator::Impl {
       type_descriptor.member_types.emplace_back(member_id);
     }
 
-    type_db_.registerStruct(type_descriptor, true);
+    const bool fwd_decl = type_descriptor.flag  == StructTypeFlag::FWD_DECL;
+    type_db_.registerStruct(type_descriptor, !fwd_decl);
     translator_map_.try_emplace(type, type_descriptor.type_id);
+
     return type_descriptor.type_id;
   }
 };
 
-GlobalTypeTranslator::GlobalTypeTranslator(TypeDB& db) : pImpl(std::make_unique<Impl>(db, translator_map)) {
+GlobalTypeTranslator::GlobalTypeTranslator(TypeDatabase& db) : pImpl(std::make_unique<Impl>(db, translator_map)) {
 }
 
 GlobalTypeTranslator::~GlobalTypeTranslator() = default;

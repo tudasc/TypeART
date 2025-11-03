@@ -248,7 +248,8 @@ struct GlobalTypeRegistrar {
                                              uint64_t member_count, llvm::Constant* offset_ptr,
                                              llvm::Constant* members_data_ptr, llvm::Constant* count_ptr,
                                              StructTypeFlag flag = StructTypeFlag::USER_DEFINED) {
-    llvm::GlobalVariable* global_struct = create_global(name, struct_layout_type_);
+    const auto name_struct              = flag == StructTypeFlag::FWD_DECL ? helper::concat(name, "_fwd") : name;
+    llvm::GlobalVariable* global_struct = create_global(name_struct, struct_layout_type_);
     llvm::Constant* name_str            = create_global_constant_string(name);
 
     std::vector<llvm::Constant*> members = {ir_build.getInt32(type_id),
@@ -276,7 +277,7 @@ struct GlobalTypeRegistrar {
 
     if (type_struct->flag == StructTypeFlag::FWD_DECL) {
       LOG_DEBUG("Type is forward decl " << name)
-      return registerGlobalStructDecl(name);
+      // return registerGlobalStructDecl(name);
     }
 
     llvm::Constant* offset_ptr = create_global_array_ptr(helper::concat("offsets_", name), type_struct->offsets);
@@ -340,8 +341,9 @@ struct GlobalTypeRegistrar {
           auto* global        = registerUserDefined(type_id);
           const auto fwd_decl = StructTypeFlag::FWD_DECL == type_db_->getStructInfo(type_id)->flag;
           if (!fwd_decl) {
-            type_callback.insert(global);
+            LOG_DEBUG("Registering forward declared variable " << *global) 
           }
+          type_callback.insert(global);
           return global;
         });
   }
