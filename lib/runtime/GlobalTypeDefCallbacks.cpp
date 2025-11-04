@@ -29,40 +29,44 @@ namespace typeart {
   }
 
 struct GlobalTypeInfo {
-  int type_id;
+  const int type_id;
   const char* name;
-  size_t extent;
-  size_t num_members;
+  const size_t extent;
+  const size_t num_members;
   const std::int64_t* offsets;
   const GlobalTypeInfo** member_types;
   const std::int64_t* array_sizes;
-  int flag;
+  const int flag;
 };
 
 class GlobalTypeTranslator::Impl {
   TypeDatabase& type_db_;
   RuntimeT::TypeLookupMapT& translator_map_;
   int struct_count{0};
-  // a fwd_decl and the decl must have the same type_id:
-  RuntimeT::HashmapT<const char*, int> name_typid_fwd_decl_dedup_;
 
  public:
-  explicit Impl(TypeDatabase& db, RuntimeT::TypeLookupMapT& translator_map) : type_db_(db), translator_map_(translator_map) {
+  explicit Impl(TypeDatabase& db, RuntimeT::TypeLookupMapT& translator_map)
+      : type_db_(db), translator_map_(translator_map) {
   }
 
   int next_type_id(const GlobalTypeInfo* type) {
-    if(auto it_type = name_typid_fwd_decl_dedup_.find(type->name); it_type != name_typid_fwd_decl_dedup_.end()){
-      return it_type->second;
+    // a fwd_decl and the decl must have the same type_id:
+    {
+      const auto& struct_list = type_db_.getStructList();
+      for (const auto& type_in_db : struct_list) {
+        if (type_in_db.name == type->name) {
+          return type_in_db.type_id;
+        }
+      }
     }
     const int id = static_cast<int>(TYPEART_NUM_RESERVED_IDS) + struct_count;
     ++struct_count;
-    name_typid_fwd_decl_dedup_.try_emplace(type->name, id);
     return id;
   }
 
   int register_t(const GlobalTypeInfo* type) {
     if (unlikely(type == nullptr)) {
-      LOG_FATAL("Type descriptor is NULL, is it a weak extern global due to fwd decl?");
+      LOG_ERROR("Type descriptor is NULL, is it a weak extern global due to fwd decl?");
       return TYPEART_UNKNOWN_TYPE;
     }
 
@@ -87,16 +91,16 @@ class GlobalTypeTranslator::Impl {
     type_descriptor.offsets.reserve(type->num_members);
     type_descriptor.member_types.reserve(type->num_members);
     for (auto i = 0UL; i < type->num_members; ++i) {
+      const auto member_id  = register_t(type->member_types[i]);
       const auto array_size = type->array_sizes[i];
       const auto offset     = type->offsets[i];
       type_descriptor.array_sizes.emplace_back(array_size);
       type_descriptor.offsets.emplace_back(offset);
-      const auto member_id = register_t(type->member_types[i]);
       type_descriptor.member_types.emplace_back(member_id);
     }
 
-    const bool fwd_decl = type_descriptor.flag  == StructTypeFlag::FWD_DECL;
-    type_db_.registerStruct(type_descriptor, !fwd_decl);
+    const bool fwd_decl = type_descriptor.flag == StructTypeFlag::FWD_DECL;
+    type_db_.registerStruct(type_descriptor, not fwd_decl);
     translator_map_.try_emplace(type, type_descriptor.type_id);
 
     return type_descriptor.type_id;

@@ -1,5 +1,5 @@
 // clang-format off
-// RUN: %run %s --typeart-analysis-filter-non-array-alloca=true --compile_flags "%dimeta_def -DIGNORE_ID=1" 2>&1 | %filecheck %s
+// RUN: %run %s --typeart-analysis-filter-non-array-alloca=true --typeart-type-serialization=file --compile_flags "%dimeta_def -DIGNORE_ID=1" 2>&1 | %filecheck %s
 // clang-format on
 
 #include "../struct_defs.h"

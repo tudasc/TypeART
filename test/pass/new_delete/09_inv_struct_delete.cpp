@@ -1,5 +1,5 @@
 // clang-format off
-// RUN: %cpp-to-llvm %s | %apply-typeart -S 2>&1 | %filecheck %s
+// RUN: %cpp-to-llvm %s | %apply-typeart --typeart-type-serialization=file -S 2>&1 | %filecheck %s
 // clang-format on
 
 // CHECK: TypeArtPass [Heap]

@@ -53,6 +53,7 @@ inline int get_type_id(llvm::Value* type_id_const) {
   if (constant_int == nullptr) {
     return TYPEART_UNKNOWN_TYPE;
   }
+  assert(constant_int->getBitWidth() <= 32 && "Type ID is too wide");
   const int type_id = static_cast<int>(constant_int->getSExtValue());
   return type_id;
 }
@@ -65,7 +66,9 @@ inline std::string concat(Args&&... args) {
 
 template <typename... Args>
 inline std::string create_prefixed_name(Args&&... args) {
-  return concat(llvm::StringRef{"_typeart_"}, std::forward<Args>(args)...);
+  std::string name = concat(llvm::StringRef{"_typeart_"}, std::forward<Args>(args)...);
+  replace_whitespace_with_underscore(name);
+  return name;
 }
 
 }  // namespace helper
@@ -329,9 +332,10 @@ struct GlobalTypeRegistrar {
  public:
   llvm::Constant* getOrRegister(int type_id) {
     const auto name = type_db_->getTypeName(type_id);
+    LOG_DEBUG(name << " aka " << helper::create_prefixed_name(name))
     return module_->getOrInsertGlobal(
         helper::create_prefixed_name(name), struct_layout_type_, [&]() -> llvm::GlobalVariable* {
-          LOG_DEBUG("Registering << " << type_id << " " << name)
+          LOG_DEBUG("Registering << " << type_id << " " << name << " aka " << helper::create_prefixed_name(name))
           const bool is_builtin = type_db_->isBuiltinType(type_id);
           if (is_builtin) {
             auto* global = registerBuiltin(type_id);
@@ -341,7 +345,7 @@ struct GlobalTypeRegistrar {
           auto* global        = registerUserDefined(type_id);
           const auto fwd_decl = StructTypeFlag::FWD_DECL == type_db_->getStructInfo(type_id)->flag;
           if (!fwd_decl) {
-            LOG_DEBUG("Registering forward declared variable " << *global) 
+            LOG_DEBUG("Registering forward declared variable " << *global)
           }
           type_callback.insert(global);
           return global;
