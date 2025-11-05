@@ -189,16 +189,16 @@ struct TypeHelper {
   llvm::Type* get_type_for(IGlobalType type, bool as_array = false) {
     switch (type) {
       case IGlobalType::type_id:
-      case IGlobalType::type_flag:
-        return ir_build_.getInt32Ty();
       case IGlobalType::extent:
-      case IGlobalType::num_members:
         return ir_build_.getInt32Ty();
+      case IGlobalType::type_flag:
+      case IGlobalType::num_members:
+        return ir_build_.getInt16Ty();
       case IGlobalType::member_offsets:
       case IGlobalType::member_types:
       case IGlobalType::member_count: {
         if (as_array) {
-          return ir_build_.getInt32Ty();
+          return ir_build_.getInt16Ty();
         }
         return ir_build_.getPtrTy();
       }
@@ -212,17 +212,17 @@ struct TypeHelper {
   llvm::Constant* get_constant_for(IGlobalType type, size_t value) {
     switch (type) {
       case IGlobalType::type_id:
-      case IGlobalType::type_flag:
-        return ir_build_.getInt32(value);
       case IGlobalType::extent:
+        return ir_build_.getInt32(value);
+      case IGlobalType::type_flag:
       case IGlobalType::num_members:
       case IGlobalType::member_offsets:
       case IGlobalType::member_count:
-        return ir_build_.getInt32(value);
+        return ir_build_.getInt16(value);
       default:
         break;
     }
-    return ir_build_.getInt64(value);
+    return ir_build_.getInt32(value);
   }
 };
 
@@ -242,13 +242,14 @@ struct GlobalTypeRegistrar {
     struct_layout_type_ = llvm::StructType::create(context, "struct._typeart_struct_layout_t");
     struct_layout_type_->setBody({
         types_helper.get_type_for(IGlobalType::type_id),         // int type_id
+        types_helper.get_type_for(IGlobalType::extent),          // uint32 extent
+        types_helper.get_type_for(IGlobalType::num_members),     // uint16 num_members
+        types_helper.get_type_for(IGlobalType::type_flag),       // uint16 type_flag
         types_helper.get_type_for(IGlobalType::name),            // const char* name
-        types_helper.get_type_for(IGlobalType::extent),          // size_t extent
-        types_helper.get_type_for(IGlobalType::num_members),     // size_t num_members
-        types_helper.get_type_for(IGlobalType::member_offsets),  // const size_t* offsets
+        types_helper.get_type_for(IGlobalType::member_offsets),  // const uint16* offsets
+        types_helper.get_type_for(IGlobalType::member_count),    // const uint16* count
         types_helper.get_type_for(IGlobalType::member_types),    // const typeart_struct_layout_t** member_types
-        types_helper.get_type_for(IGlobalType::member_count),    // const size_t* count
-        types_helper.get_type_for(IGlobalType::type_flag),       // int type_flag
+
     });
   }
 
@@ -301,16 +302,15 @@ struct GlobalTypeRegistrar {
 
     std::vector<llvm::Constant*> members = {
         types_helper.get_constant_for(IGlobalType::type_id, type_id),
-        name_str,
         types_helper.get_constant_for(IGlobalType::extent, type_size),
         types_helper.get_constant_for(IGlobalType::member_count, member_count),
-        offset_ptr,
-        members_data_ptr,
-        count_ptr,
-        types_helper.get_constant_for(IGlobalType::type_flag, static_cast<int>(flag))};  // TODO: use real type
-
+        types_helper.get_constant_for(IGlobalType::type_flag,
+                                      static_cast<int>(flag)),  // TODO: use real type
+        name_str,                                               //
+        offset_ptr,                                             //
+        count_ptr,                                              //
+        members_data_ptr};
     llvm::Constant* init = llvm::ConstantStruct::get(struct_layout_type_, members);
-
     global_struct->setInitializer(init);
 
     global_types_.global_type_data.try_emplace(
@@ -410,7 +410,7 @@ struct GlobalTypeRegistrar {
           return global;
         });
   }
-};
+};  // namespace typedb
 }  // namespace typedb
 
 class TypeRegistryGlobals final : public TypeRegistry {

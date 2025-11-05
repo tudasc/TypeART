@@ -1,6 +1,5 @@
 #include "GlobalTypeDefCallbacks.h"
 
-#include "AllocationTracking.h"
 #include "CallbackInterface.h"
 #include "Runtime.h"
 #include "RuntimeData.h"
@@ -8,12 +7,9 @@
 #include "support/Logger.h"
 #include "typelib/TypeDatabase.h"
 
-#include <algorithm>
 #include <cassert>
 #include <cstdint>
-#include <iterator>
 #include <sys/types.h>
-#include <type_traits>
 #include <vector>
 
 namespace typeart {
@@ -29,14 +25,15 @@ namespace typeart {
   }
 
 struct GlobalTypeInfo {
-  const int32_t type_id;
+  const std::int32_t type_id;
+  const std::uint32_t extent;
+  const std::uint16_t num_members;
+  const std::uint16_t flag;
+
   const char* name;
-  const int32_t extent;
-  const int32_t num_members;
-  const std::int32_t* offsets;
+  const std::uint16_t* offsets;
+  const std::uint16_t* array_sizes;
   const GlobalTypeInfo** member_types;
-  const std::int32_t* array_sizes;
-  const int32_t flag;
 };
 
 class GlobalTypeTranslator::Impl {
@@ -64,7 +61,7 @@ class GlobalTypeTranslator::Impl {
     return id;
   }
 
-  int register_t(const GlobalTypeInfo* type) {
+  int register_t(const GlobalTypeInfo* type) {  // NOLINT(misc-no-recursion)
     if (unlikely(type == nullptr)) {
       LOG_ERROR("Type descriptor is NULL, is it a weak extern global due to fwd decl?");
       return TYPEART_UNKNOWN_TYPE;
@@ -90,7 +87,7 @@ class GlobalTypeTranslator::Impl {
     type_descriptor.array_sizes.reserve(type->num_members);
     type_descriptor.offsets.reserve(type->num_members);
     type_descriptor.member_types.reserve(type->num_members);
-    for (auto i = 0UL; i < type->num_members; ++i) {
+    for (uint32_t i = 0; i < type->num_members; ++i) {
       const auto member_id  = register_t(type->member_types[i]);
       const auto array_size = type->array_sizes[i];
       const auto offset     = type->offsets[i];
