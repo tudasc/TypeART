@@ -50,7 +50,7 @@ class TypeResolution {
 
   TypeArtStatus getStructInfo(int type_id, const StructTypeInfo** structInfo) const;
 
-  [[nodiscard]] const TypeDB& db() const;
+  // [[nodiscard]] const TypeDB& db() const;
 };
 
 }  // namespace typeart

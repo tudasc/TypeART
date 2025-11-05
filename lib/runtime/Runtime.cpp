@@ -33,7 +33,7 @@ std::string toString(const void* memAddr, int typeId, size_t count, size_t typeS
                      bool heap) {
   std::string buf;
   llvm::raw_string_ostream s(buf);
-  const auto name = typeart::RuntimeSystem::get().typeResolution.db().getTypeName(typeId);
+  const auto name = typeart::RuntimeSystem::get().database().getTypeName(typeId);
   if ((typeId == TYPEART_VOID) && heap) {
     count /= typeSize;
   }
@@ -42,7 +42,7 @@ std::string toString(const void* memAddr, int typeId, size_t count, size_t typeS
 }
 
 std::string toString(const void* memAddr, int typeId, size_t count, const void* calledFrom, bool heap) {
-  const auto typeSize = typeart::RuntimeSystem::get().typeResolution.db().getTypeSize(typeId);
+  const auto typeSize = typeart::RuntimeSystem::get().database().getTypeSize(typeId);
   return toString(memAddr, typeId, count, typeSize, calledFrom, heap);
 }
 
@@ -62,11 +62,11 @@ inline void printTraceStart() {
 static constexpr const char* defaultTypeFileName = config::ConfigStdArgValues::types;
 
 RuntimeSystem::RuntimeSystem()
-    : rtScopeInit(), typeResolution(typeDB, recorder), allocTracker(typeDB, recorder), type_translator(typeDB) {
+    : rtScopeInit(), typeResolution_(typeDB_, recorder), allocTracker_(typeDB_, recorder), type_translator_(typeDB_) {
   debug::printTraceStart();
 
   auto loadTypes = [this](const std::string& file, std::error_code& ec) -> bool {
-    auto loaded = io::load(&typeDB, file);
+    auto loaded = io::load(&typeDB_, file);
     ec          = loaded.getError();
     return !static_cast<bool>(ec);
   };
@@ -100,7 +100,7 @@ RuntimeSystem::RuntimeSystem()
   }
 
   std::stringstream ss;
-  const auto& typeList = typeDB.getStructList();
+  const auto& typeList = typeDB_.getStructList();
   for (const auto& structInfo : typeList) {
     ss << structInfo.name << ", ";
   }

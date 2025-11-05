@@ -21,11 +21,11 @@ class GlobalTypeTranslator final {
 
   void register_type(const void* type);
 
-  inline const RuntimeT::TypeLookupMapT& get_translator_map() const {
+  [[nodiscard]] inline const RuntimeT::TypeLookupMapT& get_translator_map() const {
     return translator_map;
   }
 
-  inline int get_type_id_for(MemAddr addr) const {
+  [[nodiscard]] inline int get_type_id_for(MemAddr addr) const {
     if (auto element = translator_map.find(addr); element != translator_map.end()) {
       return element->second;
     }

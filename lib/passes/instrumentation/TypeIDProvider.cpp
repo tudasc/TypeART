@@ -239,14 +239,6 @@ struct GlobalTypeRegistrar {
     return make_gep(array_ty, gv);
   }
 
-  llvm::GlobalVariable* registerGlobalStructDecl(const std::string& name) {
-    auto* global_struct = create_global(name, struct_layout_type_, nullptr, llvm::GlobalValue::ExternalWeakLinkage);
-    global_types_.global_type_data.try_emplace(
-        name, GlobalTypeData::TypeData{nullptr, global_struct, nullptr, nullptr, nullptr});
-
-    return global_struct;
-  }
-
   llvm::GlobalVariable* registerGlobalStruct(const std::string& name, int type_id, uint64_t type_size,
                                              uint64_t member_count, llvm::Constant* offset_ptr,
                                              llvm::Constant* members_data_ptr, llvm::Constant* count_ptr,
@@ -372,7 +364,7 @@ class TypeRegistryGlobals final : public TypeRegistry {
         continue;
       }
       LOG_DEBUG("Registering type_id " << type.type_id)
-      const auto* type_id = registrar_.getOrRegister(type.type_id);
+      /*const auto* type_id =*/registrar_.getOrRegister(type.type_id);
     }
   }
 

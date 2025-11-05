@@ -125,5 +125,5 @@ void __typeart_register_type(const void* type_ptr) {
     LOG_FATAL("type_ptr is NULL\n");
     return;
   }
-  typeart::RuntimeSystem::get().type_translator.register_type(type_ptr);
+  typeart::RuntimeSystem::get().type_translator().register_type(type_ptr);
 }
