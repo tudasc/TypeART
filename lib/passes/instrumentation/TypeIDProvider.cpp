@@ -23,6 +23,7 @@
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
 #include <llvm/Support/Casting.h>
+#include <llvm/Support/ErrorHandling.h>
 #include <llvm/Transforms/Utils/ModuleUtils.h>
 #include <memory>
 #include <optional>
@@ -168,33 +169,86 @@ struct GlobalTypeCallback {
   }
 };
 
+enum class IGlobalType : short {
+  type_id,
+  name,
+  extent,
+  num_members,
+  member_offsets,
+  member_types,
+  member_count,
+  type_flag,
+  ptr
+};
+
+struct TypeHelper {
+  llvm::IRBuilder<>& ir_build_;
+  explicit TypeHelper(llvm::IRBuilder<>& ir_build) : ir_build_(ir_build) {
+  }
+
+  llvm::Type* get_type_for(IGlobalType type, bool as_array = false) {
+    switch (type) {
+      case IGlobalType::type_id:
+      case IGlobalType::type_flag:
+        return ir_build_.getInt32Ty();
+      case IGlobalType::extent:
+      case IGlobalType::num_members:
+        return ir_build_.getInt32Ty();
+      case IGlobalType::member_offsets:
+      case IGlobalType::member_types:
+      case IGlobalType::member_count: {
+        if (as_array) {
+          return ir_build_.getInt32Ty();
+        }
+        return ir_build_.getPtrTy();
+      }
+      case IGlobalType::name:
+      case IGlobalType::ptr:
+        return ir_build_.getPtrTy();
+    }
+    llvm_unreachable("Should not be reached disk");
+  }
+
+  llvm::Constant* get_constant_for(IGlobalType type, size_t value) {
+    switch (type) {
+      case IGlobalType::type_id:
+      case IGlobalType::type_flag:
+        return ir_build_.getInt32(value);
+      case IGlobalType::extent:
+      case IGlobalType::num_members:
+      case IGlobalType::member_offsets:
+      case IGlobalType::member_count:
+        return ir_build_.getInt32(value);
+      default:
+        break;
+    }
+    return ir_build_.getInt64(value);
+  }
+};
+
 struct GlobalTypeRegistrar {
+ private:
   llvm::Module* module_;
   const TypeDatabase* type_db_;
   llvm::IRBuilder<> ir_build;
   GlobalTypeCallback type_callback;
   llvm::StructType* struct_layout_type_;
   GlobalTypeData global_types_;
-
-  GlobalTypeRegistrar(llvm::Module* m, const TypeDatabase* type_db, const TAFunctionQuery* f_query)
-      : module_(m), type_db_(type_db), ir_build(m->getContext()), type_callback(module_, f_query) {
-    declare_layout();
-  }
+  TypeHelper types_helper;
 
  private:
   void declare_layout() {
-    auto& context = module_->getContext();
-    llvm::IRBuilder<> Builder(context);
+    auto& context       = module_->getContext();
     struct_layout_type_ = llvm::StructType::create(context, "struct._typeart_struct_layout_t");
     struct_layout_type_->setBody({
-        Builder.getInt32Ty(),                   // int type_id
-        llvm::PointerType::getUnqual(context),  // const char* name
-        Builder.getInt64Ty(),                   // size_t extent
-        Builder.getInt64Ty(),                   // size_t num_members
-        llvm::PointerType::getUnqual(context),  // const size_t* offsets
-        llvm::PointerType::getUnqual(context),  // const typeart_struct_layout_t* member_types
-        llvm::PointerType::getUnqual(context),  // const size_t* count
-        Builder.getInt32Ty(),                   // int type_flag
+        types_helper.get_type_for(IGlobalType::type_id),         // int type_id
+        types_helper.get_type_for(IGlobalType::name),            // const char* name
+        types_helper.get_type_for(IGlobalType::extent),          // size_t extent
+        types_helper.get_type_for(IGlobalType::num_members),     // size_t num_members
+        types_helper.get_type_for(IGlobalType::member_offsets),  // const size_t* offsets
+        types_helper.get_type_for(IGlobalType::member_types),    // const typeart_struct_layout_t** member_types
+        types_helper.get_type_for(IGlobalType::member_count),    // const size_t* count
+        types_helper.get_type_for(IGlobalType::type_flag),       // int type_flag
     });
   }
 
@@ -225,15 +279,13 @@ struct GlobalTypeRegistrar {
   }
 
   llvm::Constant* create_global_array_ptr(const llvm::StringRef name, llvm::ArrayRef<uint64_t> values) {
-    auto* int64_ty = ir_build.getInt64Ty();
-
     std::vector<llvm::Constant*> constants;
     constants.reserve(values.size());
     for (uint64_t val : values) {
-      constants.push_back(llvm::ConstantInt::get(int64_ty, val));
+      constants.push_back(types_helper.get_constant_for(IGlobalType::member_offsets, val));
     }
 
-    auto* array_ty       = llvm::ArrayType::get(int64_ty, values.size());
+    auto* array_ty = llvm::ArrayType::get(types_helper.get_type_for(IGlobalType::member_offsets, true), values.size());
     auto* constant_array = llvm::ConstantArray::get(array_ty, constants);
     auto* gv             = create_global(name, array_ty, constant_array);
     return make_gep(array_ty, gv);
@@ -247,14 +299,15 @@ struct GlobalTypeRegistrar {
     llvm::GlobalVariable* global_struct = create_global(name_struct, struct_layout_type_);
     llvm::Constant* name_str            = create_global_constant_string(name);
 
-    std::vector<llvm::Constant*> members = {ir_build.getInt32(type_id),
-                                            name_str,
-                                            ir_build.getInt64(type_size),
-                                            ir_build.getInt64(member_count),
-                                            offset_ptr,
-                                            members_data_ptr,
-                                            count_ptr,
-                                            ir_build.getInt32(static_cast<int>(flag))};  // TODO: use real type
+    std::vector<llvm::Constant*> members = {
+        types_helper.get_constant_for(IGlobalType::type_id, type_id),
+        name_str,
+        types_helper.get_constant_for(IGlobalType::extent, type_size),
+        types_helper.get_constant_for(IGlobalType::member_count, member_count),
+        offset_ptr,
+        members_data_ptr,
+        count_ptr,
+        types_helper.get_constant_for(IGlobalType::type_flag, static_cast<int>(flag))};  // TODO: use real type
 
     llvm::Constant* init = llvm::ConstantStruct::get(struct_layout_type_, members);
 
@@ -297,8 +350,9 @@ struct GlobalTypeRegistrar {
       llvm::Constant* init             = llvm::ConstantArray::get(member_array_ty, member_types);
       members_array                    = create_global(helper::concat("member_types_", name), member_array_ty, init);
     } else {
-      llvm::Constant* null_member = llvm::ConstantPointerNull::get(llvm::PointerType::getUnqual(module_->getContext()));
-      members_array               = null_member;
+      llvm::Constant* null_member = llvm::ConstantPointerNull::get(
+          llvm::dyn_cast<llvm::PointerType>(types_helper.get_type_for(IGlobalType::ptr)));
+      members_array = null_member;
     }
 
     return registerGlobalStruct(name, type_struct->type_id, type_size, member_count, offset_ptr, members_array,
@@ -322,6 +376,19 @@ struct GlobalTypeRegistrar {
   }
 
  public:
+  GlobalTypeRegistrar(llvm::Module* m, const TypeDatabase* type_db, const TAFunctionQuery* f_query)
+      : module_(m),
+        type_db_(type_db),
+        ir_build(m->getContext()),
+        type_callback(module_, f_query),
+        types_helper(ir_build) {
+    declare_layout();
+  }
+
+  const TypeDatabase& db() const {
+    return *type_db_;
+  }
+
   llvm::Constant* getOrRegister(int type_id) {
     const auto name = type_db_->getTypeName(type_id);
     LOG_DEBUG(name << " aka " << helper::create_prefixed_name(name))
@@ -360,7 +427,7 @@ class TypeRegistryGlobals final : public TypeRegistry {
       if (builtins::BuiltInQuery::is_builtin_type(type.type_id)) {
         continue;
       }
-      if (!registrar_.type_db_->isValid(type.type_id)) {
+      if (!registrar_.db().isValid(type.type_id)) {
         continue;
       }
       LOG_DEBUG("Registering type_id " << type.type_id)

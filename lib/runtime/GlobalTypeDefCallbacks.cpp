@@ -29,14 +29,14 @@ namespace typeart {
   }
 
 struct GlobalTypeInfo {
-  const int type_id;
+  const int32_t type_id;
   const char* name;
-  const size_t extent;
-  const size_t num_members;
-  const std::int64_t* offsets;
+  const int32_t extent;
+  const int32_t num_members;
+  const std::int32_t* offsets;
   const GlobalTypeInfo** member_types;
-  const std::int64_t* array_sizes;
-  const int flag;
+  const std::int32_t* array_sizes;
+  const int32_t flag;
 };
 
 class GlobalTypeTranslator::Impl {
