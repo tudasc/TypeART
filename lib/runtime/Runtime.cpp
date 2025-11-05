@@ -86,7 +86,7 @@ RuntimeSystem::RuntimeSystem()
     if (!loadTypes(type_file, error)) {
       LOG_FATAL("Failed to load recorded types from " << config::EnvironmentStdArgs::types << "=" << type_file
                                                       << " .Reason: " << error.message());
-      std::exit(EXIT_FAILURE);  // TODO: Error handling
+      // std::exit(EXIT_FAILURE);  // TODO: Error handling
     }
   } else {
     if (!loadTypes(defaultTypeFileName, error)) {

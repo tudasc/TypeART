@@ -60,13 +60,13 @@ inline int get_type_id(llvm::Value* type_id_const) {
 
 template <typename... Args>
 inline std::string concat(Args&&... args) {
-  const auto str = (llvm::StringRef{} + ... + llvm::StringRef{std::forward<Args>(args)});
-  return str.str();
+  const auto str = (std::string{} + ... + std::string{std::forward<Args>(args)});
+  return str;
 }
 
 template <typename... Args>
 inline std::string create_prefixed_name(Args&&... args) {
-  std::string name = concat(llvm::StringRef{"_typeart_"}, std::forward<Args>(args)...);
+  std::string name = concat("_typeart_", std::forward<Args>(args)...);
   replace_whitespace_with_underscore(name);
   return name;
 }
