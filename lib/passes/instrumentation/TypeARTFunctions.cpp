@@ -1,4 +1,5 @@
 // TypeART library
+
 //
 // Copyright (c) 2017-2025 TypeART Authors
 // Distributed under the BSD 3-Clause license.

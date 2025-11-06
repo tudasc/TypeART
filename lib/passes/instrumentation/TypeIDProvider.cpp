@@ -224,6 +224,10 @@ struct TypeHelper {
     }
     return ir_build_.getInt32(value);
   }
+
+  llvm::Constant* get_constant_nullptr() {
+    return llvm::ConstantPointerNull::get(llvm::dyn_cast<llvm::PointerType>(get_type_for(IGlobalType::ptr)));
+  }
 };
 
 struct GlobalTypeRegistrar {
@@ -235,6 +239,7 @@ struct GlobalTypeRegistrar {
   llvm::StructType* struct_layout_type_;
   GlobalTypeData global_types_;
   TypeHelper types_helper;
+  const bool builtin_emit_name{false};
 
  private:
   void declare_layout() {
@@ -280,6 +285,11 @@ struct GlobalTypeRegistrar {
   }
 
   llvm::Constant* create_global_array_ptr(const llvm::StringRef name, llvm::ArrayRef<uint64_t> values) {
+    if (values.empty()) {
+      LOG_DEBUG("No values for global array, returning nullptr")
+      return types_helper.get_constant_nullptr();
+    }
+
     std::vector<llvm::Constant*> constants;
     constants.reserve(values.size());
     for (uint64_t val : values) {
@@ -296,9 +306,15 @@ struct GlobalTypeRegistrar {
                                              uint64_t member_count, llvm::Constant* offset_ptr,
                                              llvm::Constant* members_data_ptr, llvm::Constant* count_ptr,
                                              StructTypeFlag flag = StructTypeFlag::USER_DEFINED) {
-    const auto name_struct              = flag == StructTypeFlag::FWD_DECL ? helper::concat(name, "_fwd") : name;
+    const auto name_struct = flag == StructTypeFlag::FWD_DECL ? helper::concat(name, "_fwd") : name;
+
     llvm::GlobalVariable* global_struct = create_global(name_struct, struct_layout_type_);
-    llvm::Constant* name_str            = create_global_constant_string(name);
+
+    // In the current scheme, built-ins do not need to produce a name string (Built)
+    const bool is_builtin            = flag == StructTypeFlag::BUILTIN;
+    const bool emit_builtin_typename = is_builtin && builtin_emit_name;
+    llvm::Constant* name_str         = (emit_builtin_typename || !is_builtin) ? create_global_constant_string(name)
+                                                                              : types_helper.get_constant_nullptr();
 
     std::vector<llvm::Constant*> members = {
         types_helper.get_constant_for(IGlobalType::type_id, type_id),
@@ -350,9 +366,8 @@ struct GlobalTypeRegistrar {
       llvm::Constant* init             = llvm::ConstantArray::get(member_array_ty, member_types);
       members_array                    = create_global(helper::concat("member_types_", name), member_array_ty, init);
     } else {
-      llvm::Constant* null_member = llvm::ConstantPointerNull::get(
-          llvm::dyn_cast<llvm::PointerType>(types_helper.get_type_for(IGlobalType::ptr)));
-      members_array = null_member;
+      llvm::Constant* null_member = types_helper.get_constant_nullptr();
+      members_array               = null_member;
     }
 
     return registerGlobalStruct(name, type_struct->type_id, type_size, member_count, offset_ptr, members_array,
@@ -362,8 +377,8 @@ struct GlobalTypeRegistrar {
   llvm::GlobalVariable* registerBuiltin(int type_id) {
     auto type_name = type_db_->getTypeName(type_id);
     helper::replace_whitespace_with_underscore(type_name);
-    StructTypeInfo type_struct{type_id, type_name, type_db_->getTypeSize(type_id), 1, {0},
-                               {},      {1},       StructTypeFlag::BUILTIN};
+    StructTypeInfo type_struct{type_id, type_name, type_db_->getTypeSize(type_id), 1, {},
+                               {},      {},        StructTypeFlag::BUILTIN};
     return registerTypeStruct(&type_struct);
   }
 
