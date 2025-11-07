@@ -98,10 +98,10 @@ GlobalTypeTranslator::GlobalTypeTranslator(TypeDatabase& db) : pImpl(std::make_u
 GlobalTypeTranslator::~GlobalTypeTranslator() = default;
 
 void GlobalTypeTranslator::register_type(const void* type) {
-  const auto* info_struct                           = reinterpret_cast<const GlobalTypeInfo*>(type);
-  const auto type_id                                = pImpl->register_t(info_struct);
+  const auto* info_struct = reinterpret_cast<const GlobalTypeInfo*>(type);
+  const auto type_id      = pImpl->register_t(info_struct);
+  LOG_DEBUG("Type id reset: " << info_struct->name << " " << info_struct->type_id << " vs. " << type_id)
   const_cast<GlobalTypeInfo*>(info_struct)->type_id = type_id;
-  // LOG_DEBUG("After: " << info_struct->name << " " << info_struct->type_id)
 }
 
 }  // namespace typeart

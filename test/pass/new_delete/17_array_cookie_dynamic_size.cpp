@@ -10,7 +10,7 @@
 
 struct S1 {
   int x;
-  ~S1(){};
+  ~S1() {};
 };
 
 // CHECK: [[MEM:%[0-9a-z]+]] = call{{.*}} i8* @_Znam(i64{{( noundef)?}} [[ALLOC:%[0-9a-z]+]])

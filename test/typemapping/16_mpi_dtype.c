@@ -19,6 +19,6 @@ int main(void) {
 
 // CHECK-NOT: Error
 // CHECK: call {{.*}} @__typeart_alloc_stack(ptr {{.*}}, i32 1, i64 3)
-// inline: @_typeart_ptr = weak_odr constant %struct._typeart_struct_layout_t
+// inline: @_typeart_ptr = weak_odr global %struct._typeart_struct_layout_t
 // inline: call {{.*}} @__typeart_alloc_stack_mty(ptr {{.*}}, ptr {{.*}}, i64 3)
 // hybrid: call {{.*}} @__typeart_alloc_stack(ptr {{.*}}, i32 1, i64 3)

@@ -1,6 +1,6 @@
 // RUN: %cpp-to-llvm %s | %apply-typeart -typeart-type-serialization=inline -S | %filecheck %s
 
-// CHECK: @_typeart__ZTS6Domain_fwd = weak_odr constant %struct._typeart_struct_layout_t { i32 256,
+// CHECK: @_typeart__ZTS6Domain_fwd = weak_odr global %struct._typeart_struct_layout_t { i32 256,
 
 // REQUIRES: llvm-18 || llvm-19
 

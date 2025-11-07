@@ -200,11 +200,19 @@ struct TypeHelper {
         if (as_array) {
           return ir_build_.getInt16Ty();
         }
+#if LLVM_VERSION_MAJOR < 15
+        return ir_build_.getInt8PtrTy();
+#else
         return ir_build_.getPtrTy();
+#endif
       }
       case IGlobalType::name:
       case IGlobalType::ptr:
+#if LLVM_VERSION_MAJOR < 15
+        return ir_build_.getInt8PtrTy();
+#else
         return ir_build_.getPtrTy();
+#endif
     }
     llvm_unreachable("Should not be reached disk");
   }
@@ -241,7 +249,6 @@ struct GlobalTypeRegistrar {
   TypeHelper types_helper;
   const bool builtin_emit_name{false};
 
- private:
   void declare_layout() {
     auto& context       = module_->getContext();
     struct_layout_type_ = llvm::StructType::create(context, "struct._typeart_struct_layout_t");
@@ -483,7 +490,7 @@ std::unique_ptr<TypeRegistry> get_type_id_handler(llvm::Module& m, const TypeDat
   TypeSerializationImplementation impl = configuration[config::ConfigStdArgs::type_serialization];
 #if LLVM_VERSION_MAJOR < 15
   if (impl != typeart::TypeSerializationImplementation::FILE) {
-    LOG_WARNING("Warning unsupported type serialization mode.")
+    LOG_WARNING("Unsupported type serialization mode for LLVM-" << LLVM_VERSION_MAJOR)
   }
   // using llvm-14 would require opaque pointer mode for globals
   return std::make_unique<TypeRegistryNoOp>();

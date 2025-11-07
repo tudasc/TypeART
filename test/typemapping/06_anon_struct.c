@@ -1,4 +1,4 @@
-// RUN: %c-to-llvm %s | %apply-typeart --typeart-stack=true
+// RUN: %c-to-llvm %s | %apply-typeart --typeart-stack=true --typeart-type-serialization=file
 // RUN: cat %tu_yaml | %filecheck %s
 
 // REQUIRES: dimeta

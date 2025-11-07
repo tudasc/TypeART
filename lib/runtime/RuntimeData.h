@@ -50,6 +50,7 @@
 #endif
 
 #include <cstddef>  // size_t
+#include <cstdint>
 #include <vector>
 
 namespace typeart {

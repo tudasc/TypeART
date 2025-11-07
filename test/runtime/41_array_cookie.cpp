@@ -4,7 +4,7 @@
 
 struct S1 {
   int x;
-  ~S1(){};
+  ~S1() {};
 };
 
 int main() {
