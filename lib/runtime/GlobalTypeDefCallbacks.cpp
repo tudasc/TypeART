@@ -24,18 +24,6 @@ namespace typeart {
     return;                       \
   }
 
-struct GlobalTypeInfo {
-  const std::int32_t type_id;
-  const std::uint32_t extent;
-  const std::uint16_t num_members;
-  const std::uint16_t flag;
-
-  const char* name;
-  const std::uint16_t* offsets;
-  const std::uint16_t* array_sizes;
-  const GlobalTypeInfo** member_types;
-};
-
 class GlobalTypeTranslator::Impl {
   TypeDatabase& type_db_;
   RuntimeT::TypeLookupMapT& translator_map_;
@@ -110,8 +98,10 @@ GlobalTypeTranslator::GlobalTypeTranslator(TypeDatabase& db) : pImpl(std::make_u
 GlobalTypeTranslator::~GlobalTypeTranslator() = default;
 
 void GlobalTypeTranslator::register_type(const void* type) {
-  const auto* info_struct = reinterpret_cast<const GlobalTypeInfo*>(type);
-  pImpl->register_t(info_struct);
+  const auto* info_struct                           = reinterpret_cast<const GlobalTypeInfo*>(type);
+  const auto type_id                                = pImpl->register_t(info_struct);
+  const_cast<GlobalTypeInfo*>(info_struct)->type_id = type_id;
+  // LOG_DEBUG("After: " << info_struct->name << " " << info_struct->type_id)
 }
 
 }  // namespace typeart

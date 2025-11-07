@@ -309,6 +309,7 @@ struct GlobalTypeRegistrar {
     const auto name_struct = flag == StructTypeFlag::FWD_DECL ? helper::concat(name, "_fwd") : name;
 
     llvm::GlobalVariable* global_struct = create_global(name_struct, struct_layout_type_);
+    global_struct->setConstant(false);
 
     // In the current scheme, built-ins do not need to produce a name string (Built)
     const bool is_builtin            = flag == StructTypeFlag::BUILTIN;

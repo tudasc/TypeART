@@ -62,6 +62,18 @@ struct PointerInfo final {
   MemAddr debug{nullptr};
 };
 
+struct GlobalTypeInfo {
+  std::int32_t type_id;
+  const std::uint32_t extent;
+  const std::uint16_t num_members;
+  const std::uint16_t flag;
+
+  const char* name;
+  const std::uint16_t* offsets;
+  const std::uint16_t* array_sizes;
+  const GlobalTypeInfo** member_types;
+};
+
 struct RuntimeT {
   using Stack = std::vector<MemAddr>;
   static constexpr auto StackReserve{512U};
