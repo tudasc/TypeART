@@ -10,8 +10,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //
 
-#ifndef TYPEART_RUNTIME_H
-#define TYPEART_RUNTIME_H
+#ifndef LIB_RUNTIME_RUNTIME
+#define LIB_RUNTIME_RUNTIME
 
 #include "AccessCounter.h"
 #include "AllocationTracking.h"
@@ -45,7 +45,7 @@ struct RuntimeSystem {
       rtScope = true;
     }
 
-    void reset() {
+    void reset() const {
       // Reset rtScope to old value.
       rtScope = rtScopeWasSet;
     }
@@ -126,4 +126,4 @@ struct RTGuard final {
 
 }  // namespace typeart
 
-#endif  // TYPEART_RUNTIME_H
+#endif /* LIB_RUNTIME_RUNTIME */

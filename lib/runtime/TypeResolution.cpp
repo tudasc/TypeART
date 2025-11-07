@@ -366,7 +366,7 @@ typeart_status typeart_get_containing_type(typeart_type_info type, typeart_base_
   containing_type->count   = type.base_type_info.count;
   containing_type->address = type.base_type_info.address;
   const typeart::PointerInfo info{type.base_type_info.type_id, type.base_type_info.count};
-  const auto result = typeart::RuntimeSystem::get().get_type_resolution().getContainingTypeInfo(
+  const auto result = typeart::RuntimeSystem::get().type_resolution().getContainingTypeInfo(
       type.address, containing_type->address, info, &containing_type->count, byte_offset);
 
   return result;

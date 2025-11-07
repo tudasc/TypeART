@@ -68,7 +68,6 @@ struct RuntimeT {
   static constexpr char StackName[] = "std::vector";
 #ifdef TYPEART_PHMAP
   using PointerMapBaseT = phmap::btree_map<MemAddr, PointerInfo>;
-  using TypeLookupMapT  = phmap::flat_hash_map<MemAddr, int>;
   template <class K, class V>
   using HashmapT                  = phmap::flat_hash_map<K, V>;
   static constexpr char MapName[] = "phmap::btree_map";
@@ -77,14 +76,12 @@ struct RuntimeT {
   using PointerMapBaseT = absl::btree_map<MemAddr, PointerInfo>;
   template <class K, class V>
   using HashmapT                  = absl::flat_hash_map<K, V>;
-  using TypeLookupMapT            = absl::flat_hash_map<MemAddr, int>;
   static constexpr char MapName[] = "absl::btree_map";
 #endif
 #if !defined(TYPEART_PHMAP) && !defined(TYPEART_ABSEIL)
   using PointerMapBaseT = std::map<MemAddr, PointerInfo>;
   template <class K, class V>
   using HashmapT                  = std::unordered_map<K, V>;
-  using TypeLookupMapT            = std::unordered_map<MemAddr, int>;
   static constexpr char MapName[] = "std::map";
 #endif
 #ifdef USE_SAFEPTR
@@ -94,10 +91,11 @@ struct RuntimeT {
   using PointerMap = PointerMapBaseT;
   static constexpr bool has_safe_map{false};
 #endif
-  using MapEntry   = PointerMapBaseT::value_type;
-  using MappedType = PointerMapBaseT::mapped_type;
-  using MapKey     = PointerMapBaseT::key_type;
-  using StackEntry = Stack::value_type;
+  using MapEntry       = PointerMapBaseT::value_type;
+  using MappedType     = PointerMapBaseT::mapped_type;
+  using MapKey         = PointerMapBaseT::key_type;
+  using StackEntry     = Stack::value_type;
+  using TypeLookupMapT = HashmapT<MemAddr, int>;
 };
 
 }  // namespace typeart
