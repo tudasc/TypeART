@@ -21,6 +21,7 @@
 #ifdef TYPEART_PHMAP
 #error TypeART-RT: Set ABSL and PHMAP, mutually exclusive.
 #endif
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
 #pragma GCC diagnostic ignored "-Wshadow"
@@ -47,6 +48,12 @@
 #error TypeART-RT: Safe_ptr and disabled thread safety illegal
 #endif
 #include "safe_ptr.h"
+#endif
+
+#if defined(__has_feature)
+#if __has_feature(address_sanitizer)
+#define __SANITIZE_ADDRESS__
+#endif
 #endif
 
 #include <cstddef>  // size_t
@@ -88,7 +95,11 @@ struct RuntimeT {
 #ifdef TYPEART_ABSEIL
   using PointerMapBaseT = absl::btree_map<MemAddr, PointerInfo>;
   template <class K, class V>
-  using HashmapT                  = absl::flat_hash_map<K, V>;
+#ifdef __SANITIZE_ADDRESS__
+  using HashmapT = std::unordered_map<K, V>;
+#else
+  using HashmapT = absl::flat_hash_map<K, V>;
+#endif
   static constexpr char MapName[] = "absl::btree_map";
 #endif
 #if !defined(TYPEART_PHMAP) && !defined(TYPEART_ABSEIL)
