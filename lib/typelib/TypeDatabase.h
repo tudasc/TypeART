@@ -22,7 +22,7 @@
 
 namespace typeart {
 
-enum class StructTypeFlag : int { USER_DEFINED = 1, LLVM_VECTOR = 2, FWD_DECL = 4, UNION = 8 };
+enum class StructTypeFlag : int { USER_DEFINED = 1, LLVM_VECTOR = 2, FWD_DECL = 4, UNION = 8, BUILTIN = 16 };
 
 struct StructTypeInfo {
   int type_id;

@@ -44,5 +44,7 @@ TYPEART_CONFIG_OPTION(analysis_filter_pointer_alloc, "analysis-filter-pointer-al
 TYPEART_CONFIG_OPTION(analysis_filter_alloca_non_array, "analysis-filter-non-array-alloca", bool, false,
                       "Filter scalar valued allocas.", "ANALYSIS_FILTER_NON_ARRAY_ALLOCA")
 TYPEART_CONFIG_OPTION(typegen, "typegen", std::string, "dimeta", "Select type layout generator.", "TYPEGEN")
+TYPEART_CONFIG_OPTION(type_serialization, "type-serialization", std::string, "file",
+                      "Serialization mode for type representation.", "TYPE_SERIALIZATION")
 
 #undef TYPEART_CONFIG_OPTION

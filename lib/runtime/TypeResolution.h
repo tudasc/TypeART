@@ -16,13 +16,13 @@
 #include "AccessCounter.h"
 #include "RuntimeData.h"
 #include "RuntimeInterface.h"
-#include "TypeDB.h"
-#include "TypeInterface.h"
 
 #include <cstddef>
-#include <string>
 
 namespace typeart {
+
+class TypeDB;
+struct StructTypeInfo;
 
 struct PointerInfo;
 
@@ -50,7 +50,7 @@ class TypeResolution {
 
   TypeArtStatus getStructInfo(int type_id, const StructTypeInfo** structInfo) const;
 
-  [[nodiscard]] const TypeDB& db() const;
+  // [[nodiscard]] const TypeDB& db() const;
 };
 
 }  // namespace typeart

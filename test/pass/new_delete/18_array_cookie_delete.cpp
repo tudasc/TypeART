@@ -9,7 +9,7 @@
 
 struct S1 {
   int x;
-  ~S1(){};
+  ~S1() {};
 };
 
 // CHECK: [[MEM:%[0-9a-z]+]] = getelementptr inbounds i8, {{i8\*|ptr}} [[ARR:%[0-9a-z]+]], i64 -8

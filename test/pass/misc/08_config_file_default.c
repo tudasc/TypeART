@@ -1,5 +1,7 @@
 // RUN: %c-to-llvm %s | %apply-typeart -S 2>&1 | %filecheck %s
 
+// REQUIRES: !llvm-14
+
 // CHECK-NOT: {{(Error|Fatal)}}
 
 // CHECK: types:           {{.*}}.yaml
@@ -9,6 +11,7 @@
 // CHECK-NEXT: stats:           true
 // CHECK-NEXT: stack-lifetime:  true
 // CHECK-NEXT: typegen:         {{dimeta|ir}}
+// CHECK-NEXT: type-serialization:         hybrid
 // CHECK-NEXT: filter:          false
 // CHECK-NEXT: call-filter:
 // CHECK-NEXT:   implementation:  std

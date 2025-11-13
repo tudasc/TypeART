@@ -31,10 +31,10 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Checkout test-bench
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: tudasc/typeart-bench
           ssh-key: ${{ secrets.AUTH_SSH_CI_EXT }}
@@ -129,10 +129,10 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Checkout AD test-bench
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: ahueck/typeart-ad-benchmarks
           ssh-key: ${{ secrets.AUTH_SSH_CI_EXT_AD }}
@@ -215,10 +215,10 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Checkout OMP test-bench
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: tudasc/typeart-bench
           ssh-key: ${{ secrets.AUTH_SSH_CI_EXT }}

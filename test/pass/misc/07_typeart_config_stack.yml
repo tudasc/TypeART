@@ -3,8 +3,10 @@ types: "types_config.yaml"
 heap: false
 stack: true
 global: false
+stats: true
 stack-lifetime: false
 typegen: "dimeta"
+type-serialization: inline
 filter: false
 call-filter:
   implementation: "std"

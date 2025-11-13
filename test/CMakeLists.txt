@@ -145,6 +145,7 @@ set(TYPEART_SUITES
   runtime
   script
   typemapping
+  runtime_inlined_types
   staging
 )
 

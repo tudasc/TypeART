@@ -1,20 +1,19 @@
 // RUN: %c-to-llvm %s | %apply-typeart --typeart-config=%S/07_typeart_config_stack.yml 2>&1 | %filecheck %s
 // REQUIRES: llvm-14
 
-// XFAIL: *
-
 #include <stdlib.h>
 void test() {
   int* p = (int*)malloc(42 * sizeof(int));
 }
 
-// CHECK: types:           {{.*}}
+// CHECK:  types:           07_config_file.c.yaml
 // CHECK-NEXT:  heap:            false
 // CHECK-NEXT:  stack:           true
 // CHECK-NEXT:  global:          false
 // CHECK-NEXT:  stats:           {{.*}}
 // CHECK-NEXT:  stack-lifetime:  false
 // CHECK-NEXT:  typegen:         {{dimeta|ir}}
+// CHECK-NEXT:  type-serialization: inline
 // CHECK-NEXT:  filter:          false
 // CHECK-NEXT:  call-filter:
 // CHECK-NEXT:    implementation:  std

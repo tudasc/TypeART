@@ -193,7 +193,7 @@ bool MemInstFinderPass::runOnModule(Module& module) {
                         }
 
                         if (util::starts_with_any_of(name, "llvm.", "__llvm_gcov", "__llvm_gcda", "__profn", "___asan",
-                                                     "__msan", "__tsan")) {
+                                                     "__msan", "__tsan", "__typeart", "_typeart")) {
                           LOG_DEBUG("Prefixed matched on " << name)
                           return true;
                         }

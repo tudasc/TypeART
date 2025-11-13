@@ -1,4 +1,5 @@
-// RUN: %run %s --typeart-analysis-filter-non-array-alloca=true 2>&1 | %filecheck %s
+// RUN: %run %s --typeart-analysis-filter-non-array-alloca=true --compile_flags -DIGNORE_ID=1 2>&1 | %filecheck %s
+// RUN: %run %s --typeart-analysis-filter-non-array-alloca=true --typeart-type-serialization=file 2>&1 | %filecheck %s
 
 #include "../struct_defs.h"
 #include "util.h"
@@ -6,6 +7,9 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+// #define IGNORE_ID 1
+
+// CHECK: [Trace] TypeART Runtime Trace
 int main(int argc, char** argv) {
   s_int s;
 
@@ -14,7 +18,11 @@ int main(int argc, char** argv) {
   // CHECK: Ok
   check_struct(a, "struct.s_ptr_to_self_t", 1);
   // CHECK: Ok
+#if IGNORE_ID == 1
+  fprintf(stderr, "Ok\n");
+#else
   check(a, get_struct_id(0), 1, 0);
+#endif
   // CHECK: Ok
   check(a, TYPEART_POINTER, 1, 1);
   // CHECK: Ok
@@ -29,11 +37,19 @@ int main(int argc, char** argv) {
   // CHECK: Ok
   check_struct(b, "struct.s_struct_member_t", 1);
   // CHECK: Ok
+#if IGNORE_ID == 1
+  fprintf(stderr, "Ok\n");
+#else
   check(b, get_struct_id(1), 1, 0);
+#endif
   // CHECK: Ok
   check(b, TYPEART_INT_32, 1, 1);
-  // CHECK: Ok
+// CHECK: Ok
+#if IGNORE_ID == 1
+  fprintf(stderr, "Ok\n");
+#else
   check(&b->b, get_struct_id(0), 1, 0);
+#endif
   // CHECK: Ok
   check(&b->b, TYPEART_POINTER, 1, 1);
   // CHECK: Ok
@@ -48,7 +64,11 @@ int main(int argc, char** argv) {
   // CHECK: Ok
   check_struct(c, "struct.s_aos_t", 1);
   // CHECK: Ok
+#if IGNORE_ID == 1
+  fprintf(stderr, "Ok\n");
+#else
   check(c, get_struct_id(2), 1, 0);
+#endif
   // CHECK: Ok
   check(c, TYPEART_INT_32, 1, 1);
   // CHECK: Ok

@@ -10,8 +10,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //
 
-#ifndef TYPEART_TYPEGENERATOR_H
-#define TYPEART_TYPEGENERATOR_H
+#ifndef LIB_PASSES_TYPEGEN_TYPEGENERATOR
+#define LIB_PASSES_TYPEGEN_TYPEGENERATOR
 
 #include "analysis/MemOpData.h"
 #include "typelib/TypeDatabase.h"
@@ -25,6 +25,7 @@
 #include <string_view>
 #include <system_error>
 #include <utility>
+#include <vector>
 
 namespace llvm {
 class Type;
@@ -40,13 +41,16 @@ struct TypeIdentifier final {
   std::uint64_t num_elements{1};  // > 1 for array-like type allocation
 };
 
+using TypeIdentifierList = std::vector<TypeIdentifier>;
+
 struct ModuleData {
   llvm::Module* module;
+  TypeIdentifierList types_list{};
 };
 
 class TypeGenerator {
  public:
-  virtual void registerModule(const ModuleData&)                            = 0;
+  virtual bool registerModule(ModuleData&)                                  = 0;
   [[nodiscard]] virtual TypeIdentifier getOrRegisterType(const MallocData&) = 0;
   [[nodiscard]] virtual TypeIdentifier getOrRegisterType(const AllocaData&) = 0;
   [[nodiscard]] virtual TypeIdentifier getOrRegisterType(const GlobalData&) = 0;
@@ -64,4 +68,4 @@ std::unique_ptr<TypeGenerator> make_typegen(std::string_view file, TypegenImplem
 
 }  // namespace typeart
 
-#endif  // TYPEART_TYPEGENERATOR_H
+#endif /* LIB_PASSES_TYPEGEN_TYPEGENERATOR */

@@ -21,10 +21,12 @@
 #ifdef TYPEART_PHMAP
 #error TypeART-RT: Set ABSL and PHMAP, mutually exclusive.
 #endif
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
 #pragma GCC diagnostic ignored "-Wshadow"
 #include "absl/container/btree_map.h"
+#include "absl/container/flat_hash_map.h"
 #pragma GCC diagnostic pop
 #endif
 
@@ -33,10 +35,12 @@
 #error TypeART-RT: Set ABSL and PHMAP, mutually exclusive.
 #endif
 #include "parallel_hashmap/btree.h"
+#include "parallel_hashmap/phmap.h"
 #endif
 
 #if !defined(TYPEART_PHMAP) && !defined(TYPEART_ABSEIL)
 #include <map>
+#include <unordered_map>
 #endif
 
 #ifdef USE_SAFEPTR
@@ -46,7 +50,14 @@
 #include "safe_ptr.h"
 #endif
 
+#if defined(__has_feature)
+#if __has_feature(address_sanitizer)
+#define __SANITIZE_ADDRESS__
+#endif
+#endif
+
 #include <cstddef>  // size_t
+#include <cstdint>
 #include <vector>
 
 namespace typeart {
@@ -59,20 +70,42 @@ struct PointerInfo final {
   MemAddr debug{nullptr};
 };
 
+struct GlobalTypeInfo {
+  std::int32_t type_id;
+  const std::uint32_t extent;
+  const std::uint16_t num_members;
+  const std::uint16_t flag;
+
+  const char* name;
+  const std::uint16_t* offsets;
+  const std::uint16_t* array_sizes;
+  const GlobalTypeInfo** member_types;
+};
+
 struct RuntimeT {
   using Stack = std::vector<MemAddr>;
   static constexpr auto StackReserve{512U};
   static constexpr char StackName[] = "std::vector";
 #ifdef TYPEART_PHMAP
-  using PointerMapBaseT           = phmap::btree_map<MemAddr, PointerInfo>;
+  using PointerMapBaseT = phmap::btree_map<MemAddr, PointerInfo>;
+  template <class K, class V>
+  using HashmapT                  = phmap::flat_hash_map<K, V>;
   static constexpr char MapName[] = "phmap::btree_map";
 #endif
 #ifdef TYPEART_ABSEIL
-  using PointerMapBaseT           = absl::btree_map<MemAddr, PointerInfo>;
+  using PointerMapBaseT = absl::btree_map<MemAddr, PointerInfo>;
+  template <class K, class V>
+#ifdef __SANITIZE_ADDRESS__
+  using HashmapT = std::unordered_map<K, V>;
+#else
+  using HashmapT = absl::flat_hash_map<K, V>;
+#endif
   static constexpr char MapName[] = "absl::btree_map";
 #endif
 #if !defined(TYPEART_PHMAP) && !defined(TYPEART_ABSEIL)
-  using PointerMapBaseT           = std::map<MemAddr, PointerInfo>;
+  using PointerMapBaseT = std::map<MemAddr, PointerInfo>;
+  template <class K, class V>
+  using HashmapT                  = std::unordered_map<K, V>;
   static constexpr char MapName[] = "std::map";
 #endif
 #ifdef USE_SAFEPTR
@@ -82,10 +115,11 @@ struct RuntimeT {
   using PointerMap = PointerMapBaseT;
   static constexpr bool has_safe_map{false};
 #endif
-  using MapEntry   = PointerMapBaseT::value_type;
-  using MappedType = PointerMapBaseT::mapped_type;
-  using MapKey     = PointerMapBaseT::key_type;
-  using StackEntry = Stack::value_type;
+  using MapEntry       = PointerMapBaseT::value_type;
+  using MappedType     = PointerMapBaseT::mapped_type;
+  using MapKey         = PointerMapBaseT::key_type;
+  using StackEntry     = Stack::value_type;
+  using TypeLookupMapT = HashmapT<MemAddr, int>;
 };
 
 }  // namespace typeart

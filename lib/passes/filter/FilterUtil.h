@@ -46,8 +46,12 @@ using namespace llvm;
 namespace typeart::filter {
 
 struct FunctionAnalysis {
-  using FunctionCounts = struct { int decl, def, intrinsic, indirect; };
-  using FunctionCalls  = struct { llvm::SmallVector<CallSite, 8> decl, def, intrinsic, indirect; };
+  using FunctionCounts = struct {
+    int decl, def, intrinsic, indirect;
+  };
+  using FunctionCalls = struct {
+    llvm::SmallVector<CallSite, 8> decl, def, intrinsic, indirect;
+  };
 
   FunctionCalls calls;
 

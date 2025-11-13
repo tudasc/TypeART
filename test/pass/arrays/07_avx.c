@@ -1,5 +1,5 @@
 // clang-format off
-// RUN: %remove %tu_yaml && %c-to-llvm -mavx %s | %opt -O2 -S | %apply-typeart --typeart-stack=true -S 2>&1 | %filecheck %s
+// RUN: %remove %tu_yaml && %c-to-llvm -mavx %s | %opt -O2 -S | %apply-typeart --typeart-type-serialization=file --typeart-stack=true -S 2>&1 | %filecheck %s
 // clang-format on
 #include <immintrin.h>
 

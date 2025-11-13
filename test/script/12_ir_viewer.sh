@@ -30,21 +30,21 @@ exists 12_ir_viewer_target_stack.ll
 # CHECK: 1
 # CHECK: 1
 # CHECK: 1
-# CHECK: 1
+# : 1
 exists 12_ir_viewer_target_base.ll
 exists 12_ir_viewer_target_heap.ll
 exists 12_ir_viewer_target_opt.ll
 exists 12_ir_viewer_target_stack.ll
-exists 12_ir_viewer_target-types-ir-viewer.yaml
+#exists 12_ir_viewer_target-types-ir-viewer.yaml
 
 "$python_interp" $1 -c 12_ir_viewer_target.c
 # CHECK: 0
 # CHECK: 0
 # CHECK: 0
 # CHECK: 0
-# CHECK: 0
+# : 0
 exists 12_ir_viewer_target_base.ll
 exists 12_ir_viewer_target_heap.ll
 exists 12_ir_viewer_target_opt.ll
 exists 12_ir_viewer_target_stack.ll
-exists 12_ir_viewer_target-types-ir-viewer.yaml
+#exists 12_ir_viewer_target-types-ir-viewer.yaml

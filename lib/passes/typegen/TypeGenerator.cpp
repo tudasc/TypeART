@@ -55,10 +55,11 @@ int TypeIDGenerator::reserveNextTypeId() {
 }
 
 const TypeDatabase& TypeIDGenerator::getTypeDatabase() const {
-  return *this->typeDB.get();
+  return *this->typeDB;
 }
 
-void TypeIDGenerator::registerModule(const ModuleData&) {
+bool TypeIDGenerator::registerModule(ModuleData&) {
+  return false;
 }
 
 }  // namespace typeart::types

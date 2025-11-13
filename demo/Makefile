@@ -3,7 +3,7 @@
 MPIRUN ?= mpirun
 MPICC ?= typeart-mpicc # instead of standard mpicc
 
-all: libtool.so 01_ex 02_ex toy toy-stack
+all: libtool.so demo demo_broken
 
 libtool.so: tool.c
 	$(MPICC) -shared -fPIC $< -o $@

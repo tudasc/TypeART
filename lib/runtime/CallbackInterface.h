@@ -36,6 +36,15 @@ void __typeart_alloc_omp(const void* addr, int type_id, size_t count);
 void __typeart_free_omp(const void* addr);
 void __typeart_alloc_stack_omp(const void* addr, int type_id, size_t count);
 void __typeart_leave_scope_omp(int alloca_count);
+
+// Called for inlined type definitions mode
+void __typeart_alloc_mty(const void* addr, const void* info, size_t count);
+void __typeart_alloc_global_mty(const void* addr, const void* info, size_t count);
+void __typeart_alloc_stack_mty(const void* addr, const void* info, size_t count);
+void __typeart_register_type(const void* type);
+
+void __typeart_alloc_global_mty_omp(const void* addr, const void* info, size_t count);
+void __typeart_alloc_stack_mty_omp(const void* addr, const void* info, size_t count);
 #ifdef __cplusplus
 }
 #endif

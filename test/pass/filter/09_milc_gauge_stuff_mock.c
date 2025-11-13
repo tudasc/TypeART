@@ -127,9 +127,9 @@ void make_loop_table() {
                       loop_num[iloop] = count;
 
                     } /* end reflection*/
-            }         /* end permutation if block */
-          }           /* end permutation */
-  }                   /* end iloop */
+            } /* end permutation if block */
+          } /* end permutation */
+  } /* end iloop */
 
   /* print out the loop coefficients */
   printf("loop coefficients: nloop rep loop_coeff  multiplicity\n");

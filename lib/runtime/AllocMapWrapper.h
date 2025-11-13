@@ -17,6 +17,7 @@
 
 #include <algorithm>
 #include <optional>
+#include <shared_mutex>
 
 namespace typeart {
 namespace mixin {

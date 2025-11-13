@@ -16,16 +16,14 @@
 #include "Runtime.h"
 #include "RuntimeData.h"
 #include "RuntimeInterface.h"
+#include "TypeDB.h"
 #include "TypeInterface.h"
 #include "support/Logger.h"
 #include "support/System.h"
 
-#include "llvm/Support/raw_ostream.h"
-
 #include <cassert>
 #include <charconv>
 #include <cstddef>
-#include <cstdint>
 #include <utility>
 #include <vector>
 
@@ -274,22 +272,23 @@ TypeResolution::TypeArtStatus TypeResolution::getStructInfo(int type_id, const S
   return TYPEART_INVALID_ID;
 }
 
-const TypeDB& TypeResolution::db() const {
-  return type_database;
-}
+// const TypeDB& TypeResolution::db() const {
+//   return type_database;
+// }
 
 namespace detail {
 // inline typeart_status query_type(const void* addr, int* type, size_t* count) {
 //   auto alloc = typeart::RuntimeSystem::get().allocTracker.findBaseAlloc(addr);
 //   typeart::RuntimeSystem::get().recorder.incUsedInRequest(addr);
 //   if (alloc) {
-//     return typeart::RuntimeSystem::get().typeResolution.getTypeInfo(addr, alloc->first, alloc->second, type, count);
+//     return typeart::RuntimeSystem::get().getTypeResolution().getTypeInfo(addr, alloc->first, alloc->second, type,
+//     count);
 //   }
 //   return TYPEART_UNKNOWN_ADDRESS;
 // }
 
 inline typeart_status query_type(const void* addr, typeart_type_info& info) {
-  auto alloc = typeart::RuntimeSystem::get().allocTracker.findBaseAlloc(addr);
+  auto alloc = typeart::RuntimeSystem::get().allocation_tracker().findBaseAlloc(addr);
   typeart::RuntimeSystem::get().recorder.incUsedInRequest(addr);
   if (alloc) {
     typeart_base_type_info base;
@@ -299,8 +298,8 @@ inline typeart_status query_type(const void* addr, typeart_type_info& info) {
     info.base_type_info = base;
     info.address        = addr;
 
-    const auto result = typeart::RuntimeSystem::get().typeResolution.getTypeInfo(addr, alloc->first, alloc->second,
-                                                                                 &info.type_id, &info.count);
+    const auto result = typeart::RuntimeSystem::get().get_type_resolution().getTypeInfo(
+        addr, alloc->first, alloc->second, &info.type_id, &info.count);
 
     typeart::RuntimeSystem::get().recorder.incTypeQuery(base.type_id);
     return result;
@@ -310,7 +309,7 @@ inline typeart_status query_type(const void* addr, typeart_type_info& info) {
 
 inline typeart_status query_struct_layout(int type_id, typeart_struct_layout* struct_layout) {
   const typeart::StructTypeInfo* struct_info;
-  typeart_status status = typeart::RuntimeSystem::get().typeResolution.getStructInfo(type_id, &struct_info);
+  typeart_status status = typeart::RuntimeSystem::get().get_type_resolution().getStructInfo(type_id, &struct_info);
   if (status == TYPEART_OK) {
     struct_layout->type_id      = struct_info->type_id;
     struct_layout->name         = struct_info->name.c_str();
@@ -367,7 +366,7 @@ typeart_status typeart_get_containing_type(typeart_type_info type, typeart_base_
   containing_type->count   = type.base_type_info.count;
   containing_type->address = type.base_type_info.address;
   const typeart::PointerInfo info{type.base_type_info.type_id, type.base_type_info.count};
-  const auto result = typeart::RuntimeSystem::get().typeResolution.getContainingTypeInfo(
+  const auto result = typeart::RuntimeSystem::get().type_resolution().getContainingTypeInfo(
       type.address, containing_type->address, info, &containing_type->count, byte_offset);
 
   return result;
@@ -376,7 +375,7 @@ typeart_status typeart_get_containing_type(typeart_type_info type, typeart_base_
 typeart_status typeart_get_subtype(const typeart_struct_layout* container_layout, const void* base_addr, size_t offset,
                                    typeart_base_type_info* subtype_info, size_t* subtype_byte_offset) {
   typeart::RTGuard guard;
-  auto status = typeart::RuntimeSystem::get().typeResolution.getSubTypeInfo(
+  auto status = typeart::RuntimeSystem::get().get_type_resolution().getSubTypeInfo(
       base_addr, offset, *container_layout, &subtype_info->type_id, &subtype_info->address, subtype_byte_offset,
       &subtype_info->count);
   return status;
@@ -389,7 +388,7 @@ typeart_status typeart_resolve_type_id(int type_id, typeart_struct_layout* struc
 
 typeart_status typeart_get_return_address(const void* addr, const void** return_addr) {
   typeart::RTGuard guard;
-  auto alloc = typeart::RuntimeSystem::get().allocTracker.findBaseAlloc(addr);
+  auto alloc = typeart::RuntimeSystem::get().allocation_tracker().findBaseAlloc(addr);
 
   if (alloc) {
     *return_addr = alloc.value().second.debug;
@@ -463,45 +462,45 @@ typeart_status_t typeart_free_source_location(typeart_source_location* source_lo
 
 const char* typeart_get_type_name(int type_id) {
   typeart::RTGuard guard;
-  return typeart::RuntimeSystem::get().typeResolution.db().getTypeName(type_id).c_str();
+  return typeart::RuntimeSystem::get().database().getTypeName(type_id).c_str();
 }
 
 bool typeart_is_vector_type(int type_id) {
   typeart::RTGuard guard;
-  return typeart::RuntimeSystem::get().typeResolution.db().isVectorType(type_id);
+  return typeart::RuntimeSystem::get().database().isVectorType(type_id);
 }
 
 bool typeart_is_valid_type(int type_id) {
   typeart::RTGuard guard;
-  return typeart::RuntimeSystem::get().typeResolution.db().isValid(type_id);
+  return typeart::RuntimeSystem::get().database().isValid(type_id);
 }
 
 bool typeart_is_reserved_type(int type_id) {
   typeart::RTGuard guard;
-  return typeart::RuntimeSystem::get().typeResolution.db().isReservedType(type_id);
+  return typeart::RuntimeSystem::get().database().isReservedType(type_id);
 }
 
 bool typeart_is_builtin_type(int type_id) {
   typeart::RTGuard guard;
-  return typeart::RuntimeSystem::get().typeResolution.db().isBuiltinType(type_id);
+  return typeart::RuntimeSystem::get().database().isBuiltinType(type_id);
 }
 
 bool typeart_is_struct_type(int type_id) {
   typeart::RTGuard guard;
-  return typeart::RuntimeSystem::get().typeResolution.db().isStructType(type_id);
+  return typeart::RuntimeSystem::get().database().isStructType(type_id);
 }
 
 bool typeart_is_userdefined_type(int type_id) {
   typeart::RTGuard guard;
-  return typeart::RuntimeSystem::get().typeResolution.db().isUserDefinedType(type_id);
+  return typeart::RuntimeSystem::get().database().isUserDefinedType(type_id);
 }
 
 bool typeart_is_union(int type_id) {
   typeart::RTGuard guard;
-  return typeart::RuntimeSystem::get().typeResolution.db().isUnion(type_id);
+  return typeart::RuntimeSystem::get().database().isUnion(type_id);
 }
 
 size_t typeart_get_type_size(int type_id) {
   typeart::RTGuard guard;
-  return typeart::RuntimeSystem::get().typeResolution.db().getTypeSize(type_id);
+  return typeart::RuntimeSystem::get().database().getTypeSize(type_id);
 }
