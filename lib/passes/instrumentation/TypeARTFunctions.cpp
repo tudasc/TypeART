@@ -189,7 +189,9 @@ llvm::Function* TAFunctionDeclarator::make_function(IFunc func_id, llvm::StringR
 #endif
     for (Argument& arg : function->args()) {
       if (arg.getType()->isPointerTy()) {
+#if LLVM_VERSION_MAJOR < 20
         arg.addAttr(Attribute::NoCapture);
+#endif
         arg.addAttr(Attribute::ReadOnly);
         arg.addAttr(Attribute::NoFree);
       }
