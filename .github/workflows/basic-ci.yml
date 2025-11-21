@@ -48,15 +48,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
-      - uses: codespell-project/actions-codespell@v2
+      - uses: codespell-project/actions-codespell@v2.2
 
   lit-suite:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-22.04, ubuntu-24.04 ]
-        llvm-version: [ 14, 18, 19 ]
-        typeart-typegen-legacy: [ 0, 1 ]
         preset:
           - name: ci-thread-safe-safeptr
           - name: ci-thread-safe
@@ -70,25 +67,21 @@ jobs:
           - name: ci-libcxx
             libcxx: true
             skip_test: true
-        exclude:
-          - llvm-version: 14
-            os: ubuntu-24.04
-          - llvm-version: 18
-            os: ubuntu-22.04
-          - llvm-version: 18
-            typeart-typegen-legacy: 1
-          - llvm-version: 19
-            os: ubuntu-22.04
-          - llvm-version: 19
-            typeart-typegen-legacy: 1
+        platform:
+          - { os: ubuntu-22.04, llvm-version: 14, typeart-typegen-legacy: 0 }
+          - { os: ubuntu-22.04, llvm-version: 14, typeart-typegen-legacy: 1 }
+          - { os: ubuntu-24.04, llvm-version: 18, typeart-typegen-legacy: 0 }
+          - { os: ubuntu-24.04, llvm-version: 19, typeart-typegen-legacy: 0 }
+          - { os: ubuntu-24.04, llvm-version: 20, typeart-typegen-legacy: 0 }
+          - { os: ubuntu-24.04, llvm-version: 21, typeart-typegen-legacy: 0 }
 
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.platform.os }}
 
     steps:
       - uses: actions/checkout@v5
 
       - name: LLVM apt
-        if: ${{ matrix.llvm-version == 19 }}
+        if: ${{ matrix.platform.llvm-version >= 19 }}
         run: |
           wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
           echo "deb http://apt.llvm.org/noble/ llvm-toolchain-noble-19 main" | sudo tee /etc/apt/sources.list.d/llvm-19.list
@@ -97,17 +90,17 @@ jobs:
         run: sudo apt-get update
 
       - name: Install LLVM
-        run: sudo apt-get install libllvm${{ matrix.llvm-version }} llvm-${{ matrix.llvm-version }} llvm-${{ matrix.llvm-version }}-dev
+        run: sudo apt-get install libllvm${{ matrix.platform.llvm-version }} llvm-${{ matrix.platform.llvm-version }} llvm-${{ matrix.platform.llvm-version }}-dev
 
       - name: Install LLVM OpenMP runtime
-        run: sudo apt-get install libomp-${{ matrix.llvm-version }}-dev libomp5-${{ matrix.llvm-version }}
+        run: sudo apt-get install libomp-${{ matrix.platform.llvm-version }}-dev libomp5-${{ matrix.platform.llvm-version }}
 
       - name: Install Clang
-        run: sudo apt-get install clang-${{ matrix.llvm-version }} clang-tidy-${{ matrix.llvm-version }}
+        run: sudo apt-get install clang-${{ matrix.platform.llvm-version }} clang-tidy-${{ matrix.platform.llvm-version }}
 
       - name: Install libc++
         if: matrix.preset.libcxx
-        run: sudo apt-get install --no-install-recommends libc++-${{ matrix.llvm-version }}-dev libc++abi-${{ matrix.llvm-version }}-dev
+        run: sudo apt-get install --no-install-recommends libc++-${{ matrix.platform.llvm-version }}-dev libc++abi-${{ matrix.platform.llvm-version }}-dev
 
       - name: Install OpenMPI
         run: sudo apt-get install libopenmpi-dev openmpi-bin
@@ -118,11 +111,11 @@ jobs:
 
       - name: Setup env
         run: |
-          sudo ln -f -s /usr/bin/clang-${{ matrix.llvm-version }} /usr/bin/clang
-          sudo ln -f -s /usr/bin/clang++-${{ matrix.llvm-version }} /usr/bin/clang++
-          echo "LLVM_CMAKE_DIR=/usr/lib/llvm-${{ matrix.llvm-version }}/cmake" >> $GITHUB_ENV
-          echo "EXTERNAL_LIT=/usr/lib/llvm-${{ matrix.llvm-version }}/build/utils/lit/lit.py" >> $GITHUB_ENV
-          echo "TYPEART_TYPEGEN_IR=${{ matrix.typeart-typegen-legacy }}" >> $GITHUB_ENV
+          sudo ln -f -s /usr/bin/clang-${{ matrix.platform.llvm-version }} /usr/bin/clang
+          sudo ln -f -s /usr/bin/clang++-${{ matrix.platform.llvm-version }} /usr/bin/clang++
+          echo "LLVM_CMAKE_DIR=/usr/lib/llvm-${{ matrix.platform.llvm-version }}/cmake" >> $GITHUB_ENV
+          echo "EXTERNAL_LIT=/usr/lib/llvm-${{ matrix.platform.llvm-version >= 20 && 18 || matrix.platform.llvm-version }}/build/utils/lit/lit.py" >> $GITHUB_ENV
+          echo "TYPEART_TYPEGEN_IR=${{ matrix.platform.typeart-typegen-legacy }}" >> $GITHUB_ENV
 
       - name: Configure TypeART
         run: cmake -B build --preset ${{ matrix.preset.name }} -DLLVM_DIR=${LLVM_CMAKE_DIR} -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT}
@@ -148,7 +141,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path-to-lcov: build/typeart.coverage
-          flag-name: ${{ matrix.preset.name }}-${{ matrix.llvm-version }}-${{ matrix.typeart-typegen-legacy }}
+          flag-name: ${{ matrix.preset.name }}-${{ matrix.platform.llvm-version }}-${{ matrix.platform.typeart-typegen-legacy }}
           parallel: true
 
   finish-coverage:
