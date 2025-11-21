@@ -93,7 +93,7 @@ jobs:
         run: sudo apt-get install libllvm${{ matrix.platform.llvm-version }} llvm-${{ matrix.platform.llvm-version }} llvm-${{ matrix.platform.llvm-version }}-dev
 
       - name: Install LLVM OpenMP runtime
-        run: sudo apt-get install libomp-${{ matrix.platform.llvm-version }}-dev libomp5-${{ matrix.platform.llvm-version }}
+        run: sudo apt-get install libomp-${{ matrix.platform.llvm-version }}-dev
 
       - name: Install Clang
         run: sudo apt-get install clang-${{ matrix.platform.llvm-version }} clang-tidy-${{ matrix.platform.llvm-version }}
