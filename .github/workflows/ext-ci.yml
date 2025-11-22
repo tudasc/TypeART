@@ -14,21 +14,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-22.04, ubuntu-24.04 ]
-        llvm-version: [ 14, 18, 19 ]
         preset:
           - name: release-counter
           - name: release-safeptr-counter
           - name: release-unsafe-counter
-        exclude:
-          - llvm-version: 14
-            os: ubuntu-24.04
-          - llvm-version: 18
-            os: ubuntu-22.04
-          - llvm-version: 19
-            os: ubuntu-22.04
+        platform:
+          - { os: ubuntu-22.04, llvm-version: 14 }
+          - { os: ubuntu-24.04, llvm-version: 18 }
+          - { os: ubuntu-24.04, llvm-version: 19 }
+          - { os: ubuntu-24.04, llvm-version: 20 }
+          - { os: ubuntu-24.04, llvm-version: 21 }
 
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.platform.os }}
 
     steps:
       - uses: actions/checkout@v5
@@ -41,29 +38,29 @@ jobs:
           path: test-bench
 
       - name: LLVM apt
-        if: ${{ matrix.llvm-version == 19 }}
+        if: ${{ matrix.platform.llvm-version >= 19 }}
         run: |
           wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-          echo "deb http://apt.llvm.org/noble/ llvm-toolchain-noble-19 main" | sudo tee /etc/apt/sources.list.d/llvm-19.list
+          echo "deb http://apt.llvm.org/noble/ llvm-toolchain-noble-${{ matrix.platform.llvm-version }} main" | sudo tee /etc/apt/sources.list.d/llvm-${{ matrix.platform.llvm-version }}.list
 
       - name: Update apt
         run: sudo apt-get update
 
       - name: Install LLVM
-        run: sudo apt-get install libllvm${{ matrix.llvm-version }} llvm-${{ matrix.llvm-version }} llvm-${{ matrix.llvm-version }}-dev
+        run: sudo apt-get install libllvm${{ matrix.platform.llvm-version }} llvm-${{ matrix.platform.llvm-version }} llvm-${{ matrix.platform.llvm-version }}-dev
 
       - name: Install Clang
-        run: sudo apt-get install clang-${{ matrix.llvm-version }} clang-tidy-${{ matrix.llvm-version }}
+        run: sudo apt-get install clang-${{ matrix.platform.llvm-version }} clang-tidy-${{ matrix.platform.llvm-version }}
 
       - name: Install OpenMPI
         run: sudo apt-get install libopenmpi-dev openmpi-bin
 
       - name: Setup env
         run: |
-          sudo ln -f -s /usr/bin/clang-${{ matrix.llvm-version }} /usr/bin/clang
-          sudo ln -f -s /usr/bin/clang++-${{ matrix.llvm-version }} /usr/bin/clang++
-          echo "LLVM_CMAKE_DIR=/usr/lib/llvm-${{ matrix.llvm-version }}/cmake" >> $GITHUB_ENV
-          echo "EXTERNAL_LIT=/usr/lib/llvm-${{ matrix.llvm-version }}/build/utils/lit/lit.py" >> $GITHUB_ENV
+          sudo ln -f -s /usr/bin/clang-${{ matrix.platform.llvm-version }} /usr/bin/clang
+          sudo ln -f -s /usr/bin/clang++-${{ matrix.platform.llvm-version }} /usr/bin/clang++
+          echo "LLVM_CMAKE_DIR=/usr/lib/llvm-${{ matrix.platform.llvm-version }}/cmake" >> $GITHUB_ENV
+          echo "EXTERNAL_LIT=/usr/lib/llvm-${{ matrix.platform.llvm-version >= 20 && 18 || matrix.platform.llvm-version }}/build/utils/lit/lit.py" >> $GITHUB_ENV
 
       - name: Configure TypeART
         run: cmake -B build --preset ${{ matrix.preset.name }} -DLLVM_DIR=${LLVM_CMAKE_DIR} -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT}
@@ -75,58 +72,55 @@ jobs:
 
       - name: Setup tests
         working-directory: test-bench
-        run: cmake -B build -DLOG_PATH=${GITHUB_WORKSPACE}/test-bench/artifact-${{ matrix.llvm-version }} -DUSE_WRAPPER=ON
+        run: cmake -B build -DLOG_PATH=${GITHUB_WORKSPACE}/test-bench/artifact-${{ matrix.platform.llvm-version }} -DUSE_WRAPPER=ON
 
       - name: Run lulesh
         working-directory: test-bench/build
-        run: ctest -V -R lulesh -O lulesh2.0_${{ matrix.llvm-version }}_build.log
+        run: ctest -V -R lulesh -O lulesh2.0_${{ matrix.platform.llvm-version }}_build.log
 
       - name: Run 104.milc
         working-directory: test-bench/build
-        run: ctest -V -R 104.milc -O 104.milc_${{ matrix.llvm-version }}_build.log
+        run: ctest -V -R 104.milc -O 104.milc_${{ matrix.platform.llvm-version }}_build.log
 
       - name: Run 122.tachyon
         working-directory: test-bench/build
-        run: ctest -V -R 122.tachyon -O 122.tachyon_${{ matrix.llvm-version }}_build.log
+        run: ctest -V -R 122.tachyon -O 122.tachyon_${{ matrix.platform.llvm-version }}_build.log
 
       - name: Run amg2013
         working-directory: test-bench/build
-        run: ctest -V -R amg2013 -O amg2013_${{ matrix.llvm-version }}_build.log
+        run: ctest -V -R amg2013 -O amg2013_${{ matrix.platform.llvm-version }}_build.log
 
       - name: Run tealeaf
         working-directory: test-bench/build
-        run: ctest -V -R tealeaf -O tealeaf_${{ matrix.llvm-version }}_build.log
+        run: ctest -V -R tealeaf -O tealeaf_${{ matrix.platform.llvm-version }}_build.log
 
       - name: Prepare artifact
         run: |
           mkdir -p artifact
           mv test-bench/build/*_build.log artifact
-          mv test-bench/artifact-${{ matrix.llvm-version }}/* artifact
+          mv test-bench/artifact-${{ matrix.platform.llvm-version }}/* artifact
 
       - name: Upload test-bench artifact
         uses: actions/upload-artifact@v4
         with:
-          name: typeart-ci-ext-${{ matrix.llvm-version }}-${{ matrix.preset.name }}
+          name: typeart-ci-ext-${{ matrix.platform.llvm-version }}-${{ matrix.preset.name }}
           path: artifact
 
   run-AD-testbench:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-22.04, ubuntu-24.04 ]
-        llvm-version: [ 14, 18, 19 ]
         preset:
           - name: release-counter
           - name: release-unsafe-counter
-        exclude:
-          - llvm-version: 14
-            os: ubuntu-24.04
-          - llvm-version: 18
-            os: ubuntu-22.04
-          - llvm-version: 19
-            os: ubuntu-22.04
+        platform:
+          - { os: ubuntu-22.04, llvm-version: 14 }
+          - { os: ubuntu-24.04, llvm-version: 18 }
+          - { os: ubuntu-24.04, llvm-version: 19 }
+          - { os: ubuntu-24.04, llvm-version: 20 }
+          - { os: ubuntu-24.04, llvm-version: 21 }
 
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.platform.os }}
 
     steps:
       - uses: actions/checkout@v5
@@ -140,29 +134,29 @@ jobs:
           path: ad-test-bench
 
       - name: LLVM apt
-        if: ${{ matrix.llvm-version == 19 }}
+        if: ${{ matrix.platform.llvm-version >= 19 }}
         run: |
           wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-          echo "deb http://apt.llvm.org/noble/ llvm-toolchain-noble-19 main" | sudo tee /etc/apt/sources.list.d/llvm-19.list
+          echo "deb http://apt.llvm.org/noble/ llvm-toolchain-noble-${{ matrix.platform.llvm-version }} main" | sudo tee /etc/apt/sources.list.d/llvm-${{ matrix.platform.llvm-version }}.list
 
       - name: Update apt
         run: sudo apt-get update
 
       - name: Install LLVM
-        run: sudo apt-get install libllvm${{ matrix.llvm-version }} llvm-${{ matrix.llvm-version }} llvm-${{ matrix.llvm-version }}-dev
+        run: sudo apt-get install libllvm${{ matrix.platform.llvm-version }} llvm-${{ matrix.platform.llvm-version }} llvm-${{ matrix.platform.llvm-version }}-dev
 
       - name: Install Clang
-        run: sudo apt-get install clang-${{ matrix.llvm-version }} clang-tidy-${{ matrix.llvm-version }}
+        run: sudo apt-get install clang-${{ matrix.platform.llvm-version }} clang-tidy-${{ matrix.platform.llvm-version }}
 
       - name: Install OpenMPI
         run: sudo apt-get install libopenmpi-dev openmpi-bin
 
       - name: Setup env
         run: |
-          sudo ln -f -s /usr/bin/clang-${{ matrix.llvm-version }} /usr/bin/clang
-          sudo ln -f -s /usr/bin/clang++-${{ matrix.llvm-version }} /usr/bin/clang++
-          echo "LLVM_CMAKE_DIR=/usr/lib/llvm-${{ matrix.llvm-version }}/cmake" >> $GITHUB_ENV
-          echo "EXTERNAL_LIT=/usr/lib/llvm-${{ matrix.llvm-version }}/build/utils/lit/lit.py" >> $GITHUB_ENV
+          sudo ln -f -s /usr/bin/clang-${{ matrix.platform.llvm-version }} /usr/bin/clang
+          sudo ln -f -s /usr/bin/clang++-${{ matrix.platform.llvm-version }} /usr/bin/clang++
+          echo "LLVM_CMAKE_DIR=/usr/lib/llvm-${{ matrix.platform.llvm-version }}/cmake" >> $GITHUB_ENV
+          echo "EXTERNAL_LIT=/usr/lib/llvm-${{ matrix.platform.llvm-version >= 20 && 18 || matrix.platform.llvm-version }}/build/utils/lit/lit.py" >> $GITHUB_ENV
 
       - name: Configure TypeART
         run: cmake -B build --preset ${{ matrix.preset.name }} -DLLVM_DIR=${LLVM_CMAKE_DIR} -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT}
@@ -174,22 +168,22 @@ jobs:
 
       - name: Setup AD tests
         working-directory: ad-test-bench
-        run: cmake -B build -DLOG_PATH=${GITHUB_WORKSPACE}/ad-test-bench/artifact-${{ matrix.llvm-version }} -DUSE_WRAPPER=ON
+        run: cmake -B build -DLOG_PATH=${GITHUB_WORKSPACE}/ad-test-bench/artifact-${{ matrix.platform.llvm-version }} -DUSE_WRAPPER=ON
 
       - name: Run AD lulesh
         working-directory: ad-test-bench/build
-        run: ctest -V -R lulesh -O ad-lulesh2.0_${{ matrix.llvm-version }}_build.log
+        run: ctest -V -R lulesh -O ad-lulesh2.0_${{ matrix.platform.llvm-version }}_build.log
 
       - name: Prepare artifact
         run: |
           mkdir -p artifact
           mv ad-test-bench/build/*_build.log artifact
-          mv ad-test-bench/artifact-${{ matrix.llvm-version }}/* artifact
+          mv ad-test-bench/artifact-${{ matrix.platform.llvm-version }}/* artifact
 
       - name: Upload AD test-bench artifact
         uses: actions/upload-artifact@v4
         with:
-          name: typeart-ci-ext-ad-${{ matrix.llvm-version }}-${{ matrix.preset.name }}
+          name: typeart-ci-ext-ad-${{ matrix.platform.llvm-version }}-${{ matrix.preset.name }}
           path: artifact
 
   run-OMP-testbench:
@@ -199,20 +193,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-22.04, ubuntu-24.04 ]
-        llvm-version: [ 14, 18, 19 ]
         preset:
           - name: release-counter
           - name: release-safeptr-counter
-        exclude:
-          - llvm-version: 14
-            os: ubuntu-24.04
-          - llvm-version: 18
-            os: ubuntu-22.04
-          - llvm-version: 19
-            os: ubuntu-22.04
+        platform:
+          - { os: ubuntu-22.04, llvm-version: 14 }
+          - { os: ubuntu-24.04, llvm-version: 18 }
+          - { os: ubuntu-24.04, llvm-version: 19 }
+          - { os: ubuntu-24.04, llvm-version: 20 }
+          - { os: ubuntu-24.04, llvm-version: 21 }
 
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.platform.os }}
 
     steps:
       - uses: actions/checkout@v5
@@ -226,32 +217,32 @@ jobs:
           path: omp-test-bench
 
       - name: LLVM apt
-        if: ${{ matrix.llvm-version == 19 }}
+        if: ${{ matrix.platform.llvm-version >= 19 }}
         run: |
           wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-          echo "deb http://apt.llvm.org/noble/ llvm-toolchain-noble-19 main" | sudo tee /etc/apt/sources.list.d/llvm-19.list
+          echo "deb http://apt.llvm.org/noble/ llvm-toolchain-noble-${{ matrix.platform.llvm-version }} main" | sudo tee /etc/apt/sources.list.d/llvm-${{ matrix.platform.llvm-version }}.list
 
       - name: Update apt
         run: sudo apt-get update
 
       - name: Install LLVM
-        run: sudo apt-get install libllvm${{ matrix.llvm-version }} llvm-${{ matrix.llvm-version }} llvm-${{ matrix.llvm-version }}-dev
+        run: sudo apt-get install libllvm${{ matrix.platform.llvm-version }} llvm-${{ matrix.platform.llvm-version }} llvm-${{ matrix.platform.llvm-version }}-dev
 
       - name: Install Clang
-        run: sudo apt-get install clang-${{ matrix.llvm-version }} clang-tidy-${{ matrix.llvm-version }}
+        run: sudo apt-get install clang-${{ matrix.platform.llvm-version }} clang-tidy-${{ matrix.platform.llvm-version }}
 
       - name: Install OpenMPI
         run: sudo apt-get install libopenmpi-dev openmpi-bin
 
       - name: Install LLVM OpenMP runtime
-        run: sudo apt-get install libomp-${{ matrix.llvm-version }}-dev libomp5-${{ matrix.llvm-version }}
+        run: sudo apt-get install libomp-${{ matrix.platform.llvm-version }}-dev
 
       - name: Setup env
         run: |
-          sudo ln -f -s /usr/bin/clang-${{ matrix.llvm-version }} /usr/bin/clang
-          sudo ln -f -s /usr/bin/clang++-${{ matrix.llvm-version }} /usr/bin/clang++
-          echo "LLVM_CMAKE_DIR=/usr/lib/llvm-${{ matrix.llvm-version }}/cmake" >> $GITHUB_ENV
-          echo "EXTERNAL_LIT=/usr/lib/llvm-${{ matrix.llvm-version }}/build/utils/lit/lit.py" >> $GITHUB_ENV
+          sudo ln -f -s /usr/bin/clang-${{ matrix.platform.llvm-version }} /usr/bin/clang
+          sudo ln -f -s /usr/bin/clang++-${{ matrix.platform.llvm-version }} /usr/bin/clang++
+          echo "LLVM_CMAKE_DIR=/usr/lib/llvm-${{ matrix.platform.llvm-version }}/cmake" >> $GITHUB_ENV
+          echo "EXTERNAL_LIT=/usr/lib/llvm-${{ matrix.platform.llvm-version >= 20 && 18 || matrix.platform.llvm-version }}/build/utils/lit/lit.py" >> $GITHUB_ENV
 
       - name: Configure TypeART
         run: cmake -B build --preset ${{ matrix.preset.name }} -DLLVM_DIR=${LLVM_CMAKE_DIR} -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT}
@@ -263,24 +254,24 @@ jobs:
 
       - name: Setup tests
         working-directory: omp-test-bench
-        run: cmake -B build -DLOG_PATH=${GITHUB_WORKSPACE}/omp-test-bench/artifact-${{ matrix.llvm-version }} -DUSE_WRAPPER=ON
+        run: cmake -B build -DLOG_PATH=${GITHUB_WORKSPACE}/omp-test-bench/artifact-${{ matrix.platform.llvm-version }} -DUSE_WRAPPER=ON
 
       - name: Run lulesh
         working-directory: omp-test-bench/build
-        run: ctest -V -R lulesh -O lulesh2.0_${{ matrix.llvm-version }}_build.log
+        run: ctest -V -R lulesh -O lulesh2.0_${{ matrix.platform.llvm-version }}_build.log
 
       - name: Run amg2013
         working-directory: omp-test-bench/build
-        run: ctest -V -R amg2013 -O amg2013_${{ matrix.llvm-version }}_build.log
+        run: ctest -V -R amg2013 -O amg2013_${{ matrix.platform.llvm-version }}_build.log
 
       - name: Prepare artifact
         run: |
           mkdir -p artifact
           mv omp-test-bench/build/*_build.log artifact
-          mv omp-test-bench/artifact-${{ matrix.llvm-version }}/* artifact
+          mv omp-test-bench/artifact-${{ matrix.platform.llvm-version }}/* artifact
 
       - name: Upload omp-test-bench artifact
         uses: actions/upload-artifact@v4
         with:
-          name: typeart-ci-ext-omp-${{ matrix.llvm-version }}-${{ matrix.preset.name }}
+          name: typeart-ci-ext-omp-${{ matrix.platform.llvm-version }}-${{ matrix.preset.name }}
           path: artifact
