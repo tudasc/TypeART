@@ -306,8 +306,12 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
     // declareInstrumentationFunctions(*f.getParent());
 
     bool mod{false};
-    //  auto& c = f.getContext();
+//  auto& c = f.getContext();
+#if LLVM_VERSION_MAJOR > 19
+    DataLayout dl(f.getParent()->getDataLayout());
+#else
     DataLayout dl(f.getParent());
+#endif
 
     const auto& fData   = meminst_finder->getFunctionData(f);
     const auto& mallocs = fData.mallocs;
@@ -378,43 +382,48 @@ bool LegacyTypeArtPass::doFinalization(llvm::Module&) {
 //.....................
 llvm::PassPluginLibraryInfo getTypeartPassPluginInfo() {
   using namespace llvm;
-  return {LLVM_PLUGIN_API_VERSION, "TypeART", LLVM_VERSION_STRING, [](PassBuilder& pass_builder) {
-            pass_builder.registerPipelineStartEPCallback([](auto& MPM, OptimizationLevel) {
-              auto parameters =
-                  typeart::util::pass::parsePassParameters(typeart::config::pass::parse_typeart_config,
-                                                           "typeart<heap;stats;type-serialization=hybrid>", "typeart");
-              if (!parameters) {
-                LOG_FATAL("Error parsing heap params: " << parameters.takeError())
-                return;
-              }
-              MPM.addPass(typeart::pass::TypeArtPass(typeart::pass::TypeArtPass(parameters.get())));
-            });
-            pass_builder.registerOptimizerLastEPCallback([](auto& MPM, OptimizationLevel) {
-              auto parameters = typeart::util::pass::parsePassParameters(
-                  typeart::config::pass::parse_typeart_config, "typeart<no-heap;stack;stats;type-serialization=hybrid>",
-                  "typeart");
-              if (!parameters) {
-                LOG_FATAL("Error parsing stack params: " << parameters.takeError())
-                return;
-              }
-              MPM.addPass(typeart::pass::TypeArtPass(typeart::pass::TypeArtPass(parameters.get())));
-            });
-            pass_builder.registerPipelineParsingCallback(
-                [](StringRef name, ModulePassManager& module_pm, ArrayRef<PassBuilder::PipelineElement>) {
-                  if (typeart::util::pass::checkParametrizedPassName(name, "typeart")) {
-                    auto parameters = typeart::util::pass::parsePassParameters(
-                        typeart::config::pass::parse_typeart_config, name, "typeart");
-                    if (!parameters) {
-                      LOG_FATAL("Error parsing params: " << parameters.takeError())
-                      return false;
-                    }
-                    module_pm.addPass(typeart::pass::TypeArtPass(parameters.get()));
-                    return true;
-                  }
-                  LOG_FATAL("Not a valid parametrized pass name: " << name)
-                  return false;
-                });
-          }};
+  return {
+    LLVM_PLUGIN_API_VERSION, "TypeART", LLVM_VERSION_STRING, [](PassBuilder& pass_builder) {
+      pass_builder.registerPipelineStartEPCallback([](auto& MPM, OptimizationLevel) {
+        auto parameters = typeart::util::pass::parsePassParameters(
+            typeart::config::pass::parse_typeart_config, "typeart<heap;stats;type-serialization=hybrid>", "typeart");
+        if (!parameters) {
+          LOG_FATAL("Error parsing heap params: " << parameters.takeError())
+          return;
+        }
+        MPM.addPass(typeart::pass::TypeArtPass(typeart::pass::TypeArtPass(parameters.get())));
+      });
+#if LLVM_VERSION_MAJOR > 19
+      pass_builder.registerOptimizerLastEPCallback([](auto& MPM, OptimizationLevel, ThinOrFullLTOPhase) {
+#else
+      pass_builder.registerOptimizerLastEPCallback([](auto& MPM, OptimizationLevel) {
+#endif
+        auto parameters = typeart::util::pass::parsePassParameters(
+            typeart::config::pass::parse_typeart_config, "typeart<no-heap;stack;stats;type-serialization=hybrid>",
+            "typeart");
+        if (!parameters) {
+          LOG_FATAL("Error parsing stack params: " << parameters.takeError())
+          return;
+        }
+        MPM.addPass(typeart::pass::TypeArtPass(typeart::pass::TypeArtPass(parameters.get())));
+      });
+      pass_builder.registerPipelineParsingCallback([](StringRef name, ModulePassManager& module_pm,
+                                                      ArrayRef<PassBuilder::PipelineElement>) {
+        if (typeart::util::pass::checkParametrizedPassName(name, "typeart")) {
+          auto parameters =
+              typeart::util::pass::parsePassParameters(typeart::config::pass::parse_typeart_config, name, "typeart");
+          if (!parameters) {
+            LOG_FATAL("Error parsing params: " << parameters.takeError())
+            return false;
+          }
+          module_pm.addPass(typeart::pass::TypeArtPass(parameters.get()));
+          return true;
+        }
+        LOG_FATAL("Not a valid parametrized pass name: " << name)
+        return false;
+      });
+    }
+  };
 }
 
 extern "C" LLVM_ATTRIBUTE_WEAK ::llvm::PassPluginLibraryInfo llvmGetPassPluginInfo() {
