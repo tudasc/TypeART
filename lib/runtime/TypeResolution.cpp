@@ -359,15 +359,15 @@ typeart_status typeart_get_type(const void* addr, typeart_type_info* base_type) 
   return typeart::detail::query_type(addr, *base_type);
 }
 
-typeart_status typeart_get_containing_type(typeart_type_info type, typeart_base_type_info* containing_type,
+typeart_status typeart_get_containing_type(const typeart_type_info* type, typeart_base_type_info* containing_type,
                                            size_t* byte_offset) {
   typeart::RTGuard guard;
-  containing_type->type_id = type.base_type_info.type_id;
-  containing_type->count   = type.base_type_info.count;
-  containing_type->address = type.base_type_info.address;
-  const typeart::PointerInfo info{type.base_type_info.type_id, type.base_type_info.count};
+  containing_type->type_id = type->base_type_info.type_id;
+  containing_type->count   = type->base_type_info.count;
+  containing_type->address = type->base_type_info.address;
+  const typeart::PointerInfo info{type->base_type_info.type_id, type->base_type_info.count};
   const auto result = typeart::RuntimeSystem::get().type_resolution().getContainingTypeInfo(
-      type.address, containing_type->address, info, &containing_type->count, byte_offset);
+      type->address, containing_type->address, info, &containing_type->count, byte_offset);
 
   return result;
 }

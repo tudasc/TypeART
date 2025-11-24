@@ -50,7 +50,7 @@ void type_check_containing(const void* addr) {
     return;
   }
   typeart_base_type_info info_base;
-  status = typeart_get_containing_type(info, &info_base, &offset);
+  status = typeart_get_containing_type(&info, &info_base, &offset);
 
   if (status != TYPEART_OK) {
     fprintf(stderr, "[Error]: Status not OK: %i for %p\n", status, addr);
@@ -77,7 +77,7 @@ void type_check_sub(const void* addr, size_t offset) {
       return;
     }
     typeart_base_type_info info_base;
-    status = typeart_get_containing_type(info, &info_base, &offset_containing);
+    status = typeart_get_containing_type(&info, &info_base, &offset_containing);
     if (status != TYPEART_OK) {
       fprintf(stderr, "[Error]: with containing type\n");
       return;
