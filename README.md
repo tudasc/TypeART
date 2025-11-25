@@ -3,15 +3,10 @@
 ## What is TypeART?
 
 TypeART \[[TA18](#ref-typeart-2018); [TA20](#ref-typeart-2020); [TA22](#ref-typeart-2022); [TA24](#ref-typeart-2024)\] is a type and memory
-allocation tracking sanitizer based on the [LLVM](https://llvm.org) compiler toolchain for C/C++ (OpenMP) codes. It includes an LLVM compiler pass plugin for instrumentation and a runtime library to monitor memory allocations during program execution.
+allocation tracking sanitizer based on the [LLVM](https://llvm.org) compiler toolchain for C/C++ (OpenMP) codes. It pairs a compiler plugin (for instrumentation) with a runtime library to track memory type, size, and location of heap, stack and global allocations.
 
-TypeART instruments heap, stack, and global variable allocations with callbacks to its runtime, capturing:
-(1) the memory address, (2) the type-layout information of the allocation (e.g., built-ins, user-defined structs) and (3) number of elements.
 
 ## Why use it?
-
-TypeART provides type-related information of allocations in your program to help verify some property, and to help
-generate diagnostics if it doesn't hold.
 
 Low-level C APIs often rely on `void*` pointers for generic types, requiring users to manually specify type and size - a process prone to errors. Examples for type unsafe APIs include the Message-Passing Interface (MPI),
 checkpointing libraries and numeric solver libraries. 
@@ -62,25 +57,26 @@ its [project page](https://itc.rwth-aachen.de/must/).
 
 Using TypeART involves two phases:
 
-1. Compilation: Compile your code with Clang/LLVM using the TypeART LLVM pass plugin. The plugin (1) serializes static type information to a file and (2) instruments relevant allocations. See [Section 1.1](#11-compiling-a-target-code).
-2. Execution: Run the instrumented program with a TypeART runtime client, which uses the callback data to perform analysis facilitating the static type information. See [Section 1.2](#12-executing-an-instrumented-target-code).
+1. Compilation, see [Section 1.1](#11-compiling-a-target-code): Compile your code with Clang/LLVM using the TypeART LLVM pass plugin. The plugin (1) serializes static type information and (2) instruments relevant allocations.
+2. Execution, see [Section 1.2](#12-executing-an-instrumented-target-code): Run the instrumented program with a TypeART runtime client, which uses the callback data to perform analysis facilitating the static type information.
+
 
 ### 1.1 Compiling a target code
 
-TypeART’s LLVM compiler pass plugins instrument allocations and serialize static type layouts into a YAML file (default: `typeart-types.yaml`). We provide compiler wrapper scripts (available in the bin folder of the TypeART installation) for Clang and MPI. By default, these wrappers instrument heap, stack, and global allocations, while MPI wrappers filter allocations unrelated to MPI calls (see [Section 1.1.4](#114-filtering-allocations)).
+TypeART’s LLVM compiler pass plugins instrument allocations and serialize static type layouts. We provide compiler wrapper scripts (available in the bin folder of the TypeART installation) for Clang and MPI. By default, these wrappers instrument heap, stack, and global allocations, while MPI wrappers filter allocations unrelated to MPI calls (see [Section 1.1.4](#114-filtering-allocations)).
 
 #### 1.1.1 Building with TypeART
 
-A typical compile invocation may first compile code to object files and then link with any libraries:
+Simply replace your compiler variable:
 
-```shell
-# Compile:
-$> clang++ -O2 $(COMPILE_FLAGS) -c code.cpp -o code.o
-# Link:
-$> clang++ $(LINK_FLAGS) code.o -o binary
-```
+| Variable | TypeART Wrapper   |
+|----------|-------------------|
+| `CXX`    | `typeart-clang++` |
+| `CC`     | `typeart-clang`   |
+| `MPICC`  | `typeart-mpicc`   |
+| `MPICXX` | `typeart-mpic++`  |
 
-With TypeART, the recipe needs to be changed to, e.g., use our provided compiler wrapper to load and apply our TypeART passes to a target code:
+The wrappers handle the LLVM pass injection and linking:
 
 ```shell
 # Compile, replace direct clang++ call with wrapper of the TypeART installation:
@@ -99,11 +95,9 @@ The wrapper performs the following steps using Clang's `-fpass-plugin`:
 
 *Note*: Heap allocations are instrumented before optimizations to prevent loss of type information in some cases.
 
-##### Wrapper usage in CMake build systems
+##### CMake projects
 
-For plain Makefiles, the wrapper replaces the GCC/Clang compiler variables, e.g., `CC` or `MPICC`. For CMake, during the
-configuration, it is advised to disable the wrapper temporarily. This is due to CMake executing internal compiler
-checks, where we do not need TypeART instrumentation:
+When using CMake, the wrapper must be disabled during configuration (to pass internal compiler checks) but enabled for the build.
 
 ```shell
 # Temporarily disable wrapper with environment flag TYPEART_WRAPPER=OFF for configuration:
@@ -198,14 +192,14 @@ struct GlobalTypeInfo {
 ```
 
 Each type is registered at startup with the TypeART runtime using the callback `void __typeart_register_type(const void* type_ptr);`.
-The callback adds the type information to our type database (for user queries) and assigns a unique `type-id`.
+The callback adds the type information to the type database (for user queries) and assigns a unique `type-id`.
 Each user-defined type layout is assigned a unique integer `type-id` starting at 256. Built-in types (e.g., float) use predefined type-ids (< 256) and byte layouts.
 The runtime library correlates the allocation with the respective type (and layout) during execution via the `type-id`.
 
 
 ##### 1.1.3.2 File-based serialization
 After instrumentation, the file `typeart-types.yaml` (`env TYPEART_TYPES`) contains the static type information. Each user-defined type layout is
-extracted and an integer `type-id` is attached to it. 
+extracted and an integer `type-id` is attached to it (similarly to hybrid and inline serialization).
 For example, consider the following C struct:
 
 ```c
@@ -313,7 +307,7 @@ TypeART supports LLVM version 14, 18-21, and CMake version >= 3.20.
 
 Other smaller, external dependencies are defined within the [externals folder](externals) (depending on configuration
 options), see [Section 2.2.1 (Runtime)](#221-cmake-configuration-options-for-users). They are automatically downloaded
-during configuration time (internet connection required).
+during configuration time.
 
 ### 2.2 Building
 
@@ -434,7 +428,7 @@ target_link_libraries(my_project_target PRIVATE typeart::Runtime)
 </tr>
 <tr>
     <td valign="top"><a name="ref-typeart-2024"></a>[TA24]</td>
-    <td>Hück, Alexander and Ziegler, Tim and Schwitanski, Simon and Jenke, Joachim and Bischof, Christian.
+    <td>Hück, Alexander and Ziegler, Tim and Schwitanski, Simon and Jenke, Joachim and Bischof, Christian. <!-- codespell:ignore -->
     "Compiler-Aided Correctness Checking of CUDA-Aware MPI Applications."
     In <i>SC24-W: Workshops of the International Conference for High Performance Computing, Networking, Storage and Analysis</i>, 
     pages 204–213, IEEE/ACM, 2024. DOI: <a href=https://doi.org/10.1109/SCW63240.2024.00032>10.1109/SCW63240.2024.00032</a></td>
