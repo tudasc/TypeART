@@ -138,7 +138,7 @@ typeart_status typeart_get_type(const void* addr, typeart_type_info* type_info);
 // typeart_status typeart_get_containing_type(const void* addr, int* type_id, size_t* count, const void** base_address,
 //                                            size_t* byte_offset);
 
-typeart_status typeart_get_containing_type(typeart_type_info type_info, typeart_base_type_info* containing_type,
+typeart_status typeart_get_containing_type(const typeart_type_info* type_info, typeart_base_type_info* containing_type,
                                            size_t* byte_offset);
 
 /**
