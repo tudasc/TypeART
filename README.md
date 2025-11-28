@@ -8,16 +8,14 @@ allocation tracking sanitizer based on the [LLVM](https://llvm.org) compiler too
 
 ## Why use it?
 
-Low-level C APIs often rely on `void*` pointers for generic types, requiring users to manually specify type and size - a process prone to errors. Examples for type unsafe APIs include the Message-Passing Interface (MPI),
-checkpointing libraries and numeric solver libraries. 
-TypeART simplifies verification, ensuring, for example, that a `void*` argument corresponds to an array of expected type `T` with length `n`.
+Low-level C APIs often rely on `void*` pointers for generic types, requiring users to specify type and size manually, a process prone to errors. Examples of type-unsafe APIs include the Message-Passing Interface (MPI), checkpointing libraries, and numeric solver libraries. TypeART facilitates verification by ensuring, for example, that a `void*` argument corresponds to an array of expected type `T` with length `n`.
 
 
 ### Use Case: MUST - A dynamic MPI correctness checker
 
 MUST \[[MU13](#ref-must-2013)\], a dynamic MPI correctness checker, detects issues like deadlocks or mismatched MPI datatypes. For more details, visit its [project page](https://www.hpc.rwth-aachen.de/must/).
 
-MUST intercepts MPI calls for analysis but cannot deduce the *effective* type of `void*` buffers in MPI APIs. TypeART addresses this by tracking memory (de-)allocations relevant to MPI communication in user code, allowing MUST to validate type compatibility between MPI buffers and declared datatypes.
+MUST intercepts MPI calls for analysis but cannot deduce the *effective* type of `void*` buffers in MPI APIs. TypeART addresses this by tracking memory allocations relevant to MPI communication in user code, allowing MUST to validate type compatibility between MPI buffers and declared datatypes.
 
 #### Type checking for MPI calls
 
@@ -58,8 +56,8 @@ its [project page](https://itc.rwth-aachen.de/must/).
 
 Using TypeART involves two phases:
 
-1. Compilation, see [Section 1.1](#11-compiling-a-target-code): Compile your code with Clang/LLVM using the TypeART LLVM pass plugin through our compiler wrapper script. The plugin (1) serializes static type information and (2) instruments relevant allocations.
-2. Execution, see [Section 1.2](#12-executing-an-instrumented-target-code): Run the instrumented program. The TypeART runtime tracks all memory allocations. A client can then query our runtime for type information of a memory pointer at relevant points during program execution.
+1. Compilation, see [Section 1.1](#11-compiling-a-target-code): Compile code with Clang/LLVM using the TypeART LLVM pass plugin via the compiler wrapper script. The plugin (1) serializes static type information and (2) instruments relevant allocations.
+2. Execution, see [Section 1.2](#12-executing-an-instrumented-target-code): Run the instrumented program. The TypeART runtime tracks all memory allocations. Clients can query the runtime for type information regarding a memory pointer at relevant points during program execution.
 
 ```
 +----Compiler----+         +-----------------------------------+
@@ -78,11 +76,11 @@ Using TypeART involves two phases:
 
 ### 1.1 Compiling a target code
 
-TypeART’s LLVM compiler pass plugins instrument allocations and serialize static type layouts. We provide compiler wrapper scripts (available in the bin folder of the TypeART installation) for Clang and MPI. By default, these wrappers instrument heap, stack, and global allocations, while MPI wrappers also filter allocations unrelated to MPI calls by default (see [Section 2.3](#23-filtering-allocations)).
+The TypeART LLVM compiler pass instruments allocations and serializes static type layouts. Compiler wrapper scripts are provided (available in the `bin` directory of the installation) for Clang and MPI. By default, these wrappers instrument heap, stack, and global allocations. MPI wrappers additionally filter allocations unrelated to MPI calls (see [Section 2.3](#23-filtering-allocations)).
 
 #### Building with TypeART
 
-Simply replace your compiler variable:
+Replace the compiler variable as follows:
 
 | Variable | TypeART Wrapper   | Equivalent to |
 |----------|-------------------|---------------|
@@ -102,7 +100,7 @@ $> typeart-clang++ $(LINK_FLAGS) code.o -o binary
 
 ##### CMake projects
 
-When using CMake, the wrapper must be disabled during configuration (to pass internal compiler checks) but enabled for the build.
+When using CMake, disable the wrapper during configuration (to pass internal compiler checks) but enable it for the build step.
 
 ```shell
 # Temporarily disable wrapper with environment flag TYPEART_WRAPPER=OFF for configuration:
@@ -113,21 +111,19 @@ $> cmake --build build --target install
 
 ### 1.2 Executing an instrumented target code
 
-To execute the instrumented code, execute the target binary.
+Execute the target binary directly.
 
 ```shell
-# If the TypeART runtime is not resolved, LD_LIBRARY_PATH is set:
+# Ensure the TypeART runtime is in the library path:
 $> env LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(TYPEART_LIBPATH) ./binary
 ```
 
 
 ### 1.3 Example: MPI demo
 
-The folder [demo](demo) contains an example of MPI-related type errors that can be detected using TypeART. The code is
-compiled with our instrumentation, and executed by preloading the MPI-related check library implemented
-in [tool.c](demo/tool.c). The check library uses the TypeART [runtime query interface](lib/runtime/RuntimeInterface.h).
-It overloads the required MPI calls and checks that the passed `void*` buffer is correct w.r.t. the MPI derived
-datatype.
+The folder [demo](demo) contains an example of MPI-related type errors that can be detected using TypeART. The target code is instrumented with TypeART, and executed by preloading the MPI-related check library implemented
+in [tool.c](demo/tool.c). The tool library uses the TypeART [runtime query interface](lib/runtime/RuntimeInterface.h).
+It overloads the required MPI calls and checks that the passed `void*` buffer corresponds to the MPI derived datatype.
 
 To compile and run the demo targets:
 
@@ -150,13 +146,11 @@ To compile and run the demo targets:
 
 ### 2.1 Options for controlling the TypeART pass
 
-The pass behavior can be configured with the environment flags as listed below. The TypeART pass prioritizes environment flags (if set) over the default configuration option.
+Pass behavior is configured via the environment flags listed below. The TypeART pass prioritizes environment flags (if set) over default configuration options.
 
-In particular, `TYPEART_OPTIONS` can be set to globally modify the TypeART pass (stack/heap specific options exist).
-The format requires the option names separated by a semicolon, e.g., `TYPEART_OPTIONS="filter-glob=API_*;no-stats"` sets the filter glob target to `API_*` and deactivates stats printing of the TypeART pass. 
-Prepending `no-` to boolean flags sets them to false.
+Specifically, `TYPEART_OPTIONS` can globally modify the TypeART pass (stack/heap specific options exist). The format requires option names separated by a semicolon, e.g., `TYPEART_OPTIONS="filter-glob=API_*;no-stats"` sets the filter glob target to `API_*` and deactivates stats printing. Prepending `no-` to boolean flags sets them to `false`.
 
-**Note**: Single environment options are prioritized over `TYPEART_OPTIONS`.
+**Note**: Single environment options take precedence over `TYPEART_OPTIONS`.
 
 <!--- @formatter:off --->
 
@@ -194,14 +188,11 @@ Additionally, there are two debug environment flags for dumping the LLVM IR per 
 
 ### 2.2 Serialized type information
 
-To generate these type layouts, TypeART is using either the [LLVM IR type system](https://llvm.org/docs/LangRef.html#type-system) (`typegen=ir`), or using the external library [llvm-dimeta](https://github.com/ahueck/llvm-dimeta) (`typegen=dimeta`) which extracts type information using [LLVM debug metadata](https://llvm.org/docs/SourceLevelDebugging.html).
-The latter is default, the former only works with LLVM 14.
+TypeART uses either the [LLVM IR type system](https://llvm.org/docs/LangRef.html#type-system) (`typegen=ir`) or the external library [llvm-dimeta](https://github.com/ahueck/llvm-dimeta) (`typegen=dimeta`), which extracts type information using [LLVM debug metadata](https://llvm.org/docs/SourceLevelDebugging.html). The latter is the default; the former is compatible only with LLVM 14.
 
-The type's layout is then serialized by either storing it as a global variable inside each translation unit (`type-serialization=hybrid` or `inline`), or via an external yaml file (`type-serialization=file`).
+The layout is serialized either as a global variable inside each translation unit (`type-serialization=hybrid` or `inline`) or via an external YAML file (`type-serialization=file`).
 
-*Note*: With `file` mode (only), the compilation must be serialized, e.g., `make -j 1`, to ensure consistent type information across translation units.
-
-
+**Note**: In `file` mode, compilation must be serialized (e.g., `make -j 1`) to ensure consistent type information across translation units.
 
 
 #### 2.2.1 Hybrid and Inline serialization
@@ -214,17 +205,15 @@ struct GlobalTypeInfo {
   const std::uint32_t extent;
   const std::uint16_t num_members;
   const std::uint16_t flag;
-  const char* name;
+  const char* type_name;
   const std::uint16_t* offsets;
   const std::uint16_t* array_sizes;
   const GlobalTypeInfo** member_types;
 };
 ```
 
-Each type is registered at startup with the TypeART runtime using the callback `void __typeart_register_type(const void* type_ptr);`.
-The callback adds the type information to the type database (for user queries) and assigns a unique `type-id`.
-Each user-defined type layout is assigned a unique integer `type-id` starting at 256. Built-in types (e.g., float) use predefined type-ids (< 256) and byte layouts.
-The runtime library correlates the allocation with the respective type (and layout) during execution via the `type-id`.
+Each type is registered at startup with the TypeART runtime using the callback `void __typeart_register_type(const void* type_ptr);`. This adds the type information to the type database (for user queries) and assigns a unique `type-id`.
+Each user-defined type layout is assigned a unique integer `type-id` starting at 256. Built-in types (e.g., `float`) use predefined type-ids (\< 256) and byte layouts. The runtime library correlates the allocation with the respective type (and layout) during execution via the `type-id`.
 
 
 #### 2.2.2 File-based serialization
@@ -254,7 +243,7 @@ The TypeART pass may write a `typeart-types.yaml` file with the following conten
 
 <!--- @formatter:on --->
 
-Executing a target binary now requires access to the `typeart-types.yaml` file to correlate the type-id with the actual type layouts. To specify its path, you can use the environment variable TYPEART_TYPES, e.g.:
+Executing a target binary requires access to the `typeart-types.yaml` file to correlate the type-id with actual type layouts. Specify the path using the environment variable `TYPEART_TYPES`:
 
 ```bash
 $> export TYPEART_TYPES=/path/to/typeart-types.yaml
@@ -270,7 +259,7 @@ In contrast, when using **LLVM IR Type System**, certain constraints are imposed
 
 ### 2.3 Filtering allocations
 
-To improve performance, a translation unit-local (TU) data-flow filter for global and stack variables exist. It follows the LLVM IR use-def chain. If the allocation provably never reaches the target API, it can be filtered. Otherwise, it is instrumented. Use the option `filter` to filter and `filter-glob=<target API glob>` (default: `*MPI_*`) to target the correct API.
+To improve performance, a translation unit-local (TU) data-flow filter for global and stack variables exist. It follows the LLVM IR use-def chain. If the allocation provably never reaches the target API, it can be filtered. Otherwise, it is instrumented. Use the option `filter` to enable filtering and `filter-glob=<target API glob>` (default: `*MPI_*`) to specify the API.
 
 Consider the following example.
 
@@ -287,10 +276,9 @@ void foo() {
 }
 ```
 
-1. The filter can remove `a`, as the aliasing pointer `x` is never part of an MPI call.
-2. `b` is instrumented as the aliasing pointer `y` is part of an MPI call.
-3. `c` is instrumented as we cannot reason about the body of `foo_bar`.
-
+1.  `a` is filtered because the aliasing pointer `x` is never part of an MPI call.
+2.  `b` is instrumented because the aliasing pointer `y` is part of an MPI call.
+3.  `c` is instrumented because the body of `foo_bar` cannot be reasoned about.
 
 
 ## 3. Building TypeART
@@ -392,9 +380,8 @@ Default mode is to protect the global data structure with a (shared) mutex. Two 
 ##### MPI wrapper generation
 
 The wrappers `typeart-mpicc` and `typeart-mpic++` are generated for compiling MPI codes with TypeART.
-Here, we rely on detecting the vendor to generate wrappers with appropriate environment variables to force the use of
-the Clang/LLVM compiler.
-We support detection for OpenMPI, Intel MPI and MPICH based on `mpi.h` symbols, and use the following flags for setting the Clang compiler:
+The build system detects the vendor to generate wrappers with appropriate environment variables that force the use of the Clang/LLVM compiler.
+Detection is supported for OpenMPI, Intel MPI, and MPICH based on `mpi.h` symbols. The following flags are used to set the Clang compiler:
 
 | Vendor    | Symbol        | C compiler env. var | C++ compiler env. var |
 |-----------|---------------|---------------------|-----------------------|
