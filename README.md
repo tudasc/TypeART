@@ -59,7 +59,7 @@ its [project page](https://itc.rwth-aachen.de/must/).
 Using TypeART involves two phases:
 
 1. Compilation, see [Section 1.1](#11-compiling-a-target-code): Compile your code with Clang/LLVM using the TypeART LLVM pass plugin through our compiler wrapper script. The plugin (1) serializes static type information and (2) instruments relevant allocations.
-2. Execution, see [Section 1.2](#12-executing-an-instrumented-target-code): Run the instrumented program. The TypeART runtime tracks all memory allocations. A client can query the runtime for type information of a pointer at interesting points during program execution.
+2. Execution, see [Section 1.2](#12-executing-an-instrumented-target-code): Run the instrumented program. The TypeART runtime tracks all memory allocations. A client can then query our runtime for type information of a memory pointer at relevant points during program execution.
 
 ```
 +----Compiler----+         +-----------------------------------+
@@ -305,7 +305,7 @@ TypeART supports LLVM version 14, 18-21, and CMake version >= 3.20.
 - OpenMP-enabled Clang compiler: Needed for some tests.
 
 Other smaller, external dependencies are defined within the [externals folder](externals) (depending on configuration
-options), see [Section 2.2.1 (Runtime)](#221-cmake-configuration-options-for-users). They are automatically downloaded
+options), see [Section 3.3 (Runtime)](#33-cmake-configuration-options-for-users). They are automatically downloaded
 during configuration time.
 
 ### 3.2 Building
