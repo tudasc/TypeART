@@ -115,6 +115,29 @@ TYPEART_NO_EXPORT int ta_check_buffer(const char* mpi_name, const void* called_f
     ta_print_loc(called_from);
     return 0;
   }
+
+  const void *ret_addr;
+  typeart_status_v = typeart_get_return_address(buf, &ret_addr);
+  if (typeart_status_v != TYPEART_OK) {
+    return 0;
+  }
+
+  typeart_source_location src_loc;
+  typeart_status_v = typeart_get_source_location(ret_addr, &src_loc);
+  if (typeart_status_v != TYPEART_OK) {
+    ++mcounter.error;
+    const char* msg = ta_get_error_message(typeart_status_v);
+    printf("R[%d][Error][%d] %s: failed to get source location for buffer %p at loc %p - %s\n",
+           rank, const_adr, mpi_name, buf, called_from, msg);
+    return 0;
+  }
+
+  printf("R[%d][Info][%d] %s: buffer %p @ %s:%s:%u\n", rank, const_adr, mpi_name, buf,
+         src_loc.file, src_loc.function, src_loc.line);
+
+  free(src_loc.file);
+  free(src_loc.function);
+
   // if (mpi_count > count) {
   // TODO: Count check not really sensible without taking the MPI type into account
   //  printf("R[%d][Error][%d] Call '%s' buffer %p too small\n", rank, const_adr, mpi_name, buf);

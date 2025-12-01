@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2025 TypeART Authors
+// Copyright (c) 2017-2023 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -13,61 +13,47 @@
 #ifndef TYPEART_CGFORWARDFILTER_H
 #define TYPEART_CGFORWARDFILTER_H
 
+#include "compat/CallSite.h"
 #include "FilterBase.h"
 #include "Matcher.h"
-#include "compat/CallSite.h"
-#include "filter/CGInterface.h"
-#include "filter/IRPath.h"
-
-#include <memory>
-#include <string>
-
-namespace llvm {
-class Function;
-class Value;
-}  // namespace llvm
-namespace typeart {
-namespace filter {
-namespace omp {
-struct OmpContext;
-}  // namespace omp
-struct DefaultSearch;
-}  // namespace filter
-}  // namespace typeart
+#include "MetaCG.h"
 
 namespace typeart::filter {
 
-struct CGFilterTrait {
-  constexpr static bool Indirect    = false;
+namespace omp {
+  struct OmpContext;
+}
+
+struct DefaultSearch;
+
+struct CGForwardFilterTrait {
+  constexpr static bool Indirect    = true;
   constexpr static bool Intrinsic   = false;
   constexpr static bool Declaration = true;
   constexpr static bool Definition  = true;
   constexpr static bool PreCheck    = true;
 };
 
-class CGInterface;
+struct CGForwardFilterImpl {
+  using Support = CGForwardFilterTrait;
 
-struct CGFilterImpl {
-  using Support = CGFilterTrait;
+  CGForwardFilterImpl(metacg::Mcg&&, Regex&&);
 
-  std::string filter;
-  std::unique_ptr<CGInterface> call_graph;
-  std::unique_ptr<Matcher> deep_matcher;
+  FilterAnalysis precheck(Value*, Function*, const FPath&);
+  FilterAnalysis indirect(CallSite, const Path&);
+  FilterAnalysis decl(CallSite, const Path&);
+  FilterAnalysis def(CallSite, const Path&);
 
-  CGFilterImpl(const std::string& filter_str, std::unique_ptr<CGInterface>&& cgraph);
+private:
+  FilterAnalysis reachesMatching(ArrayRef<size_t>);
 
-  CGFilterImpl(const std::string& filter_str, std::unique_ptr<CGInterface>&& cgraph,
-               std::unique_ptr<Matcher>&& matcher);
-
-  FilterAnalysis precheck(Value* in, Function* start, const FPath&);
-
-  FilterAnalysis decl(CallSite current, const Path& p);
-
-  FilterAnalysis def(CallSite current, const Path& p);
+  metacg::Mcg mcg;
+  Regex matcher;
+  FunctionOracleMatcher oracle;
 };
 
-using CGForwardFilter = BaseFilter<CGFilterImpl, DefaultSearch, omp::OmpContext>;
+using CGForwardFilter = BaseFilter<CGForwardFilterImpl, DefaultSearch, omp::OmpContext>;
 
-}  // namespace typeart::filter
+} // namespace typeart::filter
 
 #endif  // TYPEART_CGFORWARDFILTER_H

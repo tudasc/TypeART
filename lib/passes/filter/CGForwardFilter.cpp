@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2025 TypeART Authors
+// Copyright (c) 2017-2023 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -12,118 +12,145 @@
 
 #include "CGForwardFilter.h"
 
-#include "CGInterface.h"
-#include "Matcher.h"
-#include "OmpUtil.h"
-#include "filter/FilterBase.h"
-#include "filter/FilterUtil.h"
-#include "support/Logger.h"
-#include "support/Util.h"
-
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/IR/Instructions.h"
-#include "llvm/IR/Type.h"
-#include "llvm/IR/Value.h"
-#include "llvm/Support/Casting.h"
-#include "llvm/Support/raw_ostream.h"
-
-#include <utility>
-
-namespace llvm {
-class Function;
-}  // namespace llvm
+#include <llvm/ADT/SmallSet.h>
 
 namespace typeart::filter {
 
-CGFilterImpl::CGFilterImpl(const std::string& filter_str, std::unique_ptr<CGInterface>&& cgraph)
-    : CGFilterImpl(filter_str, std::move(cgraph), nullptr) {
-}
+CGForwardFilterImpl::CGForwardFilterImpl(metacg::Mcg&& cg, Regex&& match)
+  : mcg{std::move(cg)}, matcher{std::move(match)}
+{}
 
-CGFilterImpl::CGFilterImpl(const std::string& filter_str, std::unique_ptr<CGInterface>&& cgraph,
-                           std::unique_ptr<Matcher>&& matcher)
-    : filter(util::glob2regex(filter_str)), call_graph(std::move(cgraph)), deep_matcher(std::move(matcher)) {
-}
+FilterAnalysis CGForwardFilterImpl::reachesMatching(const ArrayRef<size_t> nodes) {
+  SmallVector<size_t, 64> workq{};
+  SmallSet<size_t, 32> seen{};
 
-FilterAnalysis CGFilterImpl::precheck(Value* in, Function* start, const FPath& fpath) {
-  if (start == nullptr) {
-    return FilterAnalysis::Continue;
+  const auto enqueue = [&seen, &workq](const size_t it) {
+    if (const auto [_, inserted] = seen.insert(it); inserted)
+      workq.push_back(it);
+  };
+
+  for (const auto id : nodes) {
+    enqueue(id);
+    LOG_DEBUG("Starting node with parameter: " << mcg.forId(id)->name);
   }
 
-  FunctionAnalysis analysis;
-  analysis.analyze(start);
-  if (analysis.empty()) {
-    return FilterAnalysis::Filter;
-  }
+  while (!workq.empty()) {
+    // Grab the current node ID and translate it into its corresponding function descriptor to check
+    // if its name matches our matcher.
+    const auto current = workq.pop_back_val();
+    LOG_DEBUG("> Inspecting node: " << mcg.forId(current)->name);
 
-  if (fpath.empty()) {
-    // These conditions (temp alloc and alloca reaches task)
-    // are only interesting if filter just started (aka fpath is empty)
-    if (isTempAlloc(in)) {
-      LOG_DEBUG("Alloca is a temporary " << *in);
-      return FilterAnalysis::Filter;
-    }
+    if (const auto fn = mcg.forId(current); fn && fn->name) {
+      if (matcher.match(*fn->name)) {
+        // Keep if the function matches the matcher
+        LOG_DEBUG("-> Matches matcher, keeping");
+        return FilterAnalysis::Keep;
+      } else if (const auto r = oracle.matchName(*fn->name); r != Matcher::MatchResult::NoMatch) {
+        // Ignore any known skippable functions
+        switch (r) {
+        case Matcher::MatchResult::ShouldSkip:
+        case Matcher::MatchResult::ShouldContinue:
+          LOG_DEBUG("-> Known function, skipping");
+          continue;
 
-    if (llvm::AllocaInst* alloc = llvm::dyn_cast<AllocaInst>(in)) {
-      if (alloc->getAllocatedType()->isStructTy() && omp::OmpContext::allocaReachesTask(alloc)) {
-        LOG_DEBUG("Alloca reaches task call " << *alloc)
-        return FilterAnalysis::Filter;
+        default: ;
+        }
       }
+    } else if (fn && !fn->has_body) {
+      // We have to be conservative if we reach an unknown function without a body
+      LOG_DEBUG("-> Function has no body, keeping");
+      return FilterAnalysis::Keep;
     }
-  }
 
-  const auto has_omp_task =
-      llvm::any_of(analysis.calls.decl, [](const auto& csite) { return omp::OmpContext::isOmpTaskRelated(csite); });
-  if (has_omp_task) {
-    // FIXME we cannot handle complex data flow of tasks at this point, hence, this check
-    LOG_DEBUG("Keep value " << *in << ". Detected omp task call.");
-    return FilterAnalysis::Keep;
+    const auto current_node = mcg.forId(current);
+    assert(current_node && "MCG is broken");
+
+    for (const auto& [callee, _] : current_node->callees) {
+      enqueue(callee);
+      LOG_DEBUG("-> Enqueued callee: " << mcg.forId(callee)->name);
+    }
   }
 
   return FilterAnalysis::Continue;
 }
 
-FilterAnalysis CGFilterImpl::decl(CallSite current, const Path& p) {
-  if (deep_matcher && deep_matcher->match(current) == Matcher::MatchResult::Match) {
-#if LLVM_VERSION_MAJOR < 15
-    auto result = correlate2void(current, p);
-#else
-    auto result = correlate2pointer(current, p);
-#endif
-    switch (result) {
-      case ArgCorrelation::GlobalMismatch:
-        [[fallthrough]];
-      case ArgCorrelation::ExactMismatch:
-        LOG_DEBUG("Correlated, continue search");
-        return FilterAnalysis::Continue;
-      default:
-        return FilterAnalysis::Keep;
-    }
+FilterAnalysis CGForwardFilterImpl::precheck(Value* in, Function* start, const FPath&) {
+  if (!start)
+    return FilterAnalysis::Continue;
+
+  FunctionAnalysis analysis{};
+  analysis.analyze(start);
+
+  // Filter if we're in a leaf function
+  if (analysis.empty())
+    return FilterAnalysis::Filter;
+
+  if (isTempAlloc(in)) {
+    LOG_DEBUG("Alloca is a temporary " << *in);
+    return FilterAnalysis::Filter;
   }
 
-  const auto searchCG = [&](auto from) {
-    if (call_graph) {
-      return call_graph->reachable(std::string{from->getName()}, filter);
-    }
-    return CGInterface::ReachabilityResult::unknown;
-  };
-
-  const auto reached = searchCG(current.getCalledFunction());
-
-  switch (reached) {
-    case CGInterface::ReachabilityResult::reaches:
-      return FilterAnalysis::Keep;
-    case CGInterface::ReachabilityResult::never_reaches:
-      return FilterAnalysis::Skip;
-    case CGInterface::ReachabilityResult::maybe_reaches:
+  if (AllocaInst* alloc = dyn_cast<AllocaInst>(in)) {
+    if (alloc->getAllocatedType()->isStructTy() && omp::OmpContext::allocaReachesTask(alloc)) {
+      LOG_DEBUG("Alloca reaches task call " << *alloc)
       return FilterAnalysis::Filter;
-    default:
-      return FilterAnalysis::Continue;
+    }
+  }
+
+  return FilterAnalysis::Continue;
+}
+
+FilterAnalysis CGForwardFilterImpl::indirect(const CallSite current, const Path& p) {
+  SmallVector<size_t, 16> callees{};
+
+  const auto* callLoc = current.getLocation();
+  if (!callLoc) {
+    LOG_DEBUG("No call location, continuing");
+    return FilterAnalysis::Continue;
+  }
+
+  // Resolve the parent scope via debug metadata as it should stay consistent even through inlining
+  const auto* parentScope = dyn_cast<DISubprogram>(callLoc->getScope());
+  if (!parentScope) {
+    LOG_DEBUG("Failed to get parent scope, continuing");
+    return FilterAnalysis::Continue;
+  }
+
+  const auto parentNode = mcg.byName(parentScope->getName());
+  if (!parentNode) {
+    LOG_DEBUG("Failed to get parent node, continuing");
+    return FilterAnalysis::Continue;
+  }
+
+  const auto parent = mcg.forId(*parentNode);
+  assert(parent && "Malformed MCG");
+
+  auto md = parent->meta.as<metacg::MdLocals>("localflow");
+  if (!md) {
+    LOG_DEBUG("Failed to get localflow for node, continuing");
+    return FilterAnalysis::Continue;
+  }
+
+  for (const auto& local : md->locals)
+    if (local.loc == metacg::SrcLoc{callLoc->getColumn(), callLoc->getLine()})
+      callees.append(local.callees.begin(), local.callees.end());
+
+  for (const auto& [callee, _] : parent->callees)
+    callees.push_back(callee);
+
+  return reachesMatching(callees);
+}
+
+FilterAnalysis CGForwardFilterImpl::def(const CallSite current, const Path& p) {
+  if (const auto node = mcg.byName(current.getCalledFunction()->getName()); node) {
+    return reachesMatching({*node});
+  } else {
+    // Be conservative if the function is not recorded in the call graph
+    LOG_DEBUG("Unrecorded function, continuing: " << current.getCalledFunction()->getName());
+    return FilterAnalysis::Continue;
   }
 }
 
-FilterAnalysis CGFilterImpl::def(CallSite current, const Path& p) {
-  return decl(current, p);
-}
+FilterAnalysis CGForwardFilterImpl::decl(const CallSite current, const Path& p) { return def(current, p); }
 
 }  // namespace typeart::filter

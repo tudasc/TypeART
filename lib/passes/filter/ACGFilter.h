@@ -15,6 +15,7 @@
 
 #include "compat/CallSite.h"
 #include "FilterBase.h"
+#include "Matcher.h"
 #include "MetaCG.h"
 
 namespace typeart::filter {
@@ -26,14 +27,12 @@ namespace omp {
 struct DefaultSearch;
 
 struct ArgflowFilterTrait {
-  constexpr static bool Indirect    = false;
+  constexpr static bool Indirect    = true;
   constexpr static bool Intrinsic   = false;
   constexpr static bool Declaration = true;
   constexpr static bool Definition  = true;
   constexpr static bool PreCheck    = true;
 };
-
-class CGInterface;
 
 struct AcgFilterImpl {
   using Support = ArgflowFilterTrait;
@@ -41,6 +40,7 @@ struct AcgFilterImpl {
   AcgFilterImpl(metacg::Mcg&&, Regex&&);
 
   FilterAnalysis precheck(Value*, Function*, const FPath&);
+  FilterAnalysis indirect(CallSite, const Path&);
   FilterAnalysis decl(CallSite, const Path&);
   FilterAnalysis def(CallSite, const Path&);
 
@@ -49,6 +49,7 @@ private:
 
   metacg::Mcg mcg;
   Regex matcher;
+  FunctionOracleMatcher oracle;
 };
 
 using AcgFilter = BaseFilter<AcgFilterImpl, DefaultSearch, omp::OmpContext>;

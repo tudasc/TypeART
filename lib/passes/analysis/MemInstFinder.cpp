@@ -99,15 +99,23 @@ static std::unique_ptr<typeart::filter::Filter> make_filter(const MemInstFinderC
     LOG_DEBUG("Return no-op filter")
     return std::make_unique<NoOpFilter>();
   } else if (filter_id == FilterImplementation::cg) {
-    const std::string cg_file = config[config::ConfigStdArgs::filter_cg_file];
-    if (cg_file.empty()) {
-      LOG_FATAL("CG File not set!");
+    LOG_DEBUG("Return CGForward filter");
+
+    std::string cg_file = config[config::ConfigStdArgs::filter_cg_file];
+    const auto buf = MemoryBuffer::getFile(std::move(cg_file), true);
+    if (!buf) {
+      LOG_FATAL("Failed to load MCG file");
       std::exit(1);
     }
-    LOG_DEBUG("Return CG filter with CG file @ " << cg_file)
-    auto json_cg = JSONCG::getJSON(cg_file);
-    auto matcher = std::make_unique<DefaultStringMatcher>(util::glob2regex(glob));
-    return std::make_unique<CGForwardFilter>(glob, std::move(json_cg), std::move(matcher));
+
+    auto mcg = metacg::parse((*buf)->getBuffer());
+    if (!mcg) {
+      LOG_FATAL(mcg.takeError() << '\n');
+      std::exit(1);
+    }
+
+    return std::make_unique<CGForwardFilter>(std::move(mcg.get()), Regex{util::glob2regex(glob), Regex::NoFlags});
+
   } else if (filter_id == FilterImplementation::acg) {
     LOG_DEBUG("Return Argflow filter");
     std::string cg_file = config[config::ConfigStdArgs::filter_cg_file];
