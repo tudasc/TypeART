@@ -17,10 +17,12 @@
 #include "analysis/MemOpData.h"
 #include "configuration/Configuration.h"
 #include "configuration/TypeARTOptions.h"
+#include "filter/ACGFilter.h"
 #include "filter/CGForwardFilter.h"
 #include "filter/CGInterface.h"
 #include "filter/Filter.h"
 #include "filter/Matcher.h"
+#include "filter/MetaCG.h"
 #include "filter/StdForwardFilter.h"
 #include "support/ConfigurationBase.h"
 #include "support/Logger.h"
@@ -44,6 +46,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <llvm/ADT/ScopeExit.h>
+#include <llvm/Support/MemoryBuffer.h>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -106,17 +109,22 @@ static std::unique_ptr<typeart::filter::Filter> make_filter(const MemInstFinderC
     auto matcher = std::make_unique<DefaultStringMatcher>(util::glob2regex(glob));
     return std::make_unique<CGForwardFilter>(glob, std::move(json_cg), std::move(matcher));
   } else if (filter_id == FilterImplementation::acg) {
-    const std::string acg_file = config[config::ConfigStdArgs::filter_cg_file];
-    if (acg_file.empty()) {
-      LOG_FATAL("ACG File not set!");
+    LOG_DEBUG("Return Argflow filter");
+    std::string cg_file = config[config::ConfigStdArgs::filter_cg_file];
+    const auto buf = MemoryBuffer::getFile(std::move(cg_file), true);
+    if (!buf) {
+      LOG_FATAL("Failed to load MCG file");
       std::exit(1);
     }
-    LOG_DEBUG("Return ACG filter with CG file @ " << acg_file)
-    
-    return std::make_unique<NoOpFilter>(); // TODO
-  }
 
-  else {
+    auto mcg = metacg::parse((*buf)->getBuffer());
+    if (!mcg) {
+      LOG_FATAL(mcg.takeError() << '\n');
+      std::exit(1);
+    }
+
+    return std::make_unique<AcgFilter>(std::move(mcg.get()), Regex{util::glob2regex(glob), Regex::NoFlags});
+  } else {
     LOG_DEBUG("Return default filter")
     auto matcher         = std::make_unique<DefaultStringMatcher>(util::glob2regex(glob));
     const auto deep_glob = config[config::ConfigStdArgs::filter_glob_deep];
