@@ -16,17 +16,17 @@
 
 namespace typeart::filter {
 
-AcgFilterImpl::AcgFilterImpl(metacg::Mcg&& cg, Regex&& match)
-  : mcg{std::move(cg)}, matcher{std::move(match)}
-{}
+AcgFilterImpl::AcgFilterImpl(metacg::Mcg&& cg, Regex&& match) : mcg{std::move(cg)}, matcher{std::move(match)} {
+}
 
 FilterAnalysis AcgFilterImpl::reachesMatching(const ArrayRef<size_t> nodes, const size_t idx) {
   SmallVector<std::pair<size_t, size_t>, 64> workq{};
   SmallSet<size_t, 32> seen{};
 
   const auto enqueue = [&seen, &workq](const size_t it, const size_t i) {
-    if (const auto [_, inserted] = seen.insert(it); inserted)
+    if (const auto [_, inserted] = seen.insert(it); inserted) {
       workq.push_back({it, i});
+    }
   };
 
   for (const auto id : nodes) {
@@ -48,12 +48,12 @@ FilterAnalysis AcgFilterImpl::reachesMatching(const ArrayRef<size_t> nodes, cons
       } else if (const auto r = oracle.matchName(*fn->name); r != Matcher::MatchResult::NoMatch) {
         // Ignore any known skippable functions
         switch (r) {
-        case Matcher::MatchResult::ShouldSkip:
-        case Matcher::MatchResult::ShouldContinue:
-          LOG_DEBUG("-> Known function, skipping");
-          continue;
+          case Matcher::MatchResult::ShouldSkip:
+          case Matcher::MatchResult::ShouldContinue:
+            LOG_DEBUG("-> Known function, skipping");
+            continue;
 
-        default: ;
+          default:;
         }
       }
     } else if (fn && !fn->has_body) {
@@ -80,15 +80,17 @@ FilterAnalysis AcgFilterImpl::reachesMatching(const ArrayRef<size_t> nodes, cons
 }
 
 FilterAnalysis AcgFilterImpl::precheck(Value* in, Function* start, const FPath&) {
-  if (!start)
+  if (!start) {
     return FilterAnalysis::Continue;
+  }
 
   FunctionAnalysis analysis{};
   analysis.analyze(start);
 
   // Filter if we're in a leaf function
-  if (analysis.empty())
+  if (analysis.empty()) {
     return FilterAnalysis::Filter;
+  }
 
   if (isTempAlloc(in)) {
     LOG_DEBUG("Alloca is a temporary " << *in);
@@ -111,8 +113,9 @@ FilterAnalysis AcgFilterImpl::indirect(const CallSite current, const Path& p) {
   const auto arg = *p.getEndPrev();
   assert(arg && "Argument is missing");
 
-  if (!is_contained(current.args(), arg))
+  if (!is_contained(current.args(), arg)) {
     return FilterAnalysis::Continue;
+  }
 
   const auto idx = std::distance(current.args().begin(), find(current.args(), arg));
 
@@ -144,16 +147,20 @@ FilterAnalysis AcgFilterImpl::indirect(const CallSite current, const Path& p) {
     return FilterAnalysis::Continue;
   }
 
-  for (const auto& local : md->locals)
-    if (local.loc == metacg::SrcLoc{callLoc->getColumn(), callLoc->getLine()})
+  for (const auto& local : md->locals) {
+    if (local.loc == metacg::SrcLoc{callLoc->getColumn(), callLoc->getLine()}) {
       callees.append(local.callees.begin(), local.callees.end());
+    }
+  }
 
   const auto outs = mcg.outputs(*parentNode, idx);
-  if (!outs)
+  if (!outs) {
     return FilterAnalysis::Continue;
+  }
 
-  for (const auto& out : *outs)
+  for (const auto& out : *outs) {
     callees.append(out.callees.begin(), out.callees.end());
+  }
 
   return reachesMatching(callees, idx);
 }
@@ -162,8 +169,9 @@ FilterAnalysis AcgFilterImpl::def(const CallSite current, const Path& p) {
   const auto arg = *p.getEndPrev();
   assert(arg && "Argument is missing");
 
-  if (!is_contained(current.args(), arg))
+  if (!is_contained(current.args(), arg)) {
     return FilterAnalysis::Continue;
+  }
 
   // Calculate the argument position
   const auto idx = std::distance(current.args().begin(), find(current.args(), arg));
@@ -177,6 +185,8 @@ FilterAnalysis AcgFilterImpl::def(const CallSite current, const Path& p) {
   }
 }
 
-FilterAnalysis AcgFilterImpl::decl(const CallSite current, const Path& p) { return def(current, p); }
+FilterAnalysis AcgFilterImpl::decl(const CallSite current, const Path& p) {
+  return def(current, p);
+}
 
-} // namespace typeart::filter
+}  // namespace typeart::filter

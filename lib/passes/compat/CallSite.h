@@ -22,7 +22,6 @@
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Value.h>
 #include <llvm/Support/Casting.h>
-
 #include <utility>
 
 namespace llvm {
@@ -92,7 +91,7 @@ class CallSite {
   }
 
   [[nodiscard]] const DILocation* getLocation() const {
-    SmallVector<std::pair<unsigned, MDNode *>> mds;
+    SmallVector<std::pair<unsigned, MDNode*>> mds;
     instruction_->getAllMetadata(mds);
 
     for (const auto& [_, md] : mds) {

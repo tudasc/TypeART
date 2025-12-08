@@ -127,11 +127,11 @@ static cl::opt<ConfigStdArgTypes::filter_ty> cl_typeart_call_filter(CommandlineS
 
 static cl::opt<typeart::analysis::FilterImplementation> cl_typeart_call_filter_implementation(
     CommandlineStdArgs::filter_impl, cl::desc(ConfigStdArgDescriptions::filter_impl),
-    cl::values(clEnumValN(typeart::analysis::FilterImplementation::none, "none", "No filter"),
-               clEnumValN(typeart::analysis::FilterImplementation::standard, "std",
-                          "Standard forward filter (default)"),
-               clEnumValN(typeart::analysis::FilterImplementation::cg, "cg", "Call-graph-based filter"),
-               clEnumValN(typeart::analysis::FilterImplementation::acg, "acg", "MetaCG with argument flow based filter")),
+    cl::values(
+        clEnumValN(typeart::analysis::FilterImplementation::none, "none", "No filter"),
+        clEnumValN(typeart::analysis::FilterImplementation::standard, "std", "Standard forward filter (default)"),
+        clEnumValN(typeart::analysis::FilterImplementation::cg, "cg", "Call-graph-based filter"),
+        clEnumValN(typeart::analysis::FilterImplementation::acg, "acg", "MetaCG with argument flow based filter")),
     cl::Hidden, cl::init(typeart::analysis::FilterImplementation::standard), cl::cat(typeart_analysis_category));
 
 static cl::opt<ConfigStdArgTypes::filter_glob_ty> cl_typeart_call_filter_glob(

@@ -34,7 +34,7 @@ class Matcher {
     if (c.getCalledFunction() != nullptr)
       return this->matchName(c.getCalledFunction()->getName());
 
-	 return MatchResult::NoMatch;
+    return MatchResult::NoMatch;
   }
 
   virtual MatchResult matchName(llvm::StringRef) const = 0;
@@ -70,9 +70,9 @@ class DefaultStringMatcher final : public Matcher {
 
 class FunctionOracleMatcher final : public Matcher {
   const MemOps mem_operations{};
-  llvm::SmallDenseSet<llvm::StringRef> continue_set{{"sqrt"}, {"cos"}, {"sin"},    {"pow"},  {"fabs"},
-                                                    {"abs"},  {"log"}, {"fscanf"}, {"cbrt"}, {"gettimeofday"},
-                                                    {"strcpy"}, {"strlen"}};
+  llvm::SmallDenseSet<llvm::StringRef> continue_set{{"sqrt"}, {"cos"},          {"sin"},    {"pow"},
+                                                    {"fabs"}, {"abs"},          {"log"},    {"fscanf"},
+                                                    {"cbrt"}, {"gettimeofday"}, {"strcpy"}, {"strlen"}};
   llvm::SmallDenseSet<llvm::StringRef> skip_set{{"printf"}, {"sprintf"},      {"snprintf"}, {"fprintf"},
                                                 {"puts"},   {"__cxa_atexit"}, {"fopen"},    {"fclose"},
                                                 {"scanf"},  {"strtol"},       {"srand"}};
@@ -81,7 +81,7 @@ class FunctionOracleMatcher final : public Matcher {
   MatchResult matchName(llvm::StringRef const name) const override {
     const auto f_name = util::demangle(name);
     llvm::StringRef f_name_ref{f_name};
-      
+
     if (continue_set.count(f_name) > 0) {
       return MatchResult::ShouldContinue;
     }

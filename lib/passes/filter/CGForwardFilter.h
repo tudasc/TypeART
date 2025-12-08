@@ -13,15 +13,15 @@
 #ifndef TYPEART_CGFORWARDFILTER_H
 #define TYPEART_CGFORWARDFILTER_H
 
-#include "compat/CallSite.h"
 #include "FilterBase.h"
 #include "Matcher.h"
 #include "MetaCG.h"
+#include "compat/CallSite.h"
 
 namespace typeart::filter {
 
 namespace omp {
-  struct OmpContext;
+struct OmpContext;
 }
 
 struct DefaultSearch;
@@ -44,7 +44,7 @@ struct CGForwardFilterImpl {
   FilterAnalysis decl(CallSite, const Path&);
   FilterAnalysis def(CallSite, const Path&);
 
-private:
+ private:
   FilterAnalysis reachesMatching(ArrayRef<size_t>);
 
   metacg::Mcg mcg;
@@ -54,6 +54,6 @@ private:
 
 using CGForwardFilter = BaseFilter<CGForwardFilterImpl, DefaultSearch, omp::OmpContext>;
 
-} // namespace typeart::filter
+}  // namespace typeart::filter
 
 #endif  // TYPEART_CGFORWARDFILTER_H

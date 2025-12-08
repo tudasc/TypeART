@@ -17,16 +17,17 @@
 namespace typeart::filter {
 
 CGForwardFilterImpl::CGForwardFilterImpl(metacg::Mcg&& cg, Regex&& match)
-  : mcg{std::move(cg)}, matcher{std::move(match)}
-{}
+    : mcg{std::move(cg)}, matcher{std::move(match)} {
+}
 
 FilterAnalysis CGForwardFilterImpl::reachesMatching(const ArrayRef<size_t> nodes) {
   SmallVector<size_t, 64> workq{};
   SmallSet<size_t, 32> seen{};
 
   const auto enqueue = [&seen, &workq](const size_t it) {
-    if (const auto [_, inserted] = seen.insert(it); inserted)
+    if (const auto [_, inserted] = seen.insert(it); inserted) {
       workq.push_back(it);
+    }
   };
 
   for (const auto id : nodes) {
@@ -48,12 +49,12 @@ FilterAnalysis CGForwardFilterImpl::reachesMatching(const ArrayRef<size_t> nodes
       } else if (const auto r = oracle.matchName(*fn->name); r != Matcher::MatchResult::NoMatch) {
         // Ignore any known skippable functions
         switch (r) {
-        case Matcher::MatchResult::ShouldSkip:
-        case Matcher::MatchResult::ShouldContinue:
-          LOG_DEBUG("-> Known function, skipping");
-          continue;
+          case Matcher::MatchResult::ShouldSkip:
+          case Matcher::MatchResult::ShouldContinue:
+            LOG_DEBUG("-> Known function, skipping");
+            continue;
 
-        default: ;
+          default:;
         }
       }
     } else if (fn && !fn->has_body) {
@@ -75,15 +76,17 @@ FilterAnalysis CGForwardFilterImpl::reachesMatching(const ArrayRef<size_t> nodes
 }
 
 FilterAnalysis CGForwardFilterImpl::precheck(Value* in, Function* start, const FPath&) {
-  if (!start)
+  if (!start) {
     return FilterAnalysis::Continue;
+  }
 
   FunctionAnalysis analysis{};
   analysis.analyze(start);
 
   // Filter if we're in a leaf function
-  if (analysis.empty())
+  if (analysis.empty()) {
     return FilterAnalysis::Filter;
+  }
 
   if (isTempAlloc(in)) {
     LOG_DEBUG("Alloca is a temporary " << *in);
@@ -131,12 +134,15 @@ FilterAnalysis CGForwardFilterImpl::indirect(const CallSite current, const Path&
     return FilterAnalysis::Continue;
   }
 
-  for (const auto& local : md->locals)
-    if (local.loc == metacg::SrcLoc{callLoc->getColumn(), callLoc->getLine()})
+  for (const auto& local : md->locals) {
+    if (local.loc == metacg::SrcLoc{callLoc->getColumn(), callLoc->getLine()}) {
       callees.append(local.callees.begin(), local.callees.end());
+    }
+  }
 
-  for (const auto& [callee, _] : parent->callees)
+  for (const auto& [callee, _] : parent->callees) {
     callees.push_back(callee);
+  }
 
   return reachesMatching(callees);
 }
@@ -151,6 +157,8 @@ FilterAnalysis CGForwardFilterImpl::def(const CallSite current, const Path& p) {
   }
 }
 
-FilterAnalysis CGForwardFilterImpl::decl(const CallSite current, const Path& p) { return def(current, p); }
+FilterAnalysis CGForwardFilterImpl::decl(const CallSite current, const Path& p) {
+  return def(current, p);
+}
 
 }  // namespace typeart::filter

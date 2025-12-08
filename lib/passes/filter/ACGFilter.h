@@ -13,15 +13,15 @@
 #ifndef ARGFLOWFILTER_H
 #define ARGFLOWFILTER_H
 
-#include "compat/CallSite.h"
 #include "FilterBase.h"
 #include "Matcher.h"
 #include "MetaCG.h"
+#include "compat/CallSite.h"
 
 namespace typeart::filter {
 
 namespace omp {
-  struct OmpContext;
+struct OmpContext;
 }
 
 struct DefaultSearch;
@@ -44,7 +44,7 @@ struct AcgFilterImpl {
   FilterAnalysis decl(CallSite, const Path&);
   FilterAnalysis def(CallSite, const Path&);
 
-private:
+ private:
   FilterAnalysis reachesMatching(ArrayRef<size_t>, size_t);
 
   metacg::Mcg mcg;
@@ -54,6 +54,6 @@ private:
 
 using AcgFilter = BaseFilter<AcgFilterImpl, DefaultSearch, omp::OmpContext>;
 
-} // namespace typeart::filter
+}  // namespace typeart::filter
 
-#endif //ARGFLOWFILTER_H
+#endif  // ARGFLOWFILTER_H

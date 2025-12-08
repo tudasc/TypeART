@@ -102,7 +102,7 @@ static std::unique_ptr<typeart::filter::Filter> make_filter(const MemInstFinderC
     LOG_DEBUG("Return CGForward filter");
 
     std::string cg_file = config[config::ConfigStdArgs::filter_cg_file];
-    const auto buf = MemoryBuffer::getFile(std::move(cg_file), true);
+    const auto buf      = MemoryBuffer::getFile(std::move(cg_file), true);
     if (!buf) {
       LOG_FATAL("Failed to load MCG file");
       std::exit(1);
@@ -119,7 +119,7 @@ static std::unique_ptr<typeart::filter::Filter> make_filter(const MemInstFinderC
   } else if (filter_id == FilterImplementation::acg) {
     LOG_DEBUG("Return Argflow filter");
     std::string cg_file = config[config::ConfigStdArgs::filter_cg_file];
-    const auto buf = MemoryBuffer::getFile(std::move(cg_file), true);
+    const auto buf      = MemoryBuffer::getFile(std::move(cg_file), true);
     if (!buf) {
       LOG_FATAL("Failed to load MCG file");
       std::exit(1);
