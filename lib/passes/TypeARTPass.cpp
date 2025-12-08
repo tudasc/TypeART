@@ -413,15 +413,6 @@ llvm::PassPluginLibraryInfo getTypeartPassPluginInfo() {
               }
               MPM.addPass(typeart::pass::TypeArtPass(typeart::pass::TypeArtPass(parameters.get())));
             });
-            pass_builder.registerFullLinkTimeOptimizationLastEPCallback([](ModulePassManager& MPM, OptimizationLevel) {
-              auto parameters = typeart::util::pass::parsePassParameters(typeart::config::pass::parse_typeart_config,
-                                                                         "typeart<heap;stats>", "typeart");
-              if (!parameters) {
-                LOG_FATAL("Error parsing heap params: " << parameters.takeError())
-                return;
-              }
-              MPM.addPass(typeart::pass::TypeArtPass(typeart::pass::TypeArtPass(parameters.get())));
-            });
             pass_builder.registerOptimizerLastEPCallback([](auto& MPM, OptimizationLevel) {
               auto parameters = typeart::util::pass::parsePassParameters(typeart::config::pass::parse_typeart_config,
                                                                          "typeart<no-heap;stack;stats>", "typeart");
