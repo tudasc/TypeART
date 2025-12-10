@@ -19,11 +19,14 @@
 
 #include "llvm/Demangle/Demangle.h"
 #include "llvm/IR/Function.h"
+#include "llvm/IR/Module.h"
 #include "llvm/Support/Regex.h"
 #include "llvm/Support/raw_ostream.h"
 
 #include <algorithm>
 #include <llvm/ADT/StringRef.h>
+#include <llvm/IR/Constants.h>
+#include <llvm/IR/Value.h>
 #include <string>
 
 namespace typeart::util {
@@ -200,6 +203,28 @@ inline bool ends_with_any_of(llvm::StringRef lhs, StringTy... rhs) {
 #else
   return !lhs.empty() && ((lhs.endswith(rhs)) || ...);
 #endif
+}
+
+template <typename Matcher>
+bool for_each_cdtor(llvm::StringRef name, llvm::Module& module, Matcher&& matching_fn) {
+  using namespace llvm;
+  auto* GVCtor = module.getNamedGlobal(name);
+  if (!GVCtor) {
+    return false;
+  }
+  if (Constant* Init = GVCtor->getInitializer()) {
+    for (Value* OP : Init->operands()) {
+      auto* const_struct = dyn_cast<ConstantStruct>(OP);
+      if (!const_struct || const_struct->getNumOperands() < 3) {
+        continue;
+      }
+
+      if (matching_fn(const_struct->getOperand(1))) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 }  // namespace typeart::util

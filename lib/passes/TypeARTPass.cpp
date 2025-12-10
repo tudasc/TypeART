@@ -290,7 +290,23 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
   bool runOnFunc(llvm::Function& f) {
     using namespace typeart;
 
-    if (f.isDeclaration() || util::starts_with_any_of(f.getName(), "__typeart", "typeart")) {
+    if (f.isDeclaration() || util::starts_with_any_of(f.getName(), "__typeart", "typeart", "__sanitizer", "__tysan")) {
+      return false;
+    }
+
+    const auto matches_current_func = [&f](const auto* constant) -> bool {
+      if (llvm::isa<llvm::Function>(constant)) {
+        const bool matches = &f == constant;
+        if (matches) {
+          LOG_FATAL("Function is in global llvm.ctor/dtor " << f.getName())
+        }
+        return matches;
+      }
+      return false;
+    };
+
+    if (util::for_each_cdtor("llvm.global_ctors", *f.getParent(), matches_current_func) ||  //
+        util::for_each_cdtor("llvm.global_dtors", *f.getParent(), matches_current_func)) {
       return false;
     }
 
