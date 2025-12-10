@@ -206,11 +206,11 @@ inline bool ends_with_any_of(llvm::StringRef lhs, StringTy... rhs) {
 }
 
 template <typename Matcher>
-bool for_each_cdtor(llvm::StringRef name, llvm::Module& module, Matcher&& matching_fn) {
+void for_each_cdtor(llvm::StringRef name, llvm::Module& module, Matcher&& matching_fn) {
   using namespace llvm;
   auto* GVCtor = module.getNamedGlobal(name);
   if (!GVCtor) {
-    return false;
+    return;
   }
   if (Constant* Init = GVCtor->getInitializer()) {
     for (Value* OP : Init->operands()) {
@@ -220,11 +220,10 @@ bool for_each_cdtor(llvm::StringRef name, llvm::Module& module, Matcher&& matchi
       }
 
       if (matching_fn(const_struct->getOperand(1))) {
-        return true;
+        return;
       }
     }
   }
-  return false;
 }
 
 }  // namespace typeart::util

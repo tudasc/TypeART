@@ -21,5 +21,5 @@ int square(float in) {
 // CHECK-NEXT: Alloca :   1
 // CHECK-NEXT: Global :   0
 
-// CHECK: @__typeart_alloc_stack(ptr %calc
+// CHECK: @__typeart_alloc_stack(ptr %{{[a-zA-Z0-9]+}},
 // CHECK: call void @__tysan_init
