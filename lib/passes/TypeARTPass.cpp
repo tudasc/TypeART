@@ -50,7 +50,9 @@
 
 #include <cassert>
 #include <cstddef>
+#include <llvm/ADT/DenseSet.h>
 #include <llvm/Config/llvm-config.h>
+#include <llvm/IR/Constant.h>
 #include <llvm/Support/Error.h>
 #include <memory>
 #include <optional>
@@ -283,14 +285,33 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
       }
     }
 
-    const auto instrumented_function = llvm::count_if(m.functions(), [&](auto& f) { return runOnFunc(f); }) > 0;
+    llvm::DenseSet<const llvm::Constant*> tor_funcs;
+    {
+      const auto collect_funcs = [&tor_funcs](const auto* constant) -> bool {
+        if (llvm::isa<llvm::Function>(constant)) {
+          tor_funcs.insert(constant);
+        }
+        return false;
+      };
+
+      util::for_each_cdtor("llvm.global_ctors", m, collect_funcs);
+      util::for_each_cdtor("llvm.global_dtors", m, collect_funcs);
+    }
+
+    const auto instrumented_function = llvm::count_if(m.functions(), [&](auto& f) {
+                                         if (tor_funcs.contains(&f)) {
+                                           LOG_DEBUG("Function is in LLVM global ctor or dtor " << f.getName())
+                                           return false;
+                                         }
+                                         return runOnFunc(f);
+                                       }) > 0;
     return instrumented_function || globals_were_instrumented;
   }
 
   bool runOnFunc(llvm::Function& f) {
     using namespace typeart;
 
-    if (f.isDeclaration() || util::starts_with_any_of(f.getName(), "__typeart", "typeart")) {
+    if (f.isDeclaration() || util::starts_with_any_of(f.getName(), "__typeart", "typeart", "__sanitizer", "__tysan")) {
       return false;
     }
 
