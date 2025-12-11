@@ -267,119 +267,115 @@ struct GlobalTypeRegistrar {
 
   llvm::GlobalVariable* create_global(
       llvm::StringRef name, llvm::Type* type, llvm::Constant* init = nullptr,
-      llvm::GlobalVariable::LinkageTypes link_type = llvm::GlobalValue::WeakODRLinkage) const {
+      llvm::GlobalVariable::LinkageTypes link_type = llvm::GlobalValue::PrivateLinkage) const {
     // TODO: https://llvm.org/docs/LangRef.html#linkage w.r.t. forward declared types
     auto* global_struct =
         new llvm::GlobalVariable(*module_, type, true, link_type, init, helper::create_prefixed_name(name));
     return global_struct;
   }
 
-  llvm::Constant* make_gep(llvm::Type* type, llvm::GlobalVariable* global) {
-    auto* i32_zero_const = llvm::ConstantInt::get(ir_build.getInt32Ty(), 0);
-    return llvm::ConstantExpr::getInBoundsGetElementPtr(
-        type, global, llvm::ArrayRef<llvm::Constant*>{i32_zero_const, i32_zero_const});
-  }
-
-  llvm::Constant* create_global_constant_string(llvm::StringRef name) {
+  llvm::Constant* create_global_constant_string(llvm::StringRef name, llvm::StringRef payload) {
     // TODO think about linkage
     // auto* name_str = ir_build.CreateGlobalStringPtr(name, helper::create_prefixed_name("typename_", name), 0,
     // module_);
     auto* global_string =
-        ir_build.CreateGlobalString(name, helper::create_prefixed_name("typename_", name), 0, module_);
+        ir_build.CreateGlobalString(payload, helper::create_prefixed_name("typename_", name), 0, module_);
     global_string->setConstant(true);
-    global_string->setLinkage(llvm::GlobalValue::WeakODRLinkage);
-    return make_gep(global_string->getValueType(), global_string);
+    global_string->setLinkage(llvm::GlobalValue::PrivateLinkage);
+    return global_string;
+    // return make_gep(global_string->getValueType(), global_string);
   }
 
-  llvm::Constant* create_global_array_ptr(const llvm::StringRef name, llvm::ArrayRef<uint64_t> values) {
-    if (values.empty()) {
-      LOG_DEBUG("No values for global array, returning nullptr")
+  template <typename InputRange, typename ConversionFunc>
+  llvm::Constant* create_global_array_from_range(llvm::StringRef global_name, const InputRange& inputs,
+                                                 llvm::Type* element_type, ConversionFunc&& convert_element) {
+    if (inputs.empty()) {
+      LOG_DEBUG("No values for global array, returning nullptr");
       return types_helper.get_constant_nullptr();
     }
 
     std::vector<llvm::Constant*> constants;
-    constants.reserve(values.size());
-    for (uint64_t val : values) {
-      constants.push_back(types_helper.get_constant_for(IGlobalType::member_offsets, val));
+    constants.reserve(inputs.size());
+
+    for (const auto& val : inputs) {
+      constants.push_back(convert_element(val));
     }
 
-    auto* array_ty = llvm::ArrayType::get(types_helper.get_type_for(IGlobalType::member_offsets, true), values.size());
+    auto* array_ty       = llvm::ArrayType::get(element_type, inputs.size());
     auto* constant_array = llvm::ConstantArray::get(array_ty, constants);
-    auto* gv             = create_global(name, array_ty, constant_array);
-    return make_gep(array_ty, gv);
+
+    return create_global(global_name, array_ty, constant_array);
   }
 
-  llvm::GlobalVariable* registerGlobalStruct(const std::string& name, int type_id, uint64_t type_size,
-                                             uint64_t member_count, llvm::Constant* offset_ptr,
-                                             llvm::Constant* members_data_ptr, llvm::Constant* count_ptr,
-                                             StructTypeFlag flag = StructTypeFlag::USER_DEFINED) {
-    const auto name_struct = flag == StructTypeFlag::FWD_DECL ? helper::concat(name, "_fwd") : name;
+  llvm::Constant* create_global_array_ptr(const llvm::StringRef name, llvm::ArrayRef<uint64_t> values,
+                                          IGlobalType type = IGlobalType::member_offsets) {
+    return create_global_array_from_range(name, values, types_helper.get_type_for(IGlobalType::member_offsets, true),
+                                          [&](uint64_t val) { return types_helper.get_constant_for(type, val); });
+  }
 
-    llvm::GlobalVariable* global_struct = create_global(name_struct, struct_layout_type_);
-    global_struct->setConstant(false);
-
-    // In the current scheme, built-ins do not need to produce a name string (Built)
-    const bool is_builtin            = flag == StructTypeFlag::BUILTIN;
-    const bool emit_builtin_typename = is_builtin && builtin_emit_name;
-    llvm::Constant* name_str         = (emit_builtin_typename || !is_builtin) ? create_global_constant_string(name)
-                                                                              : types_helper.get_constant_nullptr();
-
-    std::vector<llvm::Constant*> members = {
-        types_helper.get_constant_for(IGlobalType::type_id, type_id),
-        types_helper.get_constant_for(IGlobalType::extent, type_size),
-        types_helper.get_constant_for(IGlobalType::member_count, member_count),
-        types_helper.get_constant_for(IGlobalType::type_flag,
-                                      static_cast<int>(flag)),  // TODO: use real type
-        name_str,                                               //
-        offset_ptr,                                             //
-        count_ptr,                                              //
-        members_data_ptr};
-    llvm::Constant* init = llvm::ConstantStruct::get(struct_layout_type_, members);
-    global_struct->setInitializer(init);
-
-    global_types_.global_type_data.try_emplace(
-        name, GlobalTypeData::TypeData{init, global_struct, name_str, offset_ptr, count_ptr});
-
-    return global_struct;
+  llvm::Constant* create_global_member_array_ptr(const llvm::StringRef name, llvm::ArrayRef<int> member_types) {
+    return create_global_array_from_range(name, member_types, types_helper.get_type_for(IGlobalType::member_types),
+                                          [&](int member_id) { return getOrRegister(member_id); });
   }
 
   llvm::GlobalVariable* registerTypeStruct(const StructTypeInfo* type_struct) {
-    const auto name      = type_struct->name;
-    const auto type_size = type_struct->extent;
+    const auto base_name = type_struct->name;
+    const bool is_fwd    = type_struct->flag == StructTypeFlag::FWD_DECL;
+    const auto link_name = is_fwd ? helper::concat(base_name, "_fwd") : base_name;
 
-    if (type_struct->flag == StructTypeFlag::FWD_DECL) {
-      LOG_DEBUG("Type is forward decl " << name)
-      // return registerGlobalStructDecl(name);
+    if (is_fwd) {
+      LOG_DEBUG("Type is forward decl " << base_name)
     }
 
-    llvm::Constant* offset_ptr = create_global_array_ptr(helper::concat("offsets_", name), type_struct->offsets);
-    llvm::Constant* count_ptr  = create_global_array_ptr(helper::concat("counts_", name), type_struct->array_sizes);
+    llvm::Constant* offsets_ptr = create_global_array_ptr(helper::concat("offsets_", link_name), type_struct->offsets);
+    llvm::Constant* counts_ptr = create_global_array_ptr(helper::concat("counts_", link_name), type_struct->array_sizes,
+                                                         IGlobalType::member_count);
+    llvm::Constant* members_ptr =
+        create_global_member_array_ptr(helper::concat("member_types_", link_name), type_struct->member_types);
+    llvm::GlobalVariable* global_struct =
+        create_global(link_name, struct_layout_type_, nullptr, llvm::GlobalValue::LinkOnceODRLinkage);
+    global_struct->setConstant(false);
 
-    llvm::Constant* members_array;
-    llvm::Type* ptr_type{nullptr};  // TODO: make this unqual?
-    std::vector<llvm::Constant*> member_types{};
+    const bool is_builtin = type_struct->flag == StructTypeFlag::BUILTIN;
+    const bool emit_name  = !is_builtin || builtin_emit_name;
 
-    for (auto member_type_id : type_struct->member_types) {
-      llvm::Constant* member = getOrRegister(member_type_id);
-      if (ptr_type == nullptr) {
-        ptr_type = member->getType();
-      }
-      member_types.emplace_back(member);
+    llvm::Constant* name_str_ptr =
+        emit_name ? create_global_constant_string(link_name, base_name) : types_helper.get_constant_nullptr();
+
+    std::vector<llvm::Constant*> init_fields = {
+        types_helper.get_constant_for(IGlobalType::type_id, type_struct->type_id),
+        types_helper.get_constant_for(IGlobalType::extent, type_struct->extent),
+        types_helper.get_constant_for(IGlobalType::member_count, type_struct->member_types.size()),
+        types_helper.get_constant_for(IGlobalType::type_flag, static_cast<int>(type_struct->flag)),
+        name_str_ptr,
+        offsets_ptr,
+        counts_ptr,
+        members_ptr};
+
+    llvm::Constant* init = llvm::ConstantStruct::get(struct_layout_type_, init_fields);
+    global_struct->setInitializer(init);
+
+    {
+      llvm::Comdat* comdat = this->module_->getOrInsertComdat(helper::create_prefixed_name(link_name));
+      comdat->setSelectionKind(llvm::Comdat::Any);
+      global_struct->setComdat(comdat);
+
+      auto add_to_comdat = [&](llvm::Constant* ptr) {
+        if (auto* global = llvm::dyn_cast_or_null<llvm::GlobalObject>(ptr)) {
+          global->setComdat(comdat);
+        }
+      };
+
+      add_to_comdat(offsets_ptr);
+      add_to_comdat(counts_ptr);
+      add_to_comdat(members_ptr);
+      add_to_comdat(name_str_ptr);
     }
 
-    const auto member_count = type_struct->member_types.size();
-    if (ptr_type != nullptr) {
-      assert(member_count == type_struct->num_members);
-      llvm::ArrayType* member_array_ty = llvm::ArrayType::get(ptr_type, member_count);
-      llvm::Constant* init             = llvm::ConstantArray::get(member_array_ty, member_types);
-      members_array                    = create_global(helper::concat("member_types_", name), member_array_ty, init);
-    } else {
-      llvm::Constant* null_member = types_helper.get_constant_nullptr();
-      members_array               = null_member;
-    }
+    global_types_.global_type_data.try_emplace(
+        base_name, GlobalTypeData::TypeData{init, global_struct, name_str_ptr, offsets_ptr, counts_ptr});
 
-    return registerGlobalStruct(name, type_struct->type_id, type_size, member_count, offset_ptr, members_array,
-                                count_ptr, type_struct->flag);
+    return global_struct;
   }
 
   llvm::GlobalVariable* registerBuiltin(int type_id) {

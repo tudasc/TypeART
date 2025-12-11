@@ -85,6 +85,18 @@ class GlobalTypeTranslator::Impl {
     }
 
     const bool fwd_decl = type_descriptor.flag == StructTypeFlag::FWD_DECL;
+    {
+      LOG_DEBUG("StructTypeInfo Dump " << (fwd_decl ? "FWD" : "") << type_descriptor.name);
+      LOG_DEBUG("  Type_id: " << type_descriptor.type_id);
+      LOG_DEBUG("  Extent: " << type_descriptor.extent);
+      LOG_DEBUG("  Num Members: " << type_descriptor.num_members);
+      LOG_DEBUG("  Flag: " << static_cast<int>(type_descriptor.flag));
+      for (uint32_t i = 0; i < type->num_members; ++i) {
+        LOG_DEBUG("  Member[" << i << "]: "
+                              << "ID=" << type_db_.getTypeName(type_descriptor.member_types[i]) << ", Offset="
+                              << type_descriptor.offsets[i] << ", ArraySize=" << type_descriptor.array_sizes[i]);
+      }
+    }
     type_db_.registerStruct(type_descriptor, not fwd_decl);
     translator_map_.try_emplace(type, type_descriptor.type_id);
 
