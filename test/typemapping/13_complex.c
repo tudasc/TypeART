@@ -2,7 +2,7 @@
 // RUN: %c-to-llvm %s | %apply-typeart --typeart-stack=true --typeart-type-serialization=file
 // RUN: cat %tu_yaml | %filecheck %s
 
-// REQUIRES: llvm-18 || llvm-19
+// REQUIRES: !llvm-14
 
 #include <complex.h>
 
