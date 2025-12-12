@@ -9,7 +9,7 @@
 // RUN: %wrapper-cc -O1 %s.o %s_1.o -o %s.exe
 // RUN: %s.exe 2>&1 | %filecheck %s
 
-// REQUIRES: llvm-18 || llvm-19
+// REQUIRES: !llvm-14
 // clang-format on
 
 #include <stdlib.h>

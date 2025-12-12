@@ -76,33 +76,6 @@ inline std::string create_prefixed_name(Args&&... args) {
 
 namespace typedb {
 
-struct GlobalTypeData {
-  struct TypeData {
-    llvm::Constant* type_struct;
-    llvm::GlobalVariable* type;
-    llvm::Constant* name;
-    llvm::Constant* offset;
-    llvm::Constant* count;
-  };
-  llvm::StringMap<TypeData> global_type_data;
-
-  inline bool has_type_name(llvm::StringRef name) const {
-#if LLVM_VERSION_MAJOR > 17
-    return global_type_data.contains(name);
-#else
-    return global_type_data.find(name) != global_type_data.end();
-#endif
-  }
-
-  inline const TypeData& get_type(llvm::StringRef name) const {
-#if LLVM_VERSION_MAJOR > 17
-    return global_type_data.at(name);
-#else
-    return global_type_data.find(name)->second;
-#endif
-  }
-};
-
 struct GlobalTypeCallback {
   llvm::Module* module_;
   const TAFunctionQuery* f_query_;
@@ -245,7 +218,6 @@ struct GlobalTypeRegistrar {
   llvm::IRBuilder<> ir_build;
   GlobalTypeCallback type_callback;
   llvm::StructType* struct_layout_type_;
-  GlobalTypeData global_types_;
   TypeHelper types_helper;
   const bool builtin_emit_name{false};
 
@@ -268,22 +240,17 @@ struct GlobalTypeRegistrar {
   llvm::GlobalVariable* create_global(
       llvm::StringRef name, llvm::Type* type, llvm::Constant* init = nullptr,
       llvm::GlobalVariable::LinkageTypes link_type = llvm::GlobalValue::PrivateLinkage) const {
-    // TODO: https://llvm.org/docs/LangRef.html#linkage w.r.t. forward declared types
     auto* global_struct =
         new llvm::GlobalVariable(*module_, type, true, link_type, init, helper::create_prefixed_name(name));
     return global_struct;
   }
 
   llvm::Constant* create_global_constant_string(llvm::StringRef name, llvm::StringRef payload) {
-    // TODO think about linkage
-    // auto* name_str = ir_build.CreateGlobalStringPtr(name, helper::create_prefixed_name("typename_", name), 0,
-    // module_);
     auto* global_string =
         ir_build.CreateGlobalString(payload, helper::create_prefixed_name("typename_", name), 0, module_);
     global_string->setConstant(true);
     global_string->setLinkage(llvm::GlobalValue::PrivateLinkage);
     return global_string;
-    // return make_gep(global_string->getValueType(), global_string);
   }
 
   template <typename InputRange, typename ConversionFunc>
@@ -332,15 +299,16 @@ struct GlobalTypeRegistrar {
                                                          IGlobalType::member_count);
     llvm::Constant* members_ptr =
         create_global_member_array_ptr(helper::concat("member_types_", link_name), type_struct->member_types);
-    llvm::GlobalVariable* global_struct =
-        create_global(link_name, struct_layout_type_, nullptr, llvm::GlobalValue::LinkOnceODRLinkage);
-    global_struct->setConstant(false);
 
     const bool is_builtin = type_struct->flag == StructTypeFlag::BUILTIN;
     const bool emit_name  = !is_builtin || builtin_emit_name;
 
     llvm::Constant* name_str_ptr =
         emit_name ? create_global_constant_string(link_name, base_name) : types_helper.get_constant_nullptr();
+
+    llvm::GlobalVariable* global_struct =
+        create_global(link_name, struct_layout_type_, nullptr, llvm::GlobalValue::LinkOnceODRLinkage);
+    global_struct->setConstant(false);
 
     std::vector<llvm::Constant*> init_fields = {
         types_helper.get_constant_for(IGlobalType::type_id, type_struct->type_id),
@@ -371,9 +339,6 @@ struct GlobalTypeRegistrar {
       add_to_comdat(members_ptr);
       add_to_comdat(name_str_ptr);
     }
-
-    global_types_.global_type_data.try_emplace(
-        base_name, GlobalTypeData::TypeData{init, global_struct, name_str_ptr, offsets_ptr, counts_ptr});
 
     return global_struct;
   }
