@@ -5,7 +5,7 @@
 
 // RUN: %c-to-llvm %s | %apply-typeart -typeart-type-serialization=file -S 2>&1 | %filecheck %s --check-prefix FILE
 
-// REQUIRES: llvm-18 || llvm-19
+// REQUIRES: !llvm-14
 // clang-format on
 
 #include <stdlib.h>
