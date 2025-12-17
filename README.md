@@ -203,13 +203,14 @@ Type serialization for each user-defined type (mode `hybrid`) or *all* types (mo
 struct GlobalTypeInfo {
   std::int32_t type_id;
   const std::uint32_t extent;
-  const std::uint16_t num_members;
-  const std::uint16_t flag;
-  const char* type_name;
-  const std::uint16_t* offsets;
-  const std::uint16_t* array_sizes;
-  const GlobalTypeInfo** member_types;
+  const GlobalTypeInfoData* data; // nullptr for built-ins
 };
+struct GlobalTypeInfoData {
+  const char* type_name;
+  // data : [ num_member, flag, offsets[num_member], array_sizes[num_member] ]:
+  const std::uint16_t* data;
+  const GlobalTypeInfo** member_types;
+}
 ```
 
 Each type is registered at startup with the TypeART runtime using the callback `void __typeart_register_type(const void* type_ptr);`. This adds the type information to the type database (for user queries) and assigns a unique `type-id`.
