@@ -8,6 +8,7 @@
 #include "support/ConfigurationBase.h"
 #include "support/Logger.h"
 
+#include <cstdint>
 #include <llvm/ADT/ArrayRef.h>
 #include <llvm/ADT/StringMap.h>
 #include <llvm/ADT/StringRef.h>
@@ -88,8 +89,8 @@ template <typename T>
 std::vector<T> get_serialized_members_for(const StructTypeInfo& info) {
   using namespace detail;
   std::vector<T> dest;
-  size_t required_space = info.offsets.size() + info.array_sizes.size() + 2;
-  dest.reserve(dest.size() + required_space);
+  const size_t required_space = info.offsets.size() + info.array_sizes.size() + 2;
+  dest.reserve(required_space);
 
   // Layout : [ num_member, flag, offsets...[num_member], array_sizes...[num_member] ]
 
@@ -312,10 +313,11 @@ struct GlobalTypeRegistrar {
     return create_global(global_name, array_ty, constant_array);
   }
 
-  llvm::Constant* create_global_array_ptr(const llvm::StringRef name, llvm::ArrayRef<uint64_t> values,
+  template <typename T>
+  llvm::Constant* create_global_array_ptr(const llvm::StringRef name, llvm::ArrayRef<T> values,
                                           IGlobalType type = IGlobalType::member_offsets) {
     return create_global_array_from_range(name, values, types_helper.get_type_for(IGlobalType::member_offsets, true),
-                                          [&](uint64_t val) { return types_helper.get_constant_for(type, val); });
+                                          [&](const T& val) { return types_helper.get_constant_for(type, val); });
   }
 
   llvm::Constant* create_global_member_array_ptr(const llvm::StringRef name, llvm::ArrayRef<int> member_types) {
@@ -352,8 +354,9 @@ struct GlobalTypeRegistrar {
     const auto get_info_object = [&]() -> llvm::Constant* {
       if (emit_name) {
         llvm::Constant* name_str_ptr = create_global_constant_string(link_name, base_name);
-        const auto info_data         = helper::get_serialized_members_for<uint64_t>(*type_struct);
-        llvm::Constant* data_ptr     = create_global_array_ptr(helper::concat("info_data_", link_name), info_data);
+        const auto info_data         = helper::get_serialized_members_for<uint16_t>(*type_struct);
+        llvm::Constant* data_ptr =
+            create_global_array_ptr<uint16_t>(helper::concat("info_data_", link_name), info_data);
         llvm::Constant* members_ptr =
             create_global_member_array_ptr(helper::concat("member_types_", link_name), type_struct->member_types);
 
