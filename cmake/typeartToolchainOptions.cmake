@@ -94,6 +94,9 @@ mark_as_advanced(TYPEART_CONFIG_DIR_IS_SHARE)
 option(TYPEART_USE_LEGACY_WRAPPER "Use the old TypeART compiler wrapper" OFF)
 # mark_as_advanced(TYPEART_USE_NEW_PASSMANAGER)
 
+option(TYPEART_INSTALL_TYPES_LIB "Install types library" OFF)
+option(TYPEART_INSTALL_SYSTEM_LIB "Install system library" OFF)
+
 # if(LLVM_VERSION_MAJOR VERSION_GREATER_EQUAL "18")
 #   set(TYPEART_USE_NEW_PASSMANAGER ON CACHE BOOL ON FORCE)
 # endif()

@@ -23,7 +23,7 @@ function(typeart_configure_script input output)
     set(TYPEART_RELOCATABLE 1)
   else()
     set(TYPEART_INCLUDE_DIRS
-        "-I${PROJECT_SOURCE_DIR}/lib/typelib -I${PROJECT_SOURCE_DIR}/lib/runtime -I${PROJECT_SOURCE_DIR}/lib/passes/typegen"
+        "-I${PROJECT_SOURCE_DIR}/lib/typelib -I${PROJECT_SOURCE_DIR}/lib/runtime -I${PROJECT_SOURCE_DIR}/lib/passes/typegen -I${CMAKE_CURRENT_BINARY_DIR}/../lib/runtime"
     )
     if(LIBRARY_OUTPUT_PATH)
       set(TYPEART_MPI_INTERCEPT_DIR ${LIBRARY_OUTPUT_PATH})
