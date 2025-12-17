@@ -5,7 +5,7 @@
 
 // RUN: %c-to-llvm %s | %apply-typeart -typeart-type-serialization=file -S 2>&1 | %filecheck %s --check-prefix FILE
 
-// REQUIRES: llvm-18 || llvm-19
+// REQUIRES: !llvm-14
 // clang-format on
 
 #include <stdlib.h>
@@ -17,7 +17,7 @@ void test() {
 // CHECK-NEXT: Free{{[ ]*}}:{{[ ]*}}0
 // CHECK-NEXT: Alloca{{[ ]*}}:{{[ ]*}}0
 
-// CHECK: %struct._typeart_struct_layout_t = type { i32, i32, i16, i16, ptr, ptr, ptr, ptr }
+// CHECK: %struct._typeart_struct_layout_t = type { i32, i32, ptr }
 // CHECK: [[POINTER:%[0-9a-z]+]] = call noalias{{( align [0-9]+)?}} ptr @malloc
 // CHECK-NEXT: call void @__typeart_alloc_mty(ptr [[POINTER]], ptr {{.*}}, i64 42)
 

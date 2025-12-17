@@ -8,6 +8,7 @@
 #include "support/ConfigurationBase.h"
 #include "support/Logger.h"
 
+#include <cstdint>
 #include <llvm/ADT/ArrayRef.h>
 #include <llvm/ADT/StringMap.h>
 #include <llvm/ADT/StringRef.h>
@@ -29,6 +30,7 @@
 #include <optional>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace typeart {
 
@@ -70,6 +72,40 @@ inline std::string create_prefixed_name(Args&&... args) {
   std::string name = concat("_typeart_", std::forward<Args>(args)...);
   replace_whitespace_with_underscore(name);
   return name;
+}
+
+namespace detail {
+template <typename T, typename SourceT>
+T safe_cast(SourceT val) {
+  // Check if value exceeds the maximum limit of the target type T
+  // We cast max() to size_t to ensure we are comparing compatible types safely
+  assert(static_cast<size_t>(val) <= static_cast<size_t>(std::numeric_limits<T>::max()) &&
+         "Data loss detected: Value exceeds target type limits!");
+  return static_cast<T>(val);
+}
+}  // namespace detail
+
+template <typename T>
+std::vector<T> get_serialized_members_for(const StructTypeInfo& info) {
+  using namespace detail;
+  std::vector<T> dest;
+  const size_t required_space = info.offsets.size() + info.array_sizes.size() + 2;
+  dest.reserve(required_space);
+
+  // Layout : [ num_member, flag, offsets...[num_member], array_sizes...[num_member] ]
+
+  dest.push_back(safe_cast<T>(info.num_members));
+  dest.push_back(safe_cast<T>(static_cast<std::underlying_type_t<StructTypeFlag>>(info.flag)));
+
+  for (size_t offset : info.offsets) {
+    dest.push_back(safe_cast<T>(offset));
+  }
+
+  for (size_t size : info.array_sizes) {
+    dest.push_back(safe_cast<T>(size));
+  }
+
+  return dest;
 }
 
 }  // namespace helper
@@ -151,7 +187,8 @@ enum class IGlobalType : short {
   member_types,
   member_count,
   type_flag,
-  ptr
+  ptr,
+  info_holder
 };
 
 struct TypeHelper {
@@ -181,13 +218,14 @@ struct TypeHelper {
       }
       case IGlobalType::name:
       case IGlobalType::ptr:
+      case IGlobalType::info_holder:
 #if LLVM_VERSION_MAJOR < 15
         return ir_build_.getInt8PtrTy();
 #else
         return ir_build_.getPtrTy();
 #endif
     }
-    llvm_unreachable("Should not be reached disk");
+    llvm_unreachable("Should not be reached");
   }
 
   llvm::Constant* get_constant_for(IGlobalType type, size_t value) {
@@ -218,6 +256,7 @@ struct GlobalTypeRegistrar {
   llvm::IRBuilder<> ir_build;
   GlobalTypeCallback type_callback;
   llvm::StructType* struct_layout_type_;
+  llvm::StructType* struct_layout_type_cold_;
   TypeHelper types_helper;
   const bool builtin_emit_name{false};
 
@@ -225,15 +264,15 @@ struct GlobalTypeRegistrar {
     auto& context       = module_->getContext();
     struct_layout_type_ = llvm::StructType::create(context, "struct._typeart_struct_layout_t");
     struct_layout_type_->setBody({
-        types_helper.get_type_for(IGlobalType::type_id),         // int type_id
-        types_helper.get_type_for(IGlobalType::extent),          // uint32 extent
-        types_helper.get_type_for(IGlobalType::num_members),     // uint16 num_members
-        types_helper.get_type_for(IGlobalType::type_flag),       // uint16 type_flag
+        types_helper.get_type_for(IGlobalType::type_id),  // uint32 type_id
+        types_helper.get_type_for(IGlobalType::extent),   // uint32 extent
+        types_helper.get_type_for(IGlobalType::info_holder),
+    });
+    struct_layout_type_cold_ = llvm::StructType::create(context, "struct._typeart_struct_layout_info_t");
+    struct_layout_type_cold_->setBody({
         types_helper.get_type_for(IGlobalType::name),            // const char* name
         types_helper.get_type_for(IGlobalType::member_offsets),  // const uint16* offsets
-        types_helper.get_type_for(IGlobalType::member_count),    // const uint16* count
         types_helper.get_type_for(IGlobalType::member_types),    // const typeart_struct_layout_t** member_types
-
     });
   }
 
@@ -274,10 +313,11 @@ struct GlobalTypeRegistrar {
     return create_global(global_name, array_ty, constant_array);
   }
 
-  llvm::Constant* create_global_array_ptr(const llvm::StringRef name, llvm::ArrayRef<uint64_t> values,
+  template <typename T>
+  llvm::Constant* create_global_array_ptr(const llvm::StringRef name, llvm::ArrayRef<T> values,
                                           IGlobalType type = IGlobalType::member_offsets) {
     return create_global_array_from_range(name, values, types_helper.get_type_for(IGlobalType::member_offsets, true),
-                                          [&](uint64_t val) { return types_helper.get_constant_for(type, val); });
+                                          [&](const T& val) { return types_helper.get_constant_for(type, val); });
   }
 
   llvm::Constant* create_global_member_array_ptr(const llvm::StringRef name, llvm::ArrayRef<int> member_types) {
@@ -294,51 +334,55 @@ struct GlobalTypeRegistrar {
       LOG_DEBUG("Type is forward decl " << base_name)
     }
 
-    llvm::Constant* offsets_ptr = create_global_array_ptr(helper::concat("offsets_", link_name), type_struct->offsets);
-    llvm::Constant* counts_ptr = create_global_array_ptr(helper::concat("counts_", link_name), type_struct->array_sizes,
-                                                         IGlobalType::member_count);
-    llvm::Constant* members_ptr =
-        create_global_member_array_ptr(helper::concat("member_types_", link_name), type_struct->member_types);
-
     const bool is_builtin = type_struct->flag == StructTypeFlag::BUILTIN;
     const bool emit_name  = !is_builtin || builtin_emit_name;
-
-    llvm::Constant* name_str_ptr =
-        emit_name ? create_global_constant_string(link_name, base_name) : types_helper.get_constant_nullptr();
 
     llvm::GlobalVariable* global_struct =
         create_global(link_name, struct_layout_type_, nullptr, llvm::GlobalValue::LinkOnceODRLinkage);
     global_struct->setConstant(false);
 
+    llvm::Comdat* comdat = this->module_->getOrInsertComdat(helper::create_prefixed_name(link_name));
+    comdat->setSelectionKind(llvm::Comdat::Any);
+    global_struct->setComdat(comdat);
+
+    auto add_to_comdat = [&](llvm::Constant* ptr) {
+      if (auto* global = llvm::dyn_cast_or_null<llvm::GlobalObject>(ptr)) {
+        global->setComdat(comdat);
+      }
+    };
+
+    const auto get_info_object = [&]() -> llvm::Constant* {
+      if (emit_name) {
+        llvm::Constant* name_str_ptr = create_global_constant_string(link_name, base_name);
+        const auto info_data         = helper::get_serialized_members_for<uint16_t>(*type_struct);
+        llvm::Constant* data_ptr =
+            create_global_array_ptr<uint16_t>(helper::concat("info_data_", link_name), info_data);
+        llvm::Constant* members_ptr =
+            create_global_member_array_ptr(helper::concat("member_types_", link_name), type_struct->member_types);
+
+        llvm::GlobalVariable* global_struct_info =
+            create_global(helper::concat(link_name, "_info"), struct_layout_type_cold_, nullptr);
+
+        std::vector<llvm::Constant*> init_fields_cold = {name_str_ptr, data_ptr, members_ptr};
+        global_struct_info->setInitializer(llvm::ConstantStruct::get(struct_layout_type_cold_, init_fields_cold));
+
+        {
+          add_to_comdat(global_struct_info);
+          add_to_comdat(data_ptr);
+          add_to_comdat(members_ptr);
+          add_to_comdat(name_str_ptr);
+        }
+
+        return global_struct_info;
+      }
+      return types_helper.get_constant_nullptr();
+    };
+
     std::vector<llvm::Constant*> init_fields = {
         types_helper.get_constant_for(IGlobalType::type_id, type_struct->type_id),
-        types_helper.get_constant_for(IGlobalType::extent, type_struct->extent),
-        types_helper.get_constant_for(IGlobalType::member_count, type_struct->member_types.size()),
-        types_helper.get_constant_for(IGlobalType::type_flag, static_cast<int>(type_struct->flag)),
-        name_str_ptr,
-        offsets_ptr,
-        counts_ptr,
-        members_ptr};
-
+        types_helper.get_constant_for(IGlobalType::extent, type_struct->extent), get_info_object()};
     llvm::Constant* init = llvm::ConstantStruct::get(struct_layout_type_, init_fields);
     global_struct->setInitializer(init);
-
-    {
-      llvm::Comdat* comdat = this->module_->getOrInsertComdat(helper::create_prefixed_name(link_name));
-      comdat->setSelectionKind(llvm::Comdat::Any);
-      global_struct->setComdat(comdat);
-
-      auto add_to_comdat = [&](llvm::Constant* ptr) {
-        if (auto* global = llvm::dyn_cast_or_null<llvm::GlobalObject>(ptr)) {
-          global->setComdat(comdat);
-        }
-      };
-
-      add_to_comdat(offsets_ptr);
-      add_to_comdat(counts_ptr);
-      add_to_comdat(members_ptr);
-      add_to_comdat(name_str_ptr);
-    }
 
     return global_struct;
   }

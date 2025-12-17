@@ -292,7 +292,7 @@ void __typeart_leave_scope_omp(int alloca_count) {
 void __typeart_alloc_mty(const void* addr, const void* info, size_t count) {
   TYPEART_RUNTIME_GUARD;
   const void* retAddr = __builtin_return_address(0);
-  const auto type_id  = reinterpret_cast<const typeart::GlobalTypeInfo*>(info)->type_id;
+  const auto type_id  = reinterpret_cast<const typeart::global_types::GlobalTypeInfo*>(info)->type_id;
   auto& rt            = typeart::RuntimeSystem::get();
   assert(type_id == rt.type_translator().get_type_id_for(info) && "Type ID of global and lookup must match");
   rt.allocation_tracker().onAlloc(addr, type_id, count, retAddr);
@@ -301,7 +301,7 @@ void __typeart_alloc_mty(const void* addr, const void* info, size_t count) {
 void __typeart_alloc_stack_mty(const void* addr, const void* info, size_t count) {
   TYPEART_RUNTIME_GUARD;
   const void* retAddr = __builtin_return_address(0);
-  const auto type_id  = reinterpret_cast<const typeart::GlobalTypeInfo*>(info)->type_id;
+  const auto type_id  = reinterpret_cast<const typeart::global_types::GlobalTypeInfo*>(info)->type_id;
   auto& rt            = typeart::RuntimeSystem::get();
   assert(type_id == rt.type_translator().get_type_id_for(info) && "Type ID of global and lookup must match");
   rt.allocation_tracker().onAllocStack(addr, type_id, count, retAddr);
@@ -310,7 +310,7 @@ void __typeart_alloc_stack_mty(const void* addr, const void* info, size_t count)
 void __typeart_alloc_global_mty(const void* addr, const void* info, size_t count) {
   TYPEART_RUNTIME_GUARD;
   const void* retAddr = __builtin_return_address(0);
-  const auto type_id  = reinterpret_cast<const typeart::GlobalTypeInfo*>(info)->type_id;
+  const auto type_id  = reinterpret_cast<const typeart::global_types::GlobalTypeInfo*>(info)->type_id;
   auto& rt            = typeart::RuntimeSystem::get();
   assert(type_id == rt.type_translator().get_type_id_for(info) && "Type ID of global and lookup must match");
   rt.allocation_tracker().onAllocGlobal(addr, type_id, count, retAddr);
@@ -319,7 +319,7 @@ void __typeart_alloc_global_mty(const void* addr, const void* info, size_t count
 void __typeart_alloc_omp_mty(const void* addr, const void* info, size_t count) {
   TYPEART_RUNTIME_GUARD;
   const void* retAddr = __builtin_return_address(0);
-  const auto type_id  = reinterpret_cast<const typeart::GlobalTypeInfo*>(info)->type_id;
+  const auto type_id  = reinterpret_cast<const typeart::global_types::GlobalTypeInfo*>(info)->type_id;
   auto& rt            = typeart::RuntimeSystem::get();
   assert(type_id == rt.type_translator().get_type_id_for(info) && "Type ID of global and lookup must match");
   rt.allocation_tracker().onAlloc(addr, type_id, count, retAddr);
@@ -328,7 +328,7 @@ void __typeart_alloc_omp_mty(const void* addr, const void* info, size_t count) {
 void __typeart_alloc_stack_omp_mty(const void* addr, const void* info, size_t count) {
   TYPEART_RUNTIME_GUARD;
   const void* retAddr = __builtin_return_address(0);
-  const auto type_id  = reinterpret_cast<const typeart::GlobalTypeInfo*>(info)->type_id;
+  const auto type_id  = reinterpret_cast<const typeart::global_types::GlobalTypeInfo*>(info)->type_id;
   auto& rt            = typeart::RuntimeSystem::get();
   assert(type_id == rt.type_translator().get_type_id_for(info) && "Type ID of global and lookup must match");
   rt.allocation_tracker().onAllocStack(addr, type_id, count, retAddr);
