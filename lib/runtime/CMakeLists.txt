@@ -51,6 +51,31 @@ set_target_properties(${TYPEART_PREFIX}_Runtime PROPERTIES
     VISIBILITY_INLINES_HIDDEN ON
 )
 
+if(UNIX AND NOT APPLE)
+  set(LINKER_MAP_CONTENTS 
+  [=[{
+    global:
+      typeart_*;
+      __typeart_*;
+      extern "C++" {
+      typeart::*;
+      };
+    local:
+      *;
+  };]=])
+
+  set(RUNTIME_MAP_FILE "${CMAKE_CURRENT_BINARY_DIR}/Runtime.map")
+  file(WRITE "${RUNTIME_MAP_FILE}" "${LINKER_MAP_CONTENTS}")
+
+  target_link_options(${TYPEART_PREFIX}_Runtime PRIVATE
+      "-Wl,--version-script,${RUNTIME_MAP_FILE}"
+  )
+
+  set_target_properties(${TYPEART_PREFIX}_Runtime PROPERTIES
+      LINK_DEPENDS "${RUNTIME_MAP_FILE}"
+  )
+endif()
+
 target_link_libraries(
   ${TYPEART_PREFIX}_Runtime
   PRIVATE typeart::TypesStatic
