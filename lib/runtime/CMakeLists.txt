@@ -57,9 +57,6 @@ if(UNIX AND NOT APPLE)
     global:
       typeart_*;
       __typeart_*;
-      extern "C++" {
-      typeart::*;
-      };
     local:
       *;
   };]=])

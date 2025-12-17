@@ -140,7 +140,7 @@ function global_init() {
   readonly typeart_includes="${typeart_include_dir}"
   readonly typeart_ldflags="-L${typeart_lib_dir}/ \
                    -Wl,-rpath,${typeart_lib_dir}/ \
-                   -l$<TARGET_FILE_BASE_NAME:typeart::Runtime>"
+                   -l$<TARGET_FILE_BASE_NAME:typeart::Runtime> -Wl,--start-group $<TARGET_FILE:typeart::TypesStatic> $<TARGET_FILE:typeart::SystemStatic> $<TARGET_FILE:LLVMSupport> $<TARGET_FILE:LLVMDemangle> -Wl,--end-group"
 
   # shellcheck disable=SC2027
   typeart_plugin="-load-pass-plugin "${typeart_pass}" -passes=typeart<"
@@ -255,7 +255,7 @@ function compile() {
 
 function main_link() {
   more_link_flags="-fPIC"
-  $compiler ${more_link_flags} ${omp_flags} ${threads_flags} ${typeart_san_flags} ${typeart_ldflags} "${object_file}" -o "${exe_file}"
+  $compiler ${more_link_flags} ${omp_flags} ${threads_flags} ${typeart_san_flags} "${object_file}" ${typeart_ldflags} -o "${exe_file}"
 }
 
 function execute() {
