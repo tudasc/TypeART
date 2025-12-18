@@ -181,6 +181,8 @@ typeart_configure_coverage_script(llvm-gcov.sh.in llvm-gcov.sh)
 
 typeart_configure_script(opt-shim.in opt-shim)
 
+typeart_find_llvm_progs(TYPEART_LLVMCONFIG_COMMAND "llvm-config-${LLVM_VERSION_MAJOR};llvm-config" 
+HINTS /usr/lib/llvm-${LLVM_VERSION_MAJOR}/bin/)
 typeart_configure_script(typeart-tmpl.sh.in run.sh 
   OPT ON)
 typeart_configure_script(typeart-tmpl.sh.in apply.sh

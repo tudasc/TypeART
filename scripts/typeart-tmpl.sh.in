@@ -132,7 +132,7 @@ function global_init() {
     readonly typeart_interceptor="@TYPEART_MPI_INTERCEPT_DIR@/@TYPEART_MPI_TOOL@"
   fi
 
-  readonly llvm_sys_libs=$(llvm-config --system-libs)
+  readonly llvm_sys_libs=$(@TYPEART_LLVMCONFIG_COMMAND@ --system-libs)
 
   readonly typeart_has_interceptor="@TYPEART_HAS_MPI_TOOL@"
 
