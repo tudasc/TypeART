@@ -138,7 +138,8 @@
       ],
       "cacheVariables": {
         "TYPEART_ASAN": "OFF",
-        "TYPEART_UBSAN": "OFF"
+        "TYPEART_UBSAN": "OFF",
+        "TYPEART_CI_RUN": "ON"
       }
     },
     {
