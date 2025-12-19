@@ -40,6 +40,39 @@ set_target_properties(
 )
 add_library(typeart::Runtime ALIAS ${TYPEART_PREFIX}_Runtime)
 
+include(GenerateExportHeader)
+generate_export_header(${TYPEART_PREFIX}_Runtime
+  BASE_NAME TYPEART
+  EXPORT_FILE_NAME "${CMAKE_CURRENT_BINARY_DIR}/RuntimeExport.h"
+)
+
+set_target_properties(${TYPEART_PREFIX}_Runtime PROPERTIES
+    CXX_VISIBILITY_PRESET hidden
+    VISIBILITY_INLINES_HIDDEN ON
+)
+
+if(UNIX AND NOT APPLE)
+  set(LINKER_MAP_CONTENTS 
+  [=[{
+    global:
+      typeart_*;
+      __typeart_*;
+    local:
+      *;
+  };]=])
+
+  set(RUNTIME_MAP_FILE "${CMAKE_CURRENT_BINARY_DIR}/Runtime.map")
+  file(WRITE "${RUNTIME_MAP_FILE}" "${LINKER_MAP_CONTENTS}")
+
+  target_link_options(${TYPEART_PREFIX}_Runtime PRIVATE
+      "-Wl,--version-script,${RUNTIME_MAP_FILE}"
+  )
+
+  set_target_properties(${TYPEART_PREFIX}_Runtime PROPERTIES
+      LINK_DEPENDS "${RUNTIME_MAP_FILE}"
+  )
+endif()
+
 target_link_libraries(
   ${TYPEART_PREFIX}_Runtime
   PRIVATE typeart::TypesStatic
@@ -59,6 +92,7 @@ target_include_directories(
   PUBLIC $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}>
          $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/runtime>
          $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/typelib>
+         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
   PRIVATE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/passes/support>
           $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
 )
@@ -97,8 +131,10 @@ make_tidy_check(${TYPEART_PREFIX}_Runtime "${RUNTIME_LIB_SOURCES}")
 set(CONFIG_NAME ${PROJECT_NAME}Runtime)
 set(TARGETS_EXPORT_NAME ${CONFIG_NAME}Targets)
 
-install(FILES RuntimeInterface.h
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}
+install(FILES 
+  RuntimeInterface.h
+  "${CMAKE_CURRENT_BINARY_DIR}/RuntimeExport.h"
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}
 )
 
 install(

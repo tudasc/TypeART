@@ -44,6 +44,7 @@ config.python_interp = "@Python3_EXECUTABLE@"
 
 config.llvm_version = @LLVM_VERSION_MAJOR@
 config.has_legacy_wrapper = @TYPEARTPASS_LEGACY_WRAPPER@
+config.is_ci = @TYPEARTPASS_CI_RUN@
 
 # Let the main config do the real work.
 config.loaded_site_config = True

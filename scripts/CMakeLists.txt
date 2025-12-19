@@ -23,7 +23,7 @@ function(typeart_configure_script input output)
     set(TYPEART_RELOCATABLE 1)
   else()
     set(TYPEART_INCLUDE_DIRS
-        "-I${PROJECT_SOURCE_DIR}/lib/typelib -I${PROJECT_SOURCE_DIR}/lib/runtime -I${PROJECT_SOURCE_DIR}/lib/passes/typegen"
+        "-I${PROJECT_SOURCE_DIR}/lib/typelib -I${PROJECT_SOURCE_DIR}/lib/runtime -I${PROJECT_SOURCE_DIR}/lib/passes/typegen -I${CMAKE_CURRENT_BINARY_DIR}/../lib/runtime"
     )
     if(LIBRARY_OUTPUT_PATH)
       set(TYPEART_MPI_INTERCEPT_DIR ${LIBRARY_OUTPUT_PATH})
@@ -181,6 +181,8 @@ typeart_configure_coverage_script(llvm-gcov.sh.in llvm-gcov.sh)
 
 typeart_configure_script(opt-shim.in opt-shim)
 
+typeart_find_llvm_progs(TYPEART_LLVMCONFIG_COMMAND "llvm-config-${LLVM_VERSION_MAJOR};llvm-config" 
+HINTS /usr/lib/llvm-${LLVM_VERSION_MAJOR}/bin/)
 typeart_configure_script(typeart-tmpl.sh.in run.sh 
   OPT ON)
 typeart_configure_script(typeart-tmpl.sh.in apply.sh
