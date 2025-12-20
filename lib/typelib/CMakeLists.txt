@@ -56,11 +56,15 @@ target_include_directories(
 
 typeart_target_coverage_options(${TYPEART_PREFIX}_TypesStatic)
 
+install(FILES TypeInterface.h
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}
+)
+
 if(TYPEART_INSTALL_TYPES_LIB)
   set(CONFIG_NAME ${PROJECT_NAME}Types)
   set(TARGETS_EXPORT_NAME ${CONFIG_NAME}Targets)
 
-  install(FILES TypeInterface.h TypeDatabase.h
+  install(FILES TypeDatabase.h
           DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}
   )
 

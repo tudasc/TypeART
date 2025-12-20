@@ -1,6 +1,7 @@
-// RUN: %c-to-llvm %s -I%runtime_path | %apply-typeart --typeart-stack=true -S 2>&1 | %filecheck %s
+// RUN: %c-to-llvm -Wimplicit-function-declaration %s -I%runtime_path -I%base_path/lib/runtime | %apply-typeart --typeart-stack=true -S 2>&1 | \
+// RUN: %filecheck %s
 
-#include "../../../lib/runtime/CallbackInterface.h"
+#include "CallbackInterface.h"
 
 int main(void) {
   int count            = 0;
@@ -32,4 +33,5 @@ int main(void) {
   return 0;
 }
 
+// CHECK-NOT: error
 // CHECK:      TypeArtPass [Heap & Stack]

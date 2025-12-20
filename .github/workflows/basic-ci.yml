@@ -109,6 +109,10 @@ jobs:
         if: matrix.preset.coverage
         run: sudo apt-get install lcov
 
+      - name: Setup Mold Linker
+        if: ${{ matrix.platform.llvm-version > 14 }}
+        uses: rui314/setup-mold@v1
+
       - name: Setup env
         run: |
           sudo ln -f -s /usr/bin/clang-${{ matrix.platform.llvm-version }} /usr/bin/clang

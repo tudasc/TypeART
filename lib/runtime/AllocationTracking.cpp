@@ -316,7 +316,7 @@ void __typeart_alloc_global_mty(const void* addr, const void* info, size_t count
   rt.allocation_tracker().onAllocGlobal(addr, type_id, count, retAddr);
 }
 
-void __typeart_alloc_omp_mty(const void* addr, const void* info, size_t count) {
+void __typeart_alloc_global_mty_omp(const void* addr, const void* info, size_t count) {
   TYPEART_RUNTIME_GUARD;
   const void* retAddr = __builtin_return_address(0);
   const auto type_id  = reinterpret_cast<const typeart::global_types::GlobalTypeInfo*>(info)->type_id;
@@ -325,7 +325,7 @@ void __typeart_alloc_omp_mty(const void* addr, const void* info, size_t count) {
   rt.allocation_tracker().onAlloc(addr, type_id, count, retAddr);
 }
 
-void __typeart_alloc_stack_omp_mty(const void* addr, const void* info, size_t count) {
+void __typeart_alloc_stack_mty_omp(const void* addr, const void* info, size_t count) {
   TYPEART_RUNTIME_GUARD;
   const void* retAddr = __builtin_return_address(0);
   const auto type_id  = reinterpret_cast<const typeart::global_types::GlobalTypeInfo*>(info)->type_id;
