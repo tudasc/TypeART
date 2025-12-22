@@ -43,6 +43,7 @@ typedef struct MPISemCounter {
 } MPICounter;
 
 static MPICounter mcounter = {0, 0, 0};
+static int log_buffer_srcloc = 0;
 
 TYPEART_NO_EXPORT void ta_check_send(const char* name, const void* called_from, const void* sendbuf, int count,
                                      MPI_Datatype dtype) {
@@ -122,6 +123,10 @@ TYPEART_NO_EXPORT int ta_check_buffer(const char* mpi_name, const void* called_f
     return 0;
   }
 
+  if (log_buffer_srcloc == 0) {
+    return 0;
+  }
+
   typeart_source_location src_loc;
   typeart_status_v = typeart_get_source_location(ret_addr, &src_loc);
   if (typeart_status_v != TYPEART_OK) {
@@ -165,6 +170,12 @@ TYPEART_NO_EXPORT void ta_print_loc(const void* call_adr) {
     }
     pclose(fp);
   }
+}
+
+TYPEART_NO_EXPORT void ta_init() {
+  const char *var = getenv("TYPEART_LOG_BUF_SRCLOC");
+  if (var && strncmp(var, "TRUE", 4) == 0)
+    log_buffer_srcloc = 1;
 }
 
 TYPEART_NO_EXPORT void ta_exit() {
