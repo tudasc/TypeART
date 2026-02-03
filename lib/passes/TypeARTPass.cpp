@@ -413,7 +413,11 @@ llvm::PassPluginLibraryInfo getTypeartPassPluginInfo() {
               }
               MPM.addPass(typeart::pass::TypeArtPass(typeart::pass::TypeArtPass(parameters.get())));
             });
+#if LLVM_VERSION_MAJOR > 19
+            pass_builder.registerOptimizerLastEPCallback([](auto& MPM, OptimizationLevel, ThinOrFullLTOPhase) {
+#else
             pass_builder.registerOptimizerLastEPCallback([](auto& MPM, OptimizationLevel) {
+#endif
               auto parameters = typeart::util::pass::parsePassParameters(typeart::config::pass::parse_typeart_config,
                                                                          "typeart<no-heap;stack;stats>", "typeart");
               if (!parameters) {
