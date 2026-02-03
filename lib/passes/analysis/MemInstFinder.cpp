@@ -114,7 +114,11 @@ static std::unique_ptr<typeart::filter::Filter> make_filter(const MemInstFinderC
       std::exit(1);
     }
 
-    return std::make_unique<CGForwardFilter>(std::move(mcg.get()), Regex{util::glob2regex(glob), Regex::NoFlags});
+    auto matcher         = std::make_unique<DefaultStringMatcher>(util::glob2regex(glob));
+    const auto deep_glob = config[config::ConfigStdArgs::filter_glob_deep];
+    auto deep_matcher    = std::make_unique<DefaultStringMatcher>(util::glob2regex(deep_glob));
+
+    return std::make_unique<CGForwardFilter>(std::move(mcg.get()), std::move(matcher), std::move(deep_matcher));
 
   } else if (filter_id == FilterImplementation::acg) {
     LOG_DEBUG("Return Argflow filter");
@@ -131,7 +135,11 @@ static std::unique_ptr<typeart::filter::Filter> make_filter(const MemInstFinderC
       std::exit(1);
     }
 
-    return std::make_unique<AcgFilter>(std::move(mcg.get()), Regex{util::glob2regex(glob), Regex::NoFlags});
+    auto matcher         = std::make_unique<DefaultStringMatcher>(util::glob2regex(glob));
+    const auto deep_glob = config[config::ConfigStdArgs::filter_glob_deep];
+    auto deep_matcher    = std::make_unique<DefaultStringMatcher>(util::glob2regex(deep_glob));
+
+    return std::make_unique<AcgFilter>(std::move(mcg.get()), std::move(matcher), std::move(deep_matcher));
   } else {
     LOG_DEBUG("Return default filter")
     auto matcher         = std::make_unique<DefaultStringMatcher>(util::glob2regex(glob));

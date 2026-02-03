@@ -25,4 +25,4 @@ void foo() {
 // ACG:
 // CHECK-acg: > Stack Memory
 // CHECK-acg: Alloca                 :  5.00
-// CHECK-acg: Stack call filtered %  :  100.00
+// CHECK-acg: Stack call filtered %  :  80.00

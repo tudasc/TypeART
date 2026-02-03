@@ -12,12 +12,16 @@
 
 #include "CGForwardFilter.h"
 
+#include "Matcher.h"
+
 #include <llvm/ADT/SmallSet.h>
+#include <utility>
 
 namespace typeart::filter {
 
-CGForwardFilterImpl::CGForwardFilterImpl(metacg::Mcg&& cg, Regex&& match)
-    : mcg{std::move(cg)}, matcher{std::move(match)} {
+CGForwardFilterImpl::CGForwardFilterImpl(metacg::Mcg&& cg, std::unique_ptr<Matcher>&& m,
+                                         std::unique_ptr<Matcher>&& deep)
+    : mcg{std::move(cg)}, matcher{std::move(m)}, deep_matcher{std::move(deep)} {
 }
 
 FilterAnalysis CGForwardFilterImpl::reachesMatching(const ArrayRef<size_t> nodes) {
@@ -42,7 +46,7 @@ FilterAnalysis CGForwardFilterImpl::reachesMatching(const ArrayRef<size_t> nodes
     LOG_DEBUG("> Inspecting node: " << mcg.forId(current)->name.value_or(""));
 
     if (const auto fn = mcg.forId(current); fn && fn->name) {
-      if (matcher.match(*fn->name)) {
+      if (matcher->matchName(*fn->name) == Matcher::MatchResult::Match) {
         // Keep if the function matches the matcher
         LOG_DEBUG("-> Matches matcher, keeping");
         return FilterAnalysis::Keep;
@@ -148,6 +152,22 @@ FilterAnalysis CGForwardFilterImpl::indirect(const CallSite current, const Path&
 }
 
 FilterAnalysis CGForwardFilterImpl::def(const CallSite current, const Path& p) {
+  if (deep_matcher && deep_matcher->match(current) == Matcher::MatchResult::Match) {
+#if LLVM_VERSION_MAJOR < 15
+    auto result = correlate2void(current, p);
+#else
+    auto result = correlate2pointer(current, p);
+#endif
+    switch (result) {
+      case ArgCorrelation::GlobalMismatch:
+        [[fallthrough]];
+      case ArgCorrelation::ExactMismatch:
+        LOG_DEBUG("Correlated, continue search");
+        return FilterAnalysis::Continue;
+      default:
+        return FilterAnalysis::Keep;
+    }
+  }
   if (const auto node = mcg.byName(current.getCalledFunction()->getName()); node) {
     return reachesMatching({*node});
   } else {

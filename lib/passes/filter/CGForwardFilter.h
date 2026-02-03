@@ -37,7 +37,7 @@ struct CGForwardFilterTrait {
 struct CGForwardFilterImpl {
   using Support = CGForwardFilterTrait;
 
-  CGForwardFilterImpl(metacg::Mcg&&, Regex&&);
+  CGForwardFilterImpl(metacg::Mcg&&, std::unique_ptr<Matcher>&& m, std::unique_ptr<Matcher>&& deep);
 
   FilterAnalysis precheck(Value*, Function*, const FPath&);
   FilterAnalysis indirect(CallSite, const Path&);
@@ -48,7 +48,9 @@ struct CGForwardFilterImpl {
   FilterAnalysis reachesMatching(ArrayRef<size_t>);
 
   metacg::Mcg mcg;
-  Regex matcher;
+  // Regex matcher;
+  std::unique_ptr<Matcher> matcher;
+  std::unique_ptr<Matcher> deep_matcher;
   FunctionOracleMatcher oracle;
 };
 
