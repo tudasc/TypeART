@@ -16,9 +16,28 @@
 #include <charconv>
 #include <llvm/Support/Error.h>
 #include <llvm/Support/JSON.h>
+#include <optional>
 #include <string_view>
 #include <support/Logger.h>
 #include <utility>
+
+#if LLVM_VERSION_MAJOR <= 14
+namespace llvm::json {
+template <typename T>
+bool fromJSON(const Value& E, std::optional<T>& Out, Path P) {
+  if (E.kind() == Value::Null) {
+    Out = std::nullopt;
+    return true;
+  }
+  T V;
+  if (fromJSON(E, V, P)) {
+    Out = std::move(V);
+    return true;
+  }
+  return false;
+}
+}  // namespace llvm::json
+#endif
 
 template <>
 struct std::hash<std::pair<size_t, size_t>> {

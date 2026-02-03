@@ -32,14 +32,14 @@ FilterAnalysis CGForwardFilterImpl::reachesMatching(const ArrayRef<size_t> nodes
 
   for (const auto id : nodes) {
     enqueue(id);
-    LOG_DEBUG("Starting node with parameter: " << mcg.forId(id)->name);
+    LOG_DEBUG("Starting node with parameter: " << mcg.forId(id)->name.value_or(""));
   }
 
   while (!workq.empty()) {
     // Grab the current node ID and translate it into its corresponding function descriptor to check
     // if its name matches our matcher.
     const auto current = workq.pop_back_val();
-    LOG_DEBUG("> Inspecting node: " << mcg.forId(current)->name);
+    LOG_DEBUG("> Inspecting node: " << mcg.forId(current)->name.value_or(""));
 
     if (const auto fn = mcg.forId(current); fn && fn->name) {
       if (matcher.match(*fn->name)) {
@@ -68,7 +68,7 @@ FilterAnalysis CGForwardFilterImpl::reachesMatching(const ArrayRef<size_t> nodes
 
     for (const auto& [callee, _] : current_node->callees) {
       enqueue(callee);
-      LOG_DEBUG("-> Enqueued callee: " << mcg.forId(callee)->name);
+      LOG_DEBUG("-> Enqueued callee: " << mcg.forId(callee)->name.value_or(""));
     }
   }
 

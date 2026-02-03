@@ -31,14 +31,14 @@ FilterAnalysis AcgFilterImpl::reachesMatching(const ArrayRef<size_t> nodes, cons
 
   for (const auto id : nodes) {
     enqueue(id, idx);
-    LOG_DEBUG("Starting node with parameter [" << idx << "]: " << mcg.forId(id)->name);
+    LOG_DEBUG("Starting node with parameter [" << idx << "]: " << mcg.forId(id)->name.value_or(""));
   }
 
   while (!workq.empty()) {
     // Grab the current node ID and translate it into its corresponding function descriptor to check
     // if its name matches our matcher.
     const auto [current, cur_idx] = workq.pop_back_val();
-    LOG_DEBUG("> Inspecting node: " << mcg.forId(current)->name);
+    LOG_DEBUG("> Inspecting node: " << mcg.forId(current)->name.value_or(""));
 
     if (const auto fn = mcg.forId(current); fn && fn->name) {
       if (matcher.match(*fn->name)) {
@@ -71,7 +71,7 @@ FilterAnalysis AcgFilterImpl::reachesMatching(const ArrayRef<size_t> nodes, cons
     for (const auto& out : *outs) {
       for (const auto callee : out.callees) {
         enqueue(callee, out.idx);
-        LOG_DEBUG("-> Enqueued callee: " << mcg.forId(callee)->name);
+        LOG_DEBUG("-> Enqueued callee: " << mcg.forId(callee)->name.value_or(""));
       }
     }
   }
