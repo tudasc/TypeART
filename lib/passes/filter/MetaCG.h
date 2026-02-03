@@ -14,6 +14,7 @@
 #define METACG_H
 
 #include <charconv>
+#include <llvm/Support/Error.h>
 #include <llvm/Support/JSON.h>
 #include <string_view>
 #include <support/Logger.h>
@@ -147,20 +148,20 @@ struct Md {
   template <typename T>
   llvm::Expected<T> as(llvm::StringRef const name) const {
     if (v.getAsNull()) {
-      return llvm::createStringError("No metadata object");
+      return llvm::createStringError(llvm::inconvertibleErrorCode(), "No metadata object");
     }
 
     json::Path::Root root{};
     auto p = v.getAsObject()->get(name);
     if (!p) {
-      return llvm::createStringError("Member not found");
+      return llvm::createStringError(llvm::inconvertibleErrorCode(), "Member not found");
     }
 
     if (T r{}; fromJSON(*p, r, root)) {
       return r;
     }
 
-    return llvm::createStringError("Failed to deserialize metadata");
+    return llvm::createStringError(llvm::inconvertibleErrorCode(), "Failed to deserialize metadata");
   }
 
  private:
