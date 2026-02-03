@@ -14,6 +14,7 @@
 #define METACG_H
 
 #include <charconv>
+#include <llvm/ADT/Hashing.h>
 #include <llvm/Support/Error.h>
 #include <llvm/Support/JSON.h>
 #include <optional>
@@ -42,9 +43,7 @@ bool fromJSON(const Value& E, std::optional<T>& Out, Path P) {
 template <>
 struct std::hash<std::pair<size_t, size_t>> {
   size_t operator()(std::pair<size_t, size_t> const& p) const noexcept {
-    size_t h1 = std::hash<size_t>{}(std::get<0>(p));
-    size_t h2 = std::hash<size_t>{}(std::get<1>(p));
-    return h1 ^ h2 << 1;
+    return llvm::hash_value(p);
   }
 };
 
