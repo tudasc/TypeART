@@ -42,7 +42,7 @@ typedef struct MPISemCounter {
   _Atomic size_t error;
 } MPICounter;
 
-static MPICounter mcounter = {0, 0, 0};
+static MPICounter mcounter   = {0, 0, 0};
 static int log_buffer_srcloc = 0;
 
 TYPEART_NO_EXPORT void ta_check_send(const char* name, const void* called_from, const void* sendbuf, int count,
@@ -117,7 +117,7 @@ TYPEART_NO_EXPORT int ta_check_buffer(const char* mpi_name, const void* called_f
     return 0;
   }
 
-  const void *ret_addr;
+  const void* ret_addr;
   typeart_status_v = typeart_get_return_address(buf, &ret_addr);
   if (typeart_status_v != TYPEART_OK) {
     return 0;
@@ -132,13 +132,13 @@ TYPEART_NO_EXPORT int ta_check_buffer(const char* mpi_name, const void* called_f
   if (typeart_status_v != TYPEART_OK) {
     ++mcounter.error;
     const char* msg = ta_get_error_message(typeart_status_v);
-    printf("R[%d][Error][%d] %s: failed to get source location for buffer %p at loc %p - %s\n",
-           rank, const_adr, mpi_name, buf, called_from, msg);
+    printf("R[%d][Error][%d] %s: failed to get source location for buffer %p at loc %p - %s\n", rank, const_adr,
+           mpi_name, buf, called_from, msg);
     return 0;
   }
 
-  printf("R[%d][Info][%d] %s: buffer %p @ %s:%s:%u\n", rank, const_adr, mpi_name, buf,
-         src_loc.file, src_loc.function, src_loc.line);
+  printf("R[%d][Info][%d] %s: buffer %p @ %s:%s:%u\n", rank, const_adr, mpi_name, buf, src_loc.file, src_loc.function,
+         src_loc.line);
 
   free(src_loc.file);
   free(src_loc.function);
@@ -173,7 +173,7 @@ TYPEART_NO_EXPORT void ta_print_loc(const void* call_adr) {
 }
 
 TYPEART_NO_EXPORT void ta_init() {
-  const char *var = getenv("TYPEART_LOG_BUF_SRCLOC");
+  const char* var = getenv("TYPEART_LOG_BUF_SRCLOC");
   if (var && strncmp(var, "TRUE", 4) == 0)
     log_buffer_srcloc = 1;
 }
