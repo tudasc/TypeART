@@ -73,9 +73,9 @@ class FunctionOracleMatcher final : public Matcher {
   llvm::SmallDenseSet<llvm::StringRef> continue_set{{"sqrt"}, {"cos"},          {"sin"},    {"pow"},
                                                     {"fabs"}, {"abs"},          {"log"},    {"fscanf"},
                                                     {"cbrt"}, {"gettimeofday"}, {"strcpy"}, {"strlen"}};
-  llvm::SmallDenseSet<llvm::StringRef> skip_set{{"printf"}, {"sprintf"},      {"snprintf"}, {"fprintf"},
-                                                {"puts"},   {"__cxa_atexit"}, {"fopen"},    {"fclose"},
-                                                {"scanf"},  {"strtol"},       {"srand"}};
+  llvm::SmallDenseSet<llvm::StringRef> skip_set{
+      {"printf"}, {"sprintf"}, {"snprintf"}, {"fprintf"}, {"puts"},   {"__cxa_atexit"}, {"fopen"},           {"fwrite"},
+      {"fclose"}, {"scanf"},   {"strtol"},   {"srand"},   {"strtod"}, {"__getdelim"},   {"__isoc23_strtol"}, {"bcmp"}};
 
  public:
   MatchResult matchName(llvm::StringRef const name) const override {

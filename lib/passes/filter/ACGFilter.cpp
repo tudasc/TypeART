@@ -198,9 +198,22 @@ FilterAnalysis AcgFilterImpl::def(const CallSite current, const Path& p) {
   if (const auto node = mcg.byName(current.getCalledFunction()->getName()); node) {
     return reachesMatching({*node}, idx);
   } else {
+    // Fn not in CG? ask the oracle first, e.g., for __typeart instrumentation:
+    const auto oracle_match = oracle.match(current);
+    switch (oracle_match) {
+      case Matcher::MatchResult::ShouldSkip: {
+        return FilterAnalysis::Skip;
+      }
+      case Matcher::MatchResult::ShouldContinue: {
+        return FilterAnalysis::Continue;
+      }
+      default:
+        break;
+    }
+
     // Be conservative if the function is not recorded in the call graph
-    LOG_DEBUG("Unrecorded function, continuing: " << current.getCalledFunction()->getName());
-    return FilterAnalysis::Continue;
+    LOG_DEBUG("Unrecorded function, keeping: " << current.getCalledFunction()->getName());
+    return FilterAnalysis::Keep;
   }
 }
 
