@@ -1,4 +1,5 @@
 typeart_find_llvm_progs(TYPEART_FILECHECK_EXEC "FileCheck-${LLVM_VERSION_MAJOR};FileCheck" ABORT_IF_MISSING)
+typeart_find_llvm_progs(TYPEART_NOT_EXEC "not-${LLVM_VERSION_MAJOR};not")
 
 find_package(Python3 COMPONENTS Interpreter)
 
