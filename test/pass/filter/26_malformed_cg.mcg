@@ -1,0 +1,31 @@
+{
+    "_CG": {
+        "meta": {},
+        "nodes": {
+            "0": {
+                "callees": {
+                    "1": {}
+                },
+                "functionName": "foo",
+                "hasBody": true,
+                "meta": {},
+                "origin": "26_malformed_json.c"
+            }
+            "1": {
+                "callees": {},
+                "functionName": "bar",
+                "hasBody": false,
+                "meta": {},
+                "origin": null
+            }
+        }
+    },
+    "_MetaCG": {
+        "generator": {
+            "name": "GenCC",
+            "sha": "NO_GIT_SHA_AVAILABLE",
+            "version": "0.1"
+        },
+        "version": "4.0"
+    }
+}

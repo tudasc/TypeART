@@ -110,7 +110,7 @@ static std::unique_ptr<typeart::filter::Filter> make_filter(const MemInstFinderC
 
     auto mcg = metacg::parse((*buf)->getBuffer());
     if (!mcg) {
-      LOG_FATAL(mcg.takeError() << '\n');
+      llvm::handleAllErrors(mcg.takeError(), [](const llvm::ErrorInfoBase& E) { LOG_FATAL(E.message()); });
       std::exit(1);
     }
 
@@ -131,7 +131,7 @@ static std::unique_ptr<typeart::filter::Filter> make_filter(const MemInstFinderC
 
     auto mcg = metacg::parse((*buf)->getBuffer());
     if (!mcg) {
-      LOG_FATAL(mcg.takeError() << '\n');
+      llvm::handleAllErrors(mcg.takeError(), [](const llvm::ErrorInfoBase& E) { LOG_FATAL(E.message()); });
       std::exit(1);
     }
 

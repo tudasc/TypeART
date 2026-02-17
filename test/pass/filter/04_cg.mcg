@@ -13,15 +13,45 @@
                 "origin": "04_cg.c"
             },
             "1": {
-                "callees": {},
+                "callees": {
+                    "3": {}
+                },
                 "functionName": "bar",
                 "hasBody": false,
-                "meta": {},
+                "meta": {
+                    "argflow": {
+                        "args": [
+                            {
+                                "idx": 0,
+                                "outs": [
+                                    {
+                                        "by_ref": true,
+                                        "callees": [
+                                            3
+                                        ],
+                                        "idx": 0,
+                                        "loc": {
+                                            "col": 3,
+                                            "line": 9
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                },
                 "origin": null
             },
             "2": {
                 "callees": {},
                 "functionName": "aar",
+                "hasBody": false,
+                "meta": {},
+                "origin": null
+            },
+            "3": {
+                "callees": {},
+                "functionName": "MPI_Send",
                 "hasBody": false,
                 "meta": {},
                 "origin": null
