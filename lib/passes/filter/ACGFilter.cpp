@@ -73,6 +73,9 @@ FilterAnalysis AcgFilterImpl::reachesMatching(const ArrayRef<size_t> nodes, cons
 
     for (const auto& out : *outs) {
       for (const auto callee : out.callees) {
+        // if (!out.by_ref) {
+        //   continue;
+        // }
         enqueue(callee, out.idx);
         LOG_DEBUG("-> Enqueued callee: " << mcg.forId(callee)->name.value_or(""));
       }
