@@ -74,6 +74,23 @@ inline std::string create_prefixed_name(Args&&... args) {
   return name;
 }
 
+inline bool is_forward_declaration(int type_id, const TypeDatabase& db) {
+  if (db.isBuiltinType(type_id)) {
+    return false;
+  }
+  const auto* struct_info = db.getStructInfo(type_id);
+  return struct_info != nullptr && struct_info->flag == StructTypeFlag::FWD_DECL;
+}
+
+inline std::string get_link_name(int type_id, const TypeDatabase& db) {
+  const auto base_name = db.getTypeName(type_id);
+  return is_forward_declaration(type_id, db) ? concat(base_name, "_fwd") : base_name;
+}
+
+inline std::string get_prefixed_name(int type_id, const TypeDatabase& db) {
+  return create_prefixed_name(get_link_name(type_id, db));
+}
+
 namespace detail {
 template <typename T, typename SourceT>
 T safe_cast(SourceT val) {
@@ -327,8 +344,9 @@ struct GlobalTypeRegistrar {
 
   llvm::GlobalVariable* registerTypeStruct(const StructTypeInfo* type_struct) {
     const auto base_name = type_struct->name;
-    const bool is_fwd    = type_struct->flag == StructTypeFlag::FWD_DECL;
-    const auto link_name = is_fwd ? helper::concat(base_name, "_fwd") : base_name;
+    const auto type_id   = type_struct->type_id;
+    const bool is_fwd    = helper::is_forward_declaration(type_id, *type_db_);
+    const auto link_name = helper::get_link_name(type_id, *type_db_);
 
     if (is_fwd) {
       LOG_DEBUG("Type is forward decl " << base_name)
@@ -418,25 +436,28 @@ struct GlobalTypeRegistrar {
   }
 
   llvm::Constant* getOrRegister(int type_id) {
-    const auto name = type_db_->getTypeName(type_id);
-    LOG_DEBUG(name << " aka " << helper::create_prefixed_name(name))
-    return module_->getOrInsertGlobal(
-        helper::create_prefixed_name(name), struct_layout_type_, [&]() -> llvm::GlobalVariable* {
-          LOG_DEBUG("Registering << " << type_id << " " << name << " aka " << helper::create_prefixed_name(name))
-          const bool is_builtin = type_db_->isBuiltinType(type_id);
-          if (is_builtin) {
-            auto* global = registerBuiltin(type_id);
-            type_callback.insert(global);
-            return global;
-          }
-          auto* global        = registerUserDefined(type_id);
-          const auto fwd_decl = StructTypeFlag::FWD_DECL == type_db_->getStructInfo(type_id)->flag;
-          if (!fwd_decl) {
-            LOG_DEBUG("Registering forward declared variable " << *global)
-          }
-          type_callback.insert(global);
-          return global;
-        });
+    const auto base_name     = type_db_->getTypeName(type_id);
+    const auto prefixed_name = helper::get_prefixed_name(type_id, *type_db_);
+
+    LOG_DEBUG(base_name << " aka " << prefixed_name)
+
+    return module_->getOrInsertGlobal(prefixed_name, struct_layout_type_, [&]() -> llvm::GlobalVariable* {
+      LOG_DEBUG("Registering << " << type_id << " " << base_name << " aka " << prefixed_name)
+
+      if (type_db_->isBuiltinType(type_id)) {
+        auto* global = registerBuiltin(type_id);
+        type_callback.insert(global);
+        return global;
+      }
+
+      auto* global = registerUserDefined(type_id);
+
+      if (!helper::is_forward_declaration(type_id, *type_db_)) {
+        LOG_DEBUG("Registering forward declared variable " << *global)
+      }
+      type_callback.insert(global);
+      return global;
+    });
   }
 };  // namespace typedb
 }  // namespace typedb
