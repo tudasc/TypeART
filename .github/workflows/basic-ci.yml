@@ -74,6 +74,7 @@ jobs:
           - { os: ubuntu-24.04, llvm-version: 19, typeart-typegen-legacy: 0 }
           - { os: ubuntu-24.04, llvm-version: 20, typeart-typegen-legacy: 0 }
           - { os: ubuntu-24.04, llvm-version: 21, typeart-typegen-legacy: 0 }
+          - { os: ubuntu-24.04, llvm-version: 22, typeart-typegen-legacy: 0 }
 
     runs-on: ${{ matrix.platform.os }}
 
@@ -150,7 +151,7 @@ jobs:
 
   finish-coverage:
     needs: lit-suite
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Coveralls Finished
         uses: coverallsapp/github-action@master
