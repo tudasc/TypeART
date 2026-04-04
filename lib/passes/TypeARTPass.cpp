@@ -217,7 +217,11 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
   }
 
   void printStats(llvm::raw_ostream& out) {
+#if LLVM_VERSION_MAJOR < 22
     const auto scope_exit_cleanup_counter = llvm::make_scope_exit([&]() {
+#else
+    llvm::scope_exit scope_exit_cleanup_counter([&]() {
+#endif
       NumInstrumentedAlloca  = 0;
       NumInstrumentedFrees   = 0;
       NumInstrumentedGlobal  = 0;

@@ -40,9 +40,18 @@ function(typeart_make_llvm_module name sources)
 
   typeart_target_define_file_basename(${name})
 
+  set(LLVM_DEFINITIONS_LIST "${LLVM_DEFINITIONS}")
+  separate_arguments(LLVM_DEFINITIONS_LIST)
+
+  set(CLEAN_LLVM_DEFINITIONS "")
+  foreach(definition ${LLVM_DEFINITIONS_LIST})
+    string(REGEX REPLACE "^-D" "" clean_definition ${definition})
+    list(APPEND CLEAN_LLVM_DEFINITIONS ${clean_definition})
+  endforeach()
+
   target_compile_definitions(${name}
     PRIVATE
-    ${LLVM_DEFINITIONS}
+    ${CLEAN_LLVM_DEFINITIONS}
   )
 
   make_tidy_check(${name}
