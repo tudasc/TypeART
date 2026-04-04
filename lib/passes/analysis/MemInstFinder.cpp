@@ -405,11 +405,11 @@ void MemInstFinderPass::printStats(llvm::raw_ostream& out) const {
     NumFilteredGlobals        = 0;
     NumDetectedGlobals        = 0;
   });
-  auto all_stack                        = double(NumDetectedAllocs);
-  auto nonarray_stack                   = double(NumFilteredNonArrayAllocs);
-  auto malloc_alloc_stack               = double(NumFilteredMallocAllocs);
-  auto call_filter_stack                = double(NumCallFilteredAllocs);
-  auto filter_pointer_stack             = double(NumFilteredPointerAllocs);
+  auto all_stack            = double(NumDetectedAllocs);
+  auto nonarray_stack       = double(NumFilteredNonArrayAllocs);
+  auto malloc_alloc_stack   = double(NumFilteredMallocAllocs);
+  auto call_filter_stack    = double(NumCallFilteredAllocs);
+  auto filter_pointer_stack = double(NumFilteredPointerAllocs);
 
   const auto call_filter_stack_p =
       (call_filter_stack /
