@@ -136,9 +136,6 @@ TYPEART_EXPORT typeart_status typeart_get_type(const void* addr, typeart_type_in
  *  - TYPEART_OK: The query was successful.
  *  - TYPEART_UNKNOWN_ADDRESS: The given address is either not allocated, or was not correctly recorded by the runtime.
  */
-// typeart_status typeart_get_containing_type(const void* addr, int* type_id, size_t* count, const void** base_address,
-//                                            size_t* byte_offset);
-
 TYPEART_EXPORT typeart_status typeart_get_containing_type(const typeart_type_info* type_info,
                                                           typeart_base_type_info* containing_type, size_t* byte_offset);
 

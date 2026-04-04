@@ -233,7 +233,12 @@ InstrCount MemOpInstrumentation::instrumentStack(const StackArgList& stack) {
     } else {
       for (auto* lifetime_s : lifetime_starts) {
         IRBuilder<> IRB(lifetime_s->getNextNode());
-        instrument_stack(IRB, lifetime_s->getOperand(1), lifetime_s->getNextNode());
+#if LLVM_VERSION_MAJOR < 22
+        auto ptr = lifetime_s->getOperand(1);
+#else
+        auto ptr = lifetime_s->getArgOperand(0);
+#endif
+        instrument_stack(IRB, ptr, lifetime_s->getNextNode());
       }
     }
   }

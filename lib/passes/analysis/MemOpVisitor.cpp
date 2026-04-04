@@ -374,19 +374,26 @@ void MemOpVisitor::visitAllocaInst(llvm::AllocaInst& ai) {
 }
 
 void MemOpVisitor::visitIntrinsicInst(llvm::IntrinsicInst& inst) {
-  if (inst.getIntrinsicID() == Intrinsic::lifetime_start) {
-#if LLVM_VERSION_MAJOR >= 12
-    auto alloca = llvm::findAllocaForValue(inst.getOperand(1));
+  if (inst.getIntrinsicID() != Intrinsic::lifetime_start) {
+    return;
+  }
+  AllocaInst* alloca{nullptr};
+#if LLVM_VERSION_MAJOR > 21
+  auto* operand = inst.getArgOperand(0);
+  alloca        = llvm::findAllocaForValue(operand);
+#elif LLVM_VERSION_MAJOR >= 12
+  auto* operand = inst.getOperand(1);
+  alloca        = llvm::findAllocaForValue(operand);
 #else
-    DenseMap<Value*, AllocaInst*> alloca_for_value;
-    auto* alloca = llvm::findAllocaForValue(inst.getOperand(1), alloca_for_value);
+  auto* operand = inst.getOperand(1);
+  DenseMap<Value*, AllocaInst*> alloca_for_value;
+  alloca = llvm::findAllocaForValue(operand, alloca_for_value);
 #endif
-    if (alloca != nullptr) {
-      lifetime_starts.emplace_back(&inst, alloca);
-    }
+
+  if (alloca != nullptr) {
+    lifetime_starts.emplace_back(&inst, alloca);
   }
 }
-
 void MemOpVisitor::clear() {
   allocas.clear();
   mallocs.clear();
