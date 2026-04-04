@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - run: |
           wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
@@ -47,7 +47,7 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: codespell-project/actions-codespell@v2.2
 
   lit-suite:
@@ -79,7 +79,7 @@ jobs:
     runs-on: ${{ matrix.platform.os }}
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: LLVM apt
         if: ${{ matrix.platform.llvm-version >= 19 }}
@@ -142,7 +142,7 @@ jobs:
 
       - name: Coveralls (parallel)
         if: matrix.preset.coverage
-        uses: coverallsapp/github-action@master
+        uses: coverallsapp/github-action@v2.3.6
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path-to-lcov: build/typeart.coverage
@@ -154,7 +154,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Coveralls Finished
-        uses: coverallsapp/github-action@master
+        uses: coverallsapp/github-action@v2.3.6
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           parallel-finished: true
