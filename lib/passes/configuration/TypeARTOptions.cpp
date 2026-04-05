@@ -172,8 +172,8 @@ TypeARTConfigOptions config_to_options(const Configuration& configuration) {
 }
 
 template <typename T>
-auto make_entry(std::string_view key, const T& field_value)
-    -> std::pair<llvm::StringRef, typename OptionsMap::mapped_type> {
+auto make_entry(std::string_view key,
+                const T& field_value) -> std::pair<llvm::StringRef, typename OptionsMap::mapped_type> {
   if constexpr (std::is_enum_v<T>) {
     return {key, config::OptionValue{static_cast<int>(field_value)}};
   } else {
