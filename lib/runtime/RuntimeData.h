@@ -51,8 +51,8 @@
 #endif
 
 #if defined(__has_feature)
-#if __has_feature(address_sanitizer)
-#define __SANITIZE_ADDRESS__
+#if __has_feature(address_sanitizer) && !defined(__SANITIZE_ADDRESS__)
+#define __SANITIZE_ADDRESS__ 1
 #endif
 #endif
 

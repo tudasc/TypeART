@@ -90,12 +90,10 @@ RuntimeSystem::RuntimeSystem()
     }
   } else {
     if (!loadTypes(defaultTypeFileName, error)) {
-      LOG_WARNING(
-          "No type file with default name \""
-          << defaultTypeFileName
-          << "\" in current directory. Using default built-in types only. To specify a different file, edit the "
-             "TYPEART_TYPE_FILE environment variable. Reason: "
-          << error.message());
+      LOG_DEBUG("No type file with default name \""
+                << defaultTypeFileName
+                << "\" in current directory. Using default built-in types only. To specify a different file, edit the "
+                << config::EnvironmentStdArgs::types << " environment variable. Reason: " << error.message());
     }
   }
 
@@ -105,7 +103,7 @@ RuntimeSystem::RuntimeSystem()
     ss << structInfo.name << ", ";
   }
   recorder.incUDefTypes(typeList.size());
-  LOG_INFO("Recorded types: " << ss.str());
+  LOG_DEBUG("Recorded types: " << ss.str());
   rtScopeInit.reset();
 }
 

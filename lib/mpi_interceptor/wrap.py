@@ -85,21 +85,21 @@ exclude_strings = [ "c2f", "f2c", "typedef", "MPI_T_", "MPI_Comm_spawn" ]
 
 # Regular expressions for start and end of declarations in mpi.h. These are
 # used to get the declaration strings out for parsing with formal_re below.
-begin_decl_re = re.compile("(" + "|".join(rtypes) + ")\s+(MPI_\w+)\s*\(")
+begin_decl_re = re.compile(r"(" + "|".join(rtypes) + r")\s+(MPI_\w+)\s*\(")
 exclude_re =    re.compile("|".join(exclude_strings))
-end_decl_re =   re.compile("\).*\;")
+end_decl_re =   re.compile(r"\).*\;")
 
 # Regular Expression for splitting up args. Matching against this
 # returns three groups: type info, arg name, and array info
 formal_re = re.compile(
-    "\s*(" +                       # Start type
-    "(?:const)?\s*" +              # Initial const
-    "\w+"                          # Type name (note: doesn't handle 'long long', etc. right now)
-    ")\s*(" +                      # End type, begin pointers
-    "(?:\s*\*(?:\s*const)?)*" +    # Look for 0 or more pointers with optional 'const'
-    ")\s*"                         # End pointers
-    "(?:(\w+)\s*)?" +              # Argument name. Optional.
-     "(\[.*\])?\s*$"               # Array type.  Also optional. Works for multidimensions b/c it's greedy.
+    r"\s*(" +                       # Start type
+    r"(?:const)?\s*" +              # Initial const
+    r"\w+"                          # Type name (note: doesn't handle 'long long', etc. right now)
+    r")\s*(" +                      # End type, begin pointers
+    r"(?:\s*\*(?:\s*const)?)*" +    # Look for 0 or more pointers with optional 'const'
+    r")\s*"                         # End pointers
+    r"(?:(\w+)\s*)?" +              # Argument name. Optional.
+    r"(\[.*\])?\s*$"               # Array type.  Also optional. Works for multidimensions b/c it's greedy.
     )
 
 # Fortran wrapper suffix
@@ -724,12 +724,12 @@ class Param:
     def castType(self):
         arr = self.array or ''
         pointers = self.pointers or ''
-        if re.search('\[\s*\]', arr):
+        if re.search(r'\[\s*\]', arr):
             if arr.count('[') > 1:
                 pointers += '(*)'   # need extra parens for, e.g., int[][3] -> int(*)[3]
             else:
                 pointers += '*'     # justa single array; can pass pointer.
-            arr = re.sub('\[\s*\]', '', arr)
+            arr = re.sub(r'\[\s*\]', '', arr)
         return "%s%s%s" % (self.type, pointers, arr)
 
     def __str__(self):
