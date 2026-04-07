@@ -1,4 +1,5 @@
 set(ABSL_PROPAGATE_CXX_STD ON)
+set(ABSL_USE_SYSTEM_INCLUDES ON CACHE BOOL "Use system includes for Abseil" FORCE)
 
 FetchContent_Declare(
   cpp-abseil

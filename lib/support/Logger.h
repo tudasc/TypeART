@@ -10,8 +10,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //
 
-#ifndef LIB_LOGGER_H_
-#define LIB_LOGGER_H_
+#ifndef TYPEART_LOGGER_H
+#define TYPEART_LOGGER_H
 
 #include "llvm/Support/raw_ostream.h"
 
@@ -67,4 +67,4 @@ inline void typeart_log(const std::string& msg) {
 #define LOG_FATAL(MSG)   OO_LOG_LEVEL_MSG(0, "[Fatal]", MSG)
 #define LOG_MSG(MSG)     llvm::errs() << MSG << "\n"; /* NOLINT */
 
-#endif /* LIB_LOGGER_H_ */
+#endif  // TYPEART_LOGGER_H

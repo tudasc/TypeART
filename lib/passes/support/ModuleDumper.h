@@ -10,8 +10,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //
 
-#ifndef MODULE_DUMPER_UTIL_H
-#define MODULE_DUMPER_UTIL_H
+#ifndef TYPEART_MODULEDUMPER_H
+#define TYPEART_MODULEDUMPER_H
 
 #include "llvm/IR/Module.h"
 
@@ -23,4 +23,4 @@ void dump_module(const llvm::Module& module, ModulePhase phase);
 
 }  // namespace typeart::util::module
 
-#endif
+#endif  // TYPEART_MODULEDUMPER_H

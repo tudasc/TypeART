@@ -1,5 +1,5 @@
-#ifndef LIB_RUNTIME_GLOBALTYPEDEFCALLBACKS
-#define LIB_RUNTIME_GLOBALTYPEDEFCALLBACKS
+#ifndef TYPEART_GLOBALTYPEDEFCALLBACKS_H
+#define TYPEART_GLOBALTYPEDEFCALLBACKS_H
 
 #include "RuntimeData.h"
 #include "TypeInterface.h"
@@ -41,4 +41,4 @@ class GlobalTypeTranslator final {
 
 }  // namespace typeart
 
-#endif /* LIB_RUNTIME_GLOBALTYPEDEFCALLBACKS */
+#endif  // TYPEART_GLOBALTYPEDEFCALLBACKS_H

@@ -1,5 +1,5 @@
-#ifndef LIB_PASSES_INSTRUMENTATION_MODULETYPEREGISTRY
-#define LIB_PASSES_INSTRUMENTATION_MODULETYPEREGISTRY
+#ifndef TYPEART_TYPEIDPROVIDER_H
+#define TYPEART_TYPEIDPROVIDER_H
 
 // #include "TypeARTFunctions.h"
 // #include "instrumentation/TypeARTFunctions.h"
@@ -36,4 +36,4 @@ std::unique_ptr<TypeRegistry> get_type_id_handler(llvm::Module& m, const TypeDat
 
 }  // namespace typeart
 
-#endif /* LIB_PASSES_INSTRUMENTATION_MODULETYPEREGISTRY */
+#endif  // TYPEART_TYPEIDPROVIDER_H

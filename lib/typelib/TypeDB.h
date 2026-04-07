@@ -10,8 +10,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //
 
-#ifndef LLVM_MUST_SUPPORT_TYPECONFIG_H
-#define LLVM_MUST_SUPPORT_TYPECONFIG_H
+#ifndef TYPEART_TYPEDB_H
+#define TYPEART_TYPEDB_H
 
 #include "TypeDatabase.h"
 #include "TypeInterface.h"
@@ -110,4 +110,4 @@ class TypeDB final : public TypeDatabase {
 
 }  // namespace typeart
 
-#endif  // LLVM_MUST_SUPPORT_TYPECONFIG_H
+#endif  // TYPEART_TYPEDB_H

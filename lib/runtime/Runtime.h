@@ -10,8 +10,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //
 
-#ifndef LIB_RUNTIME_RUNTIME
-#define LIB_RUNTIME_RUNTIME
+#ifndef TYPEART_RUNTIME_H
+#define TYPEART_RUNTIME_H
 
 #include "AccessCounter.h"
 #include "AllocationTracking.h"
@@ -126,4 +126,4 @@ struct RTGuard final {
 
 }  // namespace typeart
 
-#endif /* LIB_RUNTIME_RUNTIME */
+#endif  // TYPEART_RUNTIME_H

@@ -10,8 +10,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //
 
-#ifndef LLVM_MUST_SUPPORT_CONFIGIO_H
-#define LLVM_MUST_SUPPORT_CONFIGIO_H
+#ifndef TYPEART_TYPEIO_H
+#define TYPEART_TYPEIO_H
 
 #include "typelib/TypeDatabase.h"
 
@@ -30,4 +30,4 @@ namespace io {
 
 }  // namespace typeart
 
-#endif  // LLVM_MUST_SUPPORT_CONFIGIO_H
+#endif  // TYPEART_TYPEIO_H

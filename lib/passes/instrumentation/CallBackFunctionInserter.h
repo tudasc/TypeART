@@ -1,5 +1,5 @@
-#ifndef LIB_PASSES_INSTRUMENTATION_CALLBACKFUNCTIONINSERTER
-#define LIB_PASSES_INSTRUMENTATION_CALLBACKFUNCTIONINSERTER
+#ifndef TYPEART_CALLBACKFUNCTIONINSERTER_H
+#define TYPEART_CALLBACKFUNCTIONINSERTER_H
 
 #include "instrumentation/TypeARTFunctions.h"
 
@@ -51,4 +51,4 @@ std::unique_ptr<InstrumentationInserter> make_callback_inserter(const config::Co
 
 }  // namespace typeart
 
-#endif /* LIB_PASSES_INSTRUMENTATION_CALLBACKFUNCTIONINSERTER */
+#endif  // TYPEART_CALLBACKFUNCTIONINSERTER_H
