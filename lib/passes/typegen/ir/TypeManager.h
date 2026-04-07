@@ -10,8 +10,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //
 
-#ifndef LLVM_MUST_SUPPORT_TYPEMANAGER_H
-#define LLVM_MUST_SUPPORT_TYPEMANAGER_H
+#ifndef TYPEART_TYPEMANAGER_H
+#define TYPEART_TYPEMANAGER_H
 
 #include "typegen/TypeIDGenerator.h"
 
@@ -44,4 +44,4 @@ class TypeManager final : public types::TypeIDGenerator {
 
 }  // namespace typeart
 
-#endif  // LLVM_MUST_SUPPORT_TYPEMANAGER_H
+#endif  // TYPEART_TYPEMANAGER_H

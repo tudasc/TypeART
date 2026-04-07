@@ -10,8 +10,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //
 
-#ifndef LIB_UTIL_H_
-#define LIB_UTIL_H_
+#ifndef TYPEART_UTIL_H
+#define TYPEART_UTIL_H
 
 // #include "Logger.h"
 
@@ -228,4 +228,4 @@ void for_each_cdtor(llvm::StringRef name, llvm::Module& module, Matcher&& matchi
 
 }  // namespace typeart::util
 
-#endif /* LIB_UTIL_H_ */
+#endif  // TYPEART_UTIL_H

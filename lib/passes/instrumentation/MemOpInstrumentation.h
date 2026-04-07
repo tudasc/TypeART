@@ -10,8 +10,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //
 
-#ifndef LIB_PASSES_INSTRUMENTATION_MEMOPINSTRUMENTATION
-#define LIB_PASSES_INSTRUMENTATION_MEMOPINSTRUMENTATION
+#ifndef TYPEART_MEMOPINSTRUMENTATION_H
+#define TYPEART_MEMOPINSTRUMENTATION_H
 
 #include "Instrumentation.h"
 #include "configuration/Configuration.h"
@@ -45,4 +45,4 @@ class MemOpInstrumentation final : public MemoryInstrument {
 };
 
 }  // namespace typeart
-#endif /* LIB_PASSES_INSTRUMENTATION_MEMOPINSTRUMENTATION */
+#endif  // TYPEART_MEMOPINSTRUMENTATION_H

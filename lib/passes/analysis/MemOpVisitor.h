@@ -10,8 +10,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //
 
-#ifndef LIB_MEMOPVISITOR_H_
-#define LIB_MEMOPVISITOR_H_
+#ifndef TYPEART_MEMOPVISITOR_H
+#define TYPEART_MEMOPVISITOR_H
 
 #include "MemOpData.h"
 #include "configuration/Configuration.h"
@@ -57,4 +57,4 @@ struct MemOpVisitor : public llvm::InstVisitor<MemOpVisitor> {
 
 }  // namespace typeart::analysis
 
-#endif /* LIB_MEMOPVISITOR_H_ */
+#endif  // TYPEART_MEMOPVISITOR_H

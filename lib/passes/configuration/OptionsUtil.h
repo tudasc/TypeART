@@ -10,8 +10,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //
 
-#ifndef LIB_PASSES_CONFIGURATION_OPTIONSUTIL
-#define LIB_PASSES_CONFIGURATION_OPTIONSUTIL
+#ifndef TYPEART_CONFIGURATION_OPTIONS_UTIL_H
+#define TYPEART_CONFIGURATION_OPTIONS_UTIL_H
 
 #include "analysis/MemInstFinder.h"
 #include "instrumentation/TypeIDProvider.h"
@@ -80,4 +80,4 @@ ClType make_opt(llvm::StringRef cl_value) {
 }
 
 }  // namespace typeart::config::util
-#endif /* LIB_PASSES_CONFIGURATION_OPTIONSUTIL */
+#endif  // TYPEART_CONFIGURATION_OPTIONS_UTIL_H

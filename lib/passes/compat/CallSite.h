@@ -12,8 +12,8 @@
 
 // In Clang 11 CallSite.h was removed, this is a small wrapper reimplementation
 
-#ifndef COMPAT_LLVM_IR_CALLSITE_H
-#define COMPAT_LLVM_IR_CALLSITE_H
+#ifndef TYPEART_CALLSITE_H
+#define TYPEART_CALLSITE_H
 
 #include "llvm/IR/Instruction.h"
 
@@ -86,4 +86,4 @@ class CallSite {
 };
 }  // namespace llvm
 
-#endif
+#endif  // TYPEART_CALLSITE_H

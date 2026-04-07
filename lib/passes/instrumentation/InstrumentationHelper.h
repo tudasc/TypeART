@@ -10,8 +10,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //
 
-#ifndef LIB_INSTRUMENTATIONHELPER_H_
-#define LIB_INSTRUMENTATIONHELPER_H_
+#ifndef TYPEART_INSTRUMENTATIONHELPER_H
+#define TYPEART_INSTRUMENTATIONHELPER_H
 
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/SmallVector.h"
@@ -66,4 +66,4 @@ class InstrumentationHelper {
 
 }  // namespace typeart
 
-#endif /* LIB_INSTRUMENTATIONHELPER_H_ */
+#endif  // TYPEART_INSTRUMENTATIONHELPER_H

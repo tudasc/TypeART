@@ -21,13 +21,8 @@
 #ifdef TYPEART_PHMAP
 #error TypeART-RT: Set ABSL and PHMAP, mutually exclusive.
 #endif
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpedantic"
-#pragma GCC diagnostic ignored "-Wshadow"
 #include "absl/container/btree_map.h"
 #include "absl/container/flat_hash_map.h"
-#pragma GCC diagnostic pop
 #endif
 
 #ifdef TYPEART_PHMAP
