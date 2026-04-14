@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2025 TypeART Authors
+// Copyright (c) 2017-2026 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -10,8 +10,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //
 
-#ifndef LIB_UTIL_H_
-#define LIB_UTIL_H_
+#ifndef TYPEART_UTIL_H
+#define TYPEART_UTIL_H
 
 // #include "Logger.h"
 
@@ -19,11 +19,14 @@
 
 #include "llvm/Demangle/Demangle.h"
 #include "llvm/IR/Function.h"
+#include "llvm/IR/Module.h"
 #include "llvm/Support/Regex.h"
 #include "llvm/Support/raw_ostream.h"
 
 #include <algorithm>
 #include <llvm/ADT/StringRef.h>
+#include <llvm/IR/Constants.h>
+#include <llvm/IR/Value.h>
 #include <string>
 
 namespace typeart::util {
@@ -202,6 +205,27 @@ inline bool ends_with_any_of(llvm::StringRef lhs, StringTy... rhs) {
 #endif
 }
 
+template <typename Matcher>
+void for_each_cdtor(llvm::StringRef name, llvm::Module& module, Matcher&& matching_fn) {
+  using namespace llvm;
+  auto* GVCtor = module.getNamedGlobal(name);
+  if (!GVCtor) {
+    return;
+  }
+  if (Constant* Init = GVCtor->getInitializer()) {
+    for (Value* OP : Init->operands()) {
+      auto* const_struct = dyn_cast<ConstantStruct>(OP);
+      if (!const_struct || const_struct->getNumOperands() < 3) {
+        continue;
+      }
+
+      if (matching_fn(const_struct->getOperand(1))) {
+        return;
+      }
+    }
+  }
+}
+
 }  // namespace typeart::util
 
-#endif /* LIB_UTIL_H_ */
+#endif  // TYPEART_UTIL_H

@@ -1,5 +1,5 @@
 // RUN: %remove %tu_yaml
-// RUN: %c-to-llvm %s | %apply-typeart
+// RUN: %c-to-llvm %s | %apply-typeart --typeart-type-serialization=file
 // RUN: cat %tu_yaml | %filecheck %s
 
 // Note: This test assumes standard alignment on a 64bit system. Non-standard alignment may lead to failure.

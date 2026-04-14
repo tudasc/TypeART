@@ -150,7 +150,7 @@ int hypre_MinUnionBoxes(hypre_BoxArray* boxes) {
         break;
 
     } /*switch(i) */
-  }   /* for (i= 0; i< 5; i++) */
+  } /* for (i= 0; i< 5; i++) */
   hypre_TFree(rotated_box);
 
   hypre_UnionBoxes(boxes);
@@ -233,7 +233,7 @@ int hypre_MinUnionBoxes(hypre_BoxArray* boxes) {
         break;
 
     } /* switch(array) */
-  }   /* if (array != 5) */
+  } /* if (array != 5) */
 
   hypre_BoxArrayArrayDestroy(rotated_array);
 

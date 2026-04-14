@@ -2,7 +2,7 @@
 #
 # TypeART library
 #
-# Copyright (c) 2017-2025 TypeART Authors
+# Copyright (c) 2017-2026 TypeART Authors
 # Distributed under the BSD 3-Clause license.
 # (See accompanying file LICENSE.txt or copy at
 # https://opensource.org/licenses/BSD-3-Clause)
@@ -132,6 +132,8 @@ function global_init() {
     readonly typeart_interceptor="@TYPEART_MPI_INTERCEPT_DIR@/@TYPEART_MPI_TOOL@"
   fi
 
+  readonly llvm_sys_libs=$(@TYPEART_LLVMCONFIG_COMMAND@ --system-libs)
+
   readonly typeart_has_interceptor="@TYPEART_HAS_MPI_TOOL@"
 
   readonly opt_tool="@TYPEART_OPT@"
@@ -140,7 +142,7 @@ function global_init() {
   readonly typeart_includes="${typeart_include_dir}"
   readonly typeart_ldflags="-L${typeart_lib_dir}/ \
                    -Wl,-rpath,${typeart_lib_dir}/ \
-                   -l$<TARGET_FILE_BASE_NAME:typeart::Runtime>"
+                   -l$<TARGET_FILE_BASE_NAME:typeart::Runtime> -Wl,--start-group $<TARGET_FILE:typeart::TypesStatic> $<TARGET_FILE:typeart::SystemStatic> $<TARGET_FILE:LLVMSupport> $<TARGET_FILE:LLVMDemangle> ${llvm_sys_libs} -Wl,--end-group"
 
   # shellcheck disable=SC2027
   typeart_plugin="-load-pass-plugin "${typeart_pass}" -passes=typeart<"
@@ -255,7 +257,7 @@ function compile() {
 
 function main_link() {
   more_link_flags="-fPIC"
-  $compiler ${more_link_flags} ${omp_flags} ${threads_flags} ${typeart_san_flags} ${typeart_ldflags} "${object_file}" -o "${exe_file}"
+  $compiler ${more_link_flags} ${omp_flags} ${threads_flags} ${typeart_san_flags} "${object_file}" ${typeart_ldflags} -o "${exe_file}"
 }
 
 function execute() {

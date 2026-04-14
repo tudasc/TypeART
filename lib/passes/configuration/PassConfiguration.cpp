@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2025 TypeART Authors
+// Copyright (c) 2017-2026 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -15,6 +15,7 @@
 #include "OptionsUtil.h"
 #include "analysis/MemInstFinder.h"
 #include "configuration/Configuration.h"
+#include "instrumentation/TypeIDProvider.h"
 #include "support/ConfigurationBase.h"
 #include "support/ConfigurationBaseOptions.h"
 #include "support/Error.h"
@@ -99,6 +100,12 @@ PassConfig parse_typeart_config_with_occurrence(llvm::StringRef parameters) {
     if (parameter_name.consume_front(PassStdArgsEq::filter_impl)) {
       result.filter_config.implementation        = util::string_to_enum<analysis::FilterImplementation>(parameter_name);
       occurrence_map[ConfigStdArgs::filter_impl] = true;
+      continue;
+    }
+
+    if (parameter_name.consume_front(PassStdArgsEq::type_serialization)) {
+      result.type_serialization = util::string_to_enum<TypeSerializationImplementation>(parameter_name);
+      occurrence_map[ConfigStdArgs::type_serialization] = true;
       continue;
     }
 

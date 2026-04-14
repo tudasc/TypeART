@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2025 TypeART Authors
+// Copyright (c) 2017-2026 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -88,7 +88,7 @@ class FunctionOracleMatcher final : public Matcher {
       if (mem_operations.kind(f_name)) {
         return MatchResult::ShouldSkip;
       }
-      if (util::starts_with_any_of(f_name_ref, "__ubsan", "__asan", "__msan")) {
+      if (util::starts_with_any_of(f_name_ref, "__ubsan", "__asan", "__msan", "__tysan", "__dfsan", "__tsan")) {
         return MatchResult::ShouldContinue;
       }
     }

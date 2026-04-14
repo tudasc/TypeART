@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2025 TypeART Authors
+// Copyright (c) 2017-2026 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -14,6 +14,7 @@
 #define TYPEART_CONFIGURATION_OPTIONS_UTIL_H
 
 #include "analysis/MemInstFinder.h"
+#include "instrumentation/TypeIDProvider.h"
 #include "support/Logger.h"
 #include "typegen/TypeGenerator.h"
 
@@ -30,6 +31,7 @@ bool with_any_of(llvm::StringRef lhs, Strings&&... rhs) {
 template <typename ClType>
 ClType string_to_enum(llvm::StringRef cl_value) {
   using ::typeart::TypegenImplementation;
+  using ::typeart::TypeSerializationImplementation;
   using ::typeart::analysis::FilterImplementation;
   if constexpr (std::is_same_v<TypegenImplementation, ClType>) {
     auto val = llvm::StringSwitch<ClType>(cl_value)
@@ -38,12 +40,21 @@ ClType string_to_enum(llvm::StringRef cl_value) {
                    .Default(TypegenImplementation::DIMETA);
     return val;
   } else {
-    auto val = llvm::StringSwitch<ClType>(cl_value)
-                   .Case("cg", FilterImplementation::cg)
-                   .Case("none", FilterImplementation::none)
-                   .Case("std", FilterImplementation::standard)
-                   .Default(FilterImplementation::standard);
-    return val;
+    if constexpr (std::is_same_v<FilterImplementation, ClType>) {
+      auto val = llvm::StringSwitch<ClType>(cl_value)
+                     .Case("cg", FilterImplementation::cg)
+                     .Case("none", FilterImplementation::none)
+                     .Case("std", FilterImplementation::standard)
+                     .Default(FilterImplementation::standard);
+      return val;
+    } else {
+      auto val = llvm::StringSwitch<ClType>(cl_value)
+                     .Case("file", TypeSerializationImplementation::FILE)
+                     .Case("hybrid", TypeSerializationImplementation::HYBRID)
+                     .Case("inline", TypeSerializationImplementation::INLINE)
+                     .Default(TypeSerializationImplementation::INLINE);
+      return val;
+    }
   }
 }
 
@@ -69,4 +80,4 @@ ClType make_opt(llvm::StringRef cl_value) {
 }
 
 }  // namespace typeart::config::util
-#endif /* TYPEART_CONFIGURATION_OPTIONS_UTIL_H */
+#endif  // TYPEART_CONFIGURATION_OPTIONS_UTIL_H

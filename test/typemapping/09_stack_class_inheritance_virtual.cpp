@@ -1,5 +1,5 @@
 // RUN: %remove %tu_yaml
-// RUN: %cpp-to-llvm %s | %apply-typeart --typeart-stack=true
+// RUN: %cpp-to-llvm %s | %apply-typeart --typeart-stack=true --typeart-type-serialization=file
 // RUN: cat %tu_yaml | %filecheck %s
 
 // REQUIRES: dimeta

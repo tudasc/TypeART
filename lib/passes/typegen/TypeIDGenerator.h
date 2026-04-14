@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2025 TypeART Authors
+// Copyright (c) 2017-2026 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -34,7 +34,7 @@ class TypeIDGenerator : public TypeGenerator {
  public:
   explicit TypeIDGenerator(std::string file_, std::unique_ptr<TypeDatabase> database_of_types);
 
-  virtual void registerModule(const ModuleData&) override;
+  virtual bool registerModule(ModuleData&) override;
 
   [[nodiscard]] virtual const TypeDatabase& getTypeDatabase() const override;
 

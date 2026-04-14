@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2025 TypeART Authors
+// Copyright (c) 2017-2026 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -55,10 +55,11 @@ int TypeIDGenerator::reserveNextTypeId() {
 }
 
 const TypeDatabase& TypeIDGenerator::getTypeDatabase() const {
-  return *this->typeDB.get();
+  return *this->typeDB;
 }
 
-void TypeIDGenerator::registerModule(const ModuleData&) {
+bool TypeIDGenerator::registerModule(ModuleData&) {
+  return false;
 }
 
 }  // namespace typeart::types

@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2025 TypeART Authors
+// Copyright (c) 2017-2026 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -101,8 +101,10 @@ void remove_pointer_level(const llvm::AllocaInst* alloc, dimeta::LocatedType& va
   // If the alloca instruction is not a pointer, but the located_type has a pointer-like qualifier, we remove it.
   // Workaround for inlining issue, see test typemapping/05_milc_inline_metadata.c
   // TODO Should be removed if dimeta fixes it.
-  if (!alloc->getAllocatedType()->isPointerTy()) {
-    LOG_DEBUG("Alloca is not a pointer")
+  // Further refinement, array-like allocas to pointers stay untouched (second condition):
+  // this will cause MPI handle arrays (typedef "ptr to opaque struct") to be considered a pointer
+  if (!alloc->getAllocatedType()->isPointerTy() && !alloc->getAllocatedType()->isArrayTy()) {
+    LOG_DEBUG("Alloca is not a pointer type: " << *alloc->getAllocatedType())
 
     const auto remove_pointer_level = [](auto& qual) {
       auto pointer_like_iter = llvm::find_if(qual, [](auto qualifier) {
@@ -488,7 +490,7 @@ class DimetaTypeManager final : public TypeIDGenerator {
         workaround::remove_pointer_level(alloc, val.value());
         const auto type_id        = getOrRegister(val->type, false);
         const auto array_size_val = array_size(val->type);
-        LOG_DEBUG(array_size_val)
+        LOG_DEBUG("Array size of alloca " << array_size_val)
         return {type_id, array_size_val};
       }
     } else if (auto* global = llvm::dyn_cast<llvm::GlobalVariable>(type)) {
@@ -502,19 +504,23 @@ class DimetaTypeManager final : public TypeIDGenerator {
     return {TYPEART_UNKNOWN_TYPE, 0};
   }
 
-  void registerModule(const ModuleData& module) override {
+  bool registerModule(ModuleData& module) override {
     using namespace dimeta;
     // std::optional<CompileUnitTypeList> compile_unit_types(const llvm::Module*)
     LOG_DEBUG("Register module types")
     auto cu_types_list = dimeta::compile_unit_types(module.module).value_or(dimeta::CompileUnitTypeList{});
 
+    std::vector<TypeIdentifier> cu_types;
     for (const auto& cu : cu_types_list) {
       const QualifiedTypeList& list = cu.types;
       for (const auto& cu_type : list) {
-        getOrRegister(cu_type);
+        cu_types.emplace_back(TypeIdentifier{getOrRegister(cu_type)});
       }
     }
+    const bool has_cu_types = !cu_types.empty();
+    module.types_list       = std::move(cu_types);
     LOG_DEBUG("Done: Register module types")
+    return has_cu_types;
   }
 
   TypeIdentifier getOrRegisterType(const MallocData& data) override {

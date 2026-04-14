@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2025 TypeART Authors
+// Copyright (c) 2017-2026 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -15,6 +15,7 @@
 #include "analysis/MemInstFinder.h"
 #include "configuration/Configuration.h"
 #include "configuration/EnvironmentConfiguration.h"
+#include "instrumentation/TypeIDProvider.h"
 #include "support/ConfigurationBase.h"
 #include "support/Logger.h"
 #include "typegen/TypeGenerator.h"
@@ -82,6 +83,15 @@ static cl::opt<ConfigStdArgTypes::stack_ty> cl_typeart_instrument_stack(Commandl
                                                                         cl::desc(ConfigStdArgDescriptions::stack),
                                                                         cl::init(ConfigStdArgValues::stack),
                                                                         cl::cat(typeart_category));
+
+static cl::opt<typeart::TypeSerializationImplementation> cl_typeart_type_serialization(
+    CommandlineStdArgs::type_serialization, cl::desc(ConfigStdArgDescriptions::type_serialization),
+    cl::values(clEnumValN(typeart::TypeSerializationImplementation::FILE, "file", "File based type serialization"),
+               clEnumValN(typeart::TypeSerializationImplementation::INLINE, "inline",
+                          "Type descriptors through global variables"),
+               clEnumValN(typeart::TypeSerializationImplementation::HYBRID, "hybrid",
+                          "Type descriptors through global variables except for C/C++ built-in types")),
+    cl::Hidden, cl::init(typeart::TypeSerializationImplementation::FILE), cl::cat(typeart_category));
 
 static cl::opt<ConfigStdArgTypes::stack_lifetime_ty> cl_typeart_instrument_stack_lifetime(
     CommandlineStdArgs::stack_lifetime, cl::desc(ConfigStdArgDescriptions::stack_lifetime),
@@ -198,6 +208,7 @@ CommandLineOptions::CommandLineOptions() {
       make_entry(ConfigStdArgs::heap, cl_typeart_instrument_heap),
       make_entry(ConfigStdArgs::global, cl_typeart_instrument_global),
       make_entry(ConfigStdArgs::stack, cl_typeart_instrument_stack),
+      make_entry(ConfigStdArgs::type_serialization, cl_typeart_type_serialization),
       make_entry(ConfigStdArgs::stack_lifetime, cl_typeart_instrument_stack_lifetime),
       make_entry(ConfigStdArgs::typegen, cl_typeart_typegen_implementation),
       make_entry(ConfigStdArgs::filter, cl_typeart_call_filter),
@@ -217,6 +228,7 @@ CommandLineOptions::CommandLineOptions() {
       make_occurr_entry(ConfigStdArgs::heap, cl_typeart_instrument_heap),
       make_occurr_entry(ConfigStdArgs::global, cl_typeart_instrument_global),
       make_occurr_entry(ConfigStdArgs::stack, cl_typeart_instrument_stack),
+      make_occurr_entry(ConfigStdArgs::type_serialization, cl_typeart_type_serialization),
       make_occurr_entry(ConfigStdArgs::stack_lifetime, cl_typeart_instrument_stack_lifetime),
       make_occurr_entry(ConfigStdArgs::typegen, cl_typeart_typegen_implementation),
       make_occurr_entry(ConfigStdArgs::filter, cl_typeart_call_filter),

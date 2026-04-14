@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2025 TypeART Authors
+// Copyright (c) 2017-2026 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -10,8 +10,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //
 
-#ifndef LIB_INSTRUMENTATIONHELPER_H_
-#define LIB_INSTRUMENTATIONHELPER_H_
+#ifndef TYPEART_INSTRUMENTATIONHELPER_H
+#define TYPEART_INSTRUMENTATIONHELPER_H
 
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/SmallVector.h"
@@ -60,11 +60,10 @@ class InstrumentationHelper {
 
   llvm::Type* getTypeFor(IType id);
   llvm::ConstantInt* getConstantFor(IType id, size_t val = 0);
-  const std::map<std::string, llvm::Function*>& getFunctionMap() const;
 
   virtual ~InstrumentationHelper();
 };
 
 }  // namespace typeart
 
-#endif /* LIB_INSTRUMENTATIONHELPER_H_ */
+#endif  // TYPEART_INSTRUMENTATIONHELPER_H

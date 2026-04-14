@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2025 TypeART Authors
+// Copyright (c) 2017-2026 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -16,6 +16,7 @@
 #include "OptionsUtil.h"
 #include "PassConfiguration.h"
 #include "configuration/TypeARTOptions.h"
+#include "instrumentation/TypeIDProvider.h"
 #include "support/ConfigurationBase.h"
 #include "support/Logger.h"
 #include "support/Util.h"
@@ -113,6 +114,9 @@ EnvironmentFlagsOptions::EnvironmentFlagsOptions() {
                                                EnvironmentStdArgsValues::global),
       make_entry<ConfigStdArgTypes::stack_ty>(ConfigStdArgs::stack, EnvironmentStdArgs::stack,
                                               EnvironmentStdArgsValues::stack),
+      make_entry<typeart::TypeSerializationImplementation>(ConfigStdArgs::type_serialization,
+                                                           EnvironmentStdArgs::type_serialization,
+                                                           EnvironmentStdArgsValues::type_serialization),
       make_entry<ConfigStdArgTypes::stack_lifetime_ty>(
           ConfigStdArgs::stack_lifetime, EnvironmentStdArgs::stack_lifetime, EnvironmentStdArgsValues::stack_lifetime),
       make_entry<typeart::TypegenImplementation>(ConfigStdArgs::typegen, EnvironmentStdArgs::typegen,
@@ -148,6 +152,7 @@ EnvironmentFlagsOptions::EnvironmentFlagsOptions() {
       make_occurr_entry(ConfigStdArgs::heap, EnvironmentStdArgs::heap),
       make_occurr_entry(ConfigStdArgs::global, EnvironmentStdArgs::global),
       make_occurr_entry(ConfigStdArgs::stack, EnvironmentStdArgs::stack),
+      make_occurr_entry(ConfigStdArgs::type_serialization, EnvironmentStdArgs::type_serialization),
       make_occurr_entry(ConfigStdArgs::stack_lifetime, EnvironmentStdArgs::stack_lifetime),
       make_occurr_entry(ConfigStdArgs::typegen, EnvironmentStdArgs::typegen),
       make_occurr_entry(ConfigStdArgs::filter, EnvironmentStdArgs::filter),

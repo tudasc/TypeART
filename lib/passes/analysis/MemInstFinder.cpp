@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2025 TypeART Authors
+// Copyright (c) 2017-2026 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -180,74 +180,75 @@ bool MemInstFinderPass::runOnModule(Module& module) {
   auto& globals = mOpsCollector.globals;
   NumDetectedGlobals += globals.size();
   if (config[config::ConfigStdArgs::analysis_filter_global]) {
-    globals.erase(llvm::remove_if(
-                      globals,
-                      [&](const auto gdata) {  // NOLINT
-                        GlobalVariable* global = gdata.global;
-                        const auto name        = global->getName();
+    globals.erase(
+        llvm::remove_if(
+            globals,
+            [&](const auto gdata) {  // NOLINT
+              GlobalVariable* global = gdata.global;
+              const auto name        = global->getName();
 
-                        LOG_DEBUG("Analyzing global: " << name);
+              LOG_DEBUG("Analyzing global: " << name);
 
-                        if (name.empty()) {
-                          return true;
-                        }
+              if (name.empty()) {
+                return true;
+              }
 
-                        if (util::starts_with_any_of(name, "llvm.", "__llvm_gcov", "__llvm_gcda", "__profn", "___asan",
-                                                     "__msan", "__tsan")) {
-                          LOG_DEBUG("Prefixed matched on " << name)
-                          return true;
-                        }
+              if (util::starts_with_any_of(name, "llvm.", "__llvm_gcov", "__llvm_gcda", "__profn", "___asan", "__msan",
+                                           "__tsan", "__typeart", "_typeart", "__tysan", "__dfsan", "__profc")) {
+                LOG_DEBUG("Prefixed matched on " << name)
+                return true;
+              }
 
-                        if (global->hasInitializer()) {
-                          auto* ini            = global->getInitializer();
-                          std::string ini_name = util::dump(*ini);
+              if (global->hasInitializer()) {
+                auto* ini            = global->getInitializer();
+                std::string ini_name = util::dump(*ini);
 
-                          if (llvm::StringRef(ini_name).contains("std::ios_base::Init")) {
-                            LOG_DEBUG("std::ios");
-                            return true;
-                          }
-                        }
+                if (llvm::StringRef(ini_name).contains("std::ios_base::Init")) {
+                  LOG_DEBUG("std::ios");
+                  return true;
+                }
+              }
 
-                        if (global->hasSection()) {
-                          // for instance, filters:
-                          //   a) (Coverage) -fprofile-instr-generate -fcoverage-mapping
-                          //   b) (PGO) -fprofile-instr-generate
-                          StringRef Section = global->getSection();
-                          // Globals from llvm.metadata aren't emitted, do not instrument them.
-                          if (Section == "llvm.metadata") {
-                            LOG_DEBUG("metadata");
-                            return true;
-                          }
-                          // Do not instrument globals from special LLVM sections.
-                          if (Section.find("__llvm") != StringRef::npos || Section.find("__LLVM") != StringRef::npos) {
-                            LOG_DEBUG("llvm section");
-                            return true;
-                          }
-                        }
+              if (global->hasSection()) {
+                // for instance, filters:
+                //   a) (Coverage) -fprofile-instr-generate -fcoverage-mapping
+                //   b) (PGO) -fprofile-instr-generate
+                StringRef Section = global->getSection();
+                // Globals from llvm.metadata aren't emitted, do not instrument them.
+                if (Section == "llvm.metadata") {
+                  LOG_DEBUG("metadata");
+                  return true;
+                }
+                // Do not instrument globals from special LLVM sections.
+                if (Section.find("__llvm") != StringRef::npos || Section.find("__LLVM") != StringRef::npos) {
+                  LOG_DEBUG("llvm section");
+                  return true;
+                }
+              }
 
-                        if ((global->getLinkage() == GlobalValue::ExternalLinkage && global->isDeclaration())) {
-                          LOG_DEBUG("Linkage: External");
-                          return true;
-                        }
+              if ((global->getLinkage() == GlobalValue::ExternalLinkage && global->isDeclaration())) {
+                LOG_DEBUG("Linkage: External");
+                return true;
+              }
 
-                        Type* global_type = global->getValueType();
-                        if (!global_type->isSized()) {
-                          LOG_DEBUG("not sized");
-                          return true;
-                        }
+              Type* global_type = global->getValueType();
+              if (!global_type->isSized()) {
+                LOG_DEBUG("not sized");
+                return true;
+              }
 
-                        if (global_type->isArrayTy()) {
-                          global_type = global_type->getArrayElementType();
-                        }
-                        if (auto structType = dyn_cast<StructType>(global_type)) {
-                          if (structType->isOpaque()) {
-                            LOG_DEBUG("Encountered opaque struct " << global_type->getStructName() << " - skipping...");
-                            return true;
-                          }
-                        }
-                        return false;
-                      }),
-                  globals.end());
+              if (global_type->isArrayTy()) {
+                global_type = global_type->getArrayElementType();
+              }
+              if (auto structType = dyn_cast<StructType>(global_type)) {
+                if (structType->isOpaque()) {
+                  LOG_DEBUG("Encountered opaque struct " << global_type->getStructName() << " - skipping...");
+                  return true;
+                }
+              }
+              return false;
+            }),
+        globals.end());
 
     const auto beforeCallFilter = globals.size();
     NumFilteredGlobals          = NumDetectedGlobals - beforeCallFilter;
@@ -390,7 +391,11 @@ bool MemInstFinderPass::runOnFunction(llvm::Function& function) {
 }  // namespace typeart
 
 void MemInstFinderPass::printStats(llvm::raw_ostream& out) const {
+#if LLVM_VERSION_MAJOR < 22
   const auto scope_exit_cleanup_counter = llvm::make_scope_exit([&]() {
+#else
+  llvm::scope_exit scope_exit_cleanup_counter([&]() {
+#endif
     NumDetectedAllocs         = 0;
     NumFilteredNonArrayAllocs = 0;
     NumFilteredMallocAllocs   = 0;
@@ -400,11 +405,11 @@ void MemInstFinderPass::printStats(llvm::raw_ostream& out) const {
     NumFilteredGlobals        = 0;
     NumDetectedGlobals        = 0;
   });
-  auto all_stack                        = double(NumDetectedAllocs);
-  auto nonarray_stack                   = double(NumFilteredNonArrayAllocs);
-  auto malloc_alloc_stack               = double(NumFilteredMallocAllocs);
-  auto call_filter_stack                = double(NumCallFilteredAllocs);
-  auto filter_pointer_stack             = double(NumFilteredPointerAllocs);
+  auto all_stack            = double(NumDetectedAllocs);
+  auto nonarray_stack       = double(NumFilteredNonArrayAllocs);
+  auto malloc_alloc_stack   = double(NumFilteredMallocAllocs);
+  auto call_filter_stack    = double(NumCallFilteredAllocs);
+  auto filter_pointer_stack = double(NumFilteredPointerAllocs);
 
   const auto call_filter_stack_p =
       (call_filter_stack /

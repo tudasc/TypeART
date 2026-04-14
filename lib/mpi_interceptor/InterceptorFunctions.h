@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2025 TypeART Authors
+// Copyright (c) 2017-2026 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -10,10 +10,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //
 
-#ifndef TEST_MPI_INTERCEPTOR_INTERCEPTORFUNCTIONS_H_
-#define TEST_MPI_INTERCEPTOR_INTERCEPTORFUNCTIONS_H_
+#ifndef TYPEART_MPI_INTERCEPTOR_INTERCEPTORFUNCTIONS_H
+#define TYPEART_MPI_INTERCEPTOR_INTERCEPTORFUNCTIONS_H
 
-#include "runtime/RuntimeInterface.h"
+#include "RuntimeExport.h"
+#include "RuntimeInterface.h"
 
 #include <mpi.h>
 #include <stdatomic.h>
@@ -22,8 +23,9 @@
 #include <sys/resource.h>
 #include <sys/time.h>
 
-int ta_check_buffer(const char* mpi_name, const void* called_from, const void* buf, int mpi_count, int const_adr);
-void ta_print_loc(const void* call_adr);
+TYPEART_NO_EXPORT int ta_check_buffer(const char* mpi_name, const void* called_from, const void* buf, int mpi_count,
+                                      int const_adr);
+TYPEART_NO_EXPORT void ta_print_loc(const void* call_adr);
 
 typedef struct CallCounter {
   _Atomic size_t send;
@@ -42,31 +44,34 @@ typedef struct MPISemCounter {
 
 static MPICounter mcounter = {0, 0, 0};
 
-void ta_check_send(const char* name, const void* called_from, const void* sendbuf, int count, MPI_Datatype dtype) {
+TYPEART_NO_EXPORT void ta_check_send(const char* name, const void* called_from, const void* sendbuf, int count,
+                                     MPI_Datatype dtype) {
   ++counter.send;
   ta_check_buffer(name, called_from, sendbuf, count, 1);
 }
 
-void ta_check_recv(const char* name, const void* called_from, void* recvbuf, int count, MPI_Datatype dtype) {
+TYPEART_NO_EXPORT void ta_check_recv(const char* name, const void* called_from, void* recvbuf, int count,
+                                     MPI_Datatype dtype) {
   ++counter.recv;
   ta_check_buffer(name, called_from, recvbuf, count, 0);
 }
 
-void ta_check_send_and_recv(const char* name, const void* called_from, const void* sendbuf, int sendcount,
-                            MPI_Datatype sendtype, void* recvbuf, int recvcount, MPI_Datatype recvtype) {
+TYPEART_NO_EXPORT void ta_check_send_and_recv(const char* name, const void* called_from, const void* sendbuf,
+                                              int sendcount, MPI_Datatype sendtype, void* recvbuf, int recvcount,
+                                              MPI_Datatype recvtype) {
   ++counter.send_recv;
   ta_check_send(name, called_from, sendbuf, sendcount, sendtype);
   ta_check_recv(name, called_from, recvbuf, recvcount, recvtype);
 }
 
-void ta_unsupported_mpi_call(const char* name, const void* called_from) {
+TYPEART_NO_EXPORT void ta_unsupported_mpi_call(const char* name, const void* called_from) {
   ++counter.unsupported;
   fprintf(stderr, "[Error] The MPI function %s is currently not checked by TypeArt", name);
   ta_print_loc(called_from);
   // exit(0);
 }
 
-const char* ta_get_error_message(typeart_status status) {
+TYPEART_NO_EXPORT const char* ta_get_error_message(typeart_status status) {
   switch (status) {
     case TYPEART_OK:
       return "No errors";
@@ -85,7 +90,8 @@ const char* ta_get_error_message(typeart_status status) {
   }
 }
 
-int ta_check_buffer(const char* mpi_name, const void* called_from, const void* buf, int mpi_count, int const_adr) {
+TYPEART_NO_EXPORT int ta_check_buffer(const char* mpi_name, const void* called_from, const void* buf, int mpi_count,
+                                      int const_adr) {
   if (mpi_count <= 0) {
     ++mcounter.null_count;
     return 1;
@@ -119,7 +125,7 @@ int ta_check_buffer(const char* mpi_name, const void* called_from, const void* b
   return 1;
 }
 
-void ta_print_loc(const void* call_adr) {
+TYPEART_NO_EXPORT void ta_print_loc(const void* call_adr) {
   const char* exe = getenv("TYPEART_EXE_TARGET");
   if (exe == NULL || exe[0] == '\0') {
     return;
@@ -138,7 +144,7 @@ void ta_print_loc(const void* call_adr) {
   }
 }
 
-void ta_exit() {
+TYPEART_NO_EXPORT void ta_exit() {
   // Called at MPI_Finalize time
   int rank = 0;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -150,4 +156,4 @@ void ta_exit() {
          mcounter.null_count);
 }
 
-#endif /* TEST_MPI_INTERCEPTOR_INTERCEPTORFUNCTIONS_H_ */
+#endif  // TYPEART_MPI_INTERCEPTOR_INTERCEPTORFUNCTIONS_H

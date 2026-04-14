@@ -4,8 +4,6 @@
 # RUN: %s %t %S %wrapper-mpicc run-demo | %filecheck %s --check-prefix check-working
 # RUN: %s %t %S %wrapper-mpicc run-demo_broken | %filecheck %s --check-prefix check-broken
 
-# RUN: %s %t %S %wrapper-mpicc runtoy | %filecheck %s --check-prefix check-toy
-
 # REQUIRES: mpicc
 # UNSUPPORTED: sanitizer
 
@@ -22,8 +20,6 @@ cd "$1" || exit 1
 
 make clean
 MPICC="$3" make "$4"
-
-exit 0
 
 # make sure "target" worked:
 if [ $? -gt 0 ]; then

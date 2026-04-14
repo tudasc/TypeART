@@ -1,7 +1,7 @@
 
 // TypeART library
 //
-// Copyright (c) 2017-2025 TypeART Authors
+// Copyright (c) 2017-2026 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -52,8 +52,8 @@ inline bool checkParametrizedPassName(llvm::StringRef Name, llvm::StringRef Pass
 /// Expected<> template class.
 ///
 template <typename ParametersParseCallableT>
-inline auto parsePassParameters(ParametersParseCallableT&& Parser, llvm::StringRef Name, llvm::StringRef PassName)
-    -> decltype(Parser(llvm::StringRef{})) {
+inline auto parsePassParameters(ParametersParseCallableT&& Parser, llvm::StringRef Name,
+                                llvm::StringRef PassName) -> decltype(Parser(llvm::StringRef{})) {
   using namespace llvm;
   using ParametersT = typename decltype(Parser(StringRef{}))::value_type;
 

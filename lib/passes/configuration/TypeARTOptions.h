@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2025 TypeART Authors
+// Copyright (c) 2017-2026 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -15,6 +15,7 @@
 
 #include "analysis/MemInstFinder.h"
 #include "configuration/Configuration.h"
+#include "instrumentation/TypeIDProvider.h"
 #include "support/ConfigurationBase.h"
 #include "typegen/TypeGenerator.h"
 
@@ -50,6 +51,11 @@ struct TypeARTConfigOptions {
   bool statistics{ConfigStdArgValues::stats};
   bool stack_lifetime{ConfigStdArgValues::stack_lifetime};
   TypegenImplementation typegen{TypegenImplementation::DIMETA};
+#if LLVM_VERSION_MAJOR > 14
+  TypeSerializationImplementation type_serialization{TypeSerializationImplementation::HYBRID};
+#else
+  TypeSerializationImplementation type_serialization{TypeSerializationImplementation::FILE};
+#endif
   bool filter{false};
 
   TypeARTCallFilterOptions filter_config{};
@@ -76,4 +82,4 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& out_s, const TypeARTConfigOptio
 
 }  // namespace typeart::config
 
-#endif /* TYPEART_CONFIGURATION_OPTIONS_H */
+#endif  // TYPEART_CONFIGURATION_OPTIONS_H

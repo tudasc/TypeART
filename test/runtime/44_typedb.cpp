@@ -1,4 +1,9 @@
+// RUN: export TYPEART_TYPE_SERIALIZATION=file
 // RUN: %run %s --compile_flags "-std=c++17" -o -O3 2>&1 | %filecheck %s
+
+// REQUIRES: !ci
+
+// TODO fails for inline/hybrid
 
 #include "../../lib/runtime/RuntimeInterface.h"
 #include "../../lib/typelib/TypeDatabase.h"

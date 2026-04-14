@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2025 TypeART Authors
+// Copyright (c) 2017-2026 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -85,7 +85,7 @@ std::pair<std::unique_ptr<TypeDatabase>, std::error_code> make_database(std::str
 
 using namespace builtins;
 
-const std::string unknown_struck_name{"typeart_unknown_struct"};
+const std::string unknown_struct_name{"typeart_unknown_struct"};
 
 void TypeDB::clear() {
   struct_info_vec.clear();
@@ -115,9 +115,12 @@ bool TypeDB::isPointerType(int type_id) const {
 
 bool TypeDB::isUserDefinedType(int type_id) const {
   const auto* structInfo = getStructInfo(type_id);
-  LOG_DEBUG(structInfo->name << " " << static_cast<int>(structInfo->flag) << " "
-                             << (static_cast<int>(structInfo->flag) == static_cast<int>(StructTypeFlag::USER_DEFINED))
-                             << " " << (static_cast<int>(structInfo->flag) == static_cast<int>(StructTypeFlag::UNION)))
+  if (structInfo != nullptr) {
+    LOG_DEBUG(structInfo->name << " " << static_cast<int>(structInfo->flag) << " "
+                               << (static_cast<int>(structInfo->flag) == static_cast<int>(StructTypeFlag::USER_DEFINED))
+                               << " "
+                               << (static_cast<int>(structInfo->flag) == static_cast<int>(StructTypeFlag::UNION)))
+  }
   return (structInfo != nullptr) &&
          (static_cast<int>(structInfo->flag) == static_cast<int>(StructTypeFlag::USER_DEFINED) ||
           static_cast<int>(structInfo->flag) == static_cast<int>(StructTypeFlag::UNION));
@@ -133,8 +136,10 @@ bool TypeDB::isVectorType(int type_id) const {
 
 bool TypeDB::isUnion(int type_id) const {
   const auto* structInfo = getStructInfo(type_id);
-  LOG_DEBUG(structInfo->name << " " << static_cast<int>(structInfo->flag) << " "
-                             << (static_cast<int>(structInfo->flag) == static_cast<int>(StructTypeFlag::UNION)))
+  if (structInfo != nullptr) {
+    LOG_DEBUG(structInfo->name << " " << static_cast<int>(structInfo->flag) << " "
+                               << (static_cast<int>(structInfo->flag) == static_cast<int>(StructTypeFlag::UNION)))
+  }
   return (structInfo != nullptr) && (static_cast<int>(structInfo->flag) == static_cast<int>(StructTypeFlag::UNION));
 }
 
@@ -155,7 +160,7 @@ void TypeDB::registerStruct(const StructTypeInfo& struct_type, bool overwrite) {
       LOG_ERROR("Type ID is reserved for unknown types. Struct: " << struct_type.name);
     } else {
       if (!overwrite) {
-        LOG_ERROR("Struct type ID already registered for " << struct_type.name << ". Conflicting struct is "
+        LOG_DEBUG("Struct type ID already registered for " << struct_type.name << ". Conflicting struct is "
                                                            << getStructInfo(struct_type.type_id)->name);
         return;
       }
@@ -181,7 +186,7 @@ const std::string& TypeDB::getTypeName(int type_id) const {
     }
   }
 
-  return unknown_struck_name;
+  return unknown_struct_name;
 }
 
 size_t TypeDB::getTypeSize(int type_id) const {

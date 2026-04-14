@@ -1,6 +1,6 @@
 // clang-format off
-// RUN: %cpp-to-llvm %s | %apply-typeart -S 2>&1 | %filecheck %s
-// REQUIRES: llvm-18 || llvm-19
+// RUN: %cpp-to-llvm %s | %apply-typeart --typeart-type-serialization=file -S 2>&1 | %filecheck %s
+// REQUIRES: !llvm-14
 // clang-format on
 
 // CHECK: TypeArtPass [Heap]
@@ -10,7 +10,7 @@
 
 struct S1 {
   int x;
-  ~S1(){};
+  ~S1() {};
 };
 
 // CHECK: [[MEM:%[0-9a-z]+]] = call{{.*}} ptr @_Znam(i64{{( noundef)?}} [[ALLOC:%[0-9a-z]+]])

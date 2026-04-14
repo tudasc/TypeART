@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2025 TypeART Authors
+// Copyright (c) 2017-2026 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -10,8 +10,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //
 
-#ifndef LIB_UTIL_TYPE_H
-#define LIB_UTIL_TYPE_H
+#ifndef TYPEART_TYPE_UTIL_H
+#define TYPEART_TYPE_UTIL_H
 
 namespace llvm {
 class DataLayout;
@@ -46,4 +46,4 @@ unsigned getPointerSizeInBytes(llvm::Type* ptrT, const llvm::DataLayout& dl);
 
 }  // namespace typeart::util::type
 
-#endif
+#endif  // TYPEART_TYPE_UTIL_H

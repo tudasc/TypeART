@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2025 TypeART Authors
+// Copyright (c) 2017-2026 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -16,13 +16,13 @@
 #include "AccessCounter.h"
 #include "RuntimeData.h"
 #include "RuntimeInterface.h"
-#include "TypeDB.h"
-#include "TypeInterface.h"
 
 #include <cstddef>
-#include <string>
 
 namespace typeart {
+
+class TypeDB;
+struct StructTypeInfo;
 
 struct PointerInfo;
 
@@ -50,7 +50,7 @@ class TypeResolution {
 
   TypeArtStatus getStructInfo(int type_id, const StructTypeInfo** structInfo) const;
 
-  [[nodiscard]] const TypeDB& db() const;
+  // [[nodiscard]] const TypeDB& db() const;
 };
 
 }  // namespace typeart

@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2025 TypeART Authors
+// Copyright (c) 2017-2026 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -17,14 +17,9 @@
 #include "support/Logger.h"
 #include "support/Table.h"
 
-#include <fstream>
-#include <map>
 #include <set>
 #include <sstream>
 #include <string>
-#include <string_view>
-#include <unordered_map>
-#include <unordered_set>
 #include <utility>
 
 namespace typeart::softcounter {
@@ -55,7 +50,6 @@ void serialize(const Recorder& r, std::ostringstream& buf) {
     return;
   } else {
     // const auto memory_use = memory::estimate(r.getMaxStackAllocs(), r.getMaxHeapAllocs(), r.getGlobalAllocs());
-
     Table overview_table("Alloc Stats from softcounters");
     overview_table.wrap_length_ = true;
     overview_table.put(Row::make("Total heap", r.getHeapAllocs(), r.getHeapArray()));

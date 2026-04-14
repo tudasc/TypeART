@@ -42,7 +42,7 @@ void type_check_containing(const void* addr) {
     return;
   }
   typeart_base_type_info containing;
-  status = typeart_get_containing_type(info, &containing, &offset);
+  status = typeart_get_containing_type(&info, &containing, &offset);
 
   if (status != TYPEART_OK) {
     fprintf(stderr, "[Error]: Status not OK: %i for %p\n", status, addr);

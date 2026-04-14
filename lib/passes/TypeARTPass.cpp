@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2025 TypeART Authors
+// Copyright (c) 2017-2026 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -19,9 +19,11 @@
 #include "configuration/PassBuilderUtil.h"
 #include "configuration/PassConfiguration.h"
 #include "configuration/TypeARTOptions.h"
+#include "instrumentation/CallBackFunctionInserter.h"
 #include "instrumentation/MemOpArgCollector.h"
 #include "instrumentation/MemOpInstrumentation.h"
 #include "instrumentation/TypeARTFunctions.h"
+#include "instrumentation/TypeIDProvider.h"
 #include "support/ConfigurationBase.h"
 #include "support/Logger.h"
 #include "support/ModuleDumper.h"
@@ -42,13 +44,21 @@
 #include "llvm/IR/PassManager.h"
 #include "llvm/Pass.h"
 #include "llvm/Passes/PassBuilder.h"
+#if LLVM_VERSION_MAJOR < 22
 #include "llvm/Passes/PassPlugin.h"
+#else
+#include "llvm/Plugins/PassPlugin.h"
+#endif
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/raw_ostream.h"
 
 #include <cassert>
 #include <cstddef>
+#include <llvm/ADT/DenseSet.h>
+#include <llvm/Config/llvm-config.h>
+#include <llvm/IR/Constant.h>
 #include <llvm/Support/Error.h>
+#include <memory>
 #include <optional>
 #include <sstream>
 #include <string>
@@ -95,26 +105,10 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
   std::optional<config::TypeARTConfigOptions> pass_opts{std::nullopt};
   std::unique_ptr<config::Configuration> pass_config;
 
-  struct TypeArtFunc {
-    const std::string name;
-    llvm::Value* f{nullptr};
-  };
-
-  TypeArtFunc typeart_alloc{"__typeart_alloc"};
-  TypeArtFunc typeart_alloc_global{"__typeart_alloc_global"};
-  TypeArtFunc typeart_alloc_stack{"__typeart_alloc_stack"};
-  TypeArtFunc typeart_free{"__typeart_free"};
-  TypeArtFunc typeart_leave_scope{"__typeart_leave_scope"};
-
-  TypeArtFunc typeart_alloc_omp        = typeart_alloc;
-  TypeArtFunc typeart_alloc_stacks_omp = typeart_alloc_stack;
-  TypeArtFunc typeart_free_omp         = typeart_free;
-  TypeArtFunc typeart_leave_scope_omp  = typeart_leave_scope;
-
   std::unique_ptr<analysis::MemInstFinder> meminst_finder;
   std::unique_ptr<TypeGenerator> typeManager;
   InstrumentationHelper instrumentation_helper;
-  TAFunctions functions;
+  std::unique_ptr<TAFunctionQuery> functions;
   std::unique_ptr<InstrumentationContext> instrumentation_context;
 
   const config::Configuration& configuration() const {
@@ -168,15 +162,27 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
 
     instrumentation_helper.setModule(m);
     ModuleData mdata{&m};
-    typeManager->registerModule(mdata);
+    const auto has_cu_types = typeManager->registerModule(mdata);
 
-    auto arg_collector =
-        std::make_unique<MemOpArgCollector>(configuration(), typeManager.get(), instrumentation_helper);
-    // const bool instrument_stack_lifetime = configuration()[config::ConfigStdArgs::stack_lifetime];
-    auto mem_instrument = std::make_unique<MemOpInstrumentation>(configuration(), functions, instrumentation_helper);
-    instrumentation_context =
-        std::make_unique<InstrumentationContext>(std::move(arg_collector), std::move(mem_instrument));
+    declareInstrumentationFunctions(m);
+    {
+      auto type_id_handler = get_type_id_handler(m, &typeManager->getTypeDatabase(), configuration(), functions.get());
+      // const bool heap   = configuration()[config::ConfigStdArgs::heap];
+      if (has_cu_types) {
+        LOG_DEBUG("Registering compilation unit types list")
+        type_id_handler->registerModule(mdata);
+      }
 
+      auto arg_collector =
+          std::make_unique<MemOpArgCollector>(configuration(), typeManager.get(), instrumentation_helper);
+      // const bool instrument_stack_lifetime = configuration()[config::ConfigStdArgs::stack_lifetime];
+      auto cb_provider    = make_callback_inserter(configuration(), std::move(type_id_handler), functions.get());
+      auto mem_instrument = std::make_unique<MemOpInstrumentation>(configuration(), functions.get(),
+                                                                   instrumentation_helper, std::move(cb_provider));
+
+      instrumentation_context =
+          std::make_unique<InstrumentationContext>(std::move(arg_collector), std::move(mem_instrument));
+    }
     return true;
   }
 
@@ -184,16 +190,20 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
     /*
      * Persist the accumulated type definition information for this module.
      */
-    const std::string types_file = configuration()[config::ConfigStdArgs::types];
-    LOG_DEBUG("Writing type file to " << types_file);
+    // TODO: inline/hybrid types not supported in non-opaque mode
+    const bool emit_type_file_always     = bool(LLVM_VERSION_MAJOR < 15);
+    TypeSerializationImplementation mode = configuration()[config::ConfigStdArgs::type_serialization];
+    if (emit_type_file_always || mode == TypeSerializationImplementation::FILE) {
+      const std::string types_file = configuration()[config::ConfigStdArgs::types];
+      LOG_DEBUG("Writing type file to " << types_file);
 
-    const auto [stored, error] = typeManager->store();
-    if (stored) {
-      LOG_DEBUG("Success!");
-    } else {
-      LOG_FATAL("Failed writing type config to " << types_file << ". Reason: " << error.message());
+      const auto [stored, error] = typeManager->store();
+      if (stored) {
+        LOG_DEBUG("Success!");
+      } else {
+        LOG_FATAL("Failed writing type config to " << types_file << ". Reason: " << error.message());
+      }
     }
-
     const bool print_stats = configuration()[config::ConfigStdArgs::stats];
     if (print_stats) {
       auto& out = llvm::errs();
@@ -203,159 +213,164 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
   }
 
   void declareInstrumentationFunctions(Module& m) {
-    // Remove this return if problems come up during compilation
-    if (typeart_alloc_global.f != nullptr && typeart_alloc_stack.f != nullptr && typeart_alloc.f != nullptr &&
-        typeart_free.f != nullptr && typeart_leave_scope.f != nullptr) {
-      return;
-    }
-
-    TAFunctionDeclarator decl(m, instrumentation_helper, functions);
-
-    auto alloc_arg_types      = instrumentation_helper.make_parameters(IType::ptr, IType::type_id, IType::extent);
-    auto free_arg_types       = instrumentation_helper.make_parameters(IType::ptr);
-    auto leavescope_arg_types = instrumentation_helper.make_parameters(IType::stack_count);
-
-    typeart_alloc.f        = decl.make_function(IFunc::heap, typeart_alloc.name, alloc_arg_types);
-    typeart_alloc_stack.f  = decl.make_function(IFunc::stack, typeart_alloc_stack.name, alloc_arg_types);
-    typeart_alloc_global.f = decl.make_function(IFunc::global, typeart_alloc_global.name, alloc_arg_types);
-    typeart_free.f         = decl.make_function(IFunc::free, typeart_free.name, free_arg_types);
-    typeart_leave_scope.f  = decl.make_function(IFunc::scope, typeart_leave_scope.name, leavescope_arg_types);
-
-    typeart_alloc_omp.f = decl.make_function(IFunc::heap_omp, typeart_alloc_omp.name, alloc_arg_types, true);
-    typeart_alloc_stacks_omp.f =
-        decl.make_function(IFunc::stack_omp, typeart_alloc_stacks_omp.name, alloc_arg_types, true);
-    typeart_free_omp.f = decl.make_function(IFunc::free_omp, typeart_free_omp.name, free_arg_types, true);
-    typeart_leave_scope_omp.f =
-        decl.make_function(IFunc::scope_omp, typeart_leave_scope_omp.name, leavescope_arg_types, true);
+    functions = declare_instrumentation_functions(m, configuration());
   }
 
-  void printStats(llvm::raw_ostream& out) {
-    const auto scope_exit_cleanup_counter = llvm::make_scope_exit([&]() {
-      NumInstrumentedAlloca  = 0;
-      NumInstrumentedFrees   = 0;
-      NumInstrumentedGlobal  = 0;
-      NumInstrumentedMallocs = 0;
-    });
-    meminst_finder->printStats(out);
+  void printStats(llvm::raw_ostream& out){
+#if LLVM_VERSION_MAJOR < 22
+      const auto scope_exit_cleanup_counter = llvm::make_scope_exit([&]() {
+#else
+      llvm::scope_exit scope_exit_cleanup_counter([&]() {
+#endif
+        NumInstrumentedAlloca  = 0;
+        NumInstrumentedFrees   = 0;
+        NumInstrumentedGlobal  = 0;
+        NumInstrumentedMallocs = 0;
+      });
+  meminst_finder->printStats(out);
 
-    const auto get_ta_mode = [&]() {
-      const bool heap   = configuration()[config::ConfigStdArgs::heap];
-      const bool stack  = configuration()[config::ConfigStdArgs::stack];
-      const bool global = configuration()[config::ConfigStdArgs::global];
+  const auto get_ta_mode = [&]() {
+    const bool heap   = configuration()[config::ConfigStdArgs::heap];
+    const bool stack  = configuration()[config::ConfigStdArgs::stack];
+    const bool global = configuration()[config::ConfigStdArgs::global];
 
-      if (heap) {
-        if (stack) {
-          return " [Heap & Stack]";
-        }
-        return " [Heap]";
-      }
-
+    if (heap) {
       if (stack) {
-        return " [Stack]";
+        return " [Heap & Stack]";
       }
+      return " [Heap]";
+    }
 
-      if (global) {
-        return " [Global]";
+    if (stack) {
+      return " [Stack]";
+    }
+
+    if (global) {
+      return " [Global]";
+    }
+
+    LOG_ERROR("Did not find heap or stack, or combination thereof!");
+    assert((heap || stack || global) && "Needs stack, heap, global or combination thereof");
+    return " [Unknown]";
+  };
+
+  Table stats("TypeArtPass");
+  stats.wrap_header_ = true;
+  stats.title_ += get_ta_mode();
+  stats.put(Row::make("Malloc", NumInstrumentedMallocs.getValue()));
+  stats.put(Row::make("Free", NumInstrumentedFrees.getValue()));
+  stats.put(Row::make("Alloca", NumInstrumentedAlloca.getValue()));
+  stats.put(Row::make("Global", NumInstrumentedGlobal.getValue()));
+
+  std::ostringstream stream;
+  stats.print(stream);
+  out << stream.str();
+}
+
+llvm::PreservedAnalyses
+run(llvm::Module& m, llvm::ModuleAnalysisManager&) {
+  bool changed{false};
+  changed |= doInitialization(m);
+  const bool heap = configuration()[config::ConfigStdArgs::heap];  // Must happen after doInit
+  dump_module(m, heap ? util::module::ModulePhase::kBase : util::module::ModulePhase::kOpt);
+  changed |= runOnModule(m);
+  dump_module(m, heap ? util::module::ModulePhase::kHeap : util::module::ModulePhase::kStack);
+  changed |= doFinalization();
+  return changed ? llvm::PreservedAnalyses::none() : llvm::PreservedAnalyses::all();
+}
+
+bool runOnModule(llvm::Module& m) {
+  meminst_finder->runOnModule(m);
+  const bool instrument_global = configuration()[config::ConfigStdArgs::global];
+  bool globals_were_instrumented{false};
+  if (instrument_global) {
+    // declareInstrumentationFunctions(m);
+
+    const auto& globalsList = meminst_finder->getModuleGlobals();
+    if (!globalsList.empty()) {
+      const auto global_count = instrumentation_context->handleGlobal(globalsList);
+      NumInstrumentedGlobal += global_count;
+      globals_were_instrumented = global_count > 0;
+    }
+  }
+
+  llvm::DenseSet<const llvm::Constant*> tor_funcs;
+  {
+    const auto collect_funcs = [&tor_funcs](const auto* constant) -> bool {
+      if (llvm::isa<llvm::Function>(constant)) {
+        tor_funcs.insert(constant);
       }
-
-      LOG_ERROR("Did not find heap or stack, or combination thereof!");
-      assert((heap || stack || global) && "Needs stack, heap, global or combination thereof");
-      return " [Unknown]";
+      return false;
     };
 
-    Table stats("TypeArtPass");
-    stats.wrap_header_ = true;
-    stats.title_ += get_ta_mode();
-    stats.put(Row::make("Malloc", NumInstrumentedMallocs.getValue()));
-    stats.put(Row::make("Free", NumInstrumentedFrees.getValue()));
-    stats.put(Row::make("Alloca", NumInstrumentedAlloca.getValue()));
-    stats.put(Row::make("Global", NumInstrumentedGlobal.getValue()));
-
-    std::ostringstream stream;
-    stats.print(stream);
-    out << stream.str();
+    util::for_each_cdtor("llvm.global_ctors", m, collect_funcs);
+    util::for_each_cdtor("llvm.global_dtors", m, collect_funcs);
   }
 
-  llvm::PreservedAnalyses run(llvm::Module& m, llvm::ModuleAnalysisManager&) {
-    bool changed{false};
-    changed |= doInitialization(m);
-    const bool heap = configuration()[config::ConfigStdArgs::heap];  // Must happen after doInit
-    dump_module(m, heap ? util::module::ModulePhase::kBase : util::module::ModulePhase::kOpt);
-    changed |= runOnModule(m);
-    dump_module(m, heap ? util::module::ModulePhase::kHeap : util::module::ModulePhase::kStack);
-    changed |= doFinalization();
-    return changed ? llvm::PreservedAnalyses::none() : llvm::PreservedAnalyses::all();
+  const auto instrumented_function = llvm::count_if(m.functions(), [&](auto& f) {
+                                       if (tor_funcs.contains(&f)) {
+                                         LOG_DEBUG("Function is in LLVM global ctor or dtor " << f.getName())
+                                         return false;
+                                       }
+                                       return runOnFunc(f);
+                                     }) > 0;
+  return instrumented_function || globals_were_instrumented;
+}
+
+bool runOnFunc(llvm::Function& f) {
+  using namespace typeart;
+
+  if (f.isDeclaration() || util::starts_with_any_of(f.getName(), "__typeart", "typeart", "__sanitizer", "__tysan")) {
+    return false;
   }
 
-  bool runOnModule(llvm::Module& m) {
-    meminst_finder->runOnModule(m);
-    const bool instrument_global = configuration()[config::ConfigStdArgs::global];
-    bool globals_were_instrumented{false};
-    if (instrument_global) {
-      declareInstrumentationFunctions(m);
-
-      const auto& globalsList = meminst_finder->getModuleGlobals();
-      if (!globalsList.empty()) {
-        const auto global_count = instrumentation_context->handleGlobal(globalsList);
-        NumInstrumentedGlobal += global_count;
-        globals_were_instrumented = global_count > 0;
-      }
-    }
-
-    const auto instrumented_function = llvm::count_if(m.functions(), [&](auto& f) { return runOnFunc(f); }) > 0;
-    return instrumented_function || globals_were_instrumented;
+  if (!meminst_finder->hasFunctionData(f)) {
+    LOG_WARNING("No allocation data could be retrieved for function: " << f.getName());
+    return false;
   }
 
-  bool runOnFunc(llvm::Function& f) {
-    using namespace typeart;
+  LOG_DEBUG("Running on function: " << f.getName())
 
-    if (f.isDeclaration() || util::starts_with_any_of(f.getName(), "__typeart", "typeart")) {
-      return false;
-    }
+  // FIXME this is required when "PassManagerBuilder::EP_OptimizerLast" is used as the function (constant) pointer are
+  // nullpointer/invalidated
+  // declareInstrumentationFunctions(*f.getParent());
 
-    if (!meminst_finder->hasFunctionData(f)) {
-      LOG_WARNING("No allocation data could be retrieved for function: " << f.getName());
-      return false;
-    }
+  bool mod{false};
+//  auto& c = f.getContext();
+#if LLVM_VERSION_MAJOR > 19
+  DataLayout dl(f.getParent()->getDataLayout());
+#else
+  DataLayout dl(f.getParent());
+#endif
 
-    LOG_DEBUG("Running on function: " << f.getName())
+  const auto& fData   = meminst_finder->getFunctionData(f);
+  const auto& mallocs = fData.mallocs;
+  const auto& allocas = fData.allocas;
+  const auto& frees   = fData.frees;
 
-    // FIXME this is required when "PassManagerBuilder::EP_OptimizerLast" is used as the function (constant) pointer are
-    // nullpointer/invalidated
-    declareInstrumentationFunctions(*f.getParent());
+  const bool instrument_heap  = configuration()[config::ConfigStdArgs::heap];
+  const bool instrument_stack = configuration()[config::ConfigStdArgs::stack];
 
-    bool mod{false};
-    //  auto& c = f.getContext();
-    DataLayout dl(f.getParent());
+  if (instrument_heap) {
+    // instrument collected calls of bb:
+    const auto heap_count = instrumentation_context->handleHeap(mallocs);
+    const auto free_count = instrumentation_context->handleFree(frees);
 
-    const auto& fData   = meminst_finder->getFunctionData(f);
-    const auto& mallocs = fData.mallocs;
-    const auto& allocas = fData.allocas;
-    const auto& frees   = fData.frees;
+    NumInstrumentedMallocs += heap_count;
+    NumInstrumentedFrees += free_count;
 
-    const bool instrument_heap  = configuration()[config::ConfigStdArgs::heap];
-    const bool instrument_stack = configuration()[config::ConfigStdArgs::stack];
-
-    if (instrument_heap) {
-      // instrument collected calls of bb:
-      const auto heap_count = instrumentation_context->handleHeap(mallocs);
-      const auto free_count = instrumentation_context->handleFree(frees);
-
-      NumInstrumentedMallocs += heap_count;
-      NumInstrumentedFrees += free_count;
-
-      mod |= heap_count > 0 || free_count > 0;
-    }
-
-    if (instrument_stack) {
-      const auto stack_count = instrumentation_context->handleStack(allocas);
-      NumInstrumentedAlloca += stack_count;
-      mod |= stack_count > 0;
-    }
-
-    return mod;
+    mod |= heap_count > 0 || free_count > 0;
   }
-};
+
+  if (instrument_stack) {
+    const auto stack_count = instrumentation_context->handleStack(allocas);
+    NumInstrumentedAlloca += stack_count;
+    mod |= stack_count > 0;
+  }
+
+  return mod;
+}
+};  // namespace typeart::pass
 
 class LegacyTypeArtPass : public llvm::ModulePass {
  private:
@@ -364,7 +379,7 @@ class LegacyTypeArtPass : public llvm::ModulePass {
  public:
   static char ID;  // NOLINT
 
-  LegacyTypeArtPass() : ModulePass(ID){};
+  LegacyTypeArtPass() : ModulePass(ID) {};
 
   bool doInitialization(llvm::Module&) override;
 
@@ -397,41 +412,48 @@ bool LegacyTypeArtPass::doFinalization(llvm::Module&) {
 //.....................
 llvm::PassPluginLibraryInfo getTypeartPassPluginInfo() {
   using namespace llvm;
-  return {LLVM_PLUGIN_API_VERSION, "TypeART", LLVM_VERSION_STRING, [](PassBuilder& pass_builder) {
-            pass_builder.registerPipelineStartEPCallback([](auto& MPM, OptimizationLevel) {
-              auto parameters = typeart::util::pass::parsePassParameters(typeart::config::pass::parse_typeart_config,
-                                                                         "typeart<heap;stats>", "typeart");
-              if (!parameters) {
-                LOG_FATAL("Error parsing heap params: " << parameters.takeError())
-                return;
-              }
-              MPM.addPass(typeart::pass::TypeArtPass(typeart::pass::TypeArtPass(parameters.get())));
-            });
-            pass_builder.registerOptimizerLastEPCallback([](auto& MPM, OptimizationLevel) {
-              auto parameters = typeart::util::pass::parsePassParameters(typeart::config::pass::parse_typeart_config,
-                                                                         "typeart<no-heap;stack;stats>", "typeart");
-              if (!parameters) {
-                LOG_FATAL("Error parsing stack params: " << parameters.takeError())
-                return;
-              }
-              MPM.addPass(typeart::pass::TypeArtPass(typeart::pass::TypeArtPass(parameters.get())));
-            });
-            pass_builder.registerPipelineParsingCallback(
-                [](StringRef name, ModulePassManager& module_pm, ArrayRef<PassBuilder::PipelineElement>) {
-                  if (typeart::util::pass::checkParametrizedPassName(name, "typeart")) {
-                    auto parameters = typeart::util::pass::parsePassParameters(
-                        typeart::config::pass::parse_typeart_config, name, "typeart");
-                    if (!parameters) {
-                      LOG_FATAL("Error parsing params: " << parameters.takeError())
-                      return false;
-                    }
-                    module_pm.addPass(typeart::pass::TypeArtPass(parameters.get()));
-                    return true;
-                  }
-                  LOG_FATAL("Not a valid parametrized pass name: " << name)
-                  return false;
-                });
-          }};
+  return {
+    LLVM_PLUGIN_API_VERSION, "TypeART", LLVM_VERSION_STRING, [](PassBuilder& pass_builder) {
+      pass_builder.registerPipelineStartEPCallback([](auto& MPM, OptimizationLevel) {
+        auto parameters = typeart::util::pass::parsePassParameters(
+            typeart::config::pass::parse_typeart_config, "typeart<heap;stats;type-serialization=hybrid>", "typeart");
+        if (!parameters) {
+          LOG_FATAL("Error parsing heap params: " << parameters.takeError())
+          return;
+        }
+        MPM.addPass(typeart::pass::TypeArtPass(typeart::pass::TypeArtPass(parameters.get())));
+      });
+#if LLVM_VERSION_MAJOR > 19
+      pass_builder.registerOptimizerLastEPCallback([](auto& MPM, OptimizationLevel, ThinOrFullLTOPhase) {
+#else
+      pass_builder.registerOptimizerLastEPCallback([](auto& MPM, OptimizationLevel) {
+#endif
+        auto parameters = typeart::util::pass::parsePassParameters(
+            typeart::config::pass::parse_typeart_config, "typeart<no-heap;stack;stats;type-serialization=hybrid>",
+            "typeart");
+        if (!parameters) {
+          LOG_FATAL("Error parsing stack params: " << parameters.takeError())
+          return;
+        }
+        MPM.addPass(typeart::pass::TypeArtPass(typeart::pass::TypeArtPass(parameters.get())));
+      });
+      pass_builder.registerPipelineParsingCallback([](StringRef name, ModulePassManager& module_pm,
+                                                      ArrayRef<PassBuilder::PipelineElement>) {
+        if (typeart::util::pass::checkParametrizedPassName(name, "typeart")) {
+          auto parameters =
+              typeart::util::pass::parsePassParameters(typeart::config::pass::parse_typeart_config, name, "typeart");
+          if (!parameters) {
+            LOG_FATAL("Error parsing params: " << parameters.takeError())
+            return false;
+          }
+          module_pm.addPass(typeart::pass::TypeArtPass(parameters.get()));
+          return true;
+        }
+        LOG_FATAL("Not a valid parametrized pass name: " << name)
+        return false;
+      });
+    }
+  };
 }
 
 extern "C" LLVM_ATTRIBUTE_WEAK ::llvm::PassPluginLibraryInfo llvmGetPassPluginInfo() {

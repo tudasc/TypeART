@@ -45,6 +45,7 @@ function(typeart_configure_lit_site input output)
 
   pythonize_bool(MPI_C_FOUND TYPEARTPASS_MPI_C)
   pythonize_bool(MPI_CXX_FOUND TYPEARTPASS_MPI_CXX)
+  pythonize_bool(TYPEART_CI_RUN TYPEARTPASS_CI_RUN)
 
   pythonize_bool(TYPEART_TSAN TYPEARTPASS_TSAN)
   pythonize_bool(TYPEART_ASAN TYPEARTPASS_ASAN)
@@ -145,6 +146,7 @@ set(TYPEART_SUITES
   runtime
   script
   typemapping
+  runtime_inlined_types
   staging
 )
 

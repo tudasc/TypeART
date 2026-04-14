@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2025 TypeART Authors
+// Copyright (c) 2017-2026 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -167,33 +167,75 @@ std::optional<InstTy*> getSingleUserAs(llvm::Instruction* value) {
 using MallocGeps   = SmallPtrSet<GetElementPtrInst*, 2>;
 using MallocBcasts = SmallPtrSet<BitCastInst*, 4>;
 
-std::pair<MallocGeps, MallocBcasts> collectRelevantMallocUsers(llvm::CallBase& ci) {
-  auto geps   = MallocGeps{};
-  auto bcasts = MallocBcasts{};
-  for (auto user : ci.users()) {
-    // Simple case: Pointer is immediately casted
-    if (auto inst = dyn_cast<BitCastInst>(user)) {
-      bcasts.insert(inst);
-    }
-    // Pointer is first stored, then loaded and subsequently casted
-    if (auto storeInst = dyn_cast<StoreInst>(user)) {
-      auto storeAddr = storeInst->getPointerOperand();
-      for (auto storeUser : storeAddr->users()) {  // TODO: Ensure that load occurs after store?
-        if (auto loadInst = dyn_cast<LoadInst>(storeUser)) {
-          for (auto loadUser : loadInst->users()) {
-            if (auto bcastInst = dyn_cast<BitCastInst>(loadUser)) {
-              // LOG_MSG(*bcastInst)
-              bcasts.insert(bcastInst);
-            }
-          }
+// std::pair<MallocGeps, MallocBcasts> collectRelevantMallocUsers(llvm::CallBase& ci) {
+//   auto geps   = MallocGeps{};
+//   auto bcasts = MallocBcasts{};
+//   for (auto user : ci.users()) {
+//     // Simple case: Pointer is immediately casted
+//     if (auto inst = dyn_cast<BitCastInst>(user)) {
+//       bcasts.insert(inst);
+//     }
+//     // Pointer is first stored, then loaded and subsequently casted
+//     if (auto storeInst = dyn_cast<StoreInst>(user)) {
+//       auto storeAddr = storeInst->getPointerOperand();
+//       if (!(storeAddr == nullptr || llvm::isa<llvm::ConstantPointerNull>(storeAddr))) {
+//         for (auto storeUser : storeAddr->users()) {  // TODO: Ensure that load occurs after store?
+//           if (auto loadInst = dyn_cast<LoadInst>(storeUser)) {
+//             for (auto loadUser : loadInst->users()) {
+//               if (auto bcastInst = dyn_cast<BitCastInst>(loadUser)) {
+//                 // LOG_MSG(*bcastInst)
+//                 bcasts.insert(bcastInst);
+//               }
+//             }
+//           }
+//         }
+//       } else {
+//         LOG_DEBUG("Null, must skip")
+//       }
+//     }
+//     // GEP indicates that an array cookie is added to the allocation. (Fixes #13)
+//     if (auto gep = dyn_cast<GetElementPtrInst>(user)) {
+//       geps.insert(gep);
+//     }
+//   }
+//   return {geps, bcasts};
+// }
+
+void collect_casts_from_stack(llvm::StoreInst* store_inst, MallocBcasts& out_bcasts) {
+  auto* slot = store_inst->getPointerOperand();
+
+  // Guard: Skip invalid or null storage locations
+  if (llvm::isa<llvm::ConstantPointerNull>(slot)) {
+    LOG_DEBUG("Skipping null storage");
+    return;
+  }
+
+  for (auto* slot_user : slot->users()) {
+    // TODO: Ensure that load occurs after store?
+    if (auto* load_inst = llvm::dyn_cast<llvm::LoadInst>(slot_user)) {
+      for (auto* load_user : load_inst->users()) {
+        if (auto* bit_cast = llvm::dyn_cast<llvm::BitCastInst>(load_user)) {
+          out_bcasts.insert(bit_cast);
         }
       }
     }
-    // GEP indicates that an array cookie is added to the allocation. (Fixes #13)
-    if (auto gep = dyn_cast<GetElementPtrInst>(user)) {
-      geps.insert(gep);
+  }
+}
+
+std::pair<MallocGeps, MallocBcasts> collectRelevantMallocUsers(llvm::CallBase& call_inst) {
+  auto geps   = MallocGeps{};
+  auto bcasts = MallocBcasts{};
+
+  for (auto* user : call_inst.users()) {
+    if (auto* bit_cast = llvm::dyn_cast<llvm::BitCastInst>(user)) {
+      bcasts.insert(bit_cast);
+    } else if (auto* gep_inst = llvm::dyn_cast<llvm::GetElementPtrInst>(user)) {
+      geps.insert(gep_inst);
+    } else if (auto* store_inst = llvm::dyn_cast<llvm::StoreInst>(user)) {
+      collect_casts_from_stack(store_inst, bcasts);
     }
   }
+
   return {geps, bcasts};
 }
 
@@ -332,19 +374,26 @@ void MemOpVisitor::visitAllocaInst(llvm::AllocaInst& ai) {
 }
 
 void MemOpVisitor::visitIntrinsicInst(llvm::IntrinsicInst& inst) {
-  if (inst.getIntrinsicID() == Intrinsic::lifetime_start) {
-#if LLVM_VERSION_MAJOR >= 12
-    auto alloca = llvm::findAllocaForValue(inst.getOperand(1));
+  if (inst.getIntrinsicID() != Intrinsic::lifetime_start) {
+    return;
+  }
+  AllocaInst* alloca{nullptr};
+#if LLVM_VERSION_MAJOR > 21
+  auto* operand = inst.getArgOperand(0);
+  alloca        = llvm::findAllocaForValue(operand);
+#elif LLVM_VERSION_MAJOR >= 12
+  auto* operand = inst.getOperand(1);
+  alloca        = llvm::findAllocaForValue(operand);
 #else
-    DenseMap<Value*, AllocaInst*> alloca_for_value;
-    auto* alloca = llvm::findAllocaForValue(inst.getOperand(1), alloca_for_value);
+  auto* operand = inst.getOperand(1);
+  DenseMap<Value*, AllocaInst*> alloca_for_value;
+  alloca = llvm::findAllocaForValue(operand, alloca_for_value);
 #endif
-    if (alloca != nullptr) {
-      lifetime_starts.emplace_back(&inst, alloca);
-    }
+
+  if (alloca != nullptr) {
+    lifetime_starts.emplace_back(&inst, alloca);
   }
 }
-
 void MemOpVisitor::clear() {
   allocas.clear();
   mallocs.clear();

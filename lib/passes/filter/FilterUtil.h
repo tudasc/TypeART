@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2025 TypeART Authors
+// Copyright (c) 2017-2026 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -46,8 +46,12 @@ using namespace llvm;
 namespace typeart::filter {
 
 struct FunctionAnalysis {
-  using FunctionCounts = struct { int decl, def, intrinsic, indirect; };
-  using FunctionCalls  = struct { llvm::SmallVector<CallSite, 8> decl, def, intrinsic, indirect; };
+  using FunctionCounts = struct {
+    int decl, def, intrinsic, indirect;
+  };
+  using FunctionCalls = struct {
+    llvm::SmallVector<CallSite, 8> decl, def, intrinsic, indirect;
+  };
 
   FunctionCalls calls;
 

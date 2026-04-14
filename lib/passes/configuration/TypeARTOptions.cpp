@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2025 TypeART Authors
+// Copyright (c) 2017-2026 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -14,6 +14,7 @@
 
 #include "Configuration.h"
 #include "FileConfiguration.h"
+#include "instrumentation/TypeIDProvider.h"
 
 #include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringRef.h"
@@ -23,6 +24,15 @@
 
 using namespace llvm::yaml;
 using namespace typeart::config::file;
+
+template <>
+struct llvm::yaml::ScalarEnumerationTraits<typeart::TypeSerializationImplementation> {
+  static void enumeration(IO& io, typeart::TypeSerializationImplementation& value) {
+    io.enumCase(value, "inline", typeart::TypeSerializationImplementation::INLINE);
+    io.enumCase(value, "file", typeart::TypeSerializationImplementation::FILE);
+    io.enumCase(value, "hybrid", typeart::TypeSerializationImplementation::HYBRID);
+  }
+};
 
 template <>
 struct llvm::yaml::ScalarEnumerationTraits<typeart::analysis::FilterImplementation> {
@@ -85,6 +95,7 @@ struct llvm::yaml::MappingTraits<typeart::config::TypeARTConfigOptions> {
     yml_io.mapOptional(ConfigStdArgs::stats, info.statistics);
     yml_io.mapOptional(ConfigStdArgs::stack_lifetime, info.stack_lifetime);
     yml_io.mapRequired(ConfigStdArgs::typegen, info.typegen);
+    yml_io.mapRequired(ConfigStdArgs::type_serialization, info.type_serialization);
     yml_io.mapRequired(ConfigStdArgs::filter, info.filter);
     yml_io.mapOptional("call-filter", info.filter_config);
     yml_io.mapOptional("analysis", info.analysis_config);
@@ -140,6 +151,7 @@ TypeARTConfigOptions construct_with(Constructor&& make_entry) {
   make_entry(ConfigStdArgs::analysis_filter_pointer_alloc, config.analysis_config.filter_pointer_alloc);
   make_entry(ConfigStdArgs::analysis_filter_alloca_non_array, config.analysis_config.filter_alloca_non_array);
   make_entry(ConfigStdArgs::typegen, config.typegen);
+  make_entry(ConfigStdArgs::type_serialization, config.type_serialization);
   return config;
 }
 
@@ -160,8 +172,8 @@ TypeARTConfigOptions config_to_options(const Configuration& configuration) {
 }
 
 template <typename T>
-auto make_entry(std::string_view key, const T& field_value)
-    -> std::pair<llvm::StringRef, typename OptionsMap::mapped_type> {
+auto make_entry(std::string_view key,
+                const T& field_value) -> std::pair<llvm::StringRef, typename OptionsMap::mapped_type> {
   if constexpr (std::is_enum_v<T>) {
     return {key, config::OptionValue{static_cast<int>(field_value)}};
   } else {
@@ -187,9 +199,10 @@ OptionsMap options_to_map(const TypeARTConfigOptions& config) {
       make_entry(ConfigStdArgs::analysis_filter_heap_alloc, config.analysis_config.filter_heap_alloc),
       make_entry(ConfigStdArgs::analysis_filter_pointer_alloc, config.analysis_config.filter_pointer_alloc),
       make_entry(ConfigStdArgs::analysis_filter_alloca_non_array, config.analysis_config.filter_alloca_non_array),
+      make_entry(ConfigStdArgs::type_serialization, config.type_serialization),
   };
   return mapping_;
-}
+}  // namespace helper
 
 }  // namespace helper
 

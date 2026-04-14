@@ -2,7 +2,7 @@
 #
 # TypeART library
 #
-# Copyright (c) 2017-2025 TypeART Authors
+# Copyright (c) 2017-2026 TypeART Authors
 # Distributed under the BSD 3-Clause license.
 # (See accompanying file LICENSE.txt or copy at
 # https://opensource.org/licenses/BSD-3-Clause)
@@ -98,7 +98,9 @@ function typeart_main_driver_fn() {
   if [ "$?" == 1 ]; then
     typeart_more_flags+=" ${typeart_ldflags}"
   fi
-
+  
+  # export TYPEART_TYPE_SERIALIZATION="${TYPEART_TYPE_SERIALIZATION:-hybrid}"
+  
   $typeart_compiler ${typeart_plugin} ${typeart_includes} ${typeart_more_flags} ${typeart_san_flags} $@
 }
 

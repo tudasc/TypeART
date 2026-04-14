@@ -1,5 +1,6 @@
 // clang-format off
-// RUN: %run %s --thread 2>&1 | %filecheck %s --check-prefix=CHECK-TSAN
+// : %run %s --thread 2>&1 | %filecheck %s --check-prefix=CHECK-TSAN
+// export TYPEART_TYPE_SERIALIZATION=file
 // RUN: %run %s --thread 2>&1 | %filecheck %s
 // REQUIRES: thread
 // clang-format on

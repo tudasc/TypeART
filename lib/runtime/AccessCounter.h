@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2025 TypeART Authors
+// Copyright (c) 2017-2026 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -14,20 +14,14 @@
 #define TYPEART_ACCESSCOUNTER_H
 
 #include "RuntimeData.h"
-#include "RuntimeInterface.h"
 
 #include <algorithm>
 #include <atomic>
 #include <cmath>
-#include <functional>
-#include <map>
 #include <mutex>
 #include <numeric>
-#include <set>
 #include <shared_mutex>
-#include <sstream>
 #include <string>
-#include <string_view>
 #include <thread>
 #include <unordered_map>
 #include <unordered_set>
