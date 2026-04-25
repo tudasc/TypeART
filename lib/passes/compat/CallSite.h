@@ -15,12 +15,14 @@
 #ifndef TYPEART_CALLSITE_H
 #define TYPEART_CALLSITE_H
 
+#include "llvm/IR/DebugInfoMetadata.h"
 #include "llvm/IR/Instruction.h"
 
 #include <llvm/IR/InstrTypes.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Value.h>
 #include <llvm/Support/Casting.h>
+#include <utility>
 
 namespace llvm {
 class CallSite {
@@ -53,6 +55,10 @@ class CallSite {
     return true;
   }
 
+  [[nodiscard]] Function* getFunction() const {
+    return instruction_->getFunction();
+  }
+
   [[nodiscard]] llvm::Function* getCalledFunction() const {
     if (auto* call_base = llvm::dyn_cast_or_null<llvm::CallBase>(instruction_)) {
       return call_base->getCalledFunction();
@@ -82,6 +88,18 @@ class CallSite {
   auto getIntrinsicID() const {
     auto* call_base = llvm::cast<llvm::CallBase>(instruction_);
     return call_base->getIntrinsicID();
+  }
+
+  [[nodiscard]] const DILocation* getLocation() const {
+    SmallVector<std::pair<unsigned, MDNode*>> mds;
+    instruction_->getAllMetadata(mds);
+
+    for (const auto& [_, md] : mds) {
+      if (const auto* loc = dyn_cast<DILocation>(md); loc)
+        return loc;
+    }
+
+    return nullptr;
   }
 };
 }  // namespace llvm

@@ -11,6 +11,9 @@ function(typeart_target_compile_options target)
       -Wformat=2 -Wundef -Werror=float-equal
     )
   endif()
+  target_compile_options(${target} PRIVATE
+    -fno-rtti
+  )
 
   target_compile_definitions(${target} PRIVATE "LLVM_VERSION_MAJOR=${LLVM_VERSION_MAJOR}")
 

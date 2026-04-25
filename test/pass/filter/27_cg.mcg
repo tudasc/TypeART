@@ -1,0 +1,87 @@
+{
+    "_CG": {
+        "meta": {},
+        "nodes": {
+            "0": {
+                "callees": {},
+                "functionName": "MPI_mock",
+                "hasBody": true,
+                "meta": {},
+                "origin": "04_cg_inline.c"
+            },
+            "1": {
+                "callees": {
+                    "0": {}
+                },
+                "functionName": "forward_mock",
+                "hasBody": true,
+                "meta": {},
+                "origin": "04_cg_inline.c"
+            },
+            "2": {
+                "callees": {
+                    "0": {},
+                    "1": {}
+                },
+                "functionName": "bar",
+                "hasBody": true,
+                "meta": {
+                    "argflow": {
+                        "args": [
+                            {
+                                "idx": 0,
+                                "outs": [
+                                    {
+                                        "by_ref": true,
+                                        "callees": [
+                                            1
+                                        ],
+                                        "idx": 0,
+                                        "loc": {
+                                            "col": 3,
+                                            "line": 13
+                                        }
+                                    }
+                                ]
+                            },
+                            {
+                                "idx": 1,
+                                "outs": [
+                                    {
+                                        "by_ref": true,
+                                        "callees": [
+                                            0
+                                        ],
+                                        "idx": 0,
+                                        "loc": {
+                                            "col": 3,
+                                            "line": 14
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                },
+                "origin": "04_cg_inline.c"
+            },
+            "3": {
+                "callees": {
+                    "2": {}
+                },
+                "functionName": "foo",
+                "hasBody": true,
+                "meta": {},
+                "origin": "04_cg_inline.c"
+            }
+        }
+    },
+    "_MetaCG": {
+        "generator": {
+            "name": "GenCC",
+            "sha": "NO_GIT_SHA_AVAILABLE",
+            "version": "0.1"
+        },
+        "version": "4.0"
+    }
+}

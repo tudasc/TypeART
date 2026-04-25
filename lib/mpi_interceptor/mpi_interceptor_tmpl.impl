@@ -21,6 +21,13 @@ extern "C" {
 
 #include "InterceptorFunctions.h"
 
+{{fn fn_name MPI_Init}}
+{
+  ta_init();
+  return P{{fn_name}}({{args}});
+}
+{{endfn}}
+
 {{fn fn_name MPI_Finalize}}
 {
   ta_exit();

@@ -1,0 +1,69 @@
+{
+    "_CG": {
+        "meta": {},
+        "nodes": {
+            "0": {
+                "callees": {
+                    "1": {},
+                    "2": {}
+                },
+                "functionName": "foo",
+                "hasBody": true,
+                "meta": {},
+                "origin": "04_cg.c"
+            },
+            "1": {
+                "callees": {
+                    "3": {}
+                },
+                "functionName": "bar",
+                "hasBody": false,
+                "meta": {
+                    "argflow": {
+                        "args": [
+                            {
+                                "idx": 0,
+                                "outs": [
+                                    {
+                                        "by_ref": true,
+                                        "callees": [
+                                            3
+                                        ],
+                                        "idx": 0,
+                                        "loc": {
+                                            "col": 3,
+                                            "line": 9
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                },
+                "origin": null
+            },
+            "2": {
+                "callees": {},
+                "functionName": "aar",
+                "hasBody": false,
+                "meta": {},
+                "origin": null
+            },
+            "3": {
+                "callees": {},
+                "functionName": "MPI_Send",
+                "hasBody": false,
+                "meta": {},
+                "origin": null
+            }
+        }
+    },
+    "_MetaCG": {
+        "generator": {
+            "name": "GenCC",
+            "sha": "NO_GIT_SHA_AVAILABLE",
+            "version": "0.1"
+        },
+        "version": "4.0"
+    }
+}

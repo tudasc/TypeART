@@ -17,10 +17,12 @@
 #include "analysis/MemOpData.h"
 #include "configuration/Configuration.h"
 #include "configuration/TypeARTOptions.h"
+#include "filter/ACGFilter.h"
 #include "filter/CGForwardFilter.h"
 #include "filter/CGInterface.h"
 #include "filter/Filter.h"
 #include "filter/Matcher.h"
+#include "filter/MetaCG.h"
 #include "filter/StdForwardFilter.h"
 #include "support/ConfigurationBase.h"
 #include "support/Logger.h"
@@ -44,6 +46,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <llvm/ADT/ScopeExit.h>
+#include <llvm/Support/MemoryBuffer.h>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -96,15 +99,47 @@ static std::unique_ptr<typeart::filter::Filter> make_filter(const MemInstFinderC
     LOG_DEBUG("Return no-op filter")
     return std::make_unique<NoOpFilter>();
   } else if (filter_id == FilterImplementation::cg) {
-    const std::string cg_file = config[config::ConfigStdArgs::filter_cg_file];
-    if (cg_file.empty()) {
-      LOG_FATAL("CG File not set!");
+    LOG_DEBUG("Return CGForward filter");
+
+    std::string cg_file = config[config::ConfigStdArgs::filter_cg_file];
+    const auto buf      = MemoryBuffer::getFile(std::move(cg_file), true);
+    if (!buf) {
+      LOG_FATAL("Failed to load MCG file");
       std::exit(1);
     }
-    LOG_DEBUG("Return CG filter with CG file @ " << cg_file)
-    auto json_cg = JSONCG::getJSON(cg_file);
-    auto matcher = std::make_unique<DefaultStringMatcher>(util::glob2regex(glob));
-    return std::make_unique<CGForwardFilter>(glob, std::move(json_cg), std::move(matcher));
+
+    auto mcg = metacg::parse((*buf)->getBuffer());
+    if (!mcg) {
+      llvm::handleAllErrors(mcg.takeError(), [](const llvm::ErrorInfoBase& E) { LOG_FATAL(E.message()); });
+      std::exit(1);
+    }
+
+    auto matcher         = std::make_unique<DefaultStringMatcher>(util::glob2regex(glob));
+    const auto deep_glob = config[config::ConfigStdArgs::filter_glob_deep];
+    auto deep_matcher    = std::make_unique<DefaultStringMatcher>(util::glob2regex(deep_glob));
+
+    return std::make_unique<CGForwardFilter>(std::move(mcg.get()), std::move(matcher), std::move(deep_matcher));
+
+  } else if (filter_id == FilterImplementation::acg) {
+    LOG_DEBUG("Return Argflow filter");
+    std::string cg_file = config[config::ConfigStdArgs::filter_cg_file];
+    const auto buf      = MemoryBuffer::getFile(std::move(cg_file), true);
+    if (!buf) {
+      LOG_FATAL("Failed to load MCG file");
+      std::exit(1);
+    }
+
+    auto mcg = metacg::parse((*buf)->getBuffer());
+    if (!mcg) {
+      llvm::handleAllErrors(mcg.takeError(), [](const llvm::ErrorInfoBase& E) { LOG_FATAL(E.message()); });
+      std::exit(1);
+    }
+
+    auto matcher         = std::make_unique<DefaultStringMatcher>(util::glob2regex(glob));
+    const auto deep_glob = config[config::ConfigStdArgs::filter_glob_deep];
+    auto deep_matcher    = std::make_unique<DefaultStringMatcher>(util::glob2regex(deep_glob));
+
+    return std::make_unique<AcgFilter>(std::move(mcg.get()), std::move(matcher), std::move(deep_matcher));
   } else {
     LOG_DEBUG("Return default filter")
     auto matcher         = std::make_unique<DefaultStringMatcher>(util::glob2regex(glob));

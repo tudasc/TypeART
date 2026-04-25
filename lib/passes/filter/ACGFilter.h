@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2026 TypeART Authors
+// Copyright (c) 2017-2025 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -10,8 +10,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //
 
-#ifndef TYPEART_CGFORWARDFILTER_H
-#define TYPEART_CGFORWARDFILTER_H
+#ifndef ARGFLOWFILTER_H
+#define ARGFLOWFILTER_H
 
 #include "FilterBase.h"
 #include "Matcher.h"
@@ -26,7 +26,7 @@ struct OmpContext;
 
 struct DefaultSearch;
 
-struct CGForwardFilterTrait {
+struct ArgflowFilterTrait {
   constexpr static bool Indirect    = true;
   constexpr static bool Intrinsic   = false;
   constexpr static bool Declaration = true;
@@ -34,10 +34,10 @@ struct CGForwardFilterTrait {
   constexpr static bool PreCheck    = true;
 };
 
-struct CGForwardFilterImpl {
-  using Support = CGForwardFilterTrait;
+struct AcgFilterImpl {
+  using Support = ArgflowFilterTrait;
 
-  CGForwardFilterImpl(metacg::Mcg&&, std::unique_ptr<Matcher>&& m, std::unique_ptr<Matcher>&& deep);
+  AcgFilterImpl(metacg::Mcg&&, std::unique_ptr<Matcher>&& m, std::unique_ptr<Matcher>&& deep);
 
   FilterAnalysis precheck(Value*, Function*, const FPath&);
   FilterAnalysis indirect(CallSite, const Path&);
@@ -45,7 +45,7 @@ struct CGForwardFilterImpl {
   FilterAnalysis def(CallSite, const Path&);
 
  private:
-  FilterAnalysis reachesMatching(ArrayRef<size_t>);
+  FilterAnalysis reachesMatching(ArrayRef<size_t>, size_t);
 
   metacg::Mcg mcg;
   // Regex matcher;
@@ -54,8 +54,8 @@ struct CGForwardFilterImpl {
   FunctionOracleMatcher oracle;
 };
 
-using CGForwardFilter = BaseFilter<CGForwardFilterImpl, DefaultSearch, omp::OmpContext>;
+using AcgFilter = BaseFilter<AcgFilterImpl, DefaultSearch, omp::OmpContext>;
 
 }  // namespace typeart::filter
 
-#endif  // TYPEART_CGFORWARDFILTER_H
+#endif  // ARGFLOWFILTER_H

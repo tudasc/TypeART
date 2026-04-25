@@ -1,6 +1,6 @@
 // clang-format off
 // RUN: %c-to-llvm %s | %apply-typeart --typeart-stack=true --typeart-filter=true -S 2>&1 | %filecheck %s --check-prefix=CHECK-exp-default
-// RUN: %c-to-llvm %s | %apply-typeart --typeart-stack=true --typeart-filter=true --typeart-filter-implementation=cg --typeart-filter-cg-file=%p/05_cg.ipcg -S 2>&1 | %filecheck %s --check-prefix=CHECK-exp-cg
+// RUN: %c-to-llvm %s | %apply-typeart --typeart-stack=true --typeart-filter=true --typeart-filter-implementation=acg --typeart-filter-cg-file=%p/05_cg.mcg -S 2>&1 | %filecheck %s --check-prefix=CHECK-acg
 // clang-format on
 
 extern void MPI_Mock(int, int, int);
@@ -22,7 +22,7 @@ void foo() {
 // CHECK-exp-default-NEXT: Alloca                 :  5.00
 // CHECK-exp-default-NEXT: Stack call filtered %  :  80.00
 
-// CG experimental filter
-// CHECK-exp-cg: > Stack Memory
-// CHECK-exp-cg-NEXT: Alloca                 :  5.00
-// CHECK-exp-cg-NEXT: Stack call filtered %  :  80.00
+// ACG:
+// CHECK-acg: > Stack Memory
+// CHECK-acg: Alloca                 :  5.00
+// CHECK-acg: Stack call filtered %  :  80.00

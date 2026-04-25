@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2026 TypeART Authors
+// Copyright (c) 2017-2025 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -10,39 +10,37 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //
 
-#include "CGForwardFilter.h"
+#include "ACGFilter.h"
 
 #include "Matcher.h"
 
 #include <llvm/ADT/SmallSet.h>
-#include <utility>
 
 namespace typeart::filter {
 
-CGForwardFilterImpl::CGForwardFilterImpl(metacg::Mcg&& cg, std::unique_ptr<Matcher>&& m,
-                                         std::unique_ptr<Matcher>&& deep)
+AcgFilterImpl::AcgFilterImpl(metacg::Mcg&& cg, std::unique_ptr<Matcher>&& m, std::unique_ptr<Matcher>&& deep)
     : mcg{std::move(cg)}, matcher{std::move(m)}, deep_matcher{std::move(deep)} {
 }
 
-FilterAnalysis CGForwardFilterImpl::reachesMatching(const ArrayRef<size_t> nodes) {
-  SmallVector<size_t, 64> workq{};
+FilterAnalysis AcgFilterImpl::reachesMatching(const ArrayRef<size_t> nodes, const size_t idx) {
+  SmallVector<std::pair<size_t, size_t>, 64> workq{};
   SmallSet<size_t, 32> seen{};
 
-  const auto enqueue = [&seen, &workq](const size_t it) {
+  const auto enqueue = [&seen, &workq](const size_t it, const size_t i) {
     if (const auto [_, inserted] = seen.insert(it); inserted) {
-      workq.push_back(it);
+      workq.push_back({it, i});
     }
   };
 
   for (const auto id : nodes) {
-    enqueue(id);
-    LOG_DEBUG("Starting node with parameter: " << mcg.forId(id)->name.value_or(""));
+    enqueue(id, idx);
+    LOG_DEBUG("Starting node with parameter [" << idx << "]: " << mcg.forId(id)->name.value_or(""));
   }
 
   while (!workq.empty()) {
     // Grab the current node ID and translate it into its corresponding function descriptor to check
     // if its name matches our matcher.
-    const auto current = workq.pop_back_val();
+    const auto [current, cur_idx] = workq.pop_back_val();
     LOG_DEBUG("> Inspecting node: " << mcg.forId(current)->name.value_or(""));
 
     if (const auto fn = mcg.forId(current); fn && fn->name) {
@@ -67,19 +65,27 @@ FilterAnalysis CGForwardFilterImpl::reachesMatching(const ArrayRef<size_t> nodes
       return FilterAnalysis::Keep;
     }
 
-    const auto current_node = mcg.forId(current);
-    assert(current_node && "MCG is broken");
+    const auto outs = mcg.outputs(current, cur_idx);
+    if (!outs) {
+      LOG_DEBUG("-> Failed to get outputs, possibly leaf");
+      continue;
+    }
 
-    for (const auto& [callee, _] : current_node->callees) {
-      enqueue(callee);
-      LOG_DEBUG("-> Enqueued callee: " << mcg.forId(callee)->name.value_or(""));
+    for (const auto& out : *outs) {
+      for (const auto callee : out.callees) {
+        // if (!out.by_ref) {
+        //   continue;
+        // }
+        enqueue(callee, out.idx);
+        LOG_DEBUG("-> Enqueued callee: " << mcg.forId(callee)->name.value_or(""));
+      }
     }
   }
 
   return FilterAnalysis::Continue;
 }
 
-FilterAnalysis CGForwardFilterImpl::precheck(Value* in, Function* start, const FPath&) {
+FilterAnalysis AcgFilterImpl::precheck(Value* in, Function* start, const FPath&) {
   if (!start) {
     return FilterAnalysis::Continue;
   }
@@ -107,8 +113,17 @@ FilterAnalysis CGForwardFilterImpl::precheck(Value* in, Function* start, const F
   return FilterAnalysis::Continue;
 }
 
-FilterAnalysis CGForwardFilterImpl::indirect(const CallSite current, const Path& p) {
+FilterAnalysis AcgFilterImpl::indirect(const CallSite current, const Path& p) {
   SmallVector<size_t, 16> callees{};
+
+  const auto arg = *p.getEndPrev();
+  assert(arg && "Argument is missing");
+
+  if (!is_contained(current.args(), arg)) {
+    return FilterAnalysis::Continue;
+  }
+
+  const auto idx = std::distance(current.args().begin(), find(current.args(), arg));
 
   const auto* callLoc = current.getLocation();
   if (!callLoc) {
@@ -144,14 +159,19 @@ FilterAnalysis CGForwardFilterImpl::indirect(const CallSite current, const Path&
     }
   }
 
-  for (const auto& [callee, _] : parent->callees) {
-    callees.push_back(callee);
+  const auto outs = mcg.outputs(*parentNode, idx);
+  if (!outs) {
+    return FilterAnalysis::Continue;
   }
 
-  return reachesMatching(callees);
+  for (const auto& out : *outs) {
+    callees.append(out.callees.begin(), out.callees.end());
+  }
+
+  return reachesMatching(callees, idx);
 }
 
-FilterAnalysis CGForwardFilterImpl::def(const CallSite current, const Path& p) {
+FilterAnalysis AcgFilterImpl::def(const CallSite current, const Path& p) {
   if (deep_matcher && deep_matcher->match(current) == Matcher::MatchResult::Match) {
 #if LLVM_VERSION_MAJOR < 15
     auto result = correlate2void(current, p);
@@ -168,8 +188,18 @@ FilterAnalysis CGForwardFilterImpl::def(const CallSite current, const Path& p) {
         return FilterAnalysis::Keep;
     }
   }
+  const auto arg = *p.getEndPrev();
+  assert(arg && "Argument is missing");
+
+  if (!is_contained(current.args(), arg)) {
+    return FilterAnalysis::Continue;
+  }
+
+  // Calculate the argument position
+  const auto idx = std::distance(current.args().begin(), find(current.args(), arg));
+
   if (const auto node = mcg.byName(current.getCalledFunction()->getName()); node) {
-    return reachesMatching({*node});
+    return reachesMatching({*node}, idx);
   } else {
     // Fn not in CG? ask the oracle first, e.g., for __typeart instrumentation:
     const auto oracle_match = oracle.match(current);
@@ -190,7 +220,7 @@ FilterAnalysis CGForwardFilterImpl::def(const CallSite current, const Path& p) {
   }
 }
 
-FilterAnalysis CGForwardFilterImpl::decl(const CallSite current, const Path& p) {
+FilterAnalysis AcgFilterImpl::decl(const CallSite current, const Path& p) {
   return def(current, p);
 }
 

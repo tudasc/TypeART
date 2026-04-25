@@ -421,7 +421,7 @@ llvm::PassPluginLibraryInfo getTypeartPassPluginInfo() {
           LOG_FATAL("Error parsing heap params: " << parameters.takeError())
           return;
         }
-        MPM.addPass(typeart::pass::TypeArtPass(typeart::pass::TypeArtPass(parameters.get())));
+        MPM.addPass(typeart::pass::TypeArtPass(parameters.get()));
       });
 #if LLVM_VERSION_MAJOR > 19
       pass_builder.registerOptimizerLastEPCallback([](auto& MPM, OptimizationLevel, ThinOrFullLTOPhase) {
@@ -435,7 +435,7 @@ llvm::PassPluginLibraryInfo getTypeartPassPluginInfo() {
           LOG_FATAL("Error parsing stack params: " << parameters.takeError())
           return;
         }
-        MPM.addPass(typeart::pass::TypeArtPass(typeart::pass::TypeArtPass(parameters.get())));
+        MPM.addPass(typeart::pass::TypeArtPass(parameters.get()));
       });
       pass_builder.registerPipelineParsingCallback([](StringRef name, ModulePassManager& module_pm,
                                                       ArrayRef<PassBuilder::PipelineElement>) {

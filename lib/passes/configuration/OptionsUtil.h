@@ -43,6 +43,7 @@ ClType string_to_enum(llvm::StringRef cl_value) {
     if constexpr (std::is_same_v<FilterImplementation, ClType>) {
       auto val = llvm::StringSwitch<ClType>(cl_value)
                      .Case("cg", FilterImplementation::cg)
+                     .Case("acg", FilterImplementation::acg)
                      .Case("none", FilterImplementation::none)
                      .Case("std", FilterImplementation::standard)
                      .Default(FilterImplementation::standard);

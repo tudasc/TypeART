@@ -37,6 +37,7 @@ struct llvm::yaml::ScalarEnumerationTraits<typeart::TypeSerializationImplementat
 template <>
 struct llvm::yaml::ScalarEnumerationTraits<typeart::analysis::FilterImplementation> {
   static void enumeration(IO& io, typeart::analysis::FilterImplementation& value) {
+    io.enumCase(value, "acg", typeart::analysis::FilterImplementation::acg);
     io.enumCase(value, "cg", typeart::analysis::FilterImplementation::cg);
     io.enumCase(value, "std", typeart::analysis::FilterImplementation::standard);
     io.enumCase(value, "none", typeart::analysis::FilterImplementation::none);
