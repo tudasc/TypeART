@@ -16,6 +16,7 @@
 #include "configuration/Configuration.h"
 #include "instrumentation/TypeIDProvider.h"
 #include "support/ConfigurationBase.h"
+#include "support/CudaUtil.h"
 #include "support/Logger.h"
 #include "support/OmpUtil.h"
 
@@ -49,9 +50,9 @@ namespace typeart {
 namespace detail {
 std::string get_func_suffix(IFunc id) {
   switch (id) {
-    // case IFunc::free_cuda:
-    // case IFunc::heap_cuda:
-    //   return "_cuda";
+    case IFunc::free_cuda:
+    case IFunc::heap_cuda:
+      return "_cuda";
     case IFunc::free_omp:
     case IFunc::heap_omp:
     case IFunc::stack_omp:
@@ -67,6 +68,10 @@ enum class IFuncType : unsigned { standard, omp, cuda };
 IFuncType ifunc_type_for(llvm::Function* f) {
   if (f == nullptr) {
     return IFuncType::standard;
+  }
+
+  if (cuda::is_cuda_function(*f)) {
+    return IFuncType::cuda;
   }
 
   if (util::omp::isOmpContext(f)) {
@@ -88,28 +93,27 @@ IFunc ifunc_for_function(IFunc general_type, llvm::Value* value) {
   } else if (llvm::isa<GlobalVariable>(value)) {
     type = detail::ifunc_type_for(nullptr);
   } else if (auto callbase = llvm::dyn_cast<CallBase>(value)) {
-    type = detail::ifunc_type_for(callbase->getFunction());
-    // auto maybe_cuda = detail::ifunc_type_for(callbase->getCalledFunction());
-    // if (maybe_cuda == detail::IFuncType::cuda) {
-    //   type = detail::IFuncType::cuda;
-    // }
+    type            = detail::ifunc_type_for(callbase->getFunction());
+    auto maybe_cuda = detail::ifunc_type_for(callbase->getCalledFunction());
+    if (maybe_cuda == detail::IFuncType::cuda) {
+      type = detail::IFuncType::cuda;
+    }
   }
 
   if (detail::IFuncType::standard == type) {
     return general_type;
   }
 
-  // if (detail::IFuncType::cuda == type) {
-  //   switch (general_type) {
-  //     case IFunc::heap:
-  //       return IFunc::heap_cuda;
-  //     case IFunc::free:
-  //       return IFunc::free_cuda;
-  //     default:
-  //       return general_type;
-  //       //        llvm_unreachable("IFunc not supported for CUDA.");
-  //   }
-  // }
+  if (detail::IFuncType::cuda == type) {
+    switch (general_type) {
+      case IFunc::heap:
+        return IFunc::heap_cuda;
+      case IFunc::free:
+        return IFunc::free_cuda;
+      default:
+        return general_type;
+    }
+  }
 
   switch (general_type) {
     case IFunc::stack:
@@ -287,6 +291,8 @@ TypeArtFunc typeart_alloc_omp        = typeart_alloc;
 TypeArtFunc typeart_alloc_stacks_omp = typeart_alloc_stack;
 TypeArtFunc typeart_free_omp         = typeart_free;
 TypeArtFunc typeart_leave_scope_omp  = typeart_leave_scope;
+TypeArtFunc typeart_alloc_cuda       = typeart_alloc;
+TypeArtFunc typeart_free_cuda        = typeart_free;
 
 TypeArtFunc typeart_alloc_mty{"__typeart_alloc_mty"};
 TypeArtFunc typeart_alloc_stack_mty{"__typeart_alloc_stack_mty"};
@@ -318,6 +324,7 @@ std::unique_ptr<TAFunctionQuery> declare_instrumentation_functions(llvm::Module&
       decl_alternatives.make_function(IFunc::stack, typeart_alloc_stack_mty.name, alloc_arg_types_mty);
   typeart_alloc_global_mty.f =
       decl_alternatives.make_function(IFunc::global, typeart_alloc_global_mty.name, alloc_arg_types_mty);
+  functions_alternative.putFunctionFor(IFunc::heap_cuda, llvm::cast<llvm::Function>(typeart_alloc_mty.f));
   typeart_register_type.f = decl.make_function(IFunc::type, typeart_register_type.name, free_arg_types);
 
   typeart_alloc.f        = decl.make_function(IFunc::heap, typeart_alloc.name, alloc_arg_types);
@@ -331,6 +338,9 @@ std::unique_ptr<TAFunctionQuery> declare_instrumentation_functions(llvm::Module&
   typeart_free_omp.f         = decl.make_function(IFunc::free_omp, typeart_free_omp.name, free_arg_types);
 
   typeart_leave_scope_omp.f = decl.make_function(IFunc::scope_omp, typeart_leave_scope_omp.name, leavescope_arg_types);
+
+  typeart_alloc_cuda.f = decl.make_function(IFunc::heap_cuda, typeart_alloc_cuda.name, alloc_arg_types);
+  typeart_free_cuda.f  = decl.make_function(IFunc::free_cuda, typeart_free_cuda.name, free_arg_types);
 
   typeart_alloc_omp_mty.f =
       decl_alternatives.make_function(IFunc::heap_omp, typeart_alloc_omp_mty.name, alloc_arg_types_mty);

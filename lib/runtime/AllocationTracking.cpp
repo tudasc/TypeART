@@ -289,6 +289,18 @@ void __typeart_leave_scope_omp(int alloca_count) {
   typeart::RuntimeSystem::get().allocation_tracker().onLeaveScope(alloca_count, retAddr);
 }
 
+void __typeart_alloc_cuda(const void* addr, int typeId, size_t count) {
+  TYPEART_RUNTIME_GUARD;
+  const void* retAddr = __builtin_return_address(0);
+  typeart::RuntimeSystem::get().allocation_tracker().onAlloc(addr, typeId, count, retAddr);
+}
+
+void __typeart_free_cuda(const void* addr) {
+  TYPEART_RUNTIME_GUARD;
+  const void* retAddr = __builtin_return_address(0);
+  typeart::RuntimeSystem::get().allocation_tracker().onFreeHeap(addr, retAddr);
+}
+
 void __typeart_alloc_mty(const void* addr, const void* info, size_t count) {
   TYPEART_RUNTIME_GUARD;
   const void* retAddr = __builtin_return_address(0);

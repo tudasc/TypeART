@@ -24,6 +24,8 @@
 #include "llvm/Support/TypeSize.h"
 #include "llvm/Support/raw_ostream.h"
 
+#include <optional>
+
 using namespace llvm;
 
 namespace typeart::util::type {
@@ -104,6 +106,19 @@ unsigned getStructSizeInBytes(llvm::Type* structT, const llvm::DataLayout& dl) {
 
 unsigned getPointerSizeInBytes(llvm::Type* /*ptrT*/, const llvm::DataLayout& dl) {
   return dl.getPointerSizeInBits() / 8;
+}
+
+std::optional<llvm::Type*> getPointerElementType(llvm::Type* ptr_type) {
+  auto* pointer_type = dyn_cast_or_null<llvm::PointerType>(ptr_type);
+  if (pointer_type == nullptr) {
+    return {};
+  }
+
+#if LLVM_VERSION_MAJOR < 15
+  return pointer_type->getPointerElementType();
+#else
+  return {};
+#endif
 }
 
 }  // namespace typeart::util::type

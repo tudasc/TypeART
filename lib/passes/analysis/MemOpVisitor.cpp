@@ -16,6 +16,7 @@
 #include "compat/CallSite.h"
 #include "configuration/Configuration.h"
 #include "support/ConfigurationBase.h"
+#include "support/CudaUtil.h"
 #include "support/Error.h"
 #include "support/Logger.h"
 #include "support/TypeUtil.h"
@@ -222,9 +223,16 @@ void collect_casts_from_stack(llvm::StoreInst* store_inst, MallocBcasts& out_bca
   }
 }
 
-std::pair<MallocGeps, MallocBcasts> collectRelevantMallocUsers(llvm::CallBase& call_inst) {
+std::pair<MallocGeps, MallocBcasts> collectRelevantMallocUsers(llvm::CallBase& call_inst, MemOpKind kind) {
   auto geps   = MallocGeps{};
   auto bcasts = MallocBcasts{};
+
+  if (kind == MemOpKind::CudaMallocLike) {
+    if (auto bitcast = cuda::bitcast_for(call_inst); bitcast.has_value()) {
+      bcasts.insert(*bitcast);
+    }
+    return {geps, bcasts};
+  }
 
   for (auto* user : call_inst.users()) {
     if (auto* bit_cast = llvm::dyn_cast<llvm::BitCastInst>(user)) {
@@ -325,7 +333,7 @@ std::optional<ArrayCookieData> handleArrayCookie(llvm::CallBase& ci, const Mallo
 }
 
 void MemOpVisitor::visitMallocLike(llvm::CallBase& ci, MemOpKind k) {
-  auto [geps, bcasts] = collectRelevantMallocUsers(ci);
+  auto [geps, bcasts] = collectRelevantMallocUsers(ci, k);
   auto primary_cast   = bcasts.empty() ? nullptr : *bcasts.begin();
   auto array_cookie   = handleArrayCookie(ci, geps, bcasts, primary_cast);
   if (primary_cast == nullptr) {

@@ -15,6 +15,7 @@
 #include "IRTypeGen.h"
 #include "StructTypeHandler.h"
 #include "VectorTypeHandler.h"
+#include "support/CudaUtil.h"
 #include "support/Logger.h"
 #include "support/TypeUtil.h"
 #include "support/Util.h"
@@ -277,9 +278,27 @@ TypeIdentifier TypeManager::getOrRegisterType(const MallocData& mdata) {
   auto malloc_call            = mdata.call;
   const llvm::DataLayout& dl  = malloc_call->getModule()->getDataLayout();
   BitCastInst* primaryBitcast = mdata.primary;
+  llvm::Type* allocation_type = nullptr;
 
-  int typeId = getOrRegisterType(malloc_call->getType()->getPointerElementType(),
-                                 dl);  // retrieveTypeID(tu::getVoidType(c));
+  if (mdata.kind == MemOpKind::CudaMallocLike && primaryBitcast == nullptr) {
+    if (auto bitcast = cuda::bitcast_for(*malloc_call); bitcast.has_value()) {
+      primaryBitcast = *bitcast;
+    }
+  }
+
+  if (mdata.kind == MemOpKind::CudaMallocLike) {
+    allocation_type = llvm::Type::getInt8Ty(malloc_call->getContext());
+  } else {
+    auto pointee_type = tu::getPointerElementType(malloc_call->getType());
+    allocation_type   = !pointee_type ? llvm::Type::getInt8Ty(malloc_call->getContext()) : *pointee_type;
+  }
+
+  int typeId = getOrRegisterType(allocation_type, dl);  // retrieveTypeID(tu::getVoidType(c));
+
+  if (mdata.kind == MemOpKind::CudaMallocLike) {
+    typeId = TYPEART_POINTER;
+  }
+
   if (typeId == TYPEART_UNKNOWN_TYPE) {
     LOG_ERROR("Unknown heap type. Not instrumenting. " << util::dump(*malloc_call));
     // TODO notify caller that we skipped: via lambda callback function
@@ -287,11 +306,34 @@ TypeIdentifier TypeManager::getOrRegisterType(const MallocData& mdata) {
   };
 
   // Number of bytes per element, 1 for void*
-  unsigned typeSize = tu::getTypeSizeInBytes(malloc_call->getType()->getPointerElementType(), dl);
+  unsigned typeSize = tu::getTypeSizeInBytes(allocation_type, dl);
+
+  if (mdata.kind == MemOpKind::CudaMallocLike) {
+    typeSize = 1;
+  }
 
   // Use the first cast as the determining type (if there is any)
   if (primaryBitcast != nullptr) {
-    auto* dstPtrType = primaryBitcast->getDestTy()->getPointerElementType();
+    llvm::Type* dstPtrType = nullptr;
+    if (auto pointee_type = tu::getPointerElementType(primaryBitcast->getDestTy()); pointee_type.has_value()) {
+      dstPtrType = *pointee_type;
+    }
+    // Basically: getSrcTy()->getPointerElementType()->getPointerElementType():
+    if (mdata.kind == MemOpKind::CudaMallocLike && dstPtrType == nullptr) {
+      if (auto pointee_type = tu::getPointerElementType(primaryBitcast->getSrcTy()); pointee_type.has_value()) {
+        dstPtrType = *pointee_type;
+      }
+      if (dstPtrType != nullptr && dstPtrType->isPointerTy()) {
+        if (auto nested = tu::getPointerElementType(dstPtrType); nested.has_value()) {
+          dstPtrType = *nested;
+        }
+      }
+    }
+
+    if (dstPtrType == nullptr) {
+      LOG_WARNING("Could not resolve non-opaque pointee type for allocation cast. Keeping fallback type.")
+      return {typeId, 0};
+    }
 
     typeSize = tu::getTypeSizeInBytes(dstPtrType, dl);
 

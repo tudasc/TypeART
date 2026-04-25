@@ -18,6 +18,7 @@ add_custom_command(
 set(RUNTIME_LIB_SOURCES
     AccessCounter.h
     CallbackInterface.h
+    CudaRuntimeInterface.h
     RuntimeData.h
     RuntimeInterface.h
     TypeResolution.cpp
@@ -27,6 +28,7 @@ set(RUNTIME_LIB_SOURCES
     TypeResolution.h
     Runtime.cpp
     Runtime.h
+    CudaSupport.cpp
     ${TYPEART_META_SOURCE}
     $<$<BOOL:${TYPEART_MPI_LOGGER}>:../support/MPILogger.cpp>
 )
@@ -99,6 +101,10 @@ target_include_directories(
 
 target_include_directories(${TYPEART_PREFIX}_Runtime SYSTEM PRIVATE ${LLVM_INCLUDE_DIRS})
 
+if(CUDAToolkit_FOUND)
+  target_include_directories(${TYPEART_PREFIX}_Runtime SYSTEM PRIVATE ${CUDAToolkit_INCLUDE_DIRS})
+endif()
+
 target_compile_definitions(
   ${TYPEART_PREFIX}_Runtime
   PRIVATE TYPEART_LOG_LEVEL=${TYPEART_LOG_LEVEL_RT}
@@ -108,7 +114,17 @@ target_compile_definitions(
           $<$<BOOL:${TYPEART_ABSEIL}>:TYPEART_ABSEIL>
           $<$<BOOL:${TYPEART_SAFEPTR}>:USE_SAFEPTR>
           $<$<BOOL:${TYPEART_DISABLE_THREAD_SAFETY}>:TYPEART_DISABLE_THREAD_SAFETY>
+          $<$<BOOL:${CUDAToolkit_FOUND}>:TYPEART_HAS_CUDA=1>
 )
+
+if(CUDAToolkit_FOUND)
+  if(TARGET CUDA::cudart)
+    target_link_libraries(${TYPEART_PREFIX}_Runtime PRIVATE CUDA::cudart)
+  endif()
+  if(TARGET CUDA::cuda_driver)
+    target_link_libraries(${TYPEART_PREFIX}_Runtime PRIVATE CUDA::cuda_driver)
+  endif()
+endif()
 
 typeart_target_compile_options(${TYPEART_PREFIX}_Runtime)
 typeart_target_define_file_basename(${TYPEART_PREFIX}_Runtime)
@@ -136,6 +152,12 @@ install(FILES
   "${CMAKE_CURRENT_BINARY_DIR}/RuntimeExport.h"
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}
 )
+
+if(CUDAToolkit_FOUND)
+  install(FILES CudaRuntimeInterface.h
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}
+  )
+endif()
 
 install(
   TARGETS ${TYPEART_PREFIX}_Runtime

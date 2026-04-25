@@ -20,6 +20,8 @@ class AllocaInst;
 class LLVMContext;
 }  // namespace llvm
 
+#include <optional>
+
 namespace typeart::util::type {
 
 #if LLVM_VERSION_MAJOR < 15
@@ -43,6 +45,8 @@ unsigned getArrayLengthFlattened(llvm::Type* arrT);
 unsigned getStructSizeInBytes(llvm::Type* structT, const llvm::DataLayout& dl);
 
 unsigned getPointerSizeInBytes(llvm::Type* ptrT, const llvm::DataLayout& dl);
+
+std::optional<llvm::Type*> getPointerElementType(llvm::Type* ptr_type);
 
 }  // namespace typeart::util::type
 

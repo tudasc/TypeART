@@ -39,6 +39,10 @@ config.tsan=@TYPEARTPASS_TSAN@
 config.asan=@TYPEARTPASS_ASAN@
 config.ubsan=@TYPEARTPASS_UBSAN@
 config.coverage=@TYPEART_COVERAGE@
+config.cuda_static=@TYPEARTPASS_CUDA_STATIC@
+config.cuda_runtime=@TYPEARTPASS_CUDA_RUNTIME@
+config.cuda_flags="@TYPEARTPASS_CUDA_FLAGS@"
+config.cuda_path="@TYPEARTPASS_CUDA_PATH@"
 
 config.python_interp = "@Python3_EXECUTABLE@"
 

@@ -25,6 +25,7 @@
 #include "instrumentation/TypeARTFunctions.h"
 #include "instrumentation/TypeIDProvider.h"
 #include "support/ConfigurationBase.h"
+#include "support/CudaUtil.h"
 #include "support/Logger.h"
 #include "support/ModuleDumper.h"
 #include "support/Table.h"
@@ -280,6 +281,11 @@ run(llvm::Module& m, llvm::ModuleAnalysisManager&) {
 }
 
 bool runOnModule(llvm::Module& m) {
+  if (cuda::is_device_module(m)) {
+    LOG_DEBUG("Skipping CUDA device module: " << m.getName());
+    return false;
+  }
+
   meminst_finder->runOnModule(m);
   const bool instrument_global = configuration()[config::ConfigStdArgs::global];
   bool globals_were_instrumented{false};
@@ -321,6 +327,10 @@ bool runOnFunc(llvm::Function& f) {
   using namespace typeart;
 
   if (f.isDeclaration() || util::starts_with_any_of(f.getName(), "__typeart", "typeart", "__sanitizer", "__tysan")) {
+    return false;
+  }
+
+  if (cuda::is_cuda_helper_function(f)) {
     return false;
   }
 

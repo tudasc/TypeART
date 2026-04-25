@@ -39,6 +39,9 @@ TYPEART_EXPORT void __typeart_free_omp(const void* addr);
 TYPEART_EXPORT void __typeart_alloc_stack_omp(const void* addr, int type_id, size_t count);
 TYPEART_EXPORT void __typeart_leave_scope_omp(int alloca_count);
 
+TYPEART_EXPORT void __typeart_alloc_cuda(const void* addr, int type_id, size_t count);
+TYPEART_EXPORT void __typeart_free_cuda(const void* addr);
+
 // Called for inlined type definitions mode
 TYPEART_EXPORT void __typeart_alloc_mty(const void* addr, const void* info, size_t count);
 TYPEART_EXPORT void __typeart_alloc_global_mty(const void* addr, const void* info, size_t count);

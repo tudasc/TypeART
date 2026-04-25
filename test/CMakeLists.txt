@@ -14,6 +14,37 @@ typeart_find_llvm_progs(TYPEART_LIT_EXEC
 
 # add_subdirectory(compat)
 
+function(cuda_runnable_detect cuda_is_runnable)
+  set(${cuda_is_runnable} 0 PARENT_SCOPE)
+  if(NOT CUDAToolkit_FOUND)
+    return()
+  endif()
+
+  find_program(TYPEART_NVIDIA_SMI_EXEC nvidia-smi)
+  mark_as_advanced(TYPEART_NVIDIA_SMI_EXEC)
+  if(NOT TYPEART_NVIDIA_SMI_EXEC)
+    return()
+  endif()
+
+  execute_process(
+    COMMAND ${TYPEART_NVIDIA_SMI_EXEC} -L
+    RESULT_VARIABLE smi_result
+    OUTPUT_VARIABLE smi_out
+    ERROR_QUIET
+  )
+  if(NOT smi_result EQUAL 0)
+    return()
+  endif()
+
+  string(REGEX MATCHALL "GPU [0-9]+:" smi_gpu_list ${smi_out})
+  list(LENGTH smi_gpu_list TYPEART_CUDA_GPU_COUNT)
+  if(TYPEART_CUDA_GPU_COUNT GREATER 0)
+    set(${cuda_is_runnable} 1 PARENT_SCOPE)
+  endif()
+endfunction()
+
+cuda_runnable_detect(TYPEART_CUDA_RUNNABLE)
+
 macro(pythonize_bool truth_var var)
   if(${truth_var})
     set(${var} True)
@@ -42,6 +73,37 @@ function(typeart_configure_lit_site input output)
   pythonize_bool(OPENMP_FOUND TYPEARTPASS_OPENMP)
   pythonize_bool(Threads_FOUND TYPEARTPASS_THREADS)
   pythonize_bool(TYPEART_DISABLE_THREAD_SAFETY TYPEARTPASS_THREAD_UNSAFE)
+
+  set(TYPEARTPASS_CUDA_FLAGS "")
+  set(TYPEARTPASS_CUDA_PATH "")
+  if(CUDAToolkit_FOUND)
+    if(DEFINED CUDAToolkit_TARGET_DIR AND NOT "${CUDAToolkit_TARGET_DIR}" STREQUAL "")
+      set(TYPEARTPASS_CUDA_PATH "${CUDAToolkit_TARGET_DIR}")
+    elseif(DEFINED CUDAToolkit_LIBRARY_ROOT AND NOT "${CUDAToolkit_LIBRARY_ROOT}" STREQUAL "")
+      set(TYPEARTPASS_CUDA_PATH "${CUDAToolkit_LIBRARY_ROOT}")
+    elseif(DEFINED CUDAToolkit_BIN_DIR AND NOT "${CUDAToolkit_BIN_DIR}" STREQUAL "")
+      cmake_path(GET CUDAToolkit_BIN_DIR PARENT_PATH TYPEARTPASS_CUDA_PATH)
+    endif()
+
+    foreach(cuda_inc ${CUDAToolkit_INCLUDE_DIRS})
+      string(APPEND TYPEARTPASS_CUDA_FLAGS " -isystem ${cuda_inc}")
+    endforeach()
+  else()
+    find_path(TYPEART_CUDA_RUNTIME_HEADER_DIR cuda_runtime_api.h
+      HINTS /usr/local/cuda/include /usr/include /opt/cuda/include
+    )
+    if(TYPEART_CUDA_RUNTIME_HEADER_DIR)
+      cmake_path(GET TYPEART_CUDA_RUNTIME_HEADER_DIR PARENT_PATH TYPEARTPASS_CUDA_PATH)
+    endif()
+  endif()
+
+  set(TYPEART_CUDA_STATIC_AVAILABLE FALSE)
+  if(CUDAToolkit_FOUND OR NOT "${TYPEARTPASS_CUDA_PATH}" STREQUAL "")
+    set(TYPEART_CUDA_STATIC_AVAILABLE TRUE)
+  endif()
+
+  pythonize_bool(TYPEART_CUDA_STATIC_AVAILABLE TYPEARTPASS_CUDA_STATIC)
+  pythonize_bool(TYPEART_CUDA_RUNNABLE TYPEARTPASS_CUDA_RUNTIME)
 
   pythonize_bool(MPI_C_FOUND TYPEARTPASS_MPI_C)
   pythonize_bool(MPI_CXX_FOUND TYPEARTPASS_MPI_CXX)
@@ -143,6 +205,7 @@ endif()
 set(TYPEART_SUITES
   all
   pass
+  cuda
   runtime
   script
   typemapping
@@ -155,7 +218,9 @@ set(TYPEART_SUITES_WORKERS
   ${NUM_CPU}
   1
   1
+  1
   ${NUM_CPU}
+  1
   1
 )
 

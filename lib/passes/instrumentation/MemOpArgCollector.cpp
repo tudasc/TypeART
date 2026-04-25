@@ -104,6 +104,14 @@ HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
       case MemOpKind::AlignedAllocLike:
         byte_count = malloc_call->getArgOperand(1);
         break;
+      case MemOpKind::CudaMallocLike:
+        byte_count = malloc_call->getArgOperand(1);
+        if (mdata.primary != nullptr) {
+          pointer = mdata.primary->getOperand(0);
+        } else {
+          pointer = malloc_call->getArgOperand(0);
+        }
+        break;
       default:
         LOG_ERROR("Unknown malloc kind. Not instrumenting. " << util::dump(*malloc_call));
         // TODO see above continues
