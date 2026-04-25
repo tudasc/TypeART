@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2025 TypeART Authors
+// Copyright (c) 2017-2026 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -10,8 +10,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //
 
-#ifndef LIB_LOGGER_H_
-#define LIB_LOGGER_H_
+#ifndef TYPEART_LOGGER_H
+#define TYPEART_LOGGER_H
 
 #include "llvm/Support/raw_ostream.h"
 
@@ -67,4 +67,4 @@ inline void typeart_log(const std::string& msg) {
 #define LOG_FATAL(MSG)   OO_LOG_LEVEL_MSG(0, "[Fatal]", MSG)
 #define LOG_MSG(MSG)     llvm::errs() << MSG << "\n"; /* NOLINT */
 
-#endif /* LIB_LOGGER_H_ */
+#endif  // TYPEART_LOGGER_H

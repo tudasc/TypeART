@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2025 TypeART Authors
+// Copyright (c) 2017-2026 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -10,8 +10,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //
 
-#ifndef LIB_PASSES_INSTRUMENTATION_MEMOPINSTRUMENTATION
-#define LIB_PASSES_INSTRUMENTATION_MEMOPINSTRUMENTATION
+#ifndef TYPEART_MEMOPINSTRUMENTATION_H
+#define TYPEART_MEMOPINSTRUMENTATION_H
 
 #include "Instrumentation.h"
 #include "configuration/Configuration.h"
@@ -45,4 +45,4 @@ class MemOpInstrumentation final : public MemoryInstrument {
 };
 
 }  // namespace typeart
-#endif /* LIB_PASSES_INSTRUMENTATION_MEMOPINSTRUMENTATION */
+#endif  // TYPEART_MEMOPINSTRUMENTATION_H

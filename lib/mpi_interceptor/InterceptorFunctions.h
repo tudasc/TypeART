@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2025 TypeART Authors
+// Copyright (c) 2017-2026 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -10,8 +10,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //
 
-#ifndef TEST_MPI_INTERCEPTOR_INTERCEPTORFUNCTIONS_H_
-#define TEST_MPI_INTERCEPTOR_INTERCEPTORFUNCTIONS_H_
+#ifndef TYPEART_MPI_INTERCEPTOR_INTERCEPTORFUNCTIONS_H
+#define TYPEART_MPI_INTERCEPTOR_INTERCEPTORFUNCTIONS_H
 
 #include "RuntimeExport.h"
 #include "RuntimeInterface.h"
@@ -190,4 +190,4 @@ TYPEART_NO_EXPORT void ta_exit() {
          mcounter.null_count);
 }
 
-#endif /* TEST_MPI_INTERCEPTOR_INTERCEPTORFUNCTIONS_H_ */
+#endif  // TYPEART_MPI_INTERCEPTOR_INTERCEPTORFUNCTIONS_H

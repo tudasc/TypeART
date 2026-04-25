@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2025 TypeART Authors
+// Copyright (c) 2017-2026 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -10,8 +10,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //
 
-#ifndef LLVM_MUST_SUPPORT_CONFIGIO_H
-#define LLVM_MUST_SUPPORT_CONFIGIO_H
+#ifndef TYPEART_TYPEIO_H
+#define TYPEART_TYPEIO_H
 
 #include "typelib/TypeDatabase.h"
 
@@ -30,4 +30,4 @@ namespace io {
 
 }  // namespace typeart
 
-#endif  // LLVM_MUST_SUPPORT_CONFIGIO_H
+#endif  // TYPEART_TYPEIO_H

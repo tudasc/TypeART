@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2025 TypeART Authors
+// Copyright (c) 2017-2026 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -426,7 +426,11 @@ bool MemInstFinderPass::runOnFunction(llvm::Function& function) {
 }  // namespace typeart
 
 void MemInstFinderPass::printStats(llvm::raw_ostream& out) const {
+#if LLVM_VERSION_MAJOR < 22
   const auto scope_exit_cleanup_counter = llvm::make_scope_exit([&]() {
+#else
+  llvm::scope_exit scope_exit_cleanup_counter([&]() {
+#endif
     NumDetectedAllocs         = 0;
     NumFilteredNonArrayAllocs = 0;
     NumFilteredMallocAllocs   = 0;
@@ -436,11 +440,11 @@ void MemInstFinderPass::printStats(llvm::raw_ostream& out) const {
     NumFilteredGlobals        = 0;
     NumDetectedGlobals        = 0;
   });
-  auto all_stack                        = double(NumDetectedAllocs);
-  auto nonarray_stack                   = double(NumFilteredNonArrayAllocs);
-  auto malloc_alloc_stack               = double(NumFilteredMallocAllocs);
-  auto call_filter_stack                = double(NumCallFilteredAllocs);
-  auto filter_pointer_stack             = double(NumFilteredPointerAllocs);
+  auto all_stack            = double(NumDetectedAllocs);
+  auto nonarray_stack       = double(NumFilteredNonArrayAllocs);
+  auto malloc_alloc_stack   = double(NumFilteredMallocAllocs);
+  auto call_filter_stack    = double(NumCallFilteredAllocs);
+  auto filter_pointer_stack = double(NumFilteredPointerAllocs);
 
   const auto call_filter_stack_p =
       (call_filter_stack /

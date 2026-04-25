@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2025 TypeART Authors
+// Copyright (c) 2017-2026 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -10,8 +10,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //
 
-#ifndef LIB_UTIL_H_
-#define LIB_UTIL_H_
+#ifndef TYPEART_UTIL_H
+#define TYPEART_UTIL_H
 
 // #include "Logger.h"
 
@@ -228,4 +228,4 @@ void for_each_cdtor(llvm::StringRef name, llvm::Module& module, Matcher&& matchi
 
 }  // namespace typeart::util
 
-#endif /* LIB_UTIL_H_ */
+#endif  // TYPEART_UTIL_H

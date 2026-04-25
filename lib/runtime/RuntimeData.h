@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2025 TypeART Authors
+// Copyright (c) 2017-2026 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -21,13 +21,8 @@
 #ifdef TYPEART_PHMAP
 #error TypeART-RT: Set ABSL and PHMAP, mutually exclusive.
 #endif
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpedantic"
-#pragma GCC diagnostic ignored "-Wshadow"
 #include "absl/container/btree_map.h"
 #include "absl/container/flat_hash_map.h"
-#pragma GCC diagnostic pop
 #endif
 
 #ifdef TYPEART_PHMAP
@@ -51,8 +46,8 @@
 #endif
 
 #if defined(__has_feature)
-#if __has_feature(address_sanitizer)
-#define __SANITIZE_ADDRESS__
+#if __has_feature(address_sanitizer) && !defined(__SANITIZE_ADDRESS__)
+#define __SANITIZE_ADDRESS__ 1
 #endif
 #endif
 

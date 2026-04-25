@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2025 TypeART Authors
+// Copyright (c) 2017-2026 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -12,8 +12,8 @@
 
 // In Clang 11 CallSite.h was removed, this is a small wrapper reimplementation
 
-#ifndef COMPAT_LLVM_IR_CALLSITE_H
-#define COMPAT_LLVM_IR_CALLSITE_H
+#ifndef TYPEART_CALLSITE_H
+#define TYPEART_CALLSITE_H
 
 #include "llvm/IR/DebugInfoMetadata.h"
 #include "llvm/IR/Instruction.h"
@@ -104,4 +104,4 @@ class CallSite {
 };
 }  // namespace llvm
 
-#endif
+#endif  // TYPEART_CALLSITE_H

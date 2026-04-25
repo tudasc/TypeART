@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2025 TypeART Authors
+// Copyright (c) 2017-2026 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -233,7 +233,12 @@ InstrCount MemOpInstrumentation::instrumentStack(const StackArgList& stack) {
     } else {
       for (auto* lifetime_s : lifetime_starts) {
         IRBuilder<> IRB(lifetime_s->getNextNode());
-        instrument_stack(IRB, lifetime_s->getOperand(1), lifetime_s->getNextNode());
+#if LLVM_VERSION_MAJOR < 22
+        auto ptr = lifetime_s->getOperand(1);
+#else
+        auto ptr = lifetime_s->getArgOperand(0);
+#endif
+        instrument_stack(IRB, ptr, lifetime_s->getNextNode());
       }
     }
   }

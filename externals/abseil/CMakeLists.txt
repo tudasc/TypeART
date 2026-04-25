@@ -1,9 +1,10 @@
 set(ABSL_PROPAGATE_CXX_STD ON)
+set(ABSL_USE_SYSTEM_INCLUDES ON CACHE BOOL "Use system includes for Abseil" FORCE)
 
 FetchContent_Declare(
   cpp-abseil
   GIT_REPOSITORY https://github.com/abseil/abseil-cpp.git
-  GIT_TAG 20250814.1
+  GIT_TAG 20250814.2
   GIT_SHALLOW 1
 )
 

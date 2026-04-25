@@ -24,14 +24,15 @@ jobs:
           - { os: ubuntu-24.04, llvm-version: 19 }
           - { os: ubuntu-24.04, llvm-version: 20 }
           - { os: ubuntu-24.04, llvm-version: 21 }
+          - { os: ubuntu-24.04, llvm-version: 22 }
 
     runs-on: ${{ matrix.platform.os }}
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Checkout test-bench
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           repository: tudasc/typeart-bench
           ssh-key: ${{ secrets.AUTH_SSH_CI_EXT }}
@@ -101,7 +102,7 @@ jobs:
           mv test-bench/artifact-${{ matrix.platform.llvm-version }}/* artifact
 
       - name: Upload test-bench artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: typeart-ci-ext-${{ matrix.platform.llvm-version }}-${{ matrix.preset.name }}
           path: artifact
@@ -119,14 +120,15 @@ jobs:
           - { os: ubuntu-24.04, llvm-version: 19 }
           - { os: ubuntu-24.04, llvm-version: 20 }
           - { os: ubuntu-24.04, llvm-version: 21 }
+          - { os: ubuntu-24.04, llvm-version: 22 }
 
     runs-on: ${{ matrix.platform.os }}
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Checkout AD test-bench
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           repository: ahueck/typeart-ad-benchmarks
           ssh-key: ${{ secrets.AUTH_SSH_CI_EXT_AD }}
@@ -181,7 +183,7 @@ jobs:
           mv ad-test-bench/artifact-${{ matrix.platform.llvm-version }}/* artifact
 
       - name: Upload AD test-bench artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: typeart-ci-ext-ad-${{ matrix.platform.llvm-version }}-${{ matrix.preset.name }}
           path: artifact
@@ -202,14 +204,15 @@ jobs:
           - { os: ubuntu-24.04, llvm-version: 19 }
           - { os: ubuntu-24.04, llvm-version: 20 }
           - { os: ubuntu-24.04, llvm-version: 21 }
+          - { os: ubuntu-24.04, llvm-version: 22 }
 
     runs-on: ${{ matrix.platform.os }}
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Checkout OMP test-bench
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           repository: tudasc/typeart-bench
           ssh-key: ${{ secrets.AUTH_SSH_CI_EXT }}
@@ -271,7 +274,7 @@ jobs:
           mv omp-test-bench/artifact-${{ matrix.platform.llvm-version }}/* artifact
 
       - name: Upload omp-test-bench artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: typeart-ci-ext-omp-${{ matrix.platform.llvm-version }}-${{ matrix.preset.name }}
           path: artifact

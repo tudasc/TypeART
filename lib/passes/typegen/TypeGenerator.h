@@ -1,6 +1,6 @@
 // TypeART library
 //
-// Copyright (c) 2017-2025 TypeART Authors
+// Copyright (c) 2017-2026 TypeART Authors
 // Distributed under the BSD 3-Clause license.
 // (See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/BSD-3-Clause)
@@ -10,8 +10,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //
 
-#ifndef LIB_PASSES_TYPEGEN_TYPEGENERATOR
-#define LIB_PASSES_TYPEGEN_TYPEGENERATOR
+#ifndef TYPEART_TYPEGENERATOR_H
+#define TYPEART_TYPEGENERATOR_H
 
 #include "analysis/MemOpData.h"
 #include "typelib/TypeDatabase.h"
@@ -68,4 +68,4 @@ std::unique_ptr<TypeGenerator> make_typegen(std::string_view file, TypegenImplem
 
 }  // namespace typeart
 
-#endif /* LIB_PASSES_TYPEGEN_TYPEGENERATOR */
+#endif  // TYPEART_TYPEGENERATOR_H
