@@ -270,6 +270,10 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
 
 llvm::PreservedAnalyses
 run(llvm::Module& m, llvm::ModuleAnalysisManager&) {
+  if (cuda::is_device_module(m)) {
+    LOG_DEBUG("Skipping CUDA device module: " << m.getName());
+    return llvm::PreservedAnalyses::all();
+  }
   bool changed{false};
   changed |= doInitialization(m);
   const bool heap = configuration()[config::ConfigStdArgs::heap];  // Must happen after doInit
@@ -281,11 +285,6 @@ run(llvm::Module& m, llvm::ModuleAnalysisManager&) {
 }
 
 bool runOnModule(llvm::Module& m) {
-  if (cuda::is_device_module(m)) {
-    LOG_DEBUG("Skipping CUDA device module: " << m.getName());
-    return false;
-  }
-
   meminst_finder->runOnModule(m);
   const bool instrument_global = configuration()[config::ConfigStdArgs::global];
   bool globals_were_instrumented{false};
