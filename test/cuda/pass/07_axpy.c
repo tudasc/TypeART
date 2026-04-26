@@ -1,6 +1,6 @@
-// RUN: %apply %s -x cuda --cuda-gpu-arch=sm_72 2>&1 | %filecheck %s
+// RUN: %cuda-c-to-llvm %s | %apply-typeart -S 2>&1 | %filecheck %s
 
-// REQUIRES: cuda
+// REQUIRES: cuda_static
 
 // CHECK: Malloc :   2
 
