@@ -4,8 +4,10 @@
 // REQUIRES: cuda_runtime
 // UNSUPPORTED: sanitizer
 
+// CHECK: [0]=2 [1]=4 [2]=6 [3]=8
 // CHECK: Total heap{{[ ]*}}:   2 ,    2 ,    -
 
+#include <stdio.h>
 __global__ void axpy(float a, float* x, float* y) {
   y[threadIdx.x] = a * x[threadIdx.x];
 }
@@ -30,5 +32,11 @@ int main(int argc, char* argv[]) {
   cudaMemcpy(host_y, device_y, kDataLen * sizeof(float), cudaMemcpyDeviceToHost);
 
   cudaDeviceReset();
+
+  for (int i = 0; i < kDataLen; ++i) {
+    printf("[%i]=%.0f ", i, host_y[i]);
+  }
+  printf("\n");
+
   return 0;
 }

@@ -2,8 +2,8 @@
 
 // REQUIRES: cuda_static
 
-// CHECK: call i32 @cudaMalloc
-// CHECK-NEXT: [[CUDA_PTR:%[0-9a-z]+]] = load {{.*}}, {{.*}}
+// CHECK: call i32 @cudaMalloc({{(ptr|i8\*)}} {{.*}}[[CU_POINTER:%[_0-9a-z]+]],
+// CHECK-NEXT: [[CUDA_PTR:%[0-9a-z_]+]] = load {{.*}}, {{.*}}[[CU_POINTER]]
 // CHECK-NEXT: call void @__typeart_alloc_cuda({{(ptr|i8\*)}} {{.*}}[[CUDA_PTR]],
 
 int main() {
