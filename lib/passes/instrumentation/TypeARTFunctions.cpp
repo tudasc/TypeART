@@ -52,7 +52,7 @@ std::string get_func_suffix(IFunc id) {
   switch (id) {
     case IFunc::free_cuda:
     case IFunc::heap_cuda:
-      return "_cuda";
+      return "_gpu";
     case IFunc::free_omp:
     case IFunc::heap_omp:
     case IFunc::stack_omp:
@@ -301,6 +301,8 @@ TypeArtFunc typeart_register_type{"__typeart_register_type"};
 TypeArtFunc typeart_alloc_omp_mty        = typeart_alloc_mty;
 TypeArtFunc typeart_alloc_stacks_omp_mty = typeart_alloc_stack_mty;
 
+TypeArtFunc typeart_alloc_cuda_mty = typeart_alloc_mty;
+
 }  // namespace callbacks
 
 std::unique_ptr<TAFunctionQuery> declare_instrumentation_functions(llvm::Module& m,
@@ -324,7 +326,7 @@ std::unique_ptr<TAFunctionQuery> declare_instrumentation_functions(llvm::Module&
       decl_alternatives.make_function(IFunc::stack, typeart_alloc_stack_mty.name, alloc_arg_types_mty);
   typeart_alloc_global_mty.f =
       decl_alternatives.make_function(IFunc::global, typeart_alloc_global_mty.name, alloc_arg_types_mty);
-  functions_alternative.putFunctionFor(IFunc::heap_cuda, llvm::cast<llvm::Function>(typeart_alloc_mty.f));
+  // functions_alternative.putFunctionFor(IFunc::heap_cuda, llvm::cast<llvm::Function>(typeart_alloc_mty.f));
   typeart_register_type.f = decl.make_function(IFunc::type, typeart_register_type.name, free_arg_types);
 
   typeart_alloc.f        = decl.make_function(IFunc::heap, typeart_alloc.name, alloc_arg_types);
@@ -346,6 +348,9 @@ std::unique_ptr<TAFunctionQuery> declare_instrumentation_functions(llvm::Module&
       decl_alternatives.make_function(IFunc::heap_omp, typeart_alloc_omp_mty.name, alloc_arg_types_mty);
   typeart_alloc_stacks_omp_mty.f =
       decl_alternatives.make_function(IFunc::stack_omp, typeart_alloc_stacks_omp_mty.name, alloc_arg_types_mty);
+
+  typeart_alloc_cuda_mty.f =
+      decl_alternatives.make_function(IFunc::heap_cuda, typeart_alloc_cuda_mty.name, alloc_arg_types_mty);
 
   return std::make_unique<TAFunctionAlternatives>(functions, functions_alternative);
 }

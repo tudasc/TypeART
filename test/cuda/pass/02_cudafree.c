@@ -3,7 +3,7 @@
 // REQUIRES: cuda_static
 
 // CHECK: call i32 @cudaFree({{(ptr|i8\*)}} {{.*}}[[CU_POINTER:%[0-9a-z]+]])
-// CHECK-NEXT: __typeart_free_cuda({{(ptr|i8\*)}} {{.*}}[[CU_POINTER]])
+// CHECK-NEXT: __typeart_free_gpu({{(ptr|i8\*)}} {{.*}}[[CU_POINTER]])
 
 int main() {
   float* d_x;
