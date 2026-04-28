@@ -15,7 +15,7 @@
 #include "IRTypeGen.h"
 #include "StructTypeHandler.h"
 #include "VectorTypeHandler.h"
-#include "support/CudaUtil.h"
+#include "support/GpuUtil.h"
 #include "support/Logger.h"
 #include "support/TypeUtil.h"
 #include "support/Util.h"
@@ -280,13 +280,13 @@ TypeIdentifier TypeManager::getOrRegisterType(const MallocData& mdata) {
   BitCastInst* primaryBitcast = mdata.primary;
   llvm::Type* allocation_type = nullptr;
 
-  if (mdata.kind == MemOpKind::CudaMallocLike && primaryBitcast == nullptr) {
-    if (auto bitcast = cuda::bitcast_for(*malloc_call); bitcast.has_value()) {
+  if (is_kind(mdata.kind, MemOpKind::GpuMallocLike) && primaryBitcast == nullptr) {
+    if (auto bitcast = gpu::bitcast_for(*malloc_call, mdata.kind); bitcast.has_value()) {
       primaryBitcast = *bitcast;
     }
   }
 
-  if (mdata.kind == MemOpKind::CudaMallocLike) {
+  if (is_kind(mdata.kind, MemOpKind::GpuMallocLike)) {
     allocation_type = llvm::Type::getInt8Ty(malloc_call->getContext());
   } else {
     auto pointee_type = tu::getPointerElementType(malloc_call->getType());
@@ -295,7 +295,7 @@ TypeIdentifier TypeManager::getOrRegisterType(const MallocData& mdata) {
 
   int typeId = getOrRegisterType(allocation_type, dl);  // retrieveTypeID(tu::getVoidType(c));
 
-  if (mdata.kind == MemOpKind::CudaMallocLike) {
+  if (is_kind(mdata.kind, MemOpKind::GpuMallocLike)) {
     typeId = TYPEART_POINTER;
   }
 
@@ -308,7 +308,7 @@ TypeIdentifier TypeManager::getOrRegisterType(const MallocData& mdata) {
   // Number of bytes per element, 1 for void*
   unsigned typeSize = tu::getTypeSizeInBytes(allocation_type, dl);
 
-  if (mdata.kind == MemOpKind::CudaMallocLike) {
+  if (is_kind(mdata.kind, MemOpKind::GpuMallocLike)) {
     typeSize = 1;
   }
 
@@ -319,7 +319,7 @@ TypeIdentifier TypeManager::getOrRegisterType(const MallocData& mdata) {
       dstPtrType = *pointee_type;
     }
     // Basically: getSrcTy()->getPointerElementType()->getPointerElementType():
-    if (mdata.kind == MemOpKind::CudaMallocLike && dstPtrType == nullptr) {
+    if (is_kind(mdata.kind, MemOpKind::GpuMallocLike) && dstPtrType == nullptr) {
       if (auto pointee_type = tu::getPointerElementType(primaryBitcast->getSrcTy()); pointee_type.has_value()) {
         dstPtrType = *pointee_type;
       }

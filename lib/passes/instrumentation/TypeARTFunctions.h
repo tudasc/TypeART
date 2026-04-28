@@ -44,6 +44,8 @@ enum class IFunc : unsigned {
   scope_omp,
   heap_cuda,
   free_cuda,
+  heap_hip,
+  free_hip,
   type
 };
 

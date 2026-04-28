@@ -45,6 +45,8 @@ config.cuda_flags="@TYPEARTPASS_CUDA_FLAGS@"
 config.cuda_path="@TYPEARTPASS_CUDA_PATH@"
 config.cuda_lib="@CUDAToolkit_LIBRARY_DIR@"
 
+config.has_hip = "@TYPEART_HIP_STATIC_AVAILABLE@"
+
 config.python_interp = "@Python3_EXECUTABLE@"
 
 config.llvm_version = @LLVM_VERSION_MAJOR@

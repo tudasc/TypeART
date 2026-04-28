@@ -17,6 +17,7 @@
 #include "instrumentation/TypeIDProvider.h"
 #include "support/ConfigurationBase.h"
 #include "support/CudaUtil.h"
+#include "support/HipUtil.h"
 #include "support/Logger.h"
 #include "support/OmpUtil.h"
 
@@ -52,6 +53,8 @@ std::string get_func_suffix(IFunc id) {
   switch (id) {
     case IFunc::free_cuda:
     case IFunc::heap_cuda:
+    case IFunc::free_hip:
+    case IFunc::heap_hip:
       return "_gpu";
     case IFunc::free_omp:
     case IFunc::heap_omp:
@@ -63,7 +66,7 @@ std::string get_func_suffix(IFunc id) {
   }
 }
 
-enum class IFuncType : unsigned { standard, omp, cuda };
+enum class IFuncType : unsigned { standard, omp, cuda, hip };
 
 IFuncType ifunc_type_for(llvm::Function* f) {
   if (f == nullptr) {
@@ -72,6 +75,10 @@ IFuncType ifunc_type_for(llvm::Function* f) {
 
   if (cuda::is_cuda_function(*f)) {
     return IFuncType::cuda;
+  }
+
+  if (hip::is_hip_function(*f)) {
+    return IFuncType::hip;
   }
 
   if (util::omp::isOmpContext(f)) {
@@ -93,10 +100,10 @@ IFunc ifunc_for_function(IFunc general_type, llvm::Value* value) {
   } else if (llvm::isa<GlobalVariable>(value)) {
     type = detail::ifunc_type_for(nullptr);
   } else if (auto callbase = llvm::dyn_cast<CallBase>(value)) {
-    type            = detail::ifunc_type_for(callbase->getFunction());
-    auto maybe_cuda = detail::ifunc_type_for(callbase->getCalledFunction());
-    if (maybe_cuda == detail::IFuncType::cuda) {
-      type = detail::IFuncType::cuda;
+    type               = detail::ifunc_type_for(callbase->getFunction());
+    auto called_context = detail::ifunc_type_for(callbase->getCalledFunction());
+    if (called_context == detail::IFuncType::cuda || called_context == detail::IFuncType::hip) {
+      type = called_context;
     }
   }
 
@@ -110,6 +117,17 @@ IFunc ifunc_for_function(IFunc general_type, llvm::Value* value) {
         return IFunc::heap_cuda;
       case IFunc::free:
         return IFunc::free_cuda;
+      default:
+        return general_type;
+    }
+  }
+
+  if (detail::IFuncType::hip == type) {
+    switch (general_type) {
+      case IFunc::heap:
+        return IFunc::heap_hip;
+      case IFunc::free:
+        return IFunc::free_hip;
       default:
         return general_type;
     }
@@ -180,6 +198,7 @@ llvm::Function* TAFunctionDeclarator::make_function(IFunc func_id, llvm::StringR
   const auto name = make_fname(basename, args);
 
   if (auto it = function_map.find(name); it != function_map.end()) {
+    typeart_functions.putFunctionFor(func_id, it->second);
     return it->second;
   }
 
@@ -343,6 +362,8 @@ std::unique_ptr<TAFunctionQuery> declare_instrumentation_functions(llvm::Module&
 
   typeart_alloc_cuda.f = decl.make_function(IFunc::heap_cuda, typeart_alloc_cuda.name, alloc_arg_types);
   typeart_free_cuda.f  = decl.make_function(IFunc::free_cuda, typeart_free_cuda.name, free_arg_types);
+  decl.make_function(IFunc::heap_hip, typeart_alloc_cuda.name, alloc_arg_types);
+  decl.make_function(IFunc::free_hip, typeart_free_cuda.name, free_arg_types);
 
   typeart_alloc_omp_mty.f =
       decl_alternatives.make_function(IFunc::heap_omp, typeart_alloc_omp_mty.name, alloc_arg_types_mty);
@@ -351,6 +372,7 @@ std::unique_ptr<TAFunctionQuery> declare_instrumentation_functions(llvm::Module&
 
   typeart_alloc_cuda_mty.f =
       decl_alternatives.make_function(IFunc::heap_cuda, typeart_alloc_cuda_mty.name, alloc_arg_types_mty);
+  decl_alternatives.make_function(IFunc::heap_hip, typeart_alloc_cuda_mty.name, alloc_arg_types_mty);
 
   return std::make_unique<TAFunctionAlternatives>(functions, functions_alternative);
 }

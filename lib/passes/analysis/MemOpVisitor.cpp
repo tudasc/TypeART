@@ -16,7 +16,7 @@
 #include "compat/CallSite.h"
 #include "configuration/Configuration.h"
 #include "support/ConfigurationBase.h"
-#include "support/CudaUtil.h"
+#include "support/GpuUtil.h"
 #include "support/Error.h"
 #include "support/Logger.h"
 #include "support/TypeUtil.h"
@@ -98,7 +98,7 @@ void MemOpVisitor::visitCallBase(llvm::CallBase& cb) {
     return;
   }
   const auto* called_function = cb.getCalledFunction();
-  if (!collect_gpu && called_function != nullptr && cuda::is_cuda_function(*called_function)) {
+  if (!collect_gpu && called_function != nullptr && gpu::is_gpu_function(*called_function)) {
     return;
   }
   const auto isInSet = [&](const auto& fMap) -> std::optional<MemOpKind> {
@@ -235,8 +235,8 @@ std::pair<MallocGeps, MallocBcasts> collectRelevantMallocUsers(llvm::CallBase& c
   auto geps   = MallocGeps{};
   auto bcasts = MallocBcasts{};
 
-  if (kind == MemOpKind::CudaMallocLike) {
-    if (auto bitcast = cuda::bitcast_for(call_inst); bitcast.has_value()) {
+  if (is_kind(kind, MemOpKind::GpuMallocLike)) {
+    if (auto bitcast = gpu::bitcast_for(call_inst, kind); bitcast.has_value()) {
       bcasts.insert(*bitcast);
     }
     return {geps, bcasts};

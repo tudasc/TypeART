@@ -31,7 +31,7 @@ class IntrinsicInst;
 }  // namespace llvm
 
 namespace typeart {
-enum class MemOpKind : uint8_t {
+enum class MemOpKind : uint16_t {
   NewLike            = 1 << 0,            // allocates, never null
   MallocLike         = 1 << 1 | NewLike,  // allocates, maybe null
   AlignedAllocLike   = 1 << 2,            // allocates aligned, maybe null
@@ -40,11 +40,18 @@ enum class MemOpKind : uint8_t {
   FreeLike           = 1 << 5,            // free memory
   DeleteLike         = 1 << 6,            // delete (cpp) memory
   CudaMallocLike     = 1 << 7,            // cuda out-parameter allocation
+  HipMallocLike      = 1 << 8,            // hip out-parameter allocation
   MallocOrCallocLike = MallocLike | CallocLike | AlignedAllocLike,
   AllocLike          = MallocOrCallocLike,
   AnyAlloc           = AllocLike | ReallocLike,
-  AnyFree            = FreeLike | DeleteLike
+  AnyFree            = FreeLike | DeleteLike,
+  GpuMallocLike      = CudaMallocLike | HipMallocLike
 };
+
+inline bool is_kind(MemOpKind kind, MemOpKind mask) {
+  return (static_cast<std::underlying_type_t<MemOpKind>>(kind) &
+          static_cast<std::underlying_type_t<MemOpKind>>(mask)) != 0;
+}
 
 struct MemOps {
   inline std::optional<MemOpKind> kind(llvm::StringRef function) const {
@@ -108,6 +115,11 @@ struct MemOps {
       {"cudaMallocManaged", MemOpKind::CudaMallocLike},
       {"cudaMallocAsync", MemOpKind::CudaMallocLike},
       {"cudaMallocFromPoolAsync", MemOpKind::CudaMallocLike},
+      {"hipMalloc", MemOpKind::HipMallocLike},
+      {"hipHostMalloc", MemOpKind::HipMallocLike},
+      {"hipMallocManaged", MemOpKind::HipMallocLike},
+      {"hipMallocAsync", MemOpKind::HipMallocLike},
+      {"hipMallocFromPoolAsync", MemOpKind::HipMallocLike},
   };
 
   const llvm::StringMap<MemOpKind> dealloc_map{
@@ -129,6 +141,9 @@ struct MemOps {
       {"cudaFree", MemOpKind::FreeLike},
       {"cudaFreeHost", MemOpKind::FreeLike},
       {"cudaFreeAsync", MemOpKind::FreeLike},
+      {"hipFree", MemOpKind::FreeLike},
+      {"hipFreeHost", MemOpKind::FreeLike},
+      {"hipFreeAsync", MemOpKind::FreeLike},
   };
   //clang-format off
 };

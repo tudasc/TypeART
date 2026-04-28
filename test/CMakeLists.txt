@@ -45,6 +45,37 @@ endfunction()
 
 cuda_runnable_detect(TYPEART_CUDA_RUNNABLE)
 
+function(hip_runnable_detect hip_is_runnable)
+  set(${hip_is_runnable} 0 PARENT_SCOPE)
+  if(NOT hip_FOUND)
+    return()
+  endif()
+
+  find_program(TYPEART_ROCM_SMI_EXEC rocm-smi)
+  mark_as_advanced(TYPEART_ROCM_SMI_EXEC)
+  if(NOT TYPEART_ROCM_SMI_EXEC)
+    return()
+  endif()
+
+  execute_process(
+    COMMAND ${TYPEART_ROCM_SMI_EXEC} -L
+    RESULT_VARIABLE smi_result
+    OUTPUT_VARIABLE smi_out
+    ERROR_QUIET
+  )
+  if(NOT smi_result EQUAL 0)
+    return()
+  endif()
+
+  string(REGEX MATCHALL "GPU [0-9]+:" smi_gpu_list ${smi_out})
+  list(LENGTH smi_gpu_list TYPEART_HIP_GPU_COUNT)
+  if(TYPEART_HIP_GPU_COUNT GREATER 0)
+    set(${hip_is_runnable} 1 PARENT_SCOPE)
+  endif()
+endfunction()
+
+hip_runnable_detect(TYPEART_HIP_RUNNABLE)
+
 macro(pythonize_bool truth_var var)
   if(${truth_var})
     set(${var} True)
@@ -76,6 +107,7 @@ function(typeart_configure_lit_site input output)
 
   set(TYPEARTPASS_CUDA_FLAGS "")
   set(TYPEARTPASS_CUDA_PATH "")
+  
   if(CUDAToolkit_FOUND)
     if(DEFINED CUDAToolkit_TARGET_DIR AND NOT "${CUDAToolkit_TARGET_DIR}" STREQUAL "")
       set(TYPEARTPASS_CUDA_PATH "${CUDAToolkit_TARGET_DIR}")
@@ -97,9 +129,14 @@ function(typeart_configure_lit_site input output)
     endif()
   endif()
 
-  set(TYPEART_CUDA_STATIC_AVAILABLE FALSE)
+  set(TYPEART_CUDA_STATIC_AVAILABLE False)
   if(CUDAToolkit_FOUND OR NOT "${TYPEARTPASS_CUDA_PATH}" STREQUAL "")
-    set(TYPEART_CUDA_STATIC_AVAILABLE TRUE)
+    set(TYPEART_CUDA_STATIC_AVAILABLE True)
+  endif()
+
+  set(TYPEART_HIP_STATIC_AVAILABLE False)
+  if(hip_FOUND)
+    set(TYPEART_HIP_STATIC_AVAILABLE True)
   endif()
 
   pythonize_bool(TYPEART_CUDA_STATIC_AVAILABLE TYPEARTPASS_CUDA_STATIC)
@@ -206,6 +243,7 @@ set(TYPEART_SUITES
   all
   pass
   cuda
+  hip
   runtime
   script
   typemapping
@@ -216,6 +254,7 @@ set(TYPEART_SUITES
 set(TYPEART_SUITES_WORKERS
   1
   ${NUM_CPU}
+  1
   1
   1
   1

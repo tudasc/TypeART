@@ -105,6 +105,8 @@ HeapArgList MemOpArgCollector::collectHeap(const MallocDataList& mallocs) {
         byte_count = malloc_call->getArgOperand(1);
         break;
       case MemOpKind::CudaMallocLike:
+        [[fallthrough]];
+      case MemOpKind::HipMallocLike:
         byte_count = malloc_call->getArgOperand(1);
         if (mdata.primary != nullptr) {
           pointer = mdata.primary->getOperand(0);

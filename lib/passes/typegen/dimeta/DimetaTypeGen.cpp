@@ -14,7 +14,7 @@
 #include "Dimeta.h"
 #include "DimetaData.h"
 #include "analysis/MemOpData.h"
-#include "support/CudaUtil.h"
+#include "support/GpuUtil.h"
 #include "support/Logger.h"
 #include "typegen/TypeGenerator.h"
 #include "typelib/TypeDatabase.h"
@@ -495,13 +495,12 @@ class DimetaTypeManager final : public TypeIDGenerator {
         LOG_DEBUG("Registering malloc-like")
 
         const auto function_name = val->location.function;
-        if (call->getCalledFunction() != nullptr && cuda::is_templated_malloc_like(function_name)) {
-          MemOps mem_operations;
-          auto kind = mem_operations.kind(call->getCalledFunction()->getName());
-          if (kind == MemOpKind::CudaMallocLike) {
-            LOG_DEBUG("Workaround for pointer level of call base " << function_name)
-            workaround::remove_pointer_level(call, val.value());
-          }
+        MemOps mem_operations;
+        auto kind = call->getCalledFunction() != nullptr ? mem_operations.kind(call->getCalledFunction()->getName()) : std::nullopt;
+
+        if (kind && is_kind(kind.value(), MemOpKind::GpuMallocLike) && gpu::is_templated_malloc_like(function_name, kind.value())) {
+          LOG_DEBUG("Workaround for pointer level of call base " << function_name)
+          workaround::remove_pointer_level(call, val.value());
         }
 
         return {getOrRegister(val->type, true), array_size(val->type)};

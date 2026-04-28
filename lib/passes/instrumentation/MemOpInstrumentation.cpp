@@ -74,7 +74,7 @@ InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
   for (const auto& [malloc, args] : heap) {
     auto kind = malloc.kind;
     Instruction* malloc_call{nullptr};
-    if (malloc.kind == MemOpKind::CudaMallocLike) {
+    if (is_kind(malloc.kind, MemOpKind::GpuMallocLike)) {
       malloc_call = llvm::cast<Instruction>(malloc.call);
     } else {
       malloc_call = args.get_as<llvm::Instruction>(ArgMap::ID::pointer);
@@ -149,7 +149,9 @@ InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
                                                             target_memory_address);
         break;
       }
-      case MemOpKind::CudaMallocLike: {
+      case MemOpKind::CudaMallocLike:
+        [[fallthrough]];
+      case MemOpKind::HipMallocLike: {
         auto* runtime_ptr_type = instrumentation_helper->getTypeFor(IType::ptr);
 #if LLVM_VERSION_MAJOR >= 15
         auto* loaded_ptr = IRB.CreateLoad(runtime_ptr_type, pointer_value);
