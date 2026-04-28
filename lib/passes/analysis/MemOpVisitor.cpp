@@ -55,9 +55,14 @@ MemOpVisitor::MemOpVisitor() : MemOpVisitor(true, true) {
 }
 
 MemOpVisitor::MemOpVisitor(const config::Configuration& config)
-    : MemOpVisitor(config[config::ConfigStdArgs::stack], config[config::ConfigStdArgs::heap]) {
+    : MemOpVisitor(config[config::ConfigStdArgs::stack], config[config::ConfigStdArgs::heap],
+                   config[config::ConfigStdArgs::gpu]) {
 }
-MemOpVisitor::MemOpVisitor(bool stack, bool heap) : collect_allocas(stack), collect_heap(heap) {
+MemOpVisitor::MemOpVisitor(bool stack, bool heap) : MemOpVisitor(stack, heap, true) {
+}
+
+MemOpVisitor::MemOpVisitor(bool stack, bool heap, bool gpu)
+    : collect_allocas(stack), collect_heap(heap), collect_gpu(gpu) {
 }
 
 void MemOpVisitor::collect(llvm::Function& function) {
@@ -92,14 +97,17 @@ void MemOpVisitor::visitCallBase(llvm::CallBase& cb) {
   if (!collect_heap) {
     return;
   }
+  const auto* called_function = cb.getCalledFunction();
+  if (!collect_gpu && called_function != nullptr && cuda::is_cuda_function(*called_function)) {
+    return;
+  }
   const auto isInSet = [&](const auto& fMap) -> std::optional<MemOpKind> {
-    const auto* f = cb.getCalledFunction();
-    if (!f) {
+    if (called_function == nullptr) {
       // TODO handle calls through, e.g., function pointers? - seems infeasible
       // LOG_INFO("Encountered indirect call, skipping.");
       return {};
     }
-    const auto name = f->getName().str();
+    const auto name = called_function->getName().str();
 
     const auto res = fMap.find(name);
     if (res != fMap.end()) {

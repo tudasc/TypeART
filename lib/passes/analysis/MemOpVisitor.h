@@ -39,11 +39,13 @@ struct MemOpVisitor : public llvm::InstVisitor<MemOpVisitor> {
   MemOps mem_operations{};
   bool collect_allocas;
   bool collect_heap;
+  bool collect_gpu;
 
  public:
   MemOpVisitor();
   explicit MemOpVisitor(const config::Configuration& config);
   MemOpVisitor(bool stack, bool heap);
+  MemOpVisitor(bool stack, bool heap, bool gpu);
   void collect(llvm::Function& function);
   void collectGlobals(llvm::Module& module);
   void clear();

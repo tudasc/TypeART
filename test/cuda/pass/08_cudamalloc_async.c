@@ -1,4 +1,4 @@
-// RUN: %cuda-c-to-llvm %s | %apply-typeart -S 2>&1 | %filecheck %s --check-prefix=%llvm-version-check
+// RUN: %cuda-c-to-llvm %s | TYPEART_GPU=1 %apply-typeart -S 2>&1 | %filecheck %s --check-prefix=%llvm-version-check
 
 // REQUIRES: cuda_static
 

@@ -1,5 +1,5 @@
-// RUN: %c-to-llvm -Wimplicit-function-declaration %s -I%runtime_path -I%base_path/lib/runtime | %apply-typeart
-// --typeart-stack=true -S 2>&1 | \ RUN: %filecheck %s
+// RUN: %c-to-llvm -Wimplicit-function-declaration %s -I%runtime_path -I%base_path/lib/runtime | %apply-typeart \
+// RUN: --typeart-stack=true -S 2>&1 | %filecheck %s
 
 #include "CallbackInterface.h"
 

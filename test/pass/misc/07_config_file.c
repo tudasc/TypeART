@@ -8,6 +8,7 @@ void test() {
 
 // CHECK:  types:           07_config_file.c.yaml
 // CHECK-NEXT:  heap:            false
+// CHECK-NEXT:  gpu:             false
 // CHECK-NEXT:  stack:           true
 // CHECK-NEXT:  global:          false
 // CHECK-NEXT:  stats:           {{.*}}

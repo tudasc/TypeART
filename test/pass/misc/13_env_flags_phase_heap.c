@@ -5,6 +5,7 @@
 // CHECK-NEXT: ---
 // CHECK-NEXT: types:           {{.*}}
 // CHECK-NEXT: heap:            true
+// CHECK-NEXT: gpu:             false
 // CHECK-NEXT: stack:           true
 // CHECK-NEXT: global:          true
 // CHECK-NEXT: stats:          false

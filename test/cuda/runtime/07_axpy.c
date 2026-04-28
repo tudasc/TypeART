@@ -1,4 +1,4 @@
-// RUN: %wrapper-cc -x cuda --cuda-gpu-arch=sm_50 %cuda_link %s -o %s.exe
+// RUN: TYPEART_GPU=true %wrapper-cc -x cuda --cuda-gpu-arch=sm_50 %cuda_link %s -o %s.exe
 // RUN: %s.exe 2>&1 | %filecheck %s
 
 // REQUIRES: cuda_runtime
