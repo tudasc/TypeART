@@ -28,7 +28,6 @@ set(RUNTIME_LIB_SOURCES
     TypeResolution.h
     Runtime.cpp
     Runtime.h
-    CudaSupport.cpp
     ${TYPEART_META_SOURCE}
     $<$<BOOL:${TYPEART_MPI_LOGGER}>:../support/MPILogger.cpp>
 )

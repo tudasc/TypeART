@@ -106,6 +106,8 @@ struct MemOps {
       {"cudaHostAlloc", MemOpKind::CudaMallocLike},
       {"cudaMallocHost", MemOpKind::CudaMallocLike},
       {"cudaMallocManaged", MemOpKind::CudaMallocLike},
+      {"cudaMallocAsync", MemOpKind::CudaMallocLike},
+      {"cudaMallocFromPoolAsync", MemOpKind::CudaMallocLike},
   };
 
   const llvm::StringMap<MemOpKind> dealloc_map{
