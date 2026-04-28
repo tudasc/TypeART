@@ -128,6 +128,7 @@ struct MemOps {
       {"_ZdaPvmSt11align_val_t", MemOpKind::DeleteLike},              /* delete[](void*, unsigned long, align_val_t) */
       {"cudaFree", MemOpKind::FreeLike},
       {"cudaFreeHost", MemOpKind::FreeLike},
+      {"cudaFreeAsync", MemOpKind::FreeLike},
   };
   //clang-format off
 };
