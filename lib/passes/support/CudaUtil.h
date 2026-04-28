@@ -13,12 +13,14 @@
 #ifndef TYPEART_CUDAUTIL_H
 #define TYPEART_CUDAUTIL_H
 
+#include "analysis/MemOpData.h"
 #include "support/Util.h"
 
 #include "llvm/IR/InstrTypes.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
 
+#include <algorithm>
 #include <optional>
 #include <string>
 
@@ -77,6 +79,21 @@ inline bool is_cuda_helper_function(const llvm::Function& function) {
   }
   const auto function_name = llvm::StringRef{function.getName()};
   return util::starts_with_any_of(function_name, "__cuda");
+}
+
+inline bool is_templated_malloc_like(llvm::StringRef name) {
+  const auto templ_start_pos = name.find_first_of('<');
+  if (templ_start_pos == llvm::StringRef::npos) {
+    return false;
+  }
+  auto extracted_fn = name.substr(0, templ_start_pos);
+  MemOps ops;
+  return ops.allocKind(extracted_fn) == MemOpKind::CudaMallocLike;
+}
+
+inline bool is_templated_malloc_like(const llvm::Function& function) {
+  const std::string name = util::try_demangle(function);
+  return is_templated_malloc_like(name);
 }
 
 }  // namespace typeart::cuda

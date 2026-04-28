@@ -14,6 +14,7 @@
 #include "Dimeta.h"
 #include "DimetaData.h"
 #include "analysis/MemOpData.h"
+#include "support/CudaUtil.h"
 #include "support/Logger.h"
 #include "typegen/TypeGenerator.h"
 #include "typelib/TypeDatabase.h"
@@ -492,15 +493,12 @@ class DimetaTypeManager final : public TypeIDGenerator {
 
       if (val) {
         LOG_DEBUG("Registering malloc-like")
-        const auto is_template_fn = [](const auto& func_str) {
-          return !func_str.empty() && func_str.back() == '>' && func_str.find('<') != std::string::npos;
-        };
 
         const auto function_name = val->location.function;
-        if (call->getCalledFunction() != nullptr && is_template_fn(function_name)) {
+        if (call->getCalledFunction() != nullptr && cuda::is_templated_malloc_like(function_name)) {
           MemOps mem_operations;
           auto kind = mem_operations.kind(call->getCalledFunction()->getName());
-          if (kind && kind.value() == MemOpKind::CudaMallocLike) {
+          if (kind == MemOpKind::CudaMallocLike) {
             LOG_DEBUG("Workaround for pointer level of call base " << function_name)
             workaround::remove_pointer_level(call, val.value());
           }
