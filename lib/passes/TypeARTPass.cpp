@@ -26,6 +26,7 @@
 #include "instrumentation/TypeIDProvider.h"
 #include "support/ConfigurationBase.h"
 #include "support/CudaUtil.h"
+#include "support/GpuUtil.h"
 #include "support/Logger.h"
 #include "support/ModuleDumper.h"
 #include "support/Table.h"
@@ -270,8 +271,8 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
 
 llvm::PreservedAnalyses
 run(llvm::Module& m, llvm::ModuleAnalysisManager&) {
-  if (cuda::is_device_module(m)) {
-    LOG_DEBUG("Skipping CUDA device module: " << m.getName());
+  if (gpu::is_device_module(m)) {
+    LOG_DEBUG("Skipping GPU device module: " << m.getName());
     return llvm::PreservedAnalyses::all();
   }
   bool changed{false};

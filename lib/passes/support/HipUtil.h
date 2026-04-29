@@ -49,6 +49,15 @@ inline std::optional<llvm::BitCastInst*> bitcast_for(const llvm::CallBase& hip_c
   return bitcast_for(hip_call.getArgOperand(0));
 }
 
+inline bool is_device_module(const llvm::Module& module) {
+#if LLVM_VERSION_MAJOR >= 20
+  const auto triple = module.getTargetTriple().str();
+#else
+  const auto triple = module.getTargetTriple();
+#endif
+  return llvm::StringRef{triple}.find("amdgcn") != llvm::StringRef::npos;
+}
+
 inline bool is_hip_function(const llvm::Function& function) {
   const auto function_name = util::try_demangle(function);
   return util::starts_with_any_of(function_name, "hip");

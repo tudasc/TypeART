@@ -1,6 +1,6 @@
 // RUN: %cuda-c-to-llvm %s | TYPEART_GPU=1 %apply-typeart -S 2>&1 | %filecheck %s --check-prefix=%llvm-version-check
 
-// REQUIRES: cuda_static
+// REQUIRES: cuda
 
 // LLVM: call i32 @cudaMalloc(ptr {{.*}}[[CU_POINTER:%[_0-9a-z]+]],
 // LLVM-NEXT: [[CUDA_PTR:%[0-9a-z_]+]] = load {{.*}}, {{.*}}[[CU_POINTER]]

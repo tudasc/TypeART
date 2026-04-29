@@ -1,6 +1,6 @@
 // RUN: %cuda-c-to-llvm %s | TYPEART_GPU=1 %apply-typeart -S 2>&1 | %filecheck %s
 
-// REQUIRES: cuda_static
+// REQUIRES: cuda
 
 // CHECK: Malloc :   2
 

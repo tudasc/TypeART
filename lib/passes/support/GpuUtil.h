@@ -19,10 +19,15 @@
 
 #include "llvm/IR/InstrTypes.h"
 #include "llvm/IR/Instructions.h"
+#include "llvm/IR/Module.h"
 
 #include <optional>
 
 namespace typeart::gpu {
+
+inline bool is_device_module(const llvm::Module& module) {
+  return cuda::is_device_module(module) || hip::is_device_module(module);
+}
 
 inline std::optional<llvm::BitCastInst*> bitcast_for(const llvm::CallBase& cb, MemOpKind kind) {
   if (kind == MemOpKind::CudaMallocLike) {

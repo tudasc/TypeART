@@ -1,6 +1,6 @@
 // RUN: %cuda-c-to-llvm %s | TYPEART_GPU=1 %apply-typeart -S 2>&1 | %filecheck %s --check-prefix=%llvm-version-check
 
-// REQUIRES: cuda_static
+// REQUIRES: cuda
 
 // LLVM: __typeart_alloc_gpu(ptr %{{[0-9a-z_]+}}, i32 23, i64 {{.*}})
 // LLVM: __typeart_alloc_gpu(ptr %{{[0-9a-z_]+}}, i32 24, i64 {{.*}})

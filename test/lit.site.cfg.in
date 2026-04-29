@@ -39,13 +39,16 @@ config.tsan=@TYPEARTPASS_TSAN@
 config.asan=@TYPEARTPASS_ASAN@
 config.ubsan=@TYPEARTPASS_UBSAN@
 config.coverage=@TYPEART_COVERAGE@
-config.cuda_static=@TYPEARTPASS_CUDA_STATIC@
-config.cuda_runtime=@TYPEARTPASS_CUDA_RUNTIME@
+config.has_cuda=@TYPEARTPASS_HAS_CUDA@
+config.cuda_runnable=@TYPEARTPASS_CUDA_RUNNABLE@
 config.cuda_flags="@TYPEARTPASS_CUDA_FLAGS@"
 config.cuda_path="@TYPEARTPASS_CUDA_PATH@"
 config.cuda_lib="@CUDAToolkit_LIBRARY_DIR@"
-
-config.has_hip = "@TYPEART_HIP_STATIC_AVAILABLE@"
+config.has_hip=@TYPEARTPASS_HAS_HIP@
+config.hip_runnable=@TYPEARTPASS_HIP_RUNNABLE@
+config.hip_flags="@TYPEARTPASS_HIP_FLAGS@"
+config.hip_link="@TYPEARTPASS_HIP_LINK_FLAGS@"
+config.hip_arch="@TYPEART_HIP_ARCH@"
 
 config.python_interp = "@Python3_EXECUTABLE@"
 

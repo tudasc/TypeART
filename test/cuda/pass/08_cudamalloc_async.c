@@ -1,6 +1,6 @@
 // RUN: %cuda-c-to-llvm %s | TYPEART_GPU=1 %apply-typeart -S 2>&1 | %filecheck %s --check-prefix=%llvm-version-check
 
-// REQUIRES: cuda_static
+// REQUIRES: cuda
 
 // clang-format off
 // LLVM: call i32 @cudaMallocAsync(ptr {{.*}}[[CU_POINTER_X:%[_0-9a-z]+]], i64{{.*}} 80, ptr {{.*}})
