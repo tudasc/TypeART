@@ -1,0 +1,82 @@
+name: 'Setup TypeART Environment'
+description: 'Sets up LLVM, Clang, OpenMPI, and other dependencies for TypeART CI'
+
+inputs:
+  llvm-version:
+    description: 'LLVM version to install'
+    required: true
+  typeart-typegen-legacy:
+    description: 'Set TYPEART_TYPEGEN_IR env variable'
+    required: false
+  install-libcxx:
+    description: 'Install libc++'
+    required: false
+    default: 'false'
+  install-lcov:
+    description: 'Install lcov'
+    required: false
+    default: 'false'
+  install-omp:
+    description: 'Install LLVM OpenMP runtime'
+    required: false
+    default: 'true'
+  setup-mold:
+    description: 'Setup Mold Linker'
+    required: false
+    default: 'false'
+
+runs:
+  using: "composite"
+  steps:
+    - name: LLVM apt
+      if: ${{ inputs.llvm-version >= 19 }}
+      shell: bash
+      run: |
+        wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+        echo "deb http://apt.llvm.org/noble/ llvm-toolchain-noble-${{ inputs.llvm-version }} main" | sudo tee /etc/apt/sources.list.d/llvm-${{ inputs.llvm-version }}.list
+
+    - name: Update apt
+      shell: bash
+      run: sudo apt-get update
+
+    - name: Install LLVM
+      shell: bash
+      run: sudo apt-get install -y libllvm${{ inputs.llvm-version }} llvm-${{ inputs.llvm-version }} llvm-${{ inputs.llvm-version }}-dev
+
+    - name: Install LLVM OpenMP runtime
+      if: ${{ inputs.install-omp == 'true' }}
+      shell: bash
+      run: sudo apt-get install -y libomp-${{ inputs.llvm-version }}-dev
+
+    - name: Install Clang
+      shell: bash
+      run: sudo apt-get install -y clang-${{ inputs.llvm-version }} clang-tidy-${{ inputs.llvm-version }}
+
+    - name: Install libc++
+      if: ${{ inputs.install-libcxx == 'true' }}
+      shell: bash
+      run: sudo apt-get install -y --no-install-recommends libc++-${{ inputs.llvm-version }}-dev libc++abi-${{ inputs.llvm-version }}-dev
+
+    - name: Install OpenMPI
+      shell: bash
+      run: sudo apt-get install -y libopenmpi-dev openmpi-bin
+
+    - name: Install lcov
+      if: ${{ inputs.install-lcov == 'true' }}
+      shell: bash
+      run: sudo apt-get install -y lcov
+
+    - name: Setup Mold Linker
+      if: ${{ inputs.setup-mold == 'true' && inputs.llvm-version > 14 }}
+      uses: rui314/setup-mold@v1
+
+    - name: Setup env
+      shell: bash
+      run: |
+        sudo ln -f -s /usr/bin/clang-${{ inputs.llvm-version }} /usr/bin/clang
+        sudo ln -f -s /usr/bin/clang++-${{ inputs.llvm-version }} /usr/bin/clang++
+        echo "LLVM_CMAKE_DIR=/usr/lib/llvm-${{ inputs.llvm-version }}/cmake" >> $GITHUB_ENV
+        echo "EXTERNAL_LIT=/usr/lib/llvm-${{ inputs.llvm-version >= 20 && 18 || inputs.llvm-version }}/build/utils/lit/lit.py" >> $GITHUB_ENV
+        if [ -n "${{ inputs.typeart-typegen-legacy }}" ]; then
+          echo "TYPEART_TYPEGEN_IR=${{ inputs.typeart-typegen-legacy }}" >> $GITHUB_ENV
+        fi

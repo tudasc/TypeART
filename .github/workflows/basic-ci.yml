@@ -81,46 +81,15 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: LLVM apt
-        if: ${{ matrix.platform.llvm-version >= 19 }}
-        run: |
-          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-          echo "deb http://apt.llvm.org/noble/ llvm-toolchain-noble-${{ matrix.platform.llvm-version }} main" | sudo tee /etc/apt/sources.list.d/llvm-${{ matrix.platform.llvm-version }}.list
-
-      - name: Update apt
-        run: sudo apt-get update
-
-      - name: Install LLVM
-        run: sudo apt-get install libllvm${{ matrix.platform.llvm-version }} llvm-${{ matrix.platform.llvm-version }} llvm-${{ matrix.platform.llvm-version }}-dev
-
-      - name: Install LLVM OpenMP runtime
-        run: sudo apt-get install libomp-${{ matrix.platform.llvm-version }}-dev
-
-      - name: Install Clang
-        run: sudo apt-get install clang-${{ matrix.platform.llvm-version }} clang-tidy-${{ matrix.platform.llvm-version }}
-
-      - name: Install libc++
-        if: matrix.preset.libcxx
-        run: sudo apt-get install --no-install-recommends libc++-${{ matrix.platform.llvm-version }}-dev libc++abi-${{ matrix.platform.llvm-version }}-dev
-
-      - name: Install OpenMPI
-        run: sudo apt-get install libopenmpi-dev openmpi-bin
-
-      - name: Install lcov
-        if: matrix.preset.coverage
-        run: sudo apt-get install lcov
-
-      - name: Setup Mold Linker
-        if: ${{ matrix.platform.llvm-version > 14 }}
-        uses: rui314/setup-mold@v1
-
-      - name: Setup env
-        run: |
-          sudo ln -f -s /usr/bin/clang-${{ matrix.platform.llvm-version }} /usr/bin/clang
-          sudo ln -f -s /usr/bin/clang++-${{ matrix.platform.llvm-version }} /usr/bin/clang++
-          echo "LLVM_CMAKE_DIR=/usr/lib/llvm-${{ matrix.platform.llvm-version }}/cmake" >> $GITHUB_ENV
-          echo "EXTERNAL_LIT=/usr/lib/llvm-${{ matrix.platform.llvm-version >= 20 && 18 || matrix.platform.llvm-version }}/build/utils/lit/lit.py" >> $GITHUB_ENV
-          echo "TYPEART_TYPEGEN_IR=${{ matrix.platform.typeart-typegen-legacy }}" >> $GITHUB_ENV
+      - name: Setup TypeART Environment
+        uses: ./.github/actions/setup-typeart
+        with:
+          llvm-version: ${{ matrix.platform.llvm-version }}
+          typeart-typegen-legacy: ${{ matrix.platform.typeart-typegen-legacy }}
+          install-libcxx: ${{ matrix.preset.libcxx || 'false' }}
+          install-lcov: ${{ matrix.preset.coverage || 'false' }}
+          install-omp: 'true'
+          setup-mold: 'true'
 
       - name: Configure TypeART
         run: cmake -B build --preset ${{ matrix.preset.name }} -DLLVM_DIR=${LLVM_CMAKE_DIR} -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT}
@@ -149,8 +118,66 @@ jobs:
           flag-name: ${{ matrix.preset.name }}-${{ matrix.platform.llvm-version }}-${{ matrix.platform.typeart-typegen-legacy }}
           parallel: true
 
+  cuda-suite:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - llvm-version: 14
+            os: ubuntu-22.04
+            cuda: 11.8.0
+          - llvm-version: 22
+            os: ubuntu-24.04
+            cuda: 12.6.0
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: Jimver/cuda-toolkit@v0.2.35
+        id: cuda-toolkit
+        with:
+          cuda: "${{ matrix.cuda }}"
+          method: network
+          sub-packages: '["nvcc", "cudart", "cudart-dev"]'
+          non-cuda-sub-packages: '["libcurand", "libcurand-dev"]'
+
+      - name: Setup TypeART Environment
+        uses: ./.github/actions/setup-typeart
+        with:
+          llvm-version: ${{ matrix.llvm-version }}
+          typeart-typegen-legacy: 0
+          install-lcov: 'true'
+          install-omp: 'true'
+          setup-mold: 'false'
+
+      - name: Configure TypeART
+        run: cmake -B build --preset ci-cov-thread-safe -DLLVM_DIR=${LLVM_CMAKE_DIR} -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT}
+
+      - name: Build TypeART
+        run: cmake --build build --parallel 2
+
+      - name: Prepare TypeART coverage
+        run: cmake --build build --target typeart-lcov-clean
+
+      - name: Test TypeART cuda-suite
+        run: cmake --build build --target check-typeart-cuda
+
+      - name: Build coverage report
+        run: cmake --build build --target typeart-lcov-html
+
+      - name: Coveralls (parallel)
+        uses: coverallsapp/github-action@v2.3.6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path-to-lcov: build/typeart.coverage
+          flag-name: cuda-suite-${{ matrix.llvm-version }}-${{ matrix.cuda }}
+          parallel: true
+
   finish-coverage:
-    needs: lit-suite
+    if: ${{ always() }}
+    needs: [lit-suite, cuda-suite]
     runs-on: ubuntu-24.04
     steps:
       - name: Coveralls Finished
