@@ -496,9 +496,11 @@ class DimetaTypeManager final : public TypeIDGenerator {
 
         const auto function_name = val->location.function;
         MemOps mem_operations;
-        auto kind = call->getCalledFunction() != nullptr ? mem_operations.kind(call->getCalledFunction()->getName()) : std::nullopt;
+        auto kind = call->getCalledFunction() != nullptr ? mem_operations.kind(call->getCalledFunction()->getName())
+                                                         : std::nullopt;
 
-        if (kind && is_kind(kind.value(), MemOpKind::GpuMallocLike) && gpu::is_templated_malloc_like(function_name, kind.value())) {
+        if (kind && is_kind(kind.value(), MemOpKind::GpuMallocLike) &&
+            gpu::is_templated_malloc_like(function_name, kind.value())) {
           LOG_DEBUG("Workaround for pointer level of call base " << function_name)
           workaround::remove_pointer_level(call, val.value());
         }

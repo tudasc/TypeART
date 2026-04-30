@@ -100,7 +100,7 @@ IFunc ifunc_for_function(IFunc general_type, llvm::Value* value) {
   } else if (llvm::isa<GlobalVariable>(value)) {
     type = detail::ifunc_type_for(nullptr);
   } else if (auto callbase = llvm::dyn_cast<CallBase>(value)) {
-    type               = detail::ifunc_type_for(callbase->getFunction());
+    type                = detail::ifunc_type_for(callbase->getFunction());
     auto called_context = detail::ifunc_type_for(callbase->getCalledFunction());
     if (called_context == detail::IFuncType::cuda || called_context == detail::IFuncType::hip) {
       type = called_context;

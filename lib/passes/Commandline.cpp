@@ -70,14 +70,14 @@ static cl::opt<ConfigStdArgTypes::stats_ty> cl_typeart_stats(CommandlineStdArgs:
                                                              cl::cat(typeart_category));
 
 static cl::opt<ConfigStdArgTypes::heap_ty> cl_typeart_instrument_heap(CommandlineStdArgs::heap,
-                                                                       cl::desc(ConfigStdArgDescriptions::heap),
-                                                                       cl::init(ConfigStdArgValues::heap),
-                                                                       cl::cat(typeart_category));
+                                                                      cl::desc(ConfigStdArgDescriptions::heap),
+                                                                      cl::init(ConfigStdArgValues::heap),
+                                                                      cl::cat(typeart_category));
 
 static cl::opt<ConfigStdArgTypes::gpu_ty> cl_typeart_instrument_gpu(CommandlineStdArgs::gpu,
-                                                                     cl::desc(ConfigStdArgDescriptions::gpu),
-                                                                     cl::init(ConfigStdArgValues::gpu),
-                                                                     cl::cat(typeart_category));
+                                                                    cl::desc(ConfigStdArgDescriptions::gpu),
+                                                                    cl::init(ConfigStdArgValues::gpu),
+                                                                    cl::cat(typeart_category));
 
 static cl::opt<ConfigStdArgTypes::global_ty> cl_typeart_instrument_global(CommandlineStdArgs::global,
                                                                           cl::desc(ConfigStdArgDescriptions::global),

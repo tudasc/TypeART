@@ -162,7 +162,7 @@ jobs:
         run: cmake --build build --target typeart-lcov-clean
 
       - name: Test TypeART cuda-suite
-        run: cmake --build build --target check-typeart-cuda
+        run: cmake --build build --target check-typeart
 
       - name: Build coverage report
         run: cmake --build build --target typeart-lcov-html
@@ -181,6 +181,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Coveralls Finished
+
         uses: coverallsapp/github-action@v2.3.6
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}

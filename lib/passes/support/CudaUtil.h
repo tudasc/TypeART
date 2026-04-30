@@ -50,7 +50,7 @@ inline std::optional<llvm::BitCastInst*> bitcast_for(const llvm::CallBase& cuda_
 }
 
 inline bool is_device_module(const llvm::Module& module) {
-#if LLVM_VERSION_MAJOR >= 20
+#if LLVM_VERSION_MAJOR >= 21
   const auto triple = module.getTargetTriple().str();
 #else
   const auto triple = module.getTargetTriple();
