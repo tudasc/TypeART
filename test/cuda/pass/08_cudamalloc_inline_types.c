@@ -8,14 +8,14 @@
 // REQUIRES: !llvm-14
 
 // INLINE: %struct._typeart_struct_layout_t = type { i32, i32, ptr }
-// INLINE: call void @__typeart_alloc_mty(ptr %{{[0-9a-z]+}}, ptr @_typeart_{{.*}}, i64 {{.*}})
+// INLINE: call void @__typeart_alloc_mty_gpu(ptr %{{[0-9a-z]+}}, ptr @_typeart_{{.*}}, i64 {{.*}})
 // INLINE: call void @__typeart_register_type(ptr @_typeart_{{.*}})
 
-// HYBRID: call void @__typeart_alloc_cuda(ptr %{{[0-9a-z]+}}, i32 {{[0-9]+}}, i64 {{.*}})
-// HYBRID: call void @__typeart_alloc_mty(ptr %{{[0-9a-z]+}}, ptr @_typeart_{{.*}}, i64 {{.*}})
+// HYBRID: call void @__typeart_alloc_gpu(ptr %{{[0-9a-z]+}}, i32 {{[0-9]+}}, i64 {{.*}})
+// HYBRID: call void @__typeart_alloc_mty_gpu(ptr %{{[0-9a-z]+}}, ptr @_typeart_{{.*}}, i64 {{.*}})
 // HYBRID: call void @__typeart_register_type(ptr @_typeart_{{.*}})
 
-// FILE: call void @__typeart_alloc_cuda(ptr %{{[0-9a-z]+}}, i32 {{[0-9]+}}, i64 {{.*}})
+// FILE: call void @__typeart_alloc_gpu(ptr %{{[0-9a-z]+}}, i32 {{[0-9]+}}, i64 {{.*}})
 
 typedef struct MyData {
   int a;

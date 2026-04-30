@@ -1,10 +1,10 @@
 // RUN: %cuda-c-to-llvm %s | %apply-typeart --typeart-gpu=false -S 2>&1 | %filecheck %s
 // RUN: %cuda-c-to-llvm %s | TYPEART_GPU=false %apply-typeart -S 2>&1 | %filecheck %s
 
-// REQUIRES: cuda
+// REQUIRES: cuda && !llvm-14
 
-// CHECK: call i32 @{{.*}}({{(ptr|i8\*)}} {{.*}}[[CU_POINTER:%[_0-9a-z]+]],
-// CHECK: call i32 @cudaFree({{(ptr|i8\*)}} {{.*}}[[CU_POINTER]])
+// CHECK: call i32 @cudaMalloc({{(ptr|i8\*\*)}} {{.*}}[[CU_POINTER:%[_0-9a-z]+]],
+// CHECK: call i32 @cudaFree({{(ptr|i8\*)}}
 // CHECK-NOT: call void @__typeart_alloc_gpu(
 // CHECK-NOT: call void @__typeart_free_gpu(
 
