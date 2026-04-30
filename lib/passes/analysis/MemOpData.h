@@ -116,6 +116,7 @@ struct MemOps {
       {"cudaMallocAsync", MemOpKind::CudaMallocLike},
       {"cudaMallocFromPoolAsync", MemOpKind::CudaMallocLike},
       {"hipMalloc", MemOpKind::HipMallocLike},
+      {"hipMallocHost", MemOpKind::HipMallocLike},
       {"hipHostMalloc", MemOpKind::HipMallocLike},
       {"hipMallocManaged", MemOpKind::HipMallocLike},
       {"hipMallocAsync", MemOpKind::HipMallocLike},

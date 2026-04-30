@@ -1,7 +1,7 @@
 // RUN: TYPEART_GPU=true %wrapper-cc -x cuda --cuda-gpu-arch=sm_50 %cuda_link %s -o %s.exe
 // RUN: %s.exe 2>&1 | %filecheck %s
 
-// REQUIRES: cuda_runtime
+// REQUIRES: cuda_runtime && softcounter
 // UNSUPPORTED: sanitizer
 
 // CHECK: [0]=2 [1]=4 [2]=6 [3]=8

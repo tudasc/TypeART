@@ -2,7 +2,7 @@
 
 // REQUIRES: hip && !llvm-14
 
-// CHECK: call i32 @hipMalloc(ptr {{.*}}[[HIP_POINTER:%[_0-9a-z]+]],
+// CHECK: call i32 @hipMallocHost(ptr {{.*}}[[HIP_POINTER:%[_0-9a-z]+]],
 // CHECK-NEXT: [[HIP_PTR:%[0-9a-z_]+]] = load ptr, ptr [[HIP_POINTER]]
 // CHECK-NEXT: call void @__typeart_alloc_gpu(ptr [[HIP_PTR]], i32 23, i64 20)
 
@@ -11,7 +11,7 @@ int main() {
   const int N = 20;
   float* d_x;
 
-  hipMalloc((void**)&d_x, N * sizeof(float));
+  hipMallocHost((void**)&d_x, N * sizeof(float));
 
   return 0;
 }
