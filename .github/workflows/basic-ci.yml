@@ -150,7 +150,7 @@ jobs:
           typeart-typegen-legacy: 0
           install-lcov: 'true'
           install-omp: 'true'
-          setup-mold: 'false'
+          setup-mold: 'true'
 
       - name: Configure TypeART
         run: cmake -B build --preset ci-cov-thread-safe -DLLVM_DIR=${LLVM_CMAKE_DIR} -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT}
@@ -175,9 +175,75 @@ jobs:
           flag-name: cuda-suite-${{ matrix.llvm-version }}-${{ matrix.cuda }}
           parallel: true
 
+  hip-suite:
+    runs-on: ubuntu-24.04
+    
+    env:
+      ROCM_PATH: /opt/rocm
+      ROCM_VERSION: 6.4.4
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup ROCm Toolchain
+        run: |
+          sudo mkdir --parents --mode=0755 /etc/apt/keyrings
+          wget -qO - https://repo.radeon.com/rocm/rocm.gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/rocm.gpg
+          echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com/rocm/apt/${ROCM_VERSION} noble main" | sudo tee /etc/apt/sources.list.d/rocm.list
+          echo -e "Package: *\nPin: release o=repo.radeon.com\nPin-Priority: 600" | sudo tee /etc/apt/preferences.d/rocm-pin-600
+          
+      - name: Install ROCm ${{ env.ROCM_VERSION }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            rocm-llvm \
+            rocm-llvm-dev \
+            rocm-dev
+          
+      - name: Setup ROCm Environment
+        run: |    
+          sudo ln -sfn /opt/rocm-${ROCM_VERSION} /opt/rocm
+          echo "/opt/rocm/llvm/bin" >> $GITHUB_PATH
+          echo "/opt/rocm/bin" >> $GITHUB_PATH
+
+      - name: Setup TypeART Environment
+        uses: ./.github/actions/setup-typeart
+        with:
+          llvm-version: 18
+          typeart-typegen-legacy: 0
+          install-lcov: 'true'
+          install-omp: 'true'
+          setup-mold: 'true'
+
+      - name: Configure TypeART
+        run: |
+         cmake -B build --preset ci-cov-thread-safe \
+           -DCMAKE_C_COMPILER=amdclang -DCMAKE_CXX_COMPILER=amdclang++ \
+           -DLLVM_DIR=${ROCM_PATH}/llvm/lib/cmake/llvm -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT}
+
+      - name: Build TypeART
+        run: cmake --build build --parallel 2
+
+      - name: Prepare TypeART coverage
+        run: cmake --build build --target typeart-lcov-clean
+
+      - name: Test TypeART hip-suite
+        run: cmake --build build --target check-typeart
+
+      - name: Build coverage report
+        run: cmake --build build --target typeart-lcov-html
+
+      - name: Coveralls (parallel)
+        uses: coverallsapp/github-action@v2.3.6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path-to-lcov: build/typeart.coverage
+          flag-name: hip-suite-rocm-${{ env.ROCM_VERSION }}
+          parallel: true
+
   finish-coverage:
     if: ${{ always() }}
-    needs: [lit-suite, cuda-suite]
+    needs: [lit-suite, cuda-suite, hip-suite]
     runs-on: ubuntu-24.04
     steps:
       - name: Coveralls Finished
