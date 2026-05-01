@@ -213,14 +213,20 @@ jobs:
           llvm-version: 18
           typeart-typegen-legacy: 0
           install-lcov: 'true'
-          install-omp: 'true'
+          install-omp: 'false'
           setup-mold: 'true'
 
       - name: Configure TypeART
         run: |
          cmake -B build --preset ci-cov-thread-safe \
-           -DCMAKE_C_COMPILER=amdclang -DCMAKE_CXX_COMPILER=amdclang++ \
-           -DLLVM_DIR=${ROCM_PATH}/llvm/lib/cmake/llvm -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT}
+            -DCMAKE_C_COMPILER=/opt/rocm/bin/amdclang \
+            -DCMAKE_CXX_COMPILER=/opt/rocm/bin/amdclang++ \
+            -DLLVM_DIR=${ROCM_PATH}/llvm/lib/cmake/llvm -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT} \
+            -DTYPEART_CLANG_EXEC=/opt/rocm/bin/amdclang \
+            -DTYPEART_CLANGCXX_EXEC=/opt/rocm/bin/amdclang++ \
+            -DTYPEART_OPT_EXEC=/opt/rocm/llvm/bin/opt \
+            -DTYPEART_LLC_EXEC=/opt/rocm/llvm/bin/llc \
+            -DTYPEART_LLVMCONFIG_COMMAND=/opt/rocm/llvm/bin/llvm-config
 
       - name: Build TypeART
         run: cmake --build build --parallel 2
