@@ -226,7 +226,8 @@ jobs:
             -DTYPEART_CLANGCXX_EXEC=/opt/rocm/bin/amdclang++ \
             -DTYPEART_OPT_EXEC=/opt/rocm/llvm/bin/opt \
             -DTYPEART_LLC_EXEC=/opt/rocm/llvm/bin/llc \
-            -DTYPEART_LLVMCONFIG_COMMAND=/opt/rocm/llvm/bin/llvm-config
+            -DTYPEART_LLVMCONFIG_COMMAND=/opt/rocm/llvm/bin/llvm-config \
+            -DCMAKE_DISABLE_FIND_PACKAGE_OpenMP=ON
 
       - name: Build TypeART
         run: cmake --build build --parallel 2
