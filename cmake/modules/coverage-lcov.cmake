@@ -5,17 +5,20 @@ if(TYPEART_LCOV_EXEC-NOTFOUND OR TYPEART_GENHTML_EXEC-NOTFOUND)
   message(WARNING "lcov and genhtml command needed for coverage.")
 endif()
 
-# Detect whether lcov supports: --ignore-errors unused
+# Detect whether lcov supports: --ignore-errors unused:
+# - avoids CUDA error "geninfo: ERROR: 'exclude' pattern '*/Version.cpp' is unused"
 set(TYPEART_LCOV_IGNORE_UNUSED)
 if(TYPEART_LCOV_EXEC)
   execute_process(
-    COMMAND ${TYPEART_LCOV_EXEC} --ignore-errors unused --version
-    RESULT_VARIABLE TYPEART_LCOV_IGNORE_UNUSED_RESULT
-    OUTPUT_QUIET
-    ERROR_QUIET
+    COMMAND ${TYPEART_LCOV_EXEC} --version
+    OUTPUT_VARIABLE TYPEART_LCOV_VERSION_STRING
+    OUTPUT_STRIP_TRAILING_WHITESPACE
   )
-  if(TYPEART_LCOV_IGNORE_UNUSED_RESULT EQUAL 0)
-    set(TYPEART_LCOV_IGNORE_UNUSED --ignore-errors unused)
+  if(TYPEART_LCOV_VERSION_STRING MATCHES "LCOV version ([0-9]+)\\.([0-9]+)")
+    set(TYPEART_LCOV_VERSION_MAJOR ${CMAKE_MATCH_1})
+    if(TYPEART_LCOV_VERSION_MAJOR GREATER_EQUAL 2)
+      set(TYPEART_LCOV_IGNORE_UNUSED --ignore-errors unused)
+    endif()
   endif()
 endif()
 
