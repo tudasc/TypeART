@@ -1,8 +1,10 @@
+// clang-format off
 // RUN: %wrapper-cc -x hip --offload-host-only -S -emit-llvm -O1 --typeart-gpu=true %s -o - 2>&1 | %filecheck %s --check-prefix=GPU-ON
 // RUN: %wrapper-cc -x hip --offload-host-only -S -emit-llvm -O1 --typeart-gpu=false %s -o - 2>&1 | %filecheck %s --check-prefix=GPU-OFF
 // RUN: %wrapper-cc -x hip --offload-host-only -S -emit-llvm -O1 --typeart-gpu --typeart-gpu=true %s -o - 2>&1 | %filecheck %s --check-prefix=GPU-ON
 // RUN: %wrapper-cc -x hip --offload-host-only -S -emit-llvm -O1 --typeart-gpu %s -o - 2>&1 | %filecheck %s --check-prefix=GPU-OFF
 // RUN: TYPEART_WRAPPER=OFF %wrapper-cc -x hip --offload-host-only -S -emit-llvm -O1 --typeart-gpu=true --typeart-gpu %s -o - 2>&1 | %filecheck %s --check-prefix=WRAPPER-OFF
+// clang-format on
 
 // REQUIRES: hip && !llvm-14
 
