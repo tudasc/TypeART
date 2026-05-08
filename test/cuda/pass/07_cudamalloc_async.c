@@ -3,25 +3,35 @@
 // REQUIRES: cuda
 
 // clang-format off
-// LLVM: call i32 @cudaMallocAsync(ptr {{.*}}[[CU_POINTER_X:%[_0-9a-z]+]], i64{{.*}} 80, ptr {{.*}})
+// LLVM: [[RET_X:%[0-9a-z_]+]] = call i32 @cudaMallocAsync(ptr {{.*}}[[CU_POINTER_X:%[_0-9a-z]+]], i64{{.*}} 80, ptr {{.*}})
+// LLVM-NEXT: [[SUCCESS_X:%[0-9a-z_]+]] = icmp eq i32 [[RET_X]], 0
+// LLVM-NEXT: br i1 [[SUCCESS_X]], label %[[LABEL_X:[0-9a-z_.]+]], label %[[SKIP_X:[0-9a-z_.]+]]
+// LLVM: [[LABEL_X]]:
 // LLVM-NEXT: [[CUDA_PTR_X:%[0-9a-z_]+]] = load ptr, ptr [[CU_POINTER_X]]
 // LLVM-NEXT: call void @__typeart_alloc_gpu(ptr [[CUDA_PTR_X]], i32 23, i64 20)
 
-// LLVM: call i32 @cudaMallocFromPoolAsync(ptr {{.*}}[[CU_POINTER_Y:%[_0-9a-z]+]], i64{{.*}} 80, ptr {{.*}}, ptr {{.*}})
+// LLVM: [[RET_Y:%[0-9a-z_]+]] = call i32 @cudaMallocFromPoolAsync(ptr {{.*}}[[CU_POINTER_Y:%[_0-9a-z]+]], i64{{.*}} 80, ptr {{.*}}, ptr {{.*}})
+// LLVM-NEXT: [[SUCCESS_Y:%[0-9a-z_]+]] = icmp eq i32 [[RET_Y]], 0
+// LLVM-NEXT: br i1 [[SUCCESS_Y]], label %[[LABEL_Y:[0-9a-z_.]+]], label %[[SKIP_Y:[0-9a-z_.]+]]
+// LLVM: [[LABEL_Y]]:
 // LLVM-NEXT: [[CUDA_PTR_Y:%[0-9a-z_]+]] = load ptr, ptr [[CU_POINTER_Y]]
 // LLVM-NEXT: call void @__typeart_alloc_gpu(ptr [[CUDA_PTR_Y]], i32 23, i64 20)
 
-// LLVM_LEGACY: [[CAST1:%[0-9a-z_]+]] = bitcast float** [[SRC_VAR:%[0-9a-zA-Z_]+]] to i8**
-// LLVM_LEGACY: call i32 @cudaMallocAsync(i8** {{.*}}[[CAST1]],
-// LLVM_LEGACY: [[CAST2:%[0-9a-z_]+]] = bitcast float** [[SRC_VAR]] to i8**
-// LLVM_LEGACY: [[LOADED_PTR:%[0-9a-z_]+]] = load i8*, i8** [[CAST2]]
-// LLVM_LEGACY: call void @__typeart_alloc_gpu(i8* [[LOADED_PTR]], i32 23, i64 20)
+// LLVM_LEGACY: [[RET_X:%[0-9a-z_]+]] = call i32 @cudaMallocAsync(i8** {{.*}}[[CAST1_X:%[0-9a-z_]+]],
+// LLVM_LEGACY-NEXT: [[SUCCESS_X:%[0-9a-z_]+]] = icmp eq i32 [[RET_X]], 0
+// LLVM_LEGACY-NEXT: br i1 [[SUCCESS_X]], label %[[LABEL_X:[0-9a-z_.]+]], label %[[SKIP_X:[0-9a-z_.]+]]
+// LLVM_LEGACY: [[LABEL_X]]:
+// LLVM_LEGACY-NEXT: [[CAST2_X:%[0-9a-z_]+]] = bitcast float** [[SRC_VAR_X:%[0-9a-zA-Z_]+]] to i8**
+// LLVM_LEGACY-NEXT: [[LOADED_PTR_X:%[0-9a-z_]+]] = load i8*, i8** [[CAST2_X]]
+// LLVM_LEGACY-NEXT: call void @__typeart_alloc_gpu(i8* [[LOADED_PTR_X]], i32 23, i64 20)
 
-// LLVM_LEGACY: [[CAST1:%[0-9a-z_]+]] = bitcast float** [[SRC_VAR:%[0-9a-zA-Z_]+]] to i8**
-// LLVM_LEGACY: call i32 @cudaMallocFromPoolAsync(i8** {{.*}}[[CAST1]],
-// LLVM_LEGACY: [[CAST2:%[0-9a-z_]+]] = bitcast float** [[SRC_VAR]] to i8**
-// LLVM_LEGACY: [[LOADED_PTR:%[0-9a-z_]+]] = load i8*, i8** [[CAST2]]
-// LLVM_LEGACY: call void @__typeart_alloc_gpu(i8* [[LOADED_PTR]], i32 23, i64 20)
+// LLVM_LEGACY: [[RET_Y:%[0-9a-z_]+]] = call i32 @cudaMallocFromPoolAsync(i8** {{.*}}[[CAST1_Y:%[0-9a-z_]+]],
+// LLVM_LEGACY-NEXT: [[SUCCESS_Y:%[0-9a-z_]+]] = icmp eq i32 [[RET_Y]], 0
+// LLVM_LEGACY-NEXT: br i1 [[SUCCESS_Y]], label %[[LABEL_Y:[0-9a-z_.]+]], label %[[SKIP_Y:[0-9a-z_.]+]]
+// LLVM_LEGACY: [[LABEL_Y]]:
+// LLVM_LEGACY-NEXT: [[CAST2_Y:%[0-9a-z_]+]] = bitcast float** [[SRC_VAR_Y:%[0-9a-zA-Z_]+]] to i8**
+// LLVM_LEGACY-NEXT: [[LOADED_PTR_Y:%[0-9a-z_]+]] = load i8*, i8** [[CAST2_Y]]
+// LLVM_LEGACY-NEXT: call void @__typeart_alloc_gpu(i8* [[LOADED_PTR_Y]], i32 23, i64 20)
 // clang-format on
 
 int main() {

@@ -117,6 +117,11 @@ function typeart_parse_cmd_line_fn() {
       shift
       ;;
     --typeart-*)
+      case "$typeart_parse_mode" in
+      ON)
+        typeart_parse_typeart_option_fn "${arg}=true" || return 1
+        ;;
+      esac
       shift
       ;;
     *)

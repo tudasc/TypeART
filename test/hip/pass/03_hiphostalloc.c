@@ -2,7 +2,10 @@
 
 // REQUIRES: hip && !llvm-14
 
-// CHECK: call i32 @hipHostMalloc(ptr {{.*}}[[HIP_POINTER:%[_0-9a-z]+]],
+// CHECK: [[RET:%[0-9a-z_]+]] = call i32 @hipHostMalloc(ptr {{.*}}[[HIP_POINTER:%[_0-9a-z]+]],
+// CHECK-NEXT: [[SUCCESS:%[0-9a-z_]+]] = icmp eq i32 [[RET]], 0
+// CHECK-NEXT: br i1 [[SUCCESS]], label %[[LABEL:[0-9a-z_.]+]], label %[[SKIP:[0-9a-z_.]+]]
+// CHECK: [[LABEL]]:
 // CHECK-NEXT: [[HIP_PTR:%[0-9a-z_]+]] = load ptr, ptr [[HIP_POINTER]]
 // CHECK-NEXT: call void @__typeart_alloc_gpu(ptr {{.*}}[[HIP_PTR]],
 

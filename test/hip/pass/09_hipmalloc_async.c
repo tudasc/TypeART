@@ -2,13 +2,21 @@
 
 // REQUIRES: hip && !llvm-14
 
-// CHECK: call i32 @{{.*}}(ptr {{.*}}[[HIP_POINTER_X:%[_0-9a-z]+]], i64 {{.*}}80, ptr {{.*}})
+// clang-format off
+// CHECK: [[RET_X:%[0-9a-z_]+]] = call i32 @{{.*}}(ptr {{.*}}[[HIP_POINTER_X:%[_0-9a-z]+]], i64 {{.*}}80, ptr {{.*}})
+// CHECK-NEXT: [[SUCCESS_X:%[0-9a-z_]+]] = icmp eq i32 [[RET_X]], 0
+// CHECK-NEXT: br i1 [[SUCCESS_X]], label %[[LABEL_X:[0-9a-z_.]+]], label %[[SKIP_X:[0-9a-z_.]+]]
+// CHECK: [[LABEL_X]]:
 // CHECK-NEXT: [[HIP_PTR_X:%[0-9a-z_]+]] = load ptr, ptr [[HIP_POINTER_X]]
 // CHECK-NEXT: call void @__typeart_alloc_gpu(ptr [[HIP_PTR_X]], i32 23, i64 20)
 
-// CHECK: call i32 @{{.*}}(ptr {{.*}}[[HIP_POINTER_Y:%[_0-9a-z]+]], i64 {{.*}}80, ptr {{.*}}, ptr {{.*}})
+// CHECK: [[RET_Y:%[0-9a-z_]+]] = call i32 @{{.*}}(ptr {{.*}}[[HIP_POINTER_Y:%[_0-9a-z]+]], i64 {{.*}}80, ptr {{.*}}, ptr {{.*}})
+// CHECK-NEXT: [[SUCCESS_Y:%[0-9a-z_]+]] = icmp eq i32 [[RET_Y]], 0
+// CHECK-NEXT: br i1 [[SUCCESS_Y]], label %[[LABEL_Y:[0-9a-z_.]+]], label %[[SKIP_Y:[0-9a-z_.]+]]
+// CHECK: [[LABEL_Y]]:
 // CHECK-NEXT: [[HIP_PTR_Y:%[0-9a-z_]+]] = load ptr, ptr [[HIP_POINTER_Y]]
 // CHECK-NEXT: call void @__typeart_alloc_gpu(ptr [[HIP_PTR_Y]], i32 23, i64 20)
+// clang-format on
 
 #include <hip/hip_runtime.h>
 

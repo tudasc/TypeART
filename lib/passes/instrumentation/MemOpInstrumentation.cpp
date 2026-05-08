@@ -41,6 +41,7 @@
 #include "llvm/IR/Type.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/Transforms/Utils/ModuleUtils.h"
 
 #include <llvm/IR/InstrTypes.h>
@@ -152,6 +153,10 @@ InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
       case MemOpKind::CudaMallocLike:
         [[fallthrough]];
       case MemOpKind::HipMallocLike: {
+        auto* is_success = IRB.CreateICmpEQ(malloc_call, llvm::ConstantInt::get(malloc_call->getType(), 0));
+        auto* then_term  = llvm::SplitBlockAndInsertIfThen(is_success, insertBefore, false);
+        IRB.SetInsertPoint(then_term);
+
         auto* runtime_ptr_type = instrumentation_helper->getTypeFor(IType::ptr);
 #if LLVM_VERSION_MAJOR >= 15
         auto* loaded_ptr = IRB.CreateLoad(runtime_ptr_type, pointer_value);
