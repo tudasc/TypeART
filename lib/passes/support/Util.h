@@ -26,10 +26,35 @@
 #include <algorithm>
 #include <llvm/ADT/StringRef.h>
 #include <llvm/IR/Constants.h>
+#include <llvm/IR/Instructions.h>
 #include <llvm/IR/Value.h>
+#include <optional>
 #include <string>
 
 namespace typeart::util {
+
+inline std::optional<llvm::BitCastInst*> bitcast_for(llvm::Value* ptr_value) {
+  if (auto* arg_bitcast = llvm::dyn_cast<llvm::BitCastInst>(ptr_value)) {
+    return arg_bitcast;
+  }
+
+  std::optional<llvm::BitCastInst*> fallback;
+  for (auto& use : ptr_value->uses()) {
+    auto* use_value = use.get();
+    auto* bitcast   = llvm::dyn_cast<llvm::BitCastInst>(use_value);
+    if (bitcast == nullptr) {
+      continue;
+    }
+
+    if (auto* primary_bitcast = llvm::dyn_cast<llvm::BitCastInst>(bitcast->getOperand(0))) {
+      return primary_bitcast;
+    }
+
+    fallback = bitcast;
+    return fallback;
+  }
+  return fallback;
+}
 
 namespace detail {
 // http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4502.pdf :

@@ -46,6 +46,7 @@ struct TypeARTAnalysisOptions {
 struct TypeARTConfigOptions {
   std::string types{ConfigStdArgValues::types};
   bool heap{ConfigStdArgValues::heap};
+  bool gpu{ConfigStdArgValues::gpu};
   bool stack{ConfigStdArgValues::stack};
   bool global{ConfigStdArgValues::global};
   bool statistics{ConfigStdArgValues::stats};

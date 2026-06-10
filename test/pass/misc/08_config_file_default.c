@@ -6,6 +6,7 @@
 
 // CHECK: types:           {{.*}}.yaml
 // CHECK-NEXT: heap:            true
+// CHECK-NEXT: gpu:             false
 // CHECK-NEXT: stack:           false
 // CHECK-NEXT: global:          false
 // CHECK-NEXT: stats:           true

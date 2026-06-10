@@ -74,6 +74,11 @@ static cl::opt<ConfigStdArgTypes::heap_ty> cl_typeart_instrument_heap(Commandlin
                                                                       cl::init(ConfigStdArgValues::heap),
                                                                       cl::cat(typeart_category));
 
+static cl::opt<ConfigStdArgTypes::gpu_ty> cl_typeart_instrument_gpu(CommandlineStdArgs::gpu,
+                                                                    cl::desc(ConfigStdArgDescriptions::gpu),
+                                                                    cl::init(ConfigStdArgValues::gpu),
+                                                                    cl::cat(typeart_category));
+
 static cl::opt<ConfigStdArgTypes::global_ty> cl_typeart_instrument_global(CommandlineStdArgs::global,
                                                                           cl::desc(ConfigStdArgDescriptions::global),
                                                                           cl::init(ConfigStdArgValues::global),
@@ -206,6 +211,7 @@ CommandLineOptions::CommandLineOptions() {
       make_entry(ConfigStdArgs::types, cl_typeart_type_file),
       make_entry(ConfigStdArgs::stats, cl_typeart_stats),
       make_entry(ConfigStdArgs::heap, cl_typeart_instrument_heap),
+      make_entry(ConfigStdArgs::gpu, cl_typeart_instrument_gpu),
       make_entry(ConfigStdArgs::global, cl_typeart_instrument_global),
       make_entry(ConfigStdArgs::stack, cl_typeart_instrument_stack),
       make_entry(ConfigStdArgs::type_serialization, cl_typeart_type_serialization),
@@ -226,6 +232,7 @@ CommandLineOptions::CommandLineOptions() {
       make_occurr_entry(ConfigStdArgs::types, cl_typeart_type_file),
       make_occurr_entry(ConfigStdArgs::stats, cl_typeart_stats),
       make_occurr_entry(ConfigStdArgs::heap, cl_typeart_instrument_heap),
+      make_occurr_entry(ConfigStdArgs::gpu, cl_typeart_instrument_gpu),
       make_occurr_entry(ConfigStdArgs::global, cl_typeart_instrument_global),
       make_occurr_entry(ConfigStdArgs::stack, cl_typeart_instrument_stack),
       make_occurr_entry(ConfigStdArgs::type_serialization, cl_typeart_type_serialization),

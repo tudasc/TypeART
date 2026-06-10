@@ -41,6 +41,7 @@
 #include "llvm/IR/Type.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/Transforms/Utils/ModuleUtils.h"
 
 #include <llvm/IR/InstrTypes.h>
@@ -72,8 +73,13 @@ InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
   const bool is_llvm_ir_type = static_cast<int>(type_gen) == static_cast<int>(TypegenImplementation::IR);
 
   for (const auto& [malloc, args] : heap) {
-    auto kind         = malloc.kind;
-    auto* malloc_call = args.get_as<Instruction>(ArgMap::ID::pointer);
+    auto kind = malloc.kind;
+    Instruction* malloc_call{nullptr};
+    if (is_kind(malloc.kind, MemOpKind::GpuMallocLike)) {
+      malloc_call = llvm::cast<Instruction>(malloc.call);
+    } else {
+      malloc_call = args.get_as<llvm::Instruction>(ArgMap::ID::pointer);
+    }
 
     Instruction* insertBefore = malloc_call->getNextNode();
     if (malloc.array_cookie) {
@@ -89,6 +95,7 @@ InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
 
     auto typeid_value    = args.get_as<ConstantInt>(ArgMap::ID::type_id);
     auto type_size_value = args.get_value(ArgMap::ID::type_size);
+    Value* pointer_value = args.get_value(ArgMap::ID::pointer);
 
     bool single_byte_type{false};
     if (auto* const_int = llvm::dyn_cast<ConstantInt>(type_size_value)) {
@@ -143,12 +150,32 @@ InstrCount MemOpInstrumentation::instrumentHeap(const HeapArgList& heap) {
                                                             target_memory_address);
         break;
       }
+      case MemOpKind::CudaMallocLike:
+        [[fallthrough]];
+      case MemOpKind::HipMallocLike: {
+        auto* is_success = IRB.CreateICmpEQ(malloc_call, llvm::ConstantInt::get(malloc_call->getType(), 0));
+        auto* then_term  = llvm::SplitBlockAndInsertIfThen(is_success, insertBefore, false);
+        IRB.SetInsertPoint(then_term);
+
+        auto* runtime_ptr_type = instrumentation_helper->getTypeFor(IType::ptr);
+#if LLVM_VERSION_MAJOR >= 15
+        auto* loaded_ptr = IRB.CreateLoad(runtime_ptr_type, pointer_value);
+#else
+        auto* pointer_slot_type = llvm::PointerType::get(runtime_ptr_type, 0);
+        auto* pointer_slot      = IRB.CreateBitOrPointerCast(pointer_value, pointer_slot_type);
+        auto* loaded_ptr        = IRB.CreateLoad(runtime_ptr_type, pointer_slot);
+#endif
+        pointer_value = IRB.CreateBitOrPointerCast(loaded_ptr, instrumentation_helper->getTypeFor(IType::ptr));
+        auto bytes    = args.get_value(ArgMap::ID::byte_count);
+        element_count = calculate_element_count(bytes);
+        break;
+      }
       default:
         LOG_ERROR("Unknown malloc kind. Not instrumenting. " << util::dump(*malloc_call));
         continue;
     }
 
-    function_instrumenter_->insert_heap_instrumentation(IRB, malloc.call, {malloc_call, element_count, typeid_value});
+    function_instrumenter_->insert_heap_instrumentation(IRB, malloc.call, {pointer_value, element_count, typeid_value});
 
     // const auto callback_id = ifunc_for_function(IFunc::heap, malloc.call);
     // auto type_id_param     = function_instrumenter->getOrRegister(typeid_value);

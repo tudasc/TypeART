@@ -2,6 +2,10 @@ typeart_find_llvm_progs(TYPEART_FILECHECK_EXEC "FileCheck-${LLVM_VERSION_MAJOR};
 
 find_package(Python3 COMPONENTS Interpreter)
 
+set(TYPEART_HIP_ARCH_OVERRIDE "" CACHE STRING "Override HIP offload architecture for lit tests (e.g., gfx1031)")
+
+option(TYPEART_DEBUG_HIP_TARGETS "Print HIP target properties during configure" OFF)
+
 if(LLVM_EXTERNAL_LIT)
   cmake_path(GET LLVM_EXTERNAL_LIT PARENT_PATH LLVM_EXTERNAL_LIT_DIR)
 endif()
@@ -13,6 +17,80 @@ typeart_find_llvm_progs(TYPEART_LIT_EXEC
 )
 
 # add_subdirectory(compat)
+
+function(cuda_runnable_detect cuda_is_runnable)
+  set(${cuda_is_runnable} 0 PARENT_SCOPE)
+  if(NOT CUDAToolkit_FOUND)
+    return()
+  endif()
+
+  find_program(TYPEART_NVIDIA_SMI_EXEC nvidia-smi)
+  mark_as_advanced(TYPEART_NVIDIA_SMI_EXEC)
+  if(NOT TYPEART_NVIDIA_SMI_EXEC)
+    return()
+  endif()
+
+  execute_process(
+    COMMAND ${TYPEART_NVIDIA_SMI_EXEC} -L
+    RESULT_VARIABLE smi_result
+    OUTPUT_VARIABLE smi_out
+    ERROR_QUIET
+  )
+  if(NOT smi_result EQUAL 0)
+    return()
+  endif()
+
+  string(REGEX MATCHALL "GPU [0-9]+:" smi_gpu_list ${smi_out})
+  list(LENGTH smi_gpu_list TYPEART_CUDA_GPU_COUNT)
+  if(TYPEART_CUDA_GPU_COUNT GREATER 0)
+    set(${cuda_is_runnable} 1 PARENT_SCOPE)
+  endif()
+endfunction()
+
+cuda_runnable_detect(TYPEART_CUDA_RUNNABLE)
+
+function(hip_runnable_detect hip_is_runnable hip_arch)
+  set(${hip_is_runnable} 0 PARENT_SCOPE)
+  set(${hip_arch} "" PARENT_SCOPE)
+  if(NOT hip_FOUND)
+    return()
+  endif()
+
+  find_program(TYPEART_ROCM_SMI_EXEC rocm-smi)
+  mark_as_advanced(TYPEART_ROCM_SMI_EXEC)
+  if(NOT TYPEART_ROCM_SMI_EXEC)
+    return()
+  endif()
+
+  execute_process(
+    COMMAND ${TYPEART_ROCM_SMI_EXEC} --showproductname --showuniqueid --json
+    RESULT_VARIABLE smi_result
+    OUTPUT_VARIABLE smi_out
+    ERROR_QUIET
+  )
+  if(NOT smi_result EQUAL 0)
+    return()
+  endif()
+
+  string(FIND "${smi_out}" "{" json_start)
+  if(json_start EQUAL -1)
+    return()
+  endif()
+
+  string(SUBSTRING "${smi_out}" ${json_start} -1 clean_json)
+  string(JSON TYPEART_HIP_GPU_COUNT LENGTH "${clean_json}")
+
+  if(TYPEART_HIP_GPU_COUNT GREATER 0)
+    set(${hip_is_runnable} 1 PARENT_SCOPE)
+    string(JSON TYPEART_HIP_ARCH GET "${clean_json}" "card0" "GFX Version")
+    set(${hip_arch} ${TYPEART_HIP_ARCH} PARENT_SCOPE)
+  endif()
+endfunction()
+
+hip_runnable_detect(TYPEART_HIP_RUNNABLE TYPEART_HIP_ARCH)
+if(TYPEART_HIP_ARCH_OVERRIDE)
+  set(TYPEART_HIP_ARCH ${TYPEART_HIP_ARCH_OVERRIDE})
+endif()
 
 macro(pythonize_bool truth_var var)
   if(${truth_var})
@@ -42,6 +120,59 @@ function(typeart_configure_lit_site input output)
   pythonize_bool(OPENMP_FOUND TYPEARTPASS_OPENMP)
   pythonize_bool(Threads_FOUND TYPEARTPASS_THREADS)
   pythonize_bool(TYPEART_DISABLE_THREAD_SAFETY TYPEARTPASS_THREAD_UNSAFE)
+
+  set(TYPEARTPASS_CUDA_FLAGS "")
+  set(TYPEARTPASS_CUDA_PATH "")
+  set(TYPEARTPASS_HIP_FLAGS "")
+  set(TYPEARTPASS_HIP_LINK_FLAGS "")
+
+  if(CUDAToolkit_FOUND)
+    if(DEFINED CUDAToolkit_TARGET_DIR AND NOT "${CUDAToolkit_TARGET_DIR}" STREQUAL "")
+      set(TYPEARTPASS_CUDA_PATH "${CUDAToolkit_TARGET_DIR}")
+    elseif(DEFINED CUDAToolkit_LIBRARY_ROOT AND NOT "${CUDAToolkit_LIBRARY_ROOT}" STREQUAL "")
+      set(TYPEARTPASS_CUDA_PATH "${CUDAToolkit_LIBRARY_ROOT}")
+    elseif(DEFINED CUDAToolkit_BIN_DIR AND NOT "${CUDAToolkit_BIN_DIR}" STREQUAL "")
+      cmake_path(GET CUDAToolkit_BIN_DIR PARENT_PATH TYPEARTPASS_CUDA_PATH)
+    endif()
+
+    if(CUDAToolkit_INCLUDE_DIRS)
+      list(TRANSFORM CUDAToolkit_INCLUDE_DIRS PREPEND "-isystem ")
+      list(JOIN CUDAToolkit_INCLUDE_DIRS " " TYPEARTPASS_CUDA_FLAGS)
+      string(PREPEND TYPEARTPASS_CUDA_FLAGS " ")
+    endif()
+  endif()
+
+  set(TYPEART_CUDA_STATIC_AVAILABLE ${CUDAToolkit_FOUND})
+
+  set(TYPEART_HIP_STATIC_AVAILABLE False)
+  if(hip_FOUND)
+    set(TYPEART_HIP_STATIC_AVAILABLE True)
+
+    set(TYPEART_HIP_INCLUDE_DIR_INPUT "")
+    if(hip_INCLUDE_DIRS)
+      set(TYPEART_HIP_INCLUDE_DIR_INPUT ${hip_INCLUDE_DIRS})
+    elseif(hip_INCLUDE_DIR)
+      set(TYPEART_HIP_INCLUDE_DIR_INPUT ${hip_INCLUDE_DIR})
+    endif()
+
+    if(TYPEART_HIP_INCLUDE_DIR_INPUT)
+      list(TRANSFORM TYPEART_HIP_INCLUDE_DIR_INPUT PREPEND "-isystem ")
+      list(JOIN TYPEART_HIP_INCLUDE_DIR_INPUT " " TYPEARTPASS_HIP_FLAGS)
+      string(PREPEND TYPEARTPASS_HIP_FLAGS " ")
+    endif()
+
+    set(TYPEART_HIP_LINK_FLAGS_MISC "--hip-link")
+    if(hip_LIB_INSTALL_DIR)
+      list(APPEND TYPEART_HIP_LINK_FLAGS_MISC "-L${hip_LIB_INSTALL_DIR}")
+      list(APPEND TYPEART_HIP_LINK_FLAGS_MISC "-Wl,-rpath,${hip_LIB_INSTALL_DIR}")
+    endif()
+    list(JOIN TYPEART_HIP_LINK_FLAGS_MISC " " TYPEARTPASS_HIP_LINK_FLAGS)
+  endif()
+
+  pythonize_bool(TYPEART_CUDA_STATIC_AVAILABLE TYPEARTPASS_HAS_CUDA)
+  pythonize_bool(TYPEART_CUDA_RUNNABLE TYPEARTPASS_CUDA_RUNNABLE)
+  pythonize_bool(TYPEART_HIP_STATIC_AVAILABLE TYPEARTPASS_HAS_HIP)
+  pythonize_bool(TYPEART_HIP_RUNNABLE TYPEARTPASS_HIP_RUNNABLE)
 
   pythonize_bool(MPI_C_FOUND TYPEARTPASS_MPI_C)
   pythonize_bool(MPI_CXX_FOUND TYPEARTPASS_MPI_CXX)
@@ -143,6 +274,8 @@ endif()
 set(TYPEART_SUITES
   all
   pass
+  cuda
+  hip
   runtime
   script
   typemapping
@@ -155,7 +288,10 @@ set(TYPEART_SUITES_WORKERS
   ${NUM_CPU}
   1
   1
+  1
+  1
   ${NUM_CPU}
+  1
   1
 )
 

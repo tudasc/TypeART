@@ -5,6 +5,7 @@
 #include "support/ConfigurationBase.h"
 #include "support/Logger.h"
 
+#include "llvm/IR/Constants.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/GlobalVariable.h"
 #include "llvm/IR/IRBuilder.h"
@@ -55,8 +56,9 @@ llvm::CallInst* CallbackFunctionInserter::create_instrumentation_call(llvm::IRBu
   const auto callback_id = ifunc_for_function(callback_type, instruction_or_value);
   auto type_id_param_out = type_id_handler_->getOrRegister(args.typeid_value);
 
-  const auto mode = llvm::isa<llvm::GlobalVariable>(type_id_param_out) ? mode_ : TypeSerializationImplementation::FILE;
-  auto function   = function_query_->getFunctionFor(callback_id, mode);
+  const bool has_global_type_payload = !llvm::isa<llvm::ConstantInt>(type_id_param_out);
+  const auto mode                    = has_global_type_payload ? mode_ : TypeSerializationImplementation::FILE;
+  auto function                      = function_query_->getFunctionFor(callback_id, mode);
 
   return IRB.CreateCall(function,
                         llvm::ArrayRef<llvm::Value*>{args.pointer_value, type_id_param_out, args.element_count});

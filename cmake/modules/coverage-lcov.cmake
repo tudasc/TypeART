@@ -5,6 +5,23 @@ if(TYPEART_LCOV_EXEC-NOTFOUND OR TYPEART_GENHTML_EXEC-NOTFOUND)
   message(WARNING "lcov and genhtml command needed for coverage.")
 endif()
 
+# Detect whether lcov supports: --ignore-errors unused:
+# - avoids CUDA error "geninfo: ERROR: 'exclude' pattern '*/Version.cpp' is unused"
+set(TYPEART_LCOV_IGNORE_UNUSED)
+if(TYPEART_LCOV_EXEC)
+  execute_process(
+    COMMAND ${TYPEART_LCOV_EXEC} --version
+    OUTPUT_VARIABLE TYPEART_LCOV_VERSION_STRING
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
+  if(TYPEART_LCOV_VERSION_STRING MATCHES "LCOV version ([0-9]+)\\.([0-9]+)")
+    set(TYPEART_LCOV_VERSION_MAJOR ${CMAKE_MATCH_1})
+    if(TYPEART_LCOV_VERSION_MAJOR GREATER_EQUAL 2)
+      set(TYPEART_LCOV_IGNORE_UNUSED --ignore-errors unused)
+    endif()
+  endif()
+endif()
+
 add_custom_target(
   typeart-lcov-clean
   COMMAND ${TYPEART_LCOV_EXEC} -d ${CMAKE_BINARY_DIR} -z
@@ -27,7 +44,7 @@ endif()
 
 add_custom_target(
   typeart-lcov-make
-  COMMAND ${TYPEART_LCOV_EXEC} ${GCOV_TOOL} ${GCOV_WORKAROUND}
+  COMMAND ${TYPEART_LCOV_EXEC} ${GCOV_TOOL} ${GCOV_WORKAROUND} ${TYPEART_LCOV_IGNORE_UNUSED}
           --no-external -c -d ${CMAKE_BINARY_DIR} -b ${CMAKE_SOURCE_DIR} -o typeart.coverage
   COMMAND ${TYPEART_LCOV_EXEC} --rc derive_function_end_line=0 --remove typeart.coverage '${CMAKE_BINARY_DIR}/*' -o typeart.coverage
 )
@@ -50,7 +67,7 @@ function(typeart_target_lcov target)
 
   add_custom_target(
     typeart-lcov-make-${target}
-    COMMAND ${TYPEART_LCOV_EXEC} ${GCOV_TOOL} ${GCOV_WORKAROUND}
+    COMMAND ${TYPEART_LCOV_EXEC} ${GCOV_TOOL} ${GCOV_WORKAROUND} ${TYPEART_LCOV_IGNORE_UNUSED}
             --no-external -c -d ${CMAKE_BINARY_DIR}
             -b ${LCOV_TARGET_SOURCE_DIR} -o counter-${target}.pro
     COMMAND ${TYPEART_LCOV_EXEC} --remove counter-${target}.pro '${CMAKE_BINARY_DIR}/*'

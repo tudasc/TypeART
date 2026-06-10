@@ -164,6 +164,7 @@ Specifically, `TYPEART_OPTIONS` can globally modify the TypeART pass (stack/heap
 | `TYPEART_STACK`                            | `stack`                            |       `false`        | Instrument stack and global allocations. Enables instrumentation of global allocations.                                                                    |
 | `TYPEART_STACK_LIFETIME`                   | `stack-lifetime`                   |        `true`        | Instrument stack `llvm.lifetime.start` instead of `alloca` directly                                                                                        |
 | `TYPEART_GLOBAL`                           | `global`                           |       `false`        | Instrument global allocations (see stack).                                                                                                                 |
+| `TYPEART_GPU`                              | `gpu`                              |       `false`        | Instrument GPU allocation/free instructions (HIP and CUDA).                                                                                                |
 | `TYPEART_TYPEGEN`                          | `typegen`                          |       `dimeta`       | Values: `dimeta`, `ir`. How serializing of type information is done, see [Section 2.2](#22-serialized-type-information).                                   |
 | `TYPEART_TYPE_SERIALIZATION`               | `type-serialization`               |       `hybrid`       | Values: `file`, `hybrid`, `inline`. How type information are stored (in the executable or externally), see [Section 2.2](#22-serialized-type-information). |
 | `TYPEART_STATS`                            | `stats`                            |       `false`        | Show instrumentation statistic counters                                                                                                                    |
@@ -184,6 +185,11 @@ Additionally, there are two debug environment flags for dumping the LLVM IR per 
 | `TYPEART_PASS_INTERNAL_EMIT_IR` | Internal pass use only. Toggled by wrapper.                                                                                     |
 
 <!--- @formatter:on --->
+
+#### 2.1.1 Passing options via compiler wrapper
+
+The compiler wrappers support passing TypeART options directly via the command line using the `--typeart-<option name>=<value>` syntax. For boolean flags, no assignment value is required to enable them. These options are transformed into the corresponding `TYPEART_<OPTION>=<value>` environment variables by the wrapper. For example, invoking, e.g., `typeart-clang` with `--typeart-gpu` is equivalent to setting `TYPEART_GPU=true` in the environment.
+
 
 
 ### 2.2 Serialized type information
@@ -284,7 +290,7 @@ void foo() {
 
 ## 3. Building TypeART
 
-TypeART supports LLVM version 14, 18-21, and CMake version >= 3.20.
+TypeART supports LLVM version 14, 18-22, and CMake version >= 3.20.
 
 ### 3.1 Optional software requirements
 
@@ -316,10 +322,10 @@ $> cmake --build build --target install --parallel
 
 <!--- @formatter:off --->
 
-| Option                       | Default | Description                                                                      |
-|------------------------------|:-------:|----------------------------------------------------------------------------------|
-| `TYPEART_MPI_WRAPPER`        |  `ON`   | Install TypeART MPI wrapper (mpic, mpic++). Requires MPI.                        |
-| `TYPEART_USE_LEGACY_WRAPPER` |  `OFF`  | Use legacy wrapper invoking opt/llc directly instead of Clang's `-fpass-plugin`. |
+| Option                       | Default | Description                                                                                   |
+|------------------------------|:-------:|-----------------------------------------------------------------------------------------------|
+| `TYPEART_MPI_WRAPPER`        |  `ON`   | Install TypeART MPI wrapper (mpic, mpic++). Requires MPI.                                     |
+| `TYPEART_USE_LEGACY_WRAPPER` |  `OFF`  | (Deprecated) Use legacy wrapper invoking opt/llc directly instead of Clang's `-fpass-plugin`. |
 
 
 <!--- @formatter:on --->

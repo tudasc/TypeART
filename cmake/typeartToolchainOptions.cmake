@@ -163,6 +163,20 @@ set_package_properties(Python3 PROPERTIES
   "The Python3 interpreter is used for lit-testing and the MPI interceptor tool code generation."
 )
 
+find_package(CUDAToolkit QUIET)
+set_package_properties(CUDAToolkit PROPERTIES
+  TYPE OPTIONAL
+  PURPOSE
+  "CUDA toolkit enables host-side CUDA instrumentation and runtime helpers."
+)
+
+find_package(hip QUIET)
+set_package_properties(hip PROPERTIES
+  TYPE OPTIONAL
+  PURPOSE
+  "HIP enables host-side HIP instrumentation and runtime helpers."
+)
+
 typeart_find_llvm_progs(TYPEART_CLANG_EXEC "clang-${LLVM_VERSION_MAJOR};clang" DEFAULT_EXE "clang")
 typeart_find_llvm_progs(TYPEART_CLANGCXX_EXEC "clang++-${LLVM_VERSION_MAJOR};clang++" DEFAULT_EXE "clang++")
 typeart_find_llvm_progs(TYPEART_LLC_EXEC "llc-${LLVM_VERSION_MAJOR};llc" DEFAULT_EXE "llc")

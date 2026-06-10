@@ -13,6 +13,8 @@
 #include "../TypeIDGenerator.h"
 #include "Dimeta.h"
 #include "DimetaData.h"
+#include "analysis/MemOpData.h"
+#include "support/GpuUtil.h"
 #include "support/Logger.h"
 #include "typegen/TypeGenerator.h"
 #include "typelib/TypeDatabase.h"
@@ -97,6 +99,29 @@ auto apply_function(const Type& type, Func&& handle_qualified_type) {
 }  // namespace detail
 
 namespace workaround {
+namespace detail {
+void remove_pointer_level_impl(dimeta::LocatedType& val) {
+  const auto remove_pointer_level = [](auto& qual) {
+    auto pointer_like_iter = llvm::find_if(qual, [](auto qualifier) {
+      switch (qualifier) {
+        case dimeta::Qualifier::kPtr:
+        case dimeta::Qualifier::kRef:
+        case dimeta::Qualifier::kPtrToMember:
+          return true;
+        default:
+          break;
+      }
+      return false;
+    });
+    if (pointer_like_iter != std::end(qual)) {
+      LOG_DEBUG("Removing pointer level " << static_cast<int>(*pointer_like_iter))
+      qual.erase(pointer_like_iter);
+    }
+  };
+  std::visit([&](auto&& qualified_type) { remove_pointer_level(qualified_type.qual); }, val.type);
+}
+}  // namespace detail
+
 void remove_pointer_level(const llvm::AllocaInst* alloc, dimeta::LocatedType& val) {
   // If the alloca instruction is not a pointer, but the located_type has a pointer-like qualifier, we remove it.
   // Workaround for inlining issue, see test typemapping/05_milc_inline_metadata.c
@@ -105,27 +130,16 @@ void remove_pointer_level(const llvm::AllocaInst* alloc, dimeta::LocatedType& va
   // this will cause MPI handle arrays (typedef "ptr to opaque struct") to be considered a pointer
   if (!alloc->getAllocatedType()->isPointerTy() && !alloc->getAllocatedType()->isArrayTy()) {
     LOG_DEBUG("Alloca is not a pointer type: " << *alloc->getAllocatedType())
-
-    const auto remove_pointer_level = [](auto& qual) {
-      auto pointer_like_iter = llvm::find_if(qual, [](auto qualifier) {
-        switch (qualifier) {
-          case dimeta::Qualifier::kPtr:
-          case dimeta::Qualifier::kRef:
-          case dimeta::Qualifier::kPtrToMember:
-            return true;
-          default:
-            break;
-        }
-        return false;
-      });
-      if (pointer_like_iter != std::end(qual)) {
-        LOG_DEBUG("Removing pointer level " << static_cast<int>(*pointer_like_iter))
-        qual.erase(pointer_like_iter);
-      }
-    };
-    std::visit([&](auto&& qualified_type) { remove_pointer_level(qualified_type.qual); }, val.type);
+    detail::remove_pointer_level_impl(val);
   }
 }
+
+void remove_pointer_level(const llvm::CallBase* call, dimeta::LocatedType& val) {
+  // If the call base is a templated cudaMalloc<...> call, current we need to remove a single pointer level to correct
+  // determine the allocated type
+  detail::remove_pointer_level_impl(val);
+}
+
 }  // namespace workaround
 
 template <typename Type>
@@ -479,6 +493,17 @@ class DimetaTypeManager final : public TypeIDGenerator {
 
       if (val) {
         LOG_DEBUG("Registering malloc-like")
+
+        const auto function_name = val->location.function;
+        MemOps mem_operations;
+        auto kind = call->getCalledFunction() != nullptr ? mem_operations.kind(call->getCalledFunction()->getName())
+                                                         : std::nullopt;
+
+        if (kind && is_kind(kind.value(), MemOpKind::GpuMallocLike) &&
+            gpu::is_templated_malloc_like(function_name, kind.value())) {
+          LOG_DEBUG("Workaround for pointer level of call base " << function_name)
+          workaround::remove_pointer_level(call, val.value());
+        }
 
         return {getOrRegister(val->type, true), array_size(val->type)};
       }

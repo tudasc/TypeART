@@ -16,6 +16,7 @@
 #define TYPEART_PASS_BUILDER_UTIL_H
 
 #include "support/Logger.h"
+#include "support/Util.h"
 
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Error.h"
@@ -29,11 +30,7 @@ inline bool checkParametrizedPassName(llvm::StringRef Name, llvm::StringRef Pass
   // normal pass name w/o parameters == default parameters
   if (Name.empty())
     return true;
-#if LLVM_VERSION_MAJOR > 15
-  return Name.starts_with("<") && Name.ends_with(">");
-#else
-  return Name.startswith("<") && Name.endswith(">");
-#endif
+  return starts_with_any_of(Name, "<") && ends_with_any_of(Name, ">");
 }
 
 /// This performs customized parsing of pass name with parameters.

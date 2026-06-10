@@ -17,6 +17,7 @@
 #include "configuration/Configuration.h"
 #include "support/ConfigurationBase.h"
 #include "support/Error.h"
+#include "support/GpuUtil.h"
 #include "support/Logger.h"
 #include "support/TypeUtil.h"
 #include "support/Util.h"
@@ -54,9 +55,14 @@ MemOpVisitor::MemOpVisitor() : MemOpVisitor(true, true) {
 }
 
 MemOpVisitor::MemOpVisitor(const config::Configuration& config)
-    : MemOpVisitor(config[config::ConfigStdArgs::stack], config[config::ConfigStdArgs::heap]) {
+    : MemOpVisitor(config[config::ConfigStdArgs::stack], config[config::ConfigStdArgs::heap],
+                   config[config::ConfigStdArgs::gpu]) {
 }
-MemOpVisitor::MemOpVisitor(bool stack, bool heap) : collect_allocas(stack), collect_heap(heap) {
+MemOpVisitor::MemOpVisitor(bool stack, bool heap) : MemOpVisitor(stack, heap, true) {
+}
+
+MemOpVisitor::MemOpVisitor(bool stack, bool heap, bool gpu)
+    : collect_allocas(stack), collect_heap(heap), collect_gpu(gpu) {
 }
 
 void MemOpVisitor::collect(llvm::Function& function) {
@@ -91,14 +97,17 @@ void MemOpVisitor::visitCallBase(llvm::CallBase& cb) {
   if (!collect_heap) {
     return;
   }
+  const auto* called_function = cb.getCalledFunction();
+  if (!collect_gpu && called_function != nullptr && gpu::is_gpu_function(*called_function)) {
+    return;
+  }
   const auto isInSet = [&](const auto& fMap) -> std::optional<MemOpKind> {
-    const auto* f = cb.getCalledFunction();
-    if (!f) {
+    if (called_function == nullptr) {
       // TODO handle calls through, e.g., function pointers? - seems infeasible
       // LOG_INFO("Encountered indirect call, skipping.");
       return {};
     }
-    const auto name = f->getName().str();
+    const auto name = called_function->getName().str();
 
     const auto res = fMap.find(name);
     if (res != fMap.end()) {
@@ -222,9 +231,16 @@ void collect_casts_from_stack(llvm::StoreInst* store_inst, MallocBcasts& out_bca
   }
 }
 
-std::pair<MallocGeps, MallocBcasts> collectRelevantMallocUsers(llvm::CallBase& call_inst) {
+std::pair<MallocGeps, MallocBcasts> collectRelevantMallocUsers(llvm::CallBase& call_inst, MemOpKind kind) {
   auto geps   = MallocGeps{};
   auto bcasts = MallocBcasts{};
+
+  if (is_kind(kind, MemOpKind::GpuMallocLike)) {
+    if (auto bitcast = gpu::bitcast_for(call_inst, kind); bitcast.has_value()) {
+      bcasts.insert(*bitcast);
+    }
+    return {geps, bcasts};
+  }
 
   for (auto* user : call_inst.users()) {
     if (auto* bit_cast = llvm::dyn_cast<llvm::BitCastInst>(user)) {
@@ -325,7 +341,7 @@ std::optional<ArrayCookieData> handleArrayCookie(llvm::CallBase& ci, const Mallo
 }
 
 void MemOpVisitor::visitMallocLike(llvm::CallBase& ci, MemOpKind k) {
-  auto [geps, bcasts] = collectRelevantMallocUsers(ci);
+  auto [geps, bcasts] = collectRelevantMallocUsers(ci, k);
   auto primary_cast   = bcasts.empty() ? nullptr : *bcasts.begin();
   auto array_cookie   = handleArrayCookie(ci, geps, bcasts, primary_cast);
   if (primary_cast == nullptr) {

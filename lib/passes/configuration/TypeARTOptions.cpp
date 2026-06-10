@@ -90,6 +90,7 @@ struct llvm::yaml::MappingTraits<typeart::config::TypeARTConfigOptions> {
     using typeart::config::ConfigStdArgs;
     yml_io.mapRequired(ConfigStdArgs::types, info.types);
     yml_io.mapRequired(ConfigStdArgs::heap, info.heap);
+    yml_io.mapOptional(ConfigStdArgs::gpu, info.gpu);
     yml_io.mapRequired(ConfigStdArgs::stack, info.stack);
     yml_io.mapOptional(ConfigStdArgs::global, info.global);
     yml_io.mapOptional(ConfigStdArgs::stats, info.statistics);
@@ -138,6 +139,7 @@ TypeARTConfigOptions construct_with(Constructor&& make_entry) {
   make_entry(ConfigStdArgs::types, config.types);
   make_entry(ConfigStdArgs::stats, config.statistics);
   make_entry(ConfigStdArgs::heap, config.heap);
+  make_entry(ConfigStdArgs::gpu, config.gpu);
   make_entry(ConfigStdArgs::global, config.global);
   make_entry(ConfigStdArgs::stack, config.stack);
   make_entry(ConfigStdArgs::stack_lifetime, config.stack_lifetime);
@@ -186,6 +188,7 @@ OptionsMap options_to_map(const TypeARTConfigOptions& config) {
       make_entry(ConfigStdArgs::types, config.types),
       make_entry(ConfigStdArgs::stats, config.statistics),
       make_entry(ConfigStdArgs::heap, config.heap),
+      make_entry(ConfigStdArgs::gpu, config.gpu),
       make_entry(ConfigStdArgs::global, config.global),
       make_entry(ConfigStdArgs::stack, config.stack),
       make_entry(ConfigStdArgs::stack_lifetime, config.stack_lifetime),

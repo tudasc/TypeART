@@ -69,15 +69,69 @@ function typeart_is_linking_fn() {
   return 1
 }
 
+function typeart_parse_typeart_option_fn() {
+  local typeart_option="$1"
+  local option_payload="${typeart_option#--typeart-}"
+  local option_name="${option_payload%%=*}"
+  local option_value="${option_payload#*=}"
+
+  if [ -z "$option_name" ] || [ "$option_payload" = "$option_value" ]; then
+    echo "TypeART wrapper option requires --typeart-<option>=<value>: ${typeart_option}" >&2
+    return 1
+  fi
+
+  case "$option_name" in
+  config)
+    export TYPEART_CONFIG_FILE="$option_value"
+    ;;
+  *)
+    local typeart_env_name="${option_name//-/_}"
+    typeart_env_name="${typeart_env_name^^}"
+    export "TYPEART_${typeart_env_name}=${option_value}"
+    ;;
+  esac
+  return 0
+}
+
 function typeart_parse_cmd_line_fn() {
+  local typeart_parse_mode="$1"
+  shift
   local typeart_has_debug=0
-  for arg in "$@"; do
-    if [ "$arg" = "-g" ]; then
+  typeart_forwarded_args=()
+
+  while (($#)); do
+    arg="$1"
+
+    case "$arg" in
+    -g)
       typeart_has_debug=1
-      break
-    fi
+      typeart_forwarded_args+=("$arg")
+      shift
+      ;;
+    --typeart-*=*)
+      case "$typeart_parse_mode" in
+      ON)
+        typeart_parse_typeart_option_fn "$arg" || return 1
+        ;;
+      esac
+      shift
+      ;;
+    --typeart-*)
+      case "$typeart_parse_mode" in
+      ON)
+        typeart_parse_typeart_option_fn "${arg}=true" || return 1
+        ;;
+      esac
+      shift
+      ;;
+    *)
+      typeart_forwarded_args+=("$arg")
+      shift
+      ;;
+    esac
   done
-  if [ $typeart_has_debug == 0 ]; then
+
+  if [ "$typeart_parse_mode" = "ON" ] && [ "$typeart_has_debug" == 0 ]; then
     typeart_more_flags+=" -g"
   fi
 }
@@ -87,21 +141,22 @@ function typeart_main_driver_fn() {
 
   typeart_is_wrapper_disabled_fn
   if [ "$?" == 1 ]; then
-    # shellcheck disable=SC2068
-    $typeart_compiler $@
+    typeart_parse_cmd_line_fn OFF "$@"
+    $typeart_compiler "${typeart_forwarded_args[@]}"
     return 0
   fi
   
-  typeart_parse_cmd_line_fn "$@"
+  typeart_parse_cmd_line_fn ON "$@"
+  if [ "$?" != 0 ]; then
+    return 1
+  fi
 
-  typeart_is_linking_fn "$@"
+  typeart_is_linking_fn "${typeart_forwarded_args[@]}"
   if [ "$?" == 1 ]; then
     typeart_more_flags+=" ${typeart_ldflags}"
   fi
   
-  # export TYPEART_TYPE_SERIALIZATION="${TYPEART_TYPE_SERIALIZATION:-hybrid}"
-  
-  $typeart_compiler ${typeart_plugin} ${typeart_includes} ${typeart_more_flags} ${typeart_san_flags} $@
+  $typeart_compiler ${typeart_plugin} ${typeart_includes} ${typeart_more_flags} ${typeart_san_flags} "${typeart_forwarded_args[@]}"
 }
 
 typeart_main_driver_fn "$@"

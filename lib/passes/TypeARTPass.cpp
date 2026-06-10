@@ -25,6 +25,8 @@
 #include "instrumentation/TypeARTFunctions.h"
 #include "instrumentation/TypeIDProvider.h"
 #include "support/ConfigurationBase.h"
+#include "support/CudaUtil.h"
+#include "support/GpuUtil.h"
 #include "support/Logger.h"
 #include "support/ModuleDumper.h"
 #include "support/Table.h"
@@ -269,6 +271,10 @@ class TypeArtPass : public llvm::PassInfoMixin<TypeArtPass> {
 
 llvm::PreservedAnalyses
 run(llvm::Module& m, llvm::ModuleAnalysisManager&) {
+  if (gpu::is_device_module(m)) {
+    LOG_DEBUG("Skipping GPU device module: " << m.getName());
+    return llvm::PreservedAnalyses::all();
+  }
   bool changed{false};
   changed |= doInitialization(m);
   const bool heap = configuration()[config::ConfigStdArgs::heap];  // Must happen after doInit
@@ -321,6 +327,10 @@ bool runOnFunc(llvm::Function& f) {
   using namespace typeart;
 
   if (f.isDeclaration() || util::starts_with_any_of(f.getName(), "__typeart", "typeart", "__sanitizer", "__tysan")) {
+    return false;
+  }
+
+  if (cuda::is_cuda_helper_function(f)) {
     return false;
   }
 

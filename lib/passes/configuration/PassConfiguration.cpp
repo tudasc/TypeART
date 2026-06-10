@@ -59,6 +59,12 @@ PassConfig parse_typeart_config_with_occurrence(llvm::StringRef parameters) {
       continue;
     }
 
+    if (parameter_name == ConfigStdArgs::gpu) {
+      result.gpu                         = enable;
+      occurrence_map[ConfigStdArgs::gpu] = true;
+      continue;
+    }
+
     if (parameter_name == ConfigStdArgs::stack) {
       result.stack                         = enable;
       occurrence_map[ConfigStdArgs::stack] = true;

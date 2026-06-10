@@ -3,6 +3,7 @@
 
 // CHECK: Emitting TypeART configuration content
 // CHECK: heap:            true
+// CHECK: gpu:             false
 // CHECK-NOT: stack:           true
 // CHECK-NOT: {{^}}global:          true
 // CHECK-NOT: stats:          false

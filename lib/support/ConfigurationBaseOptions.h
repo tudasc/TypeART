@@ -18,6 +18,7 @@ TYPEART_CONFIG_OPTION(types, "types", std::string, "typeart-types.yaml", "Locati
                       "TYPES")
 TYPEART_CONFIG_OPTION(stats, "stats", bool, false, "Show statistics for TypeArt type pass.", "STATS")
 TYPEART_CONFIG_OPTION(heap, "heap", bool, true, "Instrument heap allocation/free instructions.", "HEAP")
+TYPEART_CONFIG_OPTION(gpu, "gpu", bool, false, "Instrument GPU allocation/free instructions.", "GPU")
 TYPEART_CONFIG_OPTION(stack, "stack", bool, false, "Instrument stack allocations.", "STACK")
 TYPEART_CONFIG_OPTION(global, "global", bool, false, "Instrument global allocations.", "GLOBAL")
 TYPEART_CONFIG_OPTION(stack_lifetime, "stack-lifetime", bool, true,
