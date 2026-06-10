@@ -27,22 +27,7 @@
 namespace typeart::hip {
 
 inline std::optional<llvm::BitCastInst*> bitcast_for(llvm::Value* hip_ptr) {
-  std::optional<llvm::BitCastInst*> fallback;
-  for (auto& use : hip_ptr->uses()) {
-    auto* use_value = use.get();
-    auto* bitcast   = llvm::dyn_cast<llvm::BitCastInst>(use_value);
-    if (bitcast == nullptr) {
-      continue;
-    }
-
-    if (auto* primary_bitcast = llvm::dyn_cast<llvm::BitCastInst>(bitcast->getOperand(0))) {
-      return primary_bitcast;
-    }
-
-    fallback = bitcast;
-    return fallback;
-  }
-  return fallback;
+  return util::bitcast_for(hip_ptr);
 }
 
 inline std::optional<llvm::BitCastInst*> bitcast_for(const llvm::CallBase& hip_call) {
