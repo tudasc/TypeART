@@ -1,4 +1,6 @@
+// clang-format off
 // RUN: %c-to-llvm --coverage %s | %apply-typeart --typeart-global=true -S 2>&1 | %filecheck %s --check-prefixes CHECK,%llvm-version-check
+// clang-format on
 
 int global;
 int global_2 = 0;
