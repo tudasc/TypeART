@@ -1,6 +1,5 @@
 // RUN: %c-to-llvm -fprofile-instr-generate -fcoverage-mapping %s | %apply-typeart --typeart-global=true -S 2>&1 \
-// RUN: | %filecheck %s
-// REQUIRES: llvm-14
+// RUN: | %filecheck %s --check-prefixes CHECK,%llvm-version-check
 
 int global;
 int global_2 = 0;
@@ -14,6 +13,9 @@ void foo() {
 
 // CHECK: void @__typeart_init_module_
 // CHECK-NEXT: entry:
-// CHECK-NEXT: call void @__typeart_alloc_global(i8* bitcast (i32* @global_2 to i8*)
-// CHECK-NEXT: call void @__typeart_alloc_global(i8* bitcast (i32* @global to i8*)
-// CHECK-NEXT: ret void
+// LLVM_LEGACY-NEXT: call void @__typeart_alloc_global(i8* bitcast ({{[^@]+}} @global_2 to i8*)
+// LLVM-NEXT: call void @__typeart_alloc_global(ptr @global_2,
+// LLVM_LEGACY-NEXT: call void @__typeart_alloc_global(i8* bitcast ({{[^@]+}} @global to i8*)
+// LLVM-NEXT: call void @__typeart_alloc_global(ptr @global,
+// LLVM_LEGACY-NEXT: ret void
+// LLVM-NEXT: ret void

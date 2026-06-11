@@ -1,5 +1,6 @@
-// RUN: %c-to-llvm %s | %apply-typeart --typeart-global=true -S 2>&1 | %filecheck %s
-// REQUIRES: llvm-14
+// clang-format off
+// RUN: %c-to-llvm %s | %apply-typeart --typeart-global=true -S 2>&1 | %filecheck %s --check-prefixes CHECK,%llvm-version-check
+// clang-format on
 
 int global;
 int global_2 = 0;
@@ -20,8 +21,12 @@ void foo() {
 
 // CHECK: void @__typeart_init_module_
 // CHECK-NEXT: entry:
-// CHECK-DAG: call void @__typeart_alloc_global(i8* bitcast (i32* @global to i8*)
-// CHECK-DAG: call void @__typeart_alloc_global(i8* bitcast (i32* @global_2 to i8*)
-// CHECK-DAG: call void @__typeart_alloc_global(i8* bitcast (i32* @global_5 to i8*)
-// CHECK-DAG: call void @__typeart_alloc_global(i8* bitcast (i32* @global_6 to i8*)
+// LLVM_LEGACY-DAG: call void @__typeart_alloc_global(i8* bitcast (i32* @global to i8*)
+// LLVM-DAG: call void @__typeart_alloc_global(ptr @global,
+// LLVM_LEGACY-DAG: call void @__typeart_alloc_global(i8* bitcast (i32* @global_2 to i8*)
+// LLVM-DAG: call void @__typeart_alloc_global(ptr @global_2,
+// LLVM_LEGACY-DAG: call void @__typeart_alloc_global(i8* bitcast (i32* @global_5 to i8*)
+// LLVM-DAG: call void @__typeart_alloc_global(ptr @global_5,
+// LLVM_LEGACY-DAG: call void @__typeart_alloc_global(i8* bitcast (i32* @global_6 to i8*)
+// LLVM-DAG: call void @__typeart_alloc_global(ptr @global_6,
 // CHECK: ret void

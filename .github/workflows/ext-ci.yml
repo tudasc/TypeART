@@ -21,9 +21,6 @@ jobs:
         platform:
           - { os: ubuntu-22.04, llvm-version: 14 }
           - { os: ubuntu-24.04, llvm-version: 18 }
-          - { os: ubuntu-24.04, llvm-version: 19 }
-          - { os: ubuntu-24.04, llvm-version: 20 }
-          - { os: ubuntu-24.04, llvm-version: 21 }
           - { os: ubuntu-24.04, llvm-version: 22 }
 
     runs-on: ${{ matrix.platform.os }}
@@ -117,9 +114,6 @@ jobs:
         platform:
           - { os: ubuntu-22.04, llvm-version: 14 }
           - { os: ubuntu-24.04, llvm-version: 18 }
-          - { os: ubuntu-24.04, llvm-version: 19 }
-          - { os: ubuntu-24.04, llvm-version: 20 }
-          - { os: ubuntu-24.04, llvm-version: 21 }
           - { os: ubuntu-24.04, llvm-version: 22 }
 
     runs-on: ${{ matrix.platform.os }}
@@ -201,9 +195,6 @@ jobs:
         platform:
           - { os: ubuntu-22.04, llvm-version: 14 }
           - { os: ubuntu-24.04, llvm-version: 18 }
-          - { os: ubuntu-24.04, llvm-version: 19 }
-          - { os: ubuntu-24.04, llvm-version: 20 }
-          - { os: ubuntu-24.04, llvm-version: 21 }
           - { os: ubuntu-24.04, llvm-version: 22 }
 
     runs-on: ${{ matrix.platform.os }}

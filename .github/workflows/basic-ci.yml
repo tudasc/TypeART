@@ -44,7 +44,7 @@ jobs:
           git status --porcelain --untracked-files=no | xargs -o -I {} test -z \"{}\"
 
   codespell:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     steps:
       - uses: actions/checkout@v6
@@ -75,6 +75,14 @@ jobs:
           - { os: ubuntu-24.04, llvm-version: 20, typeart-typegen-legacy: 0 }
           - { os: ubuntu-24.04, llvm-version: 21, typeart-typegen-legacy: 0 }
           - { os: ubuntu-24.04, llvm-version: 22, typeart-typegen-legacy: 0 }
+        include:
+          - preset:
+              name: ci-thread-safe
+              abseil: true
+            platform:
+              os: ubuntu-24.04
+              llvm-version: 22
+              typeart-typegen-legacy: 0
 
     runs-on: ${{ matrix.platform.os }}
 
@@ -92,7 +100,11 @@ jobs:
           setup-mold: 'true'
 
       - name: Configure TypeART
-        run: cmake -B build --preset ${{ matrix.preset.name }} -DLLVM_DIR=${LLVM_CMAKE_DIR} -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT}
+        run: >
+          cmake -B build --preset ${{ matrix.preset.name }}
+          -DLLVM_DIR=${LLVM_CMAKE_DIR}
+          -DLLVM_EXTERNAL_LIT=${EXTERNAL_LIT}
+          ${{ matrix.preset.abseil && '-DTYPEART_ABSEIL=ON -DTYPEART_PHMAP=OFF' || '' }}
 
       - name: Build TypeART
         run: cmake --build build --parallel 2
